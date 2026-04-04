@@ -242,6 +242,10 @@ export default {
     this._starsRevealed = 0;
     this._confettiFired = false;
     this._bgmAccelStage = 0;
+    this._quitConfirmOpen = false;
+    this._quitBtnArea = null;
+    this._quitYes = null;
+    this._quitNo = null;
 
     // 雙人模式狀態
     this._player2Score = 0;
@@ -759,13 +763,52 @@ export default {
   isGameOver() { return this._gameOver; },
   destroy() { this._blocks = []; this._particles = []; },
 
-  /** 結算畫面點擊處理，回傳 "replay" | "menu" | null */
+  /** 點擊處理 */
   handleClick(x, y) {
-    if (!this._gameOver) return null;
-    for (const btn of this._resultButtons) {
-      if (x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) {
-        return btn.action;
+    // 結算畫面
+    if (this._gameOver) {
+      for (const btn of this._resultButtons) {
+        if (x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) {
+          return btn.action;
+        }
       }
+      return null;
+    }
+    // 確認對話框
+    if (this._quitConfirmOpen) {
+      if (this._quitYes && x >= this._quitYes.x && x <= this._quitYes.x + this._quitYes.w &&
+          y >= this._quitYes.y && y <= this._quitYes.y + this._quitYes.h) {
+        this._quitConfirmOpen = false;
+        this._gameOver = true;
+        this._resultStartTime = this._now;
+        this._displayScore = 0;
+        this._encourageText = ENCOURAGE_TEXTS[Math.floor(Math.random() * ENCOURAGE_TEXTS.length)];
+        for (const block of this._blocks) { this._spawnHitParticles(block); }
+        this._blocks = [];
+        if (this._audio) { this._audio.stopBGM(0); this._audio.play("time_up"); }
+        this._resultConfetti = [];
+        const colors = [C.danger, C.accent, C.success, "#5B6DFF", C.brand];
+        for (let i = 0; i < 60; i++) {
+          this._resultConfetti.push({ x: Math.random() * this._w, y: -20 - Math.random() * this._h,
+            size: 6 + Math.random() * 4, speed: 1 + Math.random() * 2,
+            phase: Math.random() * Math.PI * 2, phaseSpeed: 0.02 + Math.random() * 0.03,
+            rotation: Math.random() * Math.PI * 2, rotSpeed: 0.02 + Math.random() * 0.05,
+            color: colors[Math.floor(Math.random() * colors.length)] });
+        }
+        return null;
+      }
+      if (this._quitNo && x >= this._quitNo.x && x <= this._quitNo.x + this._quitNo.w &&
+          y >= this._quitNo.y && y <= this._quitNo.y + this._quitNo.h) {
+        this._quitConfirmOpen = false;
+        return null;
+      }
+      return null;
+    }
+    // 提前結束按鈕
+    if (this._quitBtnArea && x >= this._quitBtnArea.x && x <= this._quitBtnArea.x + this._quitBtnArea.w &&
+        y >= this._quitBtnArea.y && y <= this._quitBtnArea.y + this._quitBtnArea.h) {
+      this._quitConfirmOpen = true;
+      return null;
     }
     return null;
   },
@@ -1330,6 +1373,40 @@ export default {
       } else {
         this._comboPopup = null;
       }
+    }
+
+    // 提前結束按鈕（左上角）
+    const qs = 48, qx = 12, qy = 90;
+    ctx.save();
+    ctx.fillStyle = "rgba(255,255,255,0.25)";
+    ctx.beginPath(); ctx.arc(qx + qs / 2, qy + qs / 2, qs / 2, 0, Math.PI * 2); ctx.fill();
+    ctx.font = "bold 24px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    ctx.fillText("✕", qx + qs / 2, qy + qs / 2);
+    ctx.restore();
+    this._quitBtnArea = { x: qx, y: qy, w: qs, h: qs };
+
+    // 確認對話框
+    if (this._quitConfirmOpen) {
+      ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(0, 0, w, this._h);
+      const boxW = Math.min(300, w * 0.8), boxH = 180;
+      const boxX = (w - boxW) / 2, boxY = (this._h - boxH) / 2;
+      ctx.fillStyle = "rgba(45,52,54,0.95)";
+      rrect(ctx, boxX, boxY, boxW, boxH, 20); ctx.fill();
+      ctx.strokeStyle = C.accent; ctx.lineWidth = 2; ctx.stroke();
+      ctx.font = "bold 24px 'Arial Black', sans-serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      outlinedText(ctx, "確定要結束嗎？", w / 2, boxY + 50, C.light, C.dark, 3);
+      const btnW2 = 100, btnH2 = 44, btnY2 = boxY + boxH - 65;
+      ctx.fillStyle = C.danger;
+      rrect(ctx, w / 2 - btnW2 - 10, btnY2, btnW2, btnH2, 12); ctx.fill();
+      ctx.font = "bold 20px sans-serif";
+      outlinedText(ctx, "結束", w / 2 - btnW2 / 2 - 10, btnY2 + btnH2 / 2, C.light, C.dark, 2);
+      this._quitYes = { x: w / 2 - btnW2 - 10, y: btnY2, w: btnW2, h: btnH2 };
+      ctx.fillStyle = C.success;
+      rrect(ctx, w / 2 + 10, btnY2, btnW2, btnH2, 12); ctx.fill();
+      outlinedText(ctx, "繼續", w / 2 + 10 + btnW2 / 2, btnY2 + btnH2 / 2, C.light, C.dark, 2);
+      this._quitNo = { x: w / 2 + 10, y: btnY2, w: btnW2, h: btnH2 };
     }
   },
 

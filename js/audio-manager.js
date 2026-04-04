@@ -21,6 +21,9 @@ class AudioManager {
     this._currentBGM = null;     // 目前播放的 BGM 名稱
     this._bgmPlaybackRate = 1.0;
 
+    // SFX 檔案緩衝
+    this._sfxBuffers = {};
+
     // 防止重複初始化
     this._initialized = false;
   }
@@ -109,6 +112,28 @@ class AudioManager {
     });
 
     await Promise.all(loadPromises);
+
+    // 預載 SFX 音效檔案
+    const sfxFiles = {
+      sfx_heli_boost:   `${basePath}/sfx_heli_boost.mp3`,
+      sfx_heli_whoosh:  `${basePath}/sfx_heli_whoosh.mp3`,
+      sfx_heli_win:     `${basePath}/sfx_heli_win.mp3`,
+      sfx_countdown:    `${basePath}/sfx_countdown.mp3`,
+      sfx_time_warning: `${basePath}/sfx_time_warning.mp3`,
+    };
+    const sfxLoadPromises = Object.entries(sfxFiles).map(async ([key, url]) => {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) return;
+        const arrayBuffer = await response.arrayBuffer();
+        this._sfxBuffers[key] = await this._ctx.decodeAudioData(arrayBuffer);
+        console.log(`[AudioManager] SFX 載入完成: ${key}`);
+      } catch (e) {
+        console.warn(`[AudioManager] SFX 載入失敗: ${key}`, e);
+      }
+    });
+    await Promise.all(sfxLoadPromises);
+
     this._initialized = true;
     console.log("[AudioManager] 初始化完成");
   }
@@ -257,6 +282,19 @@ class AudioManager {
       default:
         console.warn(`[AudioManager] 未知音效: ${id}`);
     }
+  }
+
+  /**
+   * 從預載入的音效檔案播放 SFX
+   * @param {string} name - 音效名稱（如 "sfx_heli_boost"）
+   */
+  playSFXFromFile(name) {
+    if (!this._ctx || this._muted || !this._sfxBuffers[name]) return;
+    this.resume();
+    const source = this._ctx.createBufferSource();
+    source.buffer = this._sfxBuffers[name];
+    source.connect(this._sfxGain);
+    source.start();
   }
 
   // ── 選單 / UI 音效 ──

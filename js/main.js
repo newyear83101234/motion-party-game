@@ -9,6 +9,7 @@ import { FPSCounter } from "./fps-counter.js";
 import { drawCamera, drawSkeleton } from "./renderer.js";
 import audioManager from "./audio-manager.js";
 import iceBreaker from "./games/ice-breaker.js";
+import helicopterRace from "./games/helicopter-race.js";
 
 // ── 配色（與遊戲一致）──
 const C = {
@@ -142,13 +143,13 @@ function renderMenu() {
   const games = [
     { name: "ice-breaker", label: "❄  敲冰塊",     desc: "揮動手臂敲碎冰塊", color: "#4A90D9" },
     { name: "pose-match",  label: "🤸  姿勢模仿",  desc: "即將推出",         color: C.success },
-    { name: "helicopter",  label: "🚁  直升機競賽", desc: "即將推出",         color: C.brand },
+    { name: "helicopter",  label: "🚁  直升機競賽", desc: "扭動身體讓直升機飛高", color: C.brand },
   ];
 
   menuButtons = [];
   games.forEach((game, i) => {
     const y = startY + i * (btnH + 18);
-    const enabled = game.name === "ice-breaker";
+    const enabled = game.name === "ice-breaker" || game.name === "helicopter";
 
     ctx.save();
     if (enabled) shadowOn(ctx);
@@ -548,8 +549,9 @@ canvas.addEventListener("click", async (e) => {
     for (const btn of menuButtons) {
       if (cx >= btn.x && cx <= btn.x + btn.w &&
           cy >= btn.y && cy <= btn.y + btn.h) {
-        if (btn.game === "ice-breaker") {
+        if (btn.game === "ice-breaker" || btn.game === "helicopter") {
           audioManager.play("menu_click");
+          currentGameName = btn.game;
           appState = "modeSelect";
         }
         break;
@@ -569,10 +571,13 @@ canvas.addEventListener("click", async (e) => {
         if (selectedMode === "dual") {
           initPoseDetector(2);
         }
-        startGame("ice-breaker");
+        startGame(currentGameName);
         break;
       }
     }
+  } else if (appState === "playing" && currentGame?.handleClick) {
+    // 遊戲進行中的點擊（提前結束按鈕等）
+    currentGame.handleClick(cx, cy);
   } else if (appState === "gameover" && currentGame?.handleClick) {
     const action = currentGame.handleClick(cx, cy);
     audioManager.play("btn_click");
@@ -626,14 +631,18 @@ canvas.addEventListener("pointermove", (e) => {
 function startGame(gameName) {
   if (gameName === "ice-breaker") {
     currentGame = iceBreaker;
+  } else if (gameName === "helicopter") {
+    currentGame = helicopterRace;
   }
   if (!currentGame) return;
   currentGameName = gameName;
 
-  // 切換到遊戲 BGM（即時停止，避免 fade-out 與新 BGM 的 gain 衝突）
+  // 切換 BGM（直升機遊戲在倒數結束後自行播放）
   audioManager.stopBGM(0);
   audioManager.setBGMPlaybackRate(1.0);
-  audioManager.playBGM("gameplay");
+  if (gameName !== "helicopter") {
+    audioManager.playBGM("gameplay");
+  }
 
   currentGame.init(ctx, {
     canvasWidth: canvas.width,
