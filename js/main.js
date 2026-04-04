@@ -300,27 +300,24 @@ function isFullscreen() {
 }
 
 function renderFullscreenButton() {
-  // 放在設定按鈕的左邊
-  const btnSize = 70;
+  const btnW = 120;
+  const btnH = 44;
   const margin = 16;
-  const bx = canvas.width - btnSize * 2 - margin - 10;
-  const by = margin;
+  const bx = canvas.width - btnW - margin;
+  const by = canvas.height - btnH - margin;
+  const label = isFullscreen() ? "結束全螢幕" : "全螢幕";
 
   ctx.save();
-  ctx.fillStyle = "#2D3436";
-  ctx.beginPath();
-  ctx.arc(bx + btnSize / 2, by + btnSize / 2, btnSize / 2, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(26, 188, 156, 0.85)";
+  rrect(ctx, bx, by, btnW, btnH, 12);
   ctx.fill();
-  ctx.strokeStyle = "#1ABC9C";
-  ctx.lineWidth = 3;
-  ctx.stroke();
-  ctx.font = "36px sans-serif";
+  ctx.font = "bold 20px 'Arial Black', sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(isFullscreen() ? "🔲" : "📱", bx + btnSize / 2, by + btnSize / 2);
+  outlinedText(ctx, label, bx + btnW / 2, by + btnH / 2, C.light, C.dark, 3);
   ctx.restore();
 
-  fullscreenBtnArea = { x: bx, y: by, w: btnSize, h: btnSize };
+  fullscreenBtnArea = { x: bx, y: by, w: btnW, h: btnH };
 }
 
 async function toggleFullscreen() {
