@@ -63,6 +63,7 @@ function resizeCanvas() {
 }
 window.addEventListener("resize", resizeCanvas);
 document.addEventListener("fullscreenchange", resizeCanvas);
+document.addEventListener("webkitfullscreenchange", resizeCanvas);
 resizeCanvas();
 
 // ══════════════════════════════════════════
@@ -294,14 +295,16 @@ function renderSettingsButton() {
 // ── 全螢幕按鈕 ──
 let fullscreenBtnArea = null;
 
+function isFullscreen() {
+  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+
 function renderFullscreenButton() {
   // 放在設定按鈕的左邊
   const btnSize = 70;
   const margin = 16;
   const bx = canvas.width - btnSize * 2 - margin - 10;
   const by = margin;
-
-  const isFS = !!document.fullscreenElement;
 
   ctx.save();
   ctx.fillStyle = "#2D3436";
@@ -314,24 +317,31 @@ function renderFullscreenButton() {
   ctx.font = "36px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(isFS ? "🔲" : "📱", bx + btnSize / 2, by + btnSize / 2);
+  ctx.fillText(isFullscreen() ? "🔲" : "📱", bx + btnSize / 2, by + btnSize / 2);
   ctx.restore();
 
   fullscreenBtnArea = { x: bx, y: by, w: btnSize, h: btnSize };
 }
 
 async function toggleFullscreen() {
+  const el = document.documentElement;
   try {
-    if (!document.fullscreenElement) {
-      await document.documentElement.requestFullscreen();
-      // 嘗試鎖定螢幕方向為橫向
+    if (!isFullscreen()) {
+      // 標準 API → webkit 前綴（iOS Safari）
+      if (el.requestFullscreen) {
+        await el.requestFullscreen();
+      } else if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen();
+      }
+      // 嘗試鎖定橫向
       if (screen.orientation && screen.orientation.lock) {
         screen.orientation.lock("landscape").catch(() => {});
       }
     } else {
-      await document.exitFullscreen();
-      if (screen.orientation && screen.orientation.unlock) {
-        screen.orientation.unlock();
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
       }
     }
   } catch (e) {
