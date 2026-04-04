@@ -22,12 +22,11 @@ const HELI_COLORS = [
 
 // ── 物理參數（幼兒適配，限制最大速度，強調持續搖動）──
 const PHYSICS = {
-  maxThrust:     3.0,    // 最大推進力（降低，避免一下飛上去）
-  gravity:       0.8,    // 重力（不搖時慢慢掉）
-  inertiaDecay:  0.92,   // 慣性衰減（較慢，保持動量感）
-  maxVelocity:   2.5,    // 速度上限（核心：限制最大上升速度）
+  maxThrust:     2.0,    // 最大推進力（再降低）
+  gravity:       0.6,    // 重力（溫和下降）
+  inertiaDecay:  0.93,   // 慣性衰減
+  maxVelocity:   1.5,    // 速度上限（再降低，需要持續搖才能慢慢上升）
   maxHeight:     0.85,   // 最高可達畫面 85%
-  noiseThreshold: 0.006, // 靜止噪音過濾
 };
 
 // ── 偵測用 landmark 索引 ──
@@ -67,74 +66,58 @@ let _warningFired = false;
 // ══════════════════════════════════════════
 
 /**
- * 計算屁股搖動強度
- * 三種信號取最大值：
- *   1. 髖部中心 X 左右晃動（左右搖擺）
- *   2. 髖部左右距離變化（扭轉）
- *   3. 髖部中心 Y 上下跳動（蹲跳）
- * 任何一種動作都能讓直升機上升
+ * 計算屁股搖動強度（僅偵測髖部 landmark 23/24）
+ * 三種信號取最大值：左右晃、扭轉、上下跳
+ * 同時記錄髖部螢幕座標供渲染標記用
  */
 function calcTwist(landmarks, player) {
   if (!landmarks || landmarks.length < 25) return 0;
 
-  // 優先用髖部，不可見時 fallback 到肩膀
-  let lIdx = DET.hipL, rIdx = DET.hipR;
-  const hipVis = Math.min(
-    landmarks[DET.hipL]?.visibility ?? 0,
-    landmarks[DET.hipR]?.visibility ?? 0
-  );
-  const usingShoulder = hipVis < DET.hipVis;
-  if (usingShoulder) { lIdx = DET.shL; rIdx = DET.shR; }
+  const leftHip = landmarks[DET.hipL];
+  const rightHip = landmarks[DET.hipR];
 
-  const left = landmarks[lIdx], right = landmarks[rIdx];
-  if (!left || !right) return 0;
+  // 髖部不可見 → 顯示提示，不 fallback 到肩膀
+  const hipVis = Math.min(leftHip?.visibility ?? 0, rightHip?.visibility ?? 0);
+  if (hipVis < 0.2 || !leftHip || !rightHip) {
+    player.hipVisible = false;
+    return 0;
+  }
+  player.hipVisible = true;
 
-  const centerX = (left.x + right.x) / 2;
-  const centerY = (left.y + right.y) / 2;
-  const dist = Math.abs(left.x - right.x);
+  // 記錄髖部螢幕座標（鏡像翻轉，用於渲染標記）
+  player.hipScreenX = (1 - (leftHip.x + rightHip.x) / 2) * _w;
+  player.hipScreenY = ((leftHip.y + rightHip.y) / 2) * _h;
 
-  // 初始化（第一幀不計算）
+  const centerX = (leftHip.x + rightHip.x) / 2;
+  const centerY = (leftHip.y + rightHip.y) / 2;
+  const dist = Math.abs(leftHip.x - rightHip.x);
+
+  // 初始化
   if (player.lastCX === undefined) {
     player.lastCX = centerX;
     player.lastCY = centerY;
     player.lastDist = dist;
-    player._debugCount = 0;
     return 0;
   }
 
-  // 三種信號的幀間差異
-  const dCX = Math.abs(centerX - player.lastCX);   // 左右晃動
-  const dCY = Math.abs(centerY - player.lastCY);   // 上下跳動
-  const dDist = Math.abs(dist - player.lastDist);   // 扭轉
+  // 三種信號
+  const dCX = Math.abs(centerX - player.lastCX);
+  const dCY = Math.abs(centerY - player.lastCY);
+  const dDist = Math.abs(dist - player.lastDist);
   player.lastCX = centerX;
   player.lastCY = centerY;
   player.lastDist = dist;
 
-  // 取三者最大值作為搖動信號
   const rawDelta = Math.max(dCX, dCY, dDist);
-
-  // 極低的噪音門檻（0.001），幾乎任何動作都能觸發
   if (rawDelta < 0.001) return 0;
 
-  // 記錄歷史
   const now = Date.now();
   player.shakeHistory.push({ time: now, delta: rawDelta });
   player.shakeHistory = player.shakeHistory.filter(t => now - t.time < 1000);
 
-  // 最近 1 秒的平均搖動幅度
   const avgDelta = player.shakeHistory.reduce((s, t) => s + t.delta, 0) / player.shakeHistory.length;
-
-  // 頻率加成（搖越多次加成越大，最高 2 倍）
   const freq = 1 + Math.min(player.shakeHistory.length / 10, 1.0);
-
-  // 最終強度（乘數 150，讓小幅度動作也有明顯效果）
   const intensity = Math.min(avgDelta * freq * 150, 1.0);
-
-  // Debug 日誌（每 60 幀輸出一次）
-  player._debugCount = (player._debugCount || 0) + 1;
-  if (player._debugCount % 60 === 0) {
-    console.log(`[Heli] ${usingShoulder ? "肩膀" : "髖部"} dCX=${dCX.toFixed(4)} dCY=${dCY.toFixed(4)} dDist=${dDist.toFixed(4)} → intensity=${intensity.toFixed(2)}`);
-  }
 
   return intensity;
 }
@@ -441,6 +424,7 @@ const helicopterRace = {
         height: 0, velocity: 0, currentIntensity: 0,
         shakeHistory: [],
         lastCX: undefined, lastCY: undefined, lastDist: undefined,
+        hipVisible: false, hipScreenX: 0, hipScreenY: 0,
         color: HELI_COLORS[i], propellerAngle: 0,
       });
     }
@@ -508,6 +492,37 @@ const helicopterRace = {
     // 輕微暗化讓遊戲元素更清晰
     ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
     ctx.fillRect(0, 0, _w, _h);
+
+    // 屁股偵測標記（🍑 在髖部位置）
+    if (gameState === "playing" || gameState === "countdown") {
+      players.forEach((p, i) => {
+        if (p.hipVisible) {
+          const markerSize = 40 + p.currentIntensity * 20; // 搖動時變大
+          ctx.save();
+          ctx.font = `${markerSize}px sans-serif`;
+          ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          // 搖動時加發光效果
+          if (p.currentIntensity > 0.1) {
+            ctx.shadowColor = p.color.main;
+            ctx.shadowBlur = 20 + p.currentIntensity * 30;
+          }
+          ctx.fillText("🍑", p.hipScreenX, p.hipScreenY);
+          ctx.restore();
+        }
+      });
+
+      // 髖部不可見提示
+      const anyHipMissing = players.some(p => !p.hipVisible);
+      if (anyHipMissing && gameState === "playing") {
+        ctx.save();
+        ctx.font = "bold 28px 'Arial Black', sans-serif";
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        const flash = 0.6 + Math.sin(Date.now() * 0.005) * 0.4;
+        ctx.globalAlpha = flash;
+        outlinedText(ctx, "📷 請站遠一點，讓鏡頭拍到屁股！", _w / 2, _h * 0.5, C.accent, C.dark, 3);
+        ctx.restore();
+      }
+    }
 
     // 直升機
     players.forEach((p, i) => {
