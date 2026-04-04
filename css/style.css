@@ -1,0 +1,53 @@
+/* 全域重設 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #111;
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 隱藏原始 video 元素 */
+#camera {
+  display: none;
+}
+
+/* 遊戲 Canvas 佔滿螢幕 */
+#gameCanvas {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  object-fit: contain;
+}
+
+/* FPS 顯示 */
+#fps {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  color: rgba(0, 255, 0, 0.7);
+  font: bold 14px monospace;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* 狀態訊息 */
+#status {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font: bold 24px sans-serif;
+  z-index: 20;
+  text-align: center;
+  pointer-events: none;
+}

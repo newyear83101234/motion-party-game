@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>體感派對</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- 隱藏的 video 元素，用於擷取鏡頭畫面 -->
+  <video id="camera" autoplay playsinline></video>
+
+  <!-- 主要遊戲 Canvas -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- FPS 顯示（debug 用） -->
+  <div id="fps" style="display:none;">FPS: --</div>
+
+  <!-- 狀態訊息 -->
+  <div id="status">載入中...</div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
