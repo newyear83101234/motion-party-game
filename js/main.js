@@ -62,6 +62,7 @@ function resizeCanvas() {
   canvas.height = window.innerHeight;
 }
 window.addEventListener("resize", resizeCanvas);
+document.addEventListener("fullscreenchange", resizeCanvas);
 resizeCanvas();
 
 // ══════════════════════════════════════════
@@ -290,6 +291,54 @@ function renderSettingsButton() {
   settingsBtnArea = { x: bx, y: by, w: btnSize, h: btnSize };
 }
 
+// ── 全螢幕按鈕 ──
+let fullscreenBtnArea = null;
+
+function renderFullscreenButton() {
+  // 放在設定按鈕的左邊
+  const btnSize = 70;
+  const margin = 16;
+  const bx = canvas.width - btnSize * 2 - margin - 10;
+  const by = margin;
+
+  const isFS = !!document.fullscreenElement;
+
+  ctx.save();
+  ctx.fillStyle = "#2D3436";
+  ctx.beginPath();
+  ctx.arc(bx + btnSize / 2, by + btnSize / 2, btnSize / 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#1ABC9C";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.font = "36px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(isFS ? "🔲" : "📱", bx + btnSize / 2, by + btnSize / 2);
+  ctx.restore();
+
+  fullscreenBtnArea = { x: bx, y: by, w: btnSize, h: btnSize };
+}
+
+async function toggleFullscreen() {
+  try {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+      // 嘗試鎖定螢幕方向為橫向
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock("landscape").catch(() => {});
+      }
+    } else {
+      await document.exitFullscreen();
+      if (screen.orientation && screen.orientation.unlock) {
+        screen.orientation.unlock();
+      }
+    }
+  } catch (e) {
+    console.warn("[Fullscreen]", e);
+  }
+}
+
 function renderSettingsPanel() {
   const w = canvas.width;
   const h = canvas.height;
@@ -456,6 +505,14 @@ canvas.addEventListener("click", async (e) => {
     return;
   }
 
+  // 全螢幕按鈕點擊（只在選單時）
+  if (appState === "menu" && fullscreenBtnArea &&
+      cx >= fullscreenBtnArea.x && cx <= fullscreenBtnArea.x + fullscreenBtnArea.w &&
+      cy >= fullscreenBtnArea.y && cy <= fullscreenBtnArea.y + fullscreenBtnArea.h) {
+    toggleFullscreen();
+    return;
+  }
+
   // 設定按鈕點擊（只在選單時）
   if (appState === "menu" && settingsBtnArea &&
       cx >= settingsBtnArea.x && cx <= settingsBtnArea.x + settingsBtnArea.w &&
@@ -607,9 +664,10 @@ function loop(timestamp) {
     ctx.fillText(`偵測 ${allLandmarks.length} 人`, 10, canvas.height - 8);
   }
 
-  // 設定按鈕（只在選單畫面顯示）
+  // 設定 + 全螢幕按鈕（只在選單畫面顯示）
   if (appState === "menu") {
     renderSettingsButton();
+    renderFullscreenButton();
   }
 
   // 設定面板（覆蓋在最上層）
