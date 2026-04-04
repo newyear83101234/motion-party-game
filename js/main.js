@@ -299,27 +299,39 @@ function isFullscreen() {
   return !!(document.fullscreenElement || document.webkitFullscreenElement);
 }
 
+let _fsBtnFlash = 0; // 按鈕回饋動畫時間戳
+
 function renderFullscreenButton() {
   // 齒輪按鈕左邊
-  const btnW = 120;
-  const btnH = 44;
+  const btnW = 140;
+  const btnH = 52;
   const margin = 16;
   const gearSize = 70;
   const bx = canvas.width - gearSize - margin - btnW - 10;
-  const by = margin + (gearSize - btnH) / 2;  // 垂直對齊齒輪中心
+  const by = margin + (gearSize - btnH) / 2;
   const label = isFullscreen() ? "結束全螢幕" : "全螢幕";
 
+  // 按下回饋：短暫變亮
+  const flashT = (performance.now() - _fsBtnFlash) / 150;
+  const isFlashing = flashT >= 0 && flashT < 1;
+  const bgColor = isFlashing ? "rgba(26, 188, 156, 1.0)" : "rgba(26, 188, 156, 0.85)";
+  const scale = isFlashing ? 1.0 + 0.08 * (1 - flashT) : 1.0;
+
   ctx.save();
-  ctx.fillStyle = "rgba(26, 188, 156, 0.85)";
-  rrect(ctx, bx, by, btnW, btnH, 12);
+  ctx.translate(bx + btnW / 2, by + btnH / 2);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = bgColor;
+  rrect(ctx, -btnW / 2, -btnH / 2, btnW, btnH, 14);
   ctx.fill();
-  ctx.font = "bold 20px 'Arial Black', sans-serif";
+  ctx.font = "bold 22px 'Arial Black', sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  outlinedText(ctx, label, bx + btnW / 2, by + btnH / 2, C.light, C.dark, 3);
+  outlinedText(ctx, label, 0, 0, C.light, C.dark, 3);
   ctx.restore();
 
-  fullscreenBtnArea = { x: bx, y: by, w: btnW, h: btnH };
+  // 觸控區域比視覺區域大 12px（四邊各加 12px padding）
+  const pad = 12;
+  fullscreenBtnArea = { x: bx - pad, y: by - pad, w: btnW + pad * 2, h: btnH + pad * 2 };
 }
 
 async function toggleFullscreen() {
@@ -518,6 +530,8 @@ canvas.addEventListener("click", async (e) => {
   if (appState === "menu" && fullscreenBtnArea &&
       cx >= fullscreenBtnArea.x && cx <= fullscreenBtnArea.x + fullscreenBtnArea.w &&
       cy >= fullscreenBtnArea.y && cy <= fullscreenBtnArea.y + fullscreenBtnArea.h) {
+    _fsBtnFlash = performance.now();
+    audioManager.play("btn_click");
     toggleFullscreen();
     return;
   }
