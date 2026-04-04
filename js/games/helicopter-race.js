@@ -68,8 +68,11 @@ let _warningFired = false;
 
 /**
  * 計算屁股搖動強度
- * 偵測左右髖部（landmark 23/24）的水平距離變化速度
- * 搖越快 → 強度越高 → 直升機升越快
+ * 三種信號取最大值：
+ *   1. 髖部中心 X 左右晃動（左右搖擺）
+ *   2. 髖部左右距離變化（扭轉）
+ *   3. 髖部中心 Y 上下跳動（蹲跳）
+ * 任何一種動作都能讓直升機上升
  */
 function calcTwist(landmarks, player) {
   if (!landmarks || landmarks.length < 25) return 0;
@@ -80,40 +83,59 @@ function calcTwist(landmarks, player) {
     landmarks[DET.hipL]?.visibility ?? 0,
     landmarks[DET.hipR]?.visibility ?? 0
   );
-  if (hipVis < DET.hipVis) { lIdx = DET.shL; rIdx = DET.shR; }
+  const usingShoulder = hipVis < DET.hipVis;
+  if (usingShoulder) { lIdx = DET.shL; rIdx = DET.shR; }
 
   const left = landmarks[lIdx], right = landmarks[rIdx];
   if (!left || !right) return 0;
 
-  // 用髖部中心的 x 座標（左右搖動）
-  const hipCenterX = (left.x + right.x) / 2;
+  const centerX = (left.x + right.x) / 2;
+  const centerY = (left.y + right.y) / 2;
+  const dist = Math.abs(left.x - right.x);
 
-  // 初始化
-  if (player.lastHipX === null) {
-    player.lastHipX = hipCenterX;
+  // 初始化（第一幀不計算）
+  if (player.lastCX === undefined) {
+    player.lastCX = centerX;
+    player.lastCY = centerY;
+    player.lastDist = dist;
+    player._debugCount = 0;
     return 0;
   }
 
-  // 計算搖動速度（與上一幀的差異）
-  const delta = Math.abs(hipCenterX - player.lastHipX);
-  player.lastHipX = hipCenterX;
+  // 三種信號的幀間差異
+  const dCX = Math.abs(centerX - player.lastCX);   // 左右晃動
+  const dCY = Math.abs(centerY - player.lastCY);   // 上下跳動
+  const dDist = Math.abs(dist - player.lastDist);   // 扭轉
+  player.lastCX = centerX;
+  player.lastCY = centerY;
+  player.lastDist = dist;
 
-  // 過濾靜止噪音
-  if (delta < PHYSICS.noiseThreshold) return 0;
+  // 取三者最大值作為搖動信號
+  const rawDelta = Math.max(dCX, dCY, dDist);
 
-  // 記錄搖動歷史（計算頻率加成）
+  // 極低的噪音門檻（0.001），幾乎任何動作都能觸發
+  if (rawDelta < 0.001) return 0;
+
+  // 記錄歷史
   const now = Date.now();
-  player.shakeHistory.push({ time: now, delta });
-  player.shakeHistory = player.shakeHistory.filter(t => now - t.time < 800);
+  player.shakeHistory.push({ time: now, delta: rawDelta });
+  player.shakeHistory = player.shakeHistory.filter(t => now - t.time < 1000);
 
-  // 最近 0.8 秒的平均搖動幅度
+  // 最近 1 秒的平均搖動幅度
   const avgDelta = player.shakeHistory.reduce((s, t) => s + t.delta, 0) / player.shakeHistory.length;
 
-  // 頻率加成（搖越多次加成越大）
-  const freq = Math.min(player.shakeHistory.length / 8, 1.5);
+  // 頻率加成（搖越多次加成越大，最高 2 倍）
+  const freq = 1 + Math.min(player.shakeHistory.length / 10, 1.0);
 
-  // 最終強度：平均幅度 × 頻率加成，限制 0~1
-  const intensity = Math.min(avgDelta * freq * 80, 1.0);
+  // 最終強度（乘數 150，讓小幅度動作也有明顯效果）
+  const intensity = Math.min(avgDelta * freq * 150, 1.0);
+
+  // Debug 日誌（每 60 幀輸出一次）
+  player._debugCount = (player._debugCount || 0) + 1;
+  if (player._debugCount % 60 === 0) {
+    console.log(`[Heli] ${usingShoulder ? "肩膀" : "髖部"} dCX=${dCX.toFixed(4)} dCY=${dCY.toFixed(4)} dDist=${dDist.toFixed(4)} → intensity=${intensity.toFixed(2)}`);
+  }
+
   return intensity;
 }
 
@@ -417,7 +439,8 @@ const helicopterRace = {
     for (let i = 0; i < numP; i++) {
       players.push({
         height: 0, velocity: 0, currentIntensity: 0,
-        shakeHistory: [], lastHipX: null,
+        shakeHistory: [],
+        lastCX: undefined, lastCY: undefined, lastDist: undefined,
         color: HELI_COLORS[i], propellerAngle: 0,
       });
     }
