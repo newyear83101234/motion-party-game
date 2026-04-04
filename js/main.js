@@ -300,11 +300,13 @@ function isFullscreen() {
 }
 
 function renderFullscreenButton() {
+  // 齒輪按鈕左邊
   const btnW = 120;
   const btnH = 44;
   const margin = 16;
-  const bx = canvas.width - btnW - margin;
-  const by = canvas.height - btnH - margin;
+  const gearSize = 70;
+  const bx = canvas.width - gearSize - margin - btnW - 10;
+  const by = margin + (gearSize - btnH) / 2;  // 垂直對齊齒輪中心
   const label = isFullscreen() ? "結束全螢幕" : "全螢幕";
 
   ctx.save();
