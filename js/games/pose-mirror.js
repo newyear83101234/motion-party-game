@@ -22,7 +22,6 @@ const C = {
 // ── 遊戲常數 ──
 const ROUNDS_SINGLE = 6;
 const ROUNDS_DUAL = 5;
-const PREVIEW_DURATION = 3000;
 const COUNTDOWN_DURATION = 3000;
 const DETECT_DURATION = 3000;
 const RESULT_DURATION = 2500;
@@ -38,7 +37,6 @@ const SCORE_EMA_ALPHA = 0.3;
 // ── 遊戲狀態 ──
 const STATE = {
   CALIBRATION: "calibration",
-  PREVIEW: "preview",
   COUNTDOWN: "countdown",
   DETECTING: "detecting",
   RESULT: "result",
@@ -208,21 +206,13 @@ const poseMirror = {
         this._updateCalibration(lm1, lm2, timestamp);
         break;
 
-      case STATE.PREVIEW:
-        // 在展示階段播放姿勢語音提示
+      case STATE.COUNTDOWN: {
+        // 播放姿勢語音提示（倒數開始時）
         if (!this._voicePlayed && this._audio && this._currentPose) {
           const voiceKey = this._getVoiceKey(this._currentPose);
           if (voiceKey) this._audio.playSFXFromFile(voiceKey);
           this._voicePlayed = true;
         }
-        if (elapsed >= PREVIEW_DURATION) {
-          this._countdownSoundsPlayed = { 3: false, 2: false, 1: false };
-          this._goSoundPlayed = false;
-          this._changeState(STATE.COUNTDOWN, timestamp);
-        }
-        break;
-
-      case STATE.COUNTDOWN: {
         const count = 3 - Math.floor(elapsed / 1000);
         // 播放倒數音效
         if (this._audio) {
@@ -316,7 +306,7 @@ const poseMirror = {
       if (timestamp - this._calibrationReadyTime >= 2000) {
         this._currentPose = this._poses[0];
         this._voicePlayed = false;
-        this._changeState(STATE.PREVIEW, timestamp);
+        this._changeState(STATE.COUNTDOWN, timestamp);
       }
     } else {
       this._calibrationReady = false;
@@ -411,7 +401,7 @@ const poseMirror = {
       this._currentPose = this._poses[this._currentRound];
       this._resetScores();
       this._voicePlayed = false;
-      this._changeState(STATE.PREVIEW, timestamp);
+      this._changeState(STATE.COUNTDOWN, timestamp);
     }
   },
 
@@ -430,7 +420,6 @@ const poseMirror = {
 
     switch (this._state) {
       case STATE.CALIBRATION:  this._renderCalibration(ctx, w, h); break;
-      case STATE.PREVIEW:      this._renderPreview(ctx, w, h); break;
       case STATE.COUNTDOWN:    this._renderCountdown(ctx, w, h); break;
       case STATE.DETECTING:    this._renderDetecting(ctx, w, h); break;
       case STATE.RESULT:       this._renderResult(ctx, w, h); break;
@@ -487,59 +476,6 @@ const poseMirror = {
       ctx.font = `${fontSize * 0.8}px sans-serif`;
       ctx.fillText("✓ 全身偵測成功！", w / 2, frameY - 10);
     }
-  },
-
-  // ── 展示目標姿勢（全螢幕）──
-  _renderPreview(ctx, w, h) {
-    const pose = this._currentPose;
-    const elapsed = performance.now() - this._stateStartTime;
-    const progress = Math.min(1, elapsed / PREVIEW_DURATION);
-
-    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-    ctx.fillRect(0, 0, w, h);
-
-    // 輪次
-    const smallFont = Math.max(14, h * 0.035);
-    ctx.fillStyle = C.light;
-    ctx.font = `${smallFont}px sans-serif`;
-    ctx.textAlign = "center";
-    ctx.fillText(`第 ${this._currentRound + 1} / ${this._totalRounds} 輪`, w / 2, smallFont + 10);
-
-    // 姿勢卡片（全螢幕居中）
-    const img = this._imageCache[pose.id];
-    if (img) {
-      const imgSize = Math.min(w * 0.55, h * 0.45);
-      const imgX = (w - imgSize) / 2;
-      const imgY = (h - imgSize) / 2 - h * 0.08;
-
-      // 半透明圓角卡片底
-      ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-      this._roundRect(ctx, imgX - 12, imgY - 12, imgSize + 24, imgSize + 24, 20);
-      ctx.fill();
-
-      ctx.drawImage(img, imgX, imgY, imgSize, imgSize);
-    }
-
-    // 姿勢名稱
-    const nameFont = Math.max(24, h * 0.06);
-    ctx.fillStyle = C.accent;
-    ctx.font = `bold ${nameFont}px sans-serif`;
-    ctx.textAlign = "center";
-    ctx.fillText(`${pose.animal}的${pose.name}`, w / 2, h * 0.82);
-
-    // 語音提示文字
-    ctx.fillStyle = C.light;
-    ctx.font = `${nameFont * 0.6}px sans-serif`;
-    ctx.fillText(pose.voiceHint, w / 2, h * 0.82 + nameFont);
-
-    // 進度條
-    const barW = w * 0.6;
-    const barH = 6;
-    const barX = (w - barW) / 2;
-    ctx.fillStyle = "rgba(255,255,255,0.3)";
-    ctx.fillRect(barX, h - 25, barW, barH);
-    ctx.fillStyle = C.brand;
-    ctx.fillRect(barX, h - 25, barW * progress, barH);
   },
 
   // ── 倒數 3-2-1 ──
@@ -791,53 +727,68 @@ const poseMirror = {
     };
   },
 
-  // ── 頭飾特效 ──
+  // ── 頭飾特效（用 landmark 7/8 耳朵定位）──
   _renderHat(ctx, w, h, landmarks, pose) {
     if (!landmarks || !pose) return;
     const hatImg = this._hatCache[pose.id];
     if (!hatImg) return;
 
-    // 用鼻子（landmark 0）定位頭部
-    const nose = landmarks[0];
-    const ls = landmarks[LANDMARK.LEFT_SHOULDER];
-    const rs = landmarks[LANDMARK.RIGHT_SHOULDER];
+    // 用耳朵 landmark 7/8 定位頭頂
+    const leftEar = landmarks[7];
+    const rightEar = landmarks[8];
+    if (!leftEar || !rightEar) return;
+    if (leftEar.visibility < 0.2 && rightEar.visibility < 0.2) return;
 
-    if (!nose || nose.visibility < 0.3) return;
-    if (!ls || !rs) return;
+    // 耳朵中點 = 頭部中心
+    const headCX = ((1 - leftEar.x) + (1 - rightEar.x)) / 2 * w;  // 鏡像翻轉
+    const headCY = (leftEar.y + rightEar.y) / 2 * h;
+    const faceW = Math.abs(leftEar.x - rightEar.x) * w;
 
-    // 頭飾大小根據肩寬計算
-    const shoulderW = Math.abs(rs.x - ls.x) * w;
-    const hatSize = shoulderW * 1.0; // 頭飾寬度 = 肩寬
+    // 耳朵寬度 = 臉寬 × 0.8
+    const hatW = Math.max(faceW * 0.8, 60);
+    const hatH = hatW;  // 正方形
 
-    // 頭飾位置：鼻子上方
-    const hatX = nose.x * w - hatSize / 2;
-    const hatY = nose.y * h - hatSize * 1.1; // 在鼻子上方
+    // 位置：頭頂上方（臉高 × 0.3 偏移）
+    const hatY = headCY - faceW * 0.6 - hatH;
 
-    ctx.drawImage(hatImg, hatX, hatY, hatSize, hatSize);
+    ctx.drawImage(hatImg, headCX - hatW / 2, hatY, hatW, hatH);
   },
 
-  // ── 左上角姿勢卡片（偵測階段用，佔 28% 寬度）──
+  // ── 左上角姿勢卡片（統一版面，佔 22% 寬度）──
   _renderPoseCard(ctx, w, h) {
     const pose = this._currentPose;
+    if (!pose) return;
     const img = this._imageCache[pose.id];
-    if (!img) return;
+    const cardSize = w * 0.22;
+    const margin = 12;
 
-    // 佔畫面寬度 28%
-    const cardSize = w * 0.28;
-    const margin = 8;
+    // 直接繪製去背透明圖（不畫白底框）
+    if (img) {
+      ctx.drawImage(img, margin, margin, cardSize, cardSize);
+    }
 
-    // 半透明圓角卡片（不再是純白底）
-    ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
-    this._roundRect(ctx, margin, margin, cardSize + 12, cardSize + 12, 12);
-    ctx.fill();
-
-    // 品牌色發光邊框
-    ctx.strokeStyle = C.brand;
+    // 姿勢名稱（圖片下方）
+    const nameFont = Math.max(14, h * 0.03);
+    ctx.fillStyle = C.accent;
+    ctx.font = `bold ${nameFont}px sans-serif`;
+    ctx.textAlign = "left";
+    ctx.strokeStyle = "rgba(0,0,0,0.6)";
     ctx.lineWidth = 2;
-    this._roundRect(ctx, margin, margin, cardSize + 12, cardSize + 12, 12);
-    ctx.stroke();
+    ctx.strokeText(`${pose.animal}的${pose.name}`, margin, margin + cardSize + nameFont + 4);
+    ctx.fillText(`${pose.animal}的${pose.name}`, margin, margin + cardSize + nameFont + 4);
 
-    ctx.drawImage(img, margin + 6, margin + 6, cardSize, cardSize);
+    // 提示語
+    ctx.fillStyle = C.light;
+    ctx.font = `${nameFont * 0.85}px sans-serif`;
+    ctx.strokeText(pose.voiceHint, margin, margin + cardSize + nameFont * 2 + 8);
+    ctx.fillText(pose.voiceHint, margin, margin + cardSize + nameFont * 2 + 8);
+
+    // 輪次（頂部中央）
+    ctx.fillStyle = C.light;
+    ctx.font = `${Math.max(14, h * 0.03)}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.strokeText(`第 ${this._currentRound + 1} / ${this._totalRounds} 輪`, w / 2, Math.max(14, h * 0.03) + 10);
+    ctx.fillText(`第 ${this._currentRound + 1} / ${this._totalRounds} 輪`, w / 2, Math.max(14, h * 0.03) + 10);
   },
 
   // ── 結果畫面 ──
