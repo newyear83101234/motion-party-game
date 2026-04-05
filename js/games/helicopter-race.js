@@ -22,10 +22,10 @@ const HELI_COLORS = [
 
 // ── 物理參數（幼兒適配，限制最大速度，強調持續搖動）──
 const PHYSICS = {
-  maxThrust:     1.0,    // 最大推進力（降 50%）
-  gravity:       0.6,    // 重力（溫和下降）
-  inertiaDecay:  0.93,   // 慣性衰減
-  maxVelocity:   0.75,   // 速度上限（降 50%）
+  maxThrust:     0.5,    // 最大推進力（需持續猛搖才能緩慢上升）
+  gravity:       0.65,   // 重力（稍強，停搖就掉）
+  inertiaDecay:  0.90,   // 慣性衰減（更快消耗動量）
+  maxVelocity:   0.4,    // 速度上限（35 秒全力搖剛好到頂）
   maxHeight:     0.85,   // 最高可達畫面 85%
 };
 
@@ -131,7 +131,7 @@ function calcTwist(landmarks, player) {
 
   const avgDelta = player.shakeHistory.reduce((s, t) => s + t.delta, 0) / player.shakeHistory.length;
   const freq = 1 + Math.min(player.shakeHistory.length / 10, 1.0);
-  const intensity = Math.min(avgDelta * freq * 150, 1.0);
+  const intensity = Math.min(avgDelta * freq * 60, 1.0);  // 從 150 降到 60，需要更大動作才能達滿
 
   return intensity;
 }
@@ -348,7 +348,7 @@ function renderResults(ctx) {
       outlinedText(ctx, `👑 玩家 ${winner + 1} 贏了！`, _w / 2, _h * 0.15, players[winner].color.main, C.dark, 5);
     }
 
-    drawHelicopter(ctx, _w / 2, _h * 0.32, players[winner].color, Date.now() / 50, 0.5, 200, winner);
+    drawHelicopter(ctx, _w / 2, _h * 0.32, players[winner].color, Date.now() / 50, 0.5, 120, winner);
 
     ctx.font = "bold 24px sans-serif";
     const p1P = Math.round(players[0].height / PHYSICS.maxHeight * 100);
@@ -361,7 +361,7 @@ function renderResults(ctx) {
     const msgC = pct >= 80 ? C.accent : pct >= 50 ? C.success : C.brand;
     ctx.font = "bold 48px 'Arial Black', sans-serif";
     outlinedText(ctx, msg, _w / 2, _h * 0.15, msgC, C.dark, 5);
-    drawHelicopter(ctx, _w / 2, _h * 0.32, players[0].color, Date.now() / 50, 0.3, 200, 0);
+    drawHelicopter(ctx, _w / 2, _h * 0.32, players[0].color, Date.now() / 50, 0.3, 120, 0);
     ctx.font = "bold 64px 'Arial Black', sans-serif";
     outlinedText(ctx, `${pct}%`, _w / 2, _h * 0.50, C.light, C.dark, 5);
     ctx.font = "bold 20px sans-serif";
@@ -633,7 +633,7 @@ const helicopterRace = {
     players.forEach((p, i) => {
       const heliX = _mode === "dual" ? (i === 0 ? _w * 0.3 : _w * 0.7) : _w / 2;
       const heliY = _h * 0.88 - (p.height / PHYSICS.maxHeight) * (_h * 0.75);
-      const heliSize = 200 + p.currentIntensity * 30;
+      const heliSize = 120 + p.currentIntensity * 20;
       drawHelicopter(ctx, heliX, heliY, p.color, p.propellerAngle, p.currentIntensity, heliSize, i);
 
       // 玩家標籤
