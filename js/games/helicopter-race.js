@@ -22,10 +22,10 @@ const HELI_COLORS = [
 
 // ── 物理參數（幼兒適配，限制最大速度，強調持續搖動）──
 const PHYSICS = {
-  maxThrust:     2.0,    // 最大推進力（再降低）
+  maxThrust:     1.0,    // 最大推進力（降 50%）
   gravity:       0.6,    // 重力（溫和下降）
   inertiaDecay:  0.93,   // 慣性衰減
-  maxVelocity:   1.5,    // 速度上限（再降低，需要持續搖才能慢慢上升）
+  maxVelocity:   0.75,   // 速度上限（降 50%）
   maxHeight:     0.85,   // 最高可達畫面 85%
 };
 
