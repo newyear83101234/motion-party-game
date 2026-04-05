@@ -10,6 +10,7 @@ import { drawCamera, drawSkeleton } from "./renderer.js";
 import audioManager from "./audio-manager.js";
 import iceBreaker from "./games/ice-breaker.js";
 import helicopterRace from "./games/helicopter-race.js";
+import poseMirror from "./games/pose-mirror.js";
 
 // ── 配色（與遊戲一致）──
 const C = {
@@ -142,14 +143,14 @@ function renderMenu() {
 
   const games = [
     { name: "ice-breaker", label: "❄  敲冰塊",     desc: "揮動手臂敲碎冰塊", color: "#4A90D9" },
-    { name: "pose-match",  label: "🤸  姿勢模仿",  desc: "即將推出",         color: C.success },
+    { name: "pose-mirror", label: "🪞  姿勢模仿",  desc: "模仿動物姿勢得分",   color: "#9B59B6" },
     { name: "helicopter",  label: "🚁  直升機競賽", desc: "扭動身體讓直升機飛高", color: C.brand },
   ];
 
   menuButtons = [];
   games.forEach((game, i) => {
     const y = startY + i * (btnH + 18);
-    const enabled = game.name === "ice-breaker" || game.name === "helicopter";
+    const enabled = game.name === "ice-breaker" || game.name === "helicopter" || game.name === "pose-mirror";
 
     ctx.save();
     if (enabled) shadowOn(ctx);
@@ -549,7 +550,7 @@ canvas.addEventListener("click", async (e) => {
     for (const btn of menuButtons) {
       if (cx >= btn.x && cx <= btn.x + btn.w &&
           cy >= btn.y && cy <= btn.y + btn.h) {
-        if (btn.game === "ice-breaker" || btn.game === "helicopter") {
+        if (btn.game === "ice-breaker" || btn.game === "helicopter" || btn.game === "pose-mirror") {
           audioManager.play("menu_click");
           currentGameName = btn.game;
           appState = "modeSelect";
@@ -633,6 +634,8 @@ function startGame(gameName) {
     currentGame = iceBreaker;
   } else if (gameName === "helicopter") {
     currentGame = helicopterRace;
+  } else if (gameName === "pose-mirror") {
+    currentGame = poseMirror;
   }
   if (!currentGame) return;
   currentGameName = gameName;
