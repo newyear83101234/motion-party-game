@@ -633,7 +633,7 @@ const helicopterRace = {
     players.forEach((p, i) => {
       const heliX = _mode === "dual" ? (i === 0 ? _w * 0.3 : _w * 0.7) : _w / 2;
       const heliY = _h * 0.88 - (p.height / PHYSICS.maxHeight) * (_h * 0.75);
-      const heliSize = 120 + p.currentIntensity * 20;
+      const heliSize = 200 + p.currentIntensity * 20;
       drawHelicopter(ctx, heliX, heliY, p.color, p.propellerAngle, p.currentIntensity, heliSize, i);
 
       // 玩家標籤
