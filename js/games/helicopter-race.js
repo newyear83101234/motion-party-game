@@ -32,6 +32,18 @@ const PHYSICS = {
 // ── 偵測用 landmark 索引 ──
 const DET = { hipL: 23, hipR: 24, shL: 11, shR: 12, hipVis: 0.3 };
 
+// ── 圖片預載 ──
+const heliImages = [];
+["IMAGES/heli_p1.png", "IMAGES/heli_p2.png", "IMAGES/heli_p3.png", "IMAGES/heli_p4.png"].forEach((p, i) => {
+  const img = new Image(); img.src = p; heliImages[i] = img;
+});
+const cloudImg = new Image(); cloudImg.src = "IMAGES/cloud.png";
+const cityImg = new Image(); cityImg.src = "IMAGES/city_skyline.png";
+const gogglesImg = new Image(); gogglesImg.src = "IMAGES/aviator_goggles.png";
+const hulaImg = new Image(); hulaImg.src = "IMAGES/hula_hoop.png";
+
+function imgReady(img) { return img && img.complete && img.naturalWidth > 0; }
+
 // ── 工具函式 ──
 function outlinedText(ctx, text, x, y, fill = C.light, stroke = C.dark, lw = 4) {
   ctx.lineWidth = lw; ctx.lineJoin = "round";
@@ -60,6 +72,7 @@ let quitBtnArea = null, quitConfirmOpen = false;
 let quitConfirmYes = null, quitConfirmNo = null;
 let _resultButtons = [];
 let _warningFired = false;
+let _allLandmarks = [];  // 存儲當前幀的所有 landmarks（供 AR 渲染用）
 
 // ══════════════════════════════════════════
 // ── 扭動偵測（屁股搖動速度）──
@@ -149,62 +162,42 @@ function updatePhysics(dt) {
 // ── 直升機繪製 ──
 // ══════════════════════════════════════════
 
-function drawHelicopter(ctx, x, y, color, propAngle, intensity, size = 50) {
+function drawHelicopter(ctx, x, y, color, propAngle, intensity, size = 50, playerIdx = 0) {
   const s = size;
   ctx.save();
   const wobble = Math.sin(Date.now() / 100) * intensity * 8;
   ctx.translate(x, y);
   ctx.rotate(wobble * Math.PI / 180);
 
-  // 陰影
-  ctx.shadowColor = "rgba(0,0,0,0.4)";
-  ctx.shadowBlur = 10;
-  ctx.shadowOffsetX = 3;
-  ctx.shadowOffsetY = 3;
+  const img = heliImages[playerIdx];
+  if (imgReady(img)) {
+    // 圖片繪製（保持寬高比，寬度 = size * 2.2）
+    const drawW = s * 2.2;
+    const drawH = drawW * (img.naturalHeight / img.naturalWidth);
+    ctx.shadowColor = "rgba(0,0,0,0.4)";
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 3;
+    ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+    ctx.shadowColor = "transparent";
+  } else {
+    // Canvas fallback — 簡化版
+    ctx.fillStyle = color.main;
+    ctx.beginPath(); ctx.ellipse(0, 0, s * 0.7, s * 0.45, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = color.dark; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = "white";
+    ctx.beginPath(); ctx.arc(s * 0.2, -s * 0.1, s * 0.12, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = C.dark;
+    ctx.beginPath(); ctx.arc(s * 0.22, -s * 0.1, s * 0.06, 0, Math.PI * 2); ctx.fill();
+  }
 
-  // 機身
-  ctx.fillStyle = color.main;
-  ctx.beginPath(); ctx.ellipse(0, 0, s * 0.7, s * 0.45, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = color.dark; ctx.lineWidth = 2; ctx.stroke();
-
-  ctx.shadowColor = "transparent";
-
-  // 駕駛艙
-  ctx.fillStyle = "rgba(200,230,255,0.7)";
-  ctx.beginPath(); ctx.ellipse(s * 0.15, -s * 0.05, s * 0.25, s * 0.25, 0, 0, Math.PI * 2); ctx.fill();
-
-  // 眼睛
-  ctx.fillStyle = "white";
-  ctx.beginPath(); ctx.arc(s * 0.2, -s * 0.1, s * 0.15, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = C.dark;
-  ctx.beginPath(); ctx.arc(s * 0.23, -s * 0.1, s * 0.07, 0, Math.PI * 2); ctx.fill();
-
-  // 尾巴
-  ctx.fillStyle = color.dark;
-  ctx.beginPath();
-  ctx.moveTo(-s * 0.5, -s * 0.1); ctx.lineTo(-s * 1.0, -s * 0.3);
-  ctx.lineTo(-s * 1.0, s * 0.1); ctx.lineTo(-s * 0.5, s * 0.1);
-  ctx.closePath(); ctx.fill();
-
-  // 尾旋翼
-  ctx.strokeStyle = color.light; ctx.lineWidth = 3;
-  const ta = propAngle * 1.5;
-  ctx.beginPath();
-  ctx.moveTo(-s * 1.0, -s * 0.3 + Math.sin(ta) * s * 0.2);
-  ctx.lineTo(-s * 1.0, -s * 0.3 - Math.sin(ta) * s * 0.2);
-  ctx.stroke();
-
-  // 螺旋槳
-  ctx.strokeStyle = color.light; ctx.lineWidth = 4; ctx.lineCap = "round";
+  // 螺旋槳（圖片和 fallback 都畫，增加動態感）
+  ctx.strokeStyle = color.light || "#ccc"; ctx.lineWidth = 4; ctx.lineCap = "round";
   const pLen = s * 0.9;
   ctx.beginPath();
-  ctx.moveTo(Math.cos(propAngle) * -pLen, -s * 0.45);
-  ctx.lineTo(Math.cos(propAngle) * pLen, -s * 0.45);
+  ctx.moveTo(Math.cos(propAngle) * -pLen, -s * 0.5);
+  ctx.lineTo(Math.cos(propAngle) * pLen, -s * 0.5);
   ctx.stroke();
-
-  // 軸心
-  ctx.fillStyle = color.dark;
-  ctx.beginPath(); ctx.arc(0, -s * 0.45, 4, 0, Math.PI * 2); ctx.fill();
 
   // 速度線
   if (intensity > 0.2) {
@@ -354,7 +347,7 @@ function renderResults(ctx) {
       outlinedText(ctx, `👑 玩家 ${winner + 1} 贏了！`, _w / 2, _h * 0.15, players[winner].color.main, C.dark, 5);
     }
 
-    drawHelicopter(ctx, _w / 2, _h * 0.32, players[winner].color, Date.now() / 50, 0.5, 60);
+    drawHelicopter(ctx, _w / 2, _h * 0.32, players[winner].color, Date.now() / 50, 0.5, 60, winner);
 
     ctx.font = "bold 24px sans-serif";
     const p1P = Math.round(players[0].height / PHYSICS.maxHeight * 100);
@@ -367,7 +360,7 @@ function renderResults(ctx) {
     const msgC = pct >= 80 ? C.accent : pct >= 50 ? C.success : C.brand;
     ctx.font = "bold 48px 'Arial Black', sans-serif";
     outlinedText(ctx, msg, _w / 2, _h * 0.15, msgC, C.dark, 5);
-    drawHelicopter(ctx, _w / 2, _h * 0.32, players[0].color, Date.now() / 50, 0.3, 60);
+    drawHelicopter(ctx, _w / 2, _h * 0.32, players[0].color, Date.now() / 50, 0.3, 60, 0);
     ctx.font = "bold 64px 'Arial Black', sans-serif";
     outlinedText(ctx, `${pct}%`, _w / 2, _h * 0.50, C.light, C.dark, 5);
     ctx.font = "bold 20px sans-serif";
@@ -469,6 +462,9 @@ const helicopterRace = {
         return;
       }
 
+      // 儲存 landmarks 供渲染用
+      _allLandmarks = allLandmarks || [];
+
       // 更新扭動強度
       players.forEach((p, i) => {
         if (allLandmarks && allLandmarks[i]) {
@@ -493,19 +489,54 @@ const helicopterRace = {
     ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
     ctx.fillRect(0, 0, _w, _h);
 
-    // 屁股偵測標記（🍑 在髖部位置）
+    // AR 裝飾 + 屁股偵測標記
     if (gameState === "playing" || gameState === "countdown") {
       players.forEach((p, i) => {
-        if (p.hipVisible) {
-          const markerSize = 40 + p.currentIntensity * 20; // 搖動時變大
+        const lm = _allLandmarks[i];
+
+        // ── 飛行員護目鏡（臉部 landmark 1 = 鼻樑）──
+        if (lm && lm[1] && lm[1].visibility > 0.3 && imgReady(gogglesImg)) {
+          const nose = lm[1];
+          const noseX = (1 - nose.x) * _w;
+          const noseY = nose.y * _h;
+          // 用肩膀估算臉寬
+          const ls = lm[11], rs = lm[12];
+          let gogglesW = 120;
+          if (ls && rs && ls.visibility > 0.2 && rs.visibility > 0.2) {
+            gogglesW = Math.abs(ls.x - rs.x) * _w * 0.35;
+          }
+          gogglesW = Math.max(gogglesW, 80);
+          const gogglesH = gogglesW * (gogglesImg.naturalHeight / gogglesImg.naturalWidth);
+          ctx.save();
+          ctx.drawImage(gogglesImg, noseX - gogglesW / 2, noseY - gogglesH * 0.6, gogglesW, gogglesH);
+          ctx.restore();
+        }
+
+        // ── 呼啦圈（髖部位置，搖動時傾斜旋轉）──
+        if (p.hipVisible && imgReady(hulaImg)) {
+          const lHip = lm ? lm[DET.hipL] : null;
+          const rHip = lm ? lm[DET.hipR] : null;
+          // 傾斜角度：左右髖 y 差（最大 ±30°）
+          let tiltAngle = 0;
+          if (lHip && rHip) {
+            const dy = (lHip.y - rHip.y);
+            tiltAngle = Math.max(-0.5, Math.min(0.5, dy * 5));
+          }
+          // 搖動時額外旋轉
+          tiltAngle += Math.sin(Date.now() / 150) * p.currentIntensity * 0.3;
+          const hulaW = 160 + p.currentIntensity * 40;
+          const hulaH = hulaW * 0.5; // 透視壓扁
+          ctx.save();
+          ctx.translate(p.hipScreenX, p.hipScreenY);
+          ctx.rotate(tiltAngle);
+          ctx.drawImage(hulaImg, -hulaW / 2, -hulaH / 2, hulaW, hulaH);
+          ctx.restore();
+        } else if (p.hipVisible) {
+          // fallback：emoji
+          const markerSize = 40 + p.currentIntensity * 20;
           ctx.save();
           ctx.font = `${markerSize}px sans-serif`;
           ctx.textAlign = "center"; ctx.textBaseline = "middle";
-          // 搖動時加發光效果
-          if (p.currentIntensity > 0.1) {
-            ctx.shadowColor = p.color.main;
-            ctx.shadowBlur = 20 + p.currentIntensity * 30;
-          }
           ctx.fillText("🍑", p.hipScreenX, p.hipScreenY);
           ctx.restore();
         }
@@ -524,12 +555,25 @@ const helicopterRace = {
       }
     }
 
+    // 城市天際線（底部固定）
+    if (imgReady(cityImg)) {
+      const cityH = _h * 0.18;
+      const cityW = cityH * (cityImg.naturalWidth / cityImg.naturalHeight);
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      // 重複鋪滿底部
+      for (let ox = 0; ox < _w; ox += cityW) {
+        ctx.drawImage(cityImg, ox, _h - cityH, cityW, cityH);
+      }
+      ctx.restore();
+    }
+
     // 直升機
     players.forEach((p, i) => {
       const heliX = _mode === "dual" ? (i === 0 ? _w * 0.3 : _w * 0.7) : _w / 2;
       const heliY = _h * 0.88 - (p.height / PHYSICS.maxHeight) * (_h * 0.75);
-      const heliSize = 45 + p.currentIntensity * 10; // 搖動時直升機微微變大
-      drawHelicopter(ctx, heliX, heliY, p.color, p.propellerAngle, p.currentIntensity, heliSize);
+      const heliSize = 45 + p.currentIntensity * 10;
+      drawHelicopter(ctx, heliX, heliY, p.color, p.propellerAngle, p.currentIntensity, heliSize, i);
 
       // 玩家標籤
       if (_mode === "dual") {
