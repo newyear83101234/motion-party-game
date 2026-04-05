@@ -12,7 +12,7 @@ from PIL import Image
 # ── API 設定 ──
 API_KEY = "AIzaSyBQW0A0UAJ_FqK3rSq62HC8M6ImjjXs4dQ"
 client = genai.Client(api_key=API_KEY)
-MODEL = "gemini-2.0-flash-preview-image-generation"
+MODEL = "gemini-2.5-flash-image"
 
 # ── 輸出目錄 ──
 OUTPUT_DIR = "IMAGES/poses"
