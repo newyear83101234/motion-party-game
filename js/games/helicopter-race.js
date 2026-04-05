@@ -22,10 +22,10 @@ const HELI_COLORS = [
 
 // ── 物理參數（幼兒適配，限制最大速度，強調持續搖動）──
 const PHYSICS = {
-  maxThrust:     2.5,    // 推力（大幅提高，確保搖動能上升）
-  gravity:       0.3,    // 重力（低，停搖才緩慢下降）
-  inertiaDecay:  0.95,   // 慣性（保持動量）
-  maxVelocity:   1.2,    // 速度上限
+  maxThrust:     0.5,    // 最大推進力（需持續猛搖才能緩慢上升）
+  gravity:       0.65,   // 重力（稍強，停搖就掉）
+  inertiaDecay:  0.90,   // 慣性衰減（更快消耗動量）
+  maxVelocity:   0.4,    // 速度上限（35 秒全力搖剛好到頂）
   maxHeight:     0.85,   // 最高可達畫面 85%
 };
 
@@ -131,7 +131,7 @@ function calcTwist(landmarks, player) {
 
   const avgDelta = player.shakeHistory.reduce((s, t) => s + t.delta, 0) / player.shakeHistory.length;
   const freq = 1 + Math.min(player.shakeHistory.length / 10, 1.0);
-  const intensity = Math.min(avgDelta * freq * 250, 1.0);  // 高靈敏度
+  const intensity = Math.min(avgDelta * freq * 60, 1.0);  // 從 150 降到 60，需要更大動作才能達滿
 
   return intensity;
 }
@@ -633,7 +633,7 @@ const helicopterRace = {
     players.forEach((p, i) => {
       const heliX = _mode === "dual" ? (i === 0 ? _w * 0.3 : _w * 0.7) : _w / 2;
       const heliY = _h * 0.88 - (p.height / PHYSICS.maxHeight) * (_h * 0.75);
-      const heliSize = 200 + p.currentIntensity * 20;
+      const heliSize = 120 + p.currentIntensity * 20;
       drawHelicopter(ctx, heliX, heliY, p.color, p.propellerAngle, p.currentIntensity, heliSize, i);
 
       // 玩家標籤
