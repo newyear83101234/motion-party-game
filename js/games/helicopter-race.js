@@ -506,29 +506,29 @@ const helicopterRace = {
     // 雲朵裝飾（視差捲動 + 水平飄移）
     const maxH = players.length > 0 ? Math.max(...players.map(p => p.height)) : 0;
     _clouds.forEach(c => {
-      // 水平飄移
       c.x += c.speed;
       if (c.x > _w + c.size) c.x = -c.size;
-      // 視差捲動：玩家越高，雲朵越往下
       const parallax = 0.2 + c.layer * 0.25;
       const screenY = c.baseY + maxH * _h * parallax;
       if (screenY < -c.size || screenY > _h + c.size) return;
+
       ctx.save();
-      ctx.globalAlpha = c.opacity;
-      if (imgReady(cloudImg)) {
-        // 圖片雲朵（取整張圖按尺寸縮放）
-        const cw = c.size * 1.8;
-        const ch = c.size;
-        ctx.drawImage(cloudImg, c.x - cw / 2, screenY - ch / 2, cw, ch);
-      } else {
-        // fallback：白色圓形組合
-        ctx.fillStyle = "white";
-        ctx.beginPath();
-        ctx.arc(c.x, screenY, c.size * 0.4, 0, Math.PI * 2);
-        ctx.arc(c.x - c.size * 0.3, screenY + 5, c.size * 0.3, 0, Math.PI * 2);
-        ctx.arc(c.x + c.size * 0.3, screenY + 5, c.size * 0.3, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      ctx.globalAlpha = c.opacity + 0.2; // 提高可見度
+      ctx.fillStyle = "white";
+      ctx.shadowColor = "rgba(255,255,255,0.5)";
+      ctx.shadowBlur = 15;
+
+      // 用多個圓形組合成蓬鬆雲朵
+      const s = c.size;
+      ctx.beginPath();
+      ctx.arc(c.x, screenY, s * 0.45, 0, Math.PI * 2);
+      ctx.arc(c.x - s * 0.35, screenY + s * 0.05, s * 0.32, 0, Math.PI * 2);
+      ctx.arc(c.x + s * 0.35, screenY + s * 0.05, s * 0.32, 0, Math.PI * 2);
+      ctx.arc(c.x - s * 0.15, screenY - s * 0.2, s * 0.28, 0, Math.PI * 2);
+      ctx.arc(c.x + s * 0.15, screenY - s * 0.15, s * 0.28, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.shadowColor = "transparent";
       ctx.restore();
     });
 
@@ -537,41 +537,40 @@ const helicopterRace = {
       players.forEach((p, i) => {
         const lm = _allLandmarks[i];
 
-        // ── 飛行員護目鏡（臉部 landmark 1 = 鼻樑）──
-        if (lm && lm[1] && lm[1].visibility > 0.3 && imgReady(gogglesImg)) {
-          const nose = lm[1];
-          const noseX = (1 - nose.x) * _w;
-          const noseY = nose.y * _h;
-          // 用肩膀估算臉寬
-          const ls = lm[11], rs = lm[12];
-          let gogglesW = 120;
-          if (ls && rs && ls.visibility > 0.2 && rs.visibility > 0.2) {
-            gogglesW = Math.abs(ls.x - rs.x) * _w * 0.35;
+        // ── 飛行員護目鏡（改用肩膀定位，避免臉不在畫面時不��示）──
+        if (lm && imgReady(gogglesImg)) {
+          const lSh = lm[11], rSh = lm[12];
+          if (lSh && rSh && lSh.visibility > 0.2 && rSh.visibility > 0.2) {
+            const shoulderCX = (1 - (lSh.x + rSh.x) / 2) * _w;
+            const shoulderCY = ((lSh.y + rSh.y) / 2) * _h;
+            const shoulderW = Math.abs(lSh.x - rSh.x) * _w;
+
+            const gogglesW = shoulderW * 0.55;
+            const gogglesH = gogglesW * (gogglesImg.naturalHeight / gogglesImg.naturalWidth);
+            const gogglesY = shoulderCY - shoulderW * 0.85; // 肩膀上方約一個肩寬
+
+            ctx.save();
+            ctx.drawImage(gogglesImg, shoulderCX - gogglesW / 2, gogglesY - gogglesH / 2, gogglesW, gogglesH);
+            ctx.restore();
           }
-          gogglesW = Math.max(gogglesW, 80);
-          const gogglesH = gogglesW * (gogglesImg.naturalHeight / gogglesImg.naturalWidth);
-          ctx.save();
-          ctx.drawImage(gogglesImg, noseX - gogglesW / 2, noseY - gogglesH * 0.6, gogglesW, gogglesH);
-          ctx.restore();
         }
 
-        // ── 呼啦圈（髖部位置，根據肩寬縮放，搖動時傾斜旋轉）──
+        // ── 呼啦圈（Canvas 繪製彩色橢圓，環住腰部）──
         if (p.hipVisible) {
           const lHip = lm ? lm[DET.hipL] : null;
           const rHip = lm ? lm[DET.hipR] : null;
           const lSh = lm ? lm[11] : null;
           const rSh = lm ? lm[12] : null;
 
-          // 呼啦圈寬度：肩寬 × 1.2（環住整個腰部）
-          let hulaW = 350; // fallback
+          // 根據肩寬計算呼啦圈尺寸（肩寬 × 1.3）
+          let hulaW = 350;
           if (lSh && rSh && lSh.visibility > 0.2 && rSh.visibility > 0.2) {
-            hulaW = Math.abs(lSh.x - rSh.x) * _w * 1.2;
+            hulaW = Math.abs(lSh.x - rSh.x) * _w * 1.3;
           }
-          hulaW = Math.max(hulaW, 350);
-          hulaW += p.currentIntensity * 40;
-          const hulaH = hulaW * 0.45; // 透視壓扁
+          hulaW = Math.max(hulaW, 300);
+          const hulaH = hulaW * 0.35;
 
-          // 傾斜角度：左右髖 y 差
+          // 傾斜角度
           let tiltAngle = 0;
           if (lHip && rHip) {
             tiltAngle = Math.max(-0.5, Math.min(0.5, (lHip.y - rHip.y) * 5));
@@ -581,16 +580,24 @@ const helicopterRace = {
           ctx.save();
           ctx.translate(p.hipScreenX, p.hipScreenY);
           ctx.rotate(tiltAngle);
-          if (imgReady(hulaImg)) {
-            ctx.drawImage(hulaImg, -hulaW / 2, -hulaH / 2, hulaW, hulaH);
-          } else {
-            // fallback：橢圓環
-            ctx.strokeStyle = C.accent;
-            ctx.lineWidth = 8;
+
+          // 繪製多圈彩色條紋呼啦圈
+          const colors = ["#FF69B4", "#FFD700", "#00BFFF", "#32CD32", "#FF6347", "#9370DB"];
+          const ringWidth = 12;
+          for (let r = 0; r < colors.length; r++) {
+            ctx.strokeStyle = colors[r];
+            ctx.lineWidth = ringWidth;
             ctx.beginPath();
-            ctx.ellipse(0, 0, hulaW / 2, hulaH / 2, 0, 0, Math.PI * 2);
+            ctx.ellipse(0, 0, hulaW / 2 - r * 3, hulaH / 2 - r * 1.5, 0, 0, Math.PI * 2);
             ctx.stroke();
           }
+          // 外圈白色高光
+          ctx.strokeStyle = "rgba(255,255,255,0.4)";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, hulaW / 2 + 2, hulaH / 2 + 1, 0, 0, Math.PI * 2);
+          ctx.stroke();
+
           ctx.restore();
         }
       });
