@@ -24,6 +24,17 @@
   <!-- 狀態訊息 -->
   <div id="status">載入中...</div>
 
-  <script type="module" src="js/main.js?v=22"></script>
+  <!-- 版本號（右下角） -->
+  <div id="version"></div>
+
+  <script>
+    // 自動 cache bust：用部署時間戳載入所有 JS 模組
+    const BUILD = "2604051033";
+    document.getElementById("version").textContent = "v" + BUILD;
+    const s = document.createElement("script");
+    s.type = "module";
+    s.src = "js/main.js?v=" + BUILD;
+    document.body.appendChild(s);
+  </script>
 </body>
 </html>

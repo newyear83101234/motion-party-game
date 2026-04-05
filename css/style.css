@@ -39,6 +39,17 @@ body {
   pointer-events: none;
 }
 
+/* 版本號 */
+#version {
+  position: fixed;
+  bottom: 4px;
+  right: 8px;
+  color: rgba(255, 255, 255, 0.3);
+  font: 12px monospace;
+  z-index: 5;
+  pointer-events: none;
+}
+
 /* 狀態訊息 */
 #status {
   position: fixed;
