@@ -25,7 +25,7 @@ const PHYSICS = {
   maxThrust:     1.12,   // 推力（再提高 100%）
   gravity:       0.02,   // 重力（很輕，停搖慢慢掉）
   inertiaDecay:  0.97,   // 慣性（只丟 3%，速度能持續累積）
-  maxVelocity:   0.06,   // 速度硬上限（提高，0.85/0.06≈14 秒到頂）
+  maxVelocity:   0.15,   // 速度硬上限（0.85/0.15≈6 秒到頂）
   maxHeight:     0.85,   // 最高可達畫面 85%
 };
 
