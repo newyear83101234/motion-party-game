@@ -1,6 +1,7 @@
 /**
- * 姿勢模仿（Pose Mirror）— 遊戲主模組 v2
- * 增強版：影子引導、雙人模式、音效、頭飾特效、UI 重排
+ * 姿勢模仿（Pose Mirror）— 遊戲主模組 v3
+ * 全面修復版：人形剪影校準、底部倒數、左對齊卡片、emoji 回饋、
+ * 正確帽子定位（不鏡像翻轉）、完整遊戲流程
  */
 
 import { getRandomPoses, LANDMARK } from "../pose-library.js";
@@ -66,7 +67,7 @@ const SKELETON_CONNECTIONS = [
 
 const poseMirror = {
   name: "pose-mirror",
-  displayName: "🪞 姿勢模仿",
+  displayName: "\u{1FA9E} 姿勢模仿",
 
   // ── 內部狀態 ──
   _w: 0,
@@ -169,6 +170,10 @@ const poseMirror = {
       this._audio.playSFXFromFile("sys_calibrate");
     }
   },
+
+  // ═══════════════════════════════════════
+  // 預載圖片
+  // ═══════════════════════════════════════
 
   _preloadImages() {
     for (const pose of this._poses) {
@@ -273,9 +278,10 @@ const poseMirror = {
     this._p2Score = 0; this._p2Best = 0; this._p2Parts = {};
   },
 
+  // ── 校準更新 ──
   _updateCalibration(lm1, lm2, timestamp) {
     const isDual = this._mode === "dual";
-    const landmarks = lm1; // 至少需要偵測到一個人
+    const landmarks = lm1;
 
     if (!landmarks) {
       this._calibrationReady = false;
@@ -320,6 +326,7 @@ const poseMirror = {
     }
   },
 
+  // ── 偵測更新 ──
   _updateDetecting(lm1, lm2, timestamp, elapsed) {
     if (elapsed >= DETECT_DURATION) {
       // 時間到，記錄結果
@@ -401,6 +408,8 @@ const poseMirror = {
       this._currentPose = this._poses[this._currentRound];
       this._resetScores();
       this._voicePlayed = false;
+      this._countdownSoundsPlayed = { 3: false, 2: false, 1: false };
+      this._goSoundPlayed = false;
       this._changeState(STATE.COUNTDOWN, timestamp);
     }
   },
@@ -427,79 +436,158 @@ const poseMirror = {
     }
   },
 
-  // ── 校準畫面 ──
+  // ── 校準畫面：人形剪影引導 ──
   _renderCalibration(ctx, w, h) {
+    // 半透明遮罩
     ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
     ctx.fillRect(0, 0, w, h);
 
-    // 人形輪廓框
-    const frameW = this._mode === "dual" ? w * 0.7 : w * 0.5;
-    const frameH = h * 0.8;
-    const frameX = (w - frameW) / 2;
-    const frameY = (h - frameH) / 2;
+    const isDual = this._mode === "dual";
+    const silColor = this._calibrationReady ? C.success : "rgba(255,255,255,0.25)";
 
-    ctx.strokeStyle = this._calibrationReady ? C.success : C.light;
-    ctx.lineWidth = 3;
-    ctx.setLineDash([10, 5]);
-    ctx.strokeRect(frameX, frameY, frameW, frameH);
-    ctx.setLineDash([]);
-
-    // 雙人模式顯示中線
-    if (this._mode === "dual") {
-      ctx.strokeStyle = "rgba(255,255,255,0.3)";
-      ctx.setLineDash([5, 5]);
-      ctx.beginPath();
-      ctx.moveTo(w / 2, frameY);
-      ctx.lineTo(w / 2, frameY + frameH);
-      ctx.stroke();
-      ctx.setLineDash([]);
+    if (isDual) {
+      // 雙人模式：左 1/3 和右 1/3 各一個剪影
+      this._drawSilhouette(ctx, w * 0.33, h * 0.5, h * 0.7, silColor);
+      this._drawSilhouette(ctx, w * 0.67, h * 0.5, h * 0.7, silColor);
 
       // P1 / P2 標示
       const labelFont = Math.max(16, w * 0.035);
       ctx.font = `bold ${labelFont}px sans-serif`;
       ctx.textAlign = "center";
+      ctx.textBaseline = "top";
       ctx.fillStyle = C.p1;
-      ctx.fillText("P1", w * 0.3, frameY + labelFont + 10);
+      ctx.fillText("P1", w * 0.33, h * 0.08);
       ctx.fillStyle = C.p2;
-      ctx.fillText("P2", w * 0.7, frameY + labelFont + 10);
+      ctx.fillText("P2", w * 0.67, h * 0.08);
+
+      // 中線分隔
+      ctx.strokeStyle = "rgba(255,255,255,0.2)";
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(w / 2, h * 0.1);
+      ctx.lineTo(w / 2, h * 0.9);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    } else {
+      // 單人模式：正中央一個剪影
+      this._drawSilhouette(ctx, w * 0.5, h * 0.5, h * 0.7, silColor);
     }
 
-    // 提示訊息
-    const fontSize = Math.max(18, h * 0.045);
+    // 偵測成功提示
+    if (this._calibrationReady) {
+      const checkFont = Math.max(16, h * 0.035);
+      ctx.fillStyle = C.success;
+      ctx.font = `bold ${checkFont}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("\u2713 全身偵測成功！", w / 2, h * 0.1);
+    }
+
+    // 底部提示訊息
+    const fontSize = Math.max(18, h * 0.05);
     ctx.fillStyle = this._calibrationReady ? C.success : C.light;
     ctx.font = `bold ${fontSize}px sans-serif`;
     ctx.textAlign = "center";
-    ctx.fillText(this._calibrationMessage, w / 2, frameY + frameH + fontSize + 15);
-
-    if (this._calibrationReady) {
-      ctx.fillStyle = C.success;
-      ctx.font = `${fontSize * 0.8}px sans-serif`;
-      ctx.fillText("✓ 全身偵測成功！", w / 2, frameY - 10);
-    }
+    ctx.textBaseline = "middle";
+    ctx.fillText(this._calibrationMessage, w / 2, h * 0.9);
   },
 
-  // ── 倒數 3-2-1 ──
+  /**
+   * 繪製簡化人形剪影（圓形頭 + 橢圓身體 + 線條四肢）
+   * @param {CanvasRenderingContext2D} ctx
+   * @param {number} cx - 中心 x
+   * @param {number} cy - 中心 y
+   * @param {number} totalH - 人形總高度
+   * @param {string} color - 填充/描邊顏色
+   */
+  _drawSilhouette(ctx, cx, cy, totalH, color) {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = Math.max(3, totalH * 0.015);
+    ctx.lineCap = "round";
+
+    const headR = totalH * 0.08;          // 頭部半徑
+    const bodyH = totalH * 0.28;          // 軀幹橢圓高度
+    const bodyW = totalH * 0.12;          // 軀幹橢圓寬度
+    const armLen = totalH * 0.22;         // 手臂長度
+    const legLen = totalH * 0.28;         // 腿長度
+
+    const headY = cy - totalH * 0.38;     // 頭部中心 y
+    const shoulderY = headY + headR + totalH * 0.04; // 肩膀 y
+    const bodyTopY = shoulderY;            // 軀幹頂部
+    const hipY = bodyTopY + bodyH;         // 髖部 y
+
+    // 頭部（圓形）
+    ctx.beginPath();
+    ctx.arc(cx, headY, headR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 軀幹（橢圓）
+    ctx.beginPath();
+    ctx.ellipse(cx, bodyTopY + bodyH / 2, bodyW, bodyH / 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 左臂（從肩膀往左下延伸）
+    ctx.beginPath();
+    ctx.moveTo(cx - bodyW * 0.8, shoulderY + totalH * 0.02);
+    ctx.lineTo(cx - bodyW * 0.8 - armLen * 0.5, shoulderY + armLen * 0.85);
+    ctx.stroke();
+
+    // 右臂（從肩膀往右下延伸）
+    ctx.beginPath();
+    ctx.moveTo(cx + bodyW * 0.8, shoulderY + totalH * 0.02);
+    ctx.lineTo(cx + bodyW * 0.8 + armLen * 0.5, shoulderY + armLen * 0.85);
+    ctx.stroke();
+
+    // 左腿（從髖部往左下延伸）
+    ctx.beginPath();
+    ctx.moveTo(cx - bodyW * 0.4, hipY);
+    ctx.lineTo(cx - bodyW * 0.6 - legLen * 0.15, hipY + legLen);
+    ctx.stroke();
+
+    // 右腿（從髖部往右下延伸）
+    ctx.beginPath();
+    ctx.moveTo(cx + bodyW * 0.4, hipY);
+    ctx.lineTo(cx + bodyW * 0.6 + legLen * 0.15, hipY + legLen);
+    ctx.stroke();
+
+    ctx.restore();
+  },
+
+  // ── 倒數 3-2-1：數字在底部，卡片在左上 ──
   _renderCountdown(ctx, w, h) {
     const elapsed = performance.now() - this._stateStartTime;
     const count = 3 - Math.floor(elapsed / 1000);
 
-    // 左上角姿勢卡片
+    // 左上角姿勢卡片（倒數時就能看到目標姿勢）
     this._renderPoseCard(ctx, w, h);
 
     if (count > 0) {
-      const fontSize = Math.max(80, h * 0.2);
-      const scale = 1 + 0.3 * Math.sin((elapsed % 1000) / 1000 * Math.PI);
+      // 倒數數字在 y = h * 0.75（底部區域），避免擋住玩家身體
+      const circleR = Math.max(30, h * 0.06); // 圓半徑 = h * 12% 直徑的一半
+      const cx = w / 2;
+      const cy = h * 0.75;
+      const scale = 1 + 0.15 * Math.sin((elapsed % 1000) / 1000 * Math.PI);
+
       ctx.save();
-      ctx.translate(w / 2, h / 2);
+      ctx.translate(cx, cy);
       ctx.scale(scale, scale);
+
+      // 品牌色半透明圓形背景
+      ctx.beginPath();
+      ctx.arc(0, 0, circleR, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(201, 79, 200, 0.5)";
+      ctx.fill();
+
+      // 白色大字數字
+      const numFont = Math.max(36, circleR * 1.2);
       ctx.fillStyle = C.light;
-      ctx.font = `bold ${fontSize}px sans-serif`;
+      ctx.font = `bold ${numFont}px sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.strokeStyle = C.brand;
-      ctx.lineWidth = 4;
-      ctx.strokeText(count, 0, 0);
       ctx.fillText(count, 0, 0);
+
       ctx.restore();
     }
   },
@@ -509,7 +597,7 @@ const poseMirror = {
     const elapsed = performance.now() - this._stateStartTime;
     const timeLeft = Math.max(0, (DETECT_DURATION - elapsed) / 1000);
 
-    // ★ P0：影子引導（半透明目標骨架疊在玩家身上）
+    // 影子引導（半透明目標骨架疊在玩家身上）
     if (this._mode === "single") {
       this._renderTargetSkeleton(ctx, w, h, this._lastLandmarks, this._currentPose);
     } else {
@@ -525,7 +613,7 @@ const poseMirror = {
       this._renderHat(ctx, w, h, this._lastLandmarksP2, this._currentPose);
     }
 
-    // 姿勢卡片（左上角，佔 28% 寬度）
+    // 姿勢卡片（左上角，佔 20% 寬度）
     this._renderPoseCard(ctx, w, h);
 
     // 分數顯示
@@ -535,22 +623,108 @@ const poseMirror = {
       this._renderDualScore(ctx, w, h, timeLeft);
     }
 
+    // 即時 emoji 回饋
+    if (this._mode === "single") {
+      const score = Math.round(this._currentScore);
+      let emoji = "\u{1F525}";  // 火焰 < 50
+      if (score >= SCORE_PERFECT) emoji = "\u2B50";       // 星星 >= 90
+      else if (score >= SCORE_GREAT) emoji = "\u{1F44D}"; // 讚 >= 70
+      else if (score >= SCORE_GOOD) emoji = "\u{1F4AA}";  // 肌肉 >= 50
+
+      const emojiFont = Math.max(24, h * 0.08);
+      ctx.font = `${emojiFont}px sans-serif`;
+      ctx.textAlign = "right";
+      ctx.textBaseline = "top";
+      ctx.fillText(emoji, w - 15, h * 0.22);
+    }
+
     // 倒數計時（頂部中央）
     const timerFont = Math.max(18, h * 0.04);
     ctx.fillStyle = timeLeft <= 1 ? C.danger : C.light;
     ctx.font = `bold ${timerFont}px sans-serif`;
     ctx.textAlign = "center";
+    ctx.textBaseline = "top";
     ctx.strokeStyle = "rgba(0,0,0,0.5)";
     ctx.lineWidth = 2;
-    ctx.strokeText(`⏱ ${timeLeft.toFixed(1)}`, w / 2, timerFont + 8);
-    ctx.fillText(`⏱ ${timeLeft.toFixed(1)}`, w / 2, timerFont + 8);
+    ctx.strokeText(`\u23F1 ${timeLeft.toFixed(1)}`, w / 2, timerFont + 8);
+    ctx.fillText(`\u23F1 ${timeLeft.toFixed(1)}`, w / 2, timerFont + 8);
+
+    // 底部進度條
+    const barW = w * 0.8;
+    const barH = 8;
+    const barX = (w - barW) / 2;
+    const barY = h - 20;
+    const progress = Math.min(1, elapsed / DETECT_DURATION);
+
+    // 進度條背景
+    ctx.fillStyle = "rgba(255,255,255,0.2)";
+    this._roundRect(ctx, barX, barY, barW, barH, barH / 2);
+    ctx.fill();
+
+    // 進度條填充（品牌色粉紫漸層）
+    if (progress > 0) {
+      const grad = ctx.createLinearGradient(barX, barY, barX + barW * progress, barY);
+      grad.addColorStop(0, C.brand);
+      grad.addColorStop(1, "#E040FB");
+      ctx.fillStyle = grad;
+      this._roundRect(ctx, barX, barY, barW * progress, barH, barH / 2);
+      ctx.fill();
+    }
   },
 
-  // ── 單人分數（右上角，大字） ──
+  // ── 左上角姿勢卡片（左對齊，20% 寬度） ──
+  _renderPoseCard(ctx, w, h) {
+    const pose = this._currentPose;
+    if (!pose) return;
+    const img = this._imageCache[pose.id];
+    const cardSize = w * 0.20;
+    const margin = 10;
+
+    // 直接繪製去背透明圖（不畫白底框）
+    if (img) {
+      ctx.drawImage(img, margin, margin, cardSize, cardSize);
+    }
+
+    // 姿勢名稱（圖片正下方），textAlign = "left"
+    const nameFont = Math.max(14, h * 0.035);
+    ctx.fillStyle = C.accent;
+    ctx.font = `bold ${nameFont}px sans-serif`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.strokeStyle = "rgba(0,0,0,0.6)";
+    ctx.lineWidth = 2;
+    const nameY = margin + cardSize + 4;
+    ctx.strokeText(`${pose.animal}的${pose.name}`, margin, nameY);
+    ctx.fillText(`${pose.animal}的${pose.name}`, margin, nameY);
+
+    // 提示語（名稱下方）
+    const hintFont = Math.max(12, h * 0.025);
+    ctx.fillStyle = C.light;
+    ctx.font = `${hintFont}px sans-serif`;
+    ctx.textAlign = "left";
+    const hintY = nameY + nameFont + 4;
+    ctx.strokeStyle = "rgba(0,0,0,0.5)";
+    ctx.lineWidth = 1.5;
+    ctx.strokeText(pose.voiceHint, margin, hintY);
+    ctx.fillText(pose.voiceHint, margin, hintY);
+
+    // 輪次指示（右上角）
+    const roundFont = Math.max(14, h * 0.03);
+    ctx.fillStyle = C.light;
+    ctx.font = `${roundFont}px sans-serif`;
+    ctx.textAlign = "right";
+    ctx.textBaseline = "top";
+    ctx.strokeStyle = "rgba(0,0,0,0.4)";
+    ctx.lineWidth = 1.5;
+    const roundText = `第 ${this._currentRound + 1}/${this._totalRounds} 輪`;
+    ctx.strokeText(roundText, w - 15, 10);
+    ctx.fillText(roundText, w - 15, 10);
+  },
+
+  // ── 單人分數（右側，h * 12% 字體） ──
   _renderSingleScore(ctx, w, h, timeLeft) {
     const score = Math.round(this._currentScore);
-    // 分數佔畫面高度 18%
-    const fontSize = Math.max(48, h * 0.18);
+    const fontSize = Math.max(48, h * 0.12);
 
     // 分數顏色
     if (score >= SCORE_PERFECT) ctx.fillStyle = C.success;
@@ -560,21 +734,24 @@ const poseMirror = {
 
     ctx.font = `bold ${fontSize}px sans-serif`;
     ctx.textAlign = "right";
+    ctx.textBaseline = "top";
     ctx.strokeStyle = "rgba(0,0,0,0.5)";
     ctx.lineWidth = 3;
-    ctx.strokeText(`${score}%`, w - 15, fontSize + 10);
-    ctx.fillText(`${score}%`, w - 15, fontSize + 10);
+    const scoreY = Math.max(14, h * 0.03) + 18; // 在輪次下方
+    ctx.strokeText(`${score}%`, w - 15, scoreY);
+    ctx.fillText(`${score}%`, w - 15, scoreY);
 
     // 最高分
     const bestFont = Math.max(14, h * 0.03);
     ctx.fillStyle = C.light;
     ctx.font = `${bestFont}px sans-serif`;
-    ctx.fillText(`最高: ${Math.round(this._bestScore)}%`, w - 15, fontSize + bestFont + 18);
+    ctx.textAlign = "right";
+    ctx.fillText(`最高: ${Math.round(this._bestScore)}%`, w - 15, scoreY + fontSize + 4);
   },
 
-  // ── 雙人分數（左右兩側各自顯示） ──
+  // ── 雙人分數（P1 左，P2 右） ──
   _renderDualScore(ctx, w, h, timeLeft) {
-    const fontSize = Math.max(36, h * 0.14);
+    const fontSize = Math.max(36, h * 0.12);
     const p1 = Math.round(this._p1Score);
     const p2 = Math.round(this._p2Score);
 
@@ -582,28 +759,29 @@ const poseMirror = {
     ctx.fillStyle = C.p1;
     ctx.font = `bold ${fontSize}px sans-serif`;
     ctx.textAlign = "left";
+    ctx.textBaseline = "top";
     ctx.strokeStyle = "rgba(0,0,0,0.5)";
     ctx.lineWidth = 3;
-    ctx.strokeText(`${p1}%`, 15, h * 0.85);
-    ctx.fillText(`${p1}%`, 15, h * 0.85);
+    ctx.strokeText(`${p1}%`, 15, h * 0.75);
+    ctx.fillText(`${p1}%`, 15, h * 0.75);
 
     // P1 最高
     const bestFont = Math.max(12, h * 0.025);
     ctx.font = `${bestFont}px sans-serif`;
-    ctx.fillText(`最高: ${Math.round(this._p1Best)}%`, 15, h * 0.85 + bestFont + 5);
+    ctx.fillText(`最高: ${Math.round(this._p1Best)}%`, 15, h * 0.75 + fontSize + 5);
 
     // P2 分數（右側）
     ctx.fillStyle = C.p2;
     ctx.font = `bold ${fontSize}px sans-serif`;
     ctx.textAlign = "right";
-    ctx.strokeText(`${p2}%`, w - 15, h * 0.85);
-    ctx.fillText(`${p2}%`, w - 15, h * 0.85);
+    ctx.strokeText(`${p2}%`, w - 15, h * 0.75);
+    ctx.fillText(`${p2}%`, w - 15, h * 0.75);
 
     ctx.font = `${bestFont}px sans-serif`;
-    ctx.fillText(`最高: ${Math.round(this._p2Best)}%`, w - 15, h * 0.85 + bestFont + 5);
+    ctx.fillText(`最高: ${Math.round(this._p2Best)}%`, w - 15, h * 0.75 + fontSize + 5);
   },
 
-  // ── ★ P0：影子引導 — 半透明目標骨架疊在玩家身上 ──
+  // ── 影子引導：半透明白色虛線骨架 ──
   _renderTargetSkeleton(ctx, w, h, landmarks, pose) {
     if (!landmarks || !pose) return;
 
@@ -621,17 +799,10 @@ const poseMirror = {
     const playerCenterX = ((ls.x + rs.x) / 2) * w;
     const playerShoulderY = ((ls.y + rs.y) / 2) * h;
     const playerHipY = ((lh.y + rh.y) / 2) * h;
-    const playerTorsoH = playerHipY - playerShoulderY;
 
-    // 根據目標角度，計算目標骨架的相對座標
-    // 使用簡化方法：根據目標角度推算各關節的理想位置
+    // 根據目標角度推算各關節的理想位置
     const ta = pose.targetAngles;
-
-    // 標準化的骨架（以肩膀中點為原點，肩寬為單位）
-    // 這裡用角度來推算各點的相對位置
     const unit = playerShoulderW * 0.5; // 半肩寬作為單位長度
-    const armLen = unit * 1.8;    // 上臂+前臂長度
-    const legLen = unit * 2.2;    // 大腿+小腿長度
 
     // 肩膀位置
     const shoulderL = { x: playerCenterX - unit, y: playerShoulderY };
@@ -641,19 +812,13 @@ const poseMirror = {
     const hipL = { x: playerCenterX - unit * 0.5, y: playerHipY };
     const hipR = { x: playerCenterX + unit * 0.5, y: playerHipY };
 
-    // 用肩膀角度推算手肘位置
+    // 用角度推算各關節位置
     const elbowL = this._calcTargetJoint(shoulderL, ta.leftShoulder, unit * 1.0, hipL, true);
     const elbowR = this._calcTargetJoint(shoulderR, ta.rightShoulder, unit * 1.0, hipR, false);
-
-    // 用手肘角度推算手腕位置
     const wristL = this._calcTargetJoint(elbowL, ta.leftElbow, unit * 0.9, shoulderL, true);
     const wristR = this._calcTargetJoint(elbowR, ta.rightElbow, unit * 0.9, shoulderR, false);
-
-    // 用髖部角度推算膝蓋位置
     const kneeL = this._calcTargetJoint(hipL, ta.leftHip, unit * 1.2, shoulderL, true);
     const kneeR = this._calcTargetJoint(hipR, ta.rightHip, unit * 1.2, shoulderR, false);
-
-    // 用膝蓋角度推算腳踝位置
     const ankleL = this._calcTargetJoint(kneeL, ta.leftKnee, unit * 1.1, hipL, true);
     const ankleR = this._calcTargetJoint(kneeR, ta.rightKnee, unit * 1.1, hipR, false);
 
@@ -672,7 +837,7 @@ const poseMirror = {
     targetPoints[LANDMARK.LEFT_ANKLE] = ankleL;
     targetPoints[LANDMARK.RIGHT_ANKLE] = ankleR;
 
-    // 繪製半透明目標骨架
+    // 繪製半透明白色虛線骨架
     ctx.save();
     ctx.globalAlpha = 0.4;
     ctx.strokeStyle = "#FFFFFF";
@@ -705,29 +870,25 @@ const poseMirror = {
 
   /**
    * 根據角度計算目標關節位置
-   * @param {Object} origin - 起點（如肩膀）
+   * @param {Object} origin - 起點
    * @param {number} angle - 目標角度（度）
    * @param {number} length - 骨骼長度（像素）
-   * @param {Object} refPoint - 參考點（用於確定角度方向）
+   * @param {Object} refPoint - 參考點
    * @param {boolean} isLeft - 是否是左側
    * @returns {Object} { x, y } 目標位置
    */
   _calcTargetJoint(origin, angle, length, refPoint, isLeft) {
-    // 計算從參考點到起點的角度
     const refAngle = Math.atan2(refPoint.y - origin.y, refPoint.x - origin.x);
-    // 將目標角度轉換為弧度，並根據左右側調整方向
     const targetRad = angle * Math.PI / 180;
-    // 對左側，手臂往左展開；對右側，往右展開
     const dir = isLeft ? 1 : -1;
     const finalAngle = refAngle + dir * targetRad;
-
     return {
       x: origin.x + Math.cos(finalAngle) * length,
       y: origin.y + Math.sin(finalAngle) * length,
     };
   },
 
-  // ── 頭飾特效（用 landmark 7/8 耳朵定位）──
+  // ── 頭飾特效（用 landmark 7/8 耳朵定位，不做鏡像翻轉）──
   _renderHat(ctx, w, h, landmarks, pose) {
     if (!landmarks || !pose) return;
     const hatImg = this._hatCache[pose.id];
@@ -740,61 +901,26 @@ const poseMirror = {
     if (leftEar.visibility < 0.2 && rightEar.visibility < 0.2) return;
 
     // 耳朵中點 = 頭部中心
-    const headCX = ((1 - leftEar.x) + (1 - rightEar.x)) / 2 * w;  // 鏡像翻轉
+    // 不做 1-x 鏡像翻轉，因為 canvas 已經做了水平翻轉
+    const headCX = (leftEar.x + rightEar.x) / 2 * w;
     const headCY = (leftEar.y + rightEar.y) / 2 * h;
     const faceW = Math.abs(leftEar.x - rightEar.x) * w;
 
-    // 耳朵寬度 = 臉寬 × 0.8
+    // 耳朵寬度 = 臉寬 * 0.8
     const hatW = Math.max(faceW * 0.8, 60);
     const hatH = hatW;  // 正方形
 
-    // 位置：頭頂上方（臉高 × 0.3 偏移）
+    // 位置：頭頂上方（臉高 * 0.3 偏移）
     const hatY = headCY - faceW * 0.6 - hatH;
 
     ctx.drawImage(hatImg, headCX - hatW / 2, hatY, hatW, hatH);
   },
 
-  // ── 左上角姿勢卡片（統一版面，佔 22% 寬度）──
-  _renderPoseCard(ctx, w, h) {
-    const pose = this._currentPose;
-    if (!pose) return;
-    const img = this._imageCache[pose.id];
-    const cardSize = w * 0.22;
-    const margin = 12;
-
-    // 直接繪製去背透明圖（不畫白底框）
-    if (img) {
-      ctx.drawImage(img, margin, margin, cardSize, cardSize);
-    }
-
-    // 姿勢名稱（圖片下方）
-    const nameFont = Math.max(14, h * 0.03);
-    ctx.fillStyle = C.accent;
-    ctx.font = `bold ${nameFont}px sans-serif`;
-    ctx.textAlign = "left";
-    ctx.strokeStyle = "rgba(0,0,0,0.6)";
-    ctx.lineWidth = 2;
-    ctx.strokeText(`${pose.animal}的${pose.name}`, margin, margin + cardSize + nameFont + 4);
-    ctx.fillText(`${pose.animal}的${pose.name}`, margin, margin + cardSize + nameFont + 4);
-
-    // 提示語
-    ctx.fillStyle = C.light;
-    ctx.font = `${nameFont * 0.85}px sans-serif`;
-    ctx.strokeText(pose.voiceHint, margin, margin + cardSize + nameFont * 2 + 8);
-    ctx.fillText(pose.voiceHint, margin, margin + cardSize + nameFont * 2 + 8);
-
-    // 輪次（頂部中央）
-    ctx.fillStyle = C.light;
-    ctx.font = `${Math.max(14, h * 0.03)}px sans-serif`;
-    ctx.textAlign = "center";
-    ctx.strokeText(`第 ${this._currentRound + 1} / ${this._totalRounds} 輪`, w / 2, Math.max(14, h * 0.03) + 10);
-    ctx.fillText(`第 ${this._currentRound + 1} / ${this._totalRounds} 輪`, w / 2, Math.max(14, h * 0.03) + 10);
-  },
-
-  // ── 結果畫面 ──
+  // ── 結算畫面 ──
   _renderResult(ctx, w, h) {
     const elapsed = performance.now() - this._stateStartTime;
 
+    // 半透明遮罩
     ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
     ctx.fillRect(0, 0, w, h);
 
@@ -802,12 +928,14 @@ const poseMirror = {
       const result = this._roundResults[this._roundResults.length - 1];
       const score = Math.round(result.bestScore);
 
+      // 評級文字和顏色
       let text, color;
-      if (score >= SCORE_PERFECT)   { text = "PERFECT! ⭐"; color = "#FFD700"; }
-      else if (score >= SCORE_GREAT) { text = "GREAT! ⭐"; color = C.success; }
+      if (score >= SCORE_PERFECT)   { text = "PERFECT! \u2B50"; color = "#FFD700"; }
+      else if (score >= SCORE_GREAT) { text = "GREAT! \u2B50"; color = C.success; }
       else if (score >= SCORE_GOOD)  { text = "GOOD!"; color = C.accent; }
       else { text = "好棒！繼續加油！"; color = C.brand; }
 
+      // 印章彈跳動畫（先放大再縮回）
       const scale = Math.min(1.2, 0.5 + elapsed / 500);
       const textFont = Math.max(32, h * 0.08);
       ctx.save();
@@ -823,10 +951,12 @@ const poseMirror = {
       ctx.fillText(text, 0, 0);
       ctx.restore();
 
+      // 大分數
       const scoreFont = Math.max(48, h * 0.18);
       ctx.fillStyle = C.light;
       ctx.font = `bold ${scoreFont}px sans-serif`;
       ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
       ctx.fillText(`${score}%`, w / 2, h * 0.55);
     } else {
       // 雙人結果
@@ -840,10 +970,11 @@ const poseMirror = {
       ctx.fillStyle = result.winner === 1 ? "#FFD700" : C.p1;
       ctx.font = `bold ${scoreFont}px sans-serif`;
       ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
       ctx.fillText(`${p1}%`, w * 0.25, h * 0.4);
       if (result.winner === 1) {
         ctx.font = `${Math.max(20, h * 0.05)}px sans-serif`;
-        ctx.fillText("👑 WIN!", w * 0.25, h * 0.4 + scoreFont * 0.6);
+        ctx.fillText("\u{1F451} WIN!", w * 0.25, h * 0.4 + scoreFont * 0.6);
       }
 
       // VS
@@ -857,7 +988,7 @@ const poseMirror = {
       ctx.fillText(`${p2}%`, w * 0.75, h * 0.4);
       if (result.winner === 2) {
         ctx.font = `${Math.max(20, h * 0.05)}px sans-serif`;
-        ctx.fillText("👑 WIN!", w * 0.75, h * 0.4 + scoreFont * 0.6);
+        ctx.fillText("\u{1F451} WIN!", w * 0.75, h * 0.4 + scoreFont * 0.6);
       }
 
       // 目前戰況
@@ -872,13 +1003,15 @@ const poseMirror = {
     ctx.fillStyle = "rgba(255,255,255,0.6)";
     ctx.font = `${nameFont}px sans-serif`;
     ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
     ctx.fillText(`${last.pose.animal}的${last.pose.name}`, w / 2, h * 0.75);
 
     this._renderParticles(ctx);
   },
 
-  // ── 結算畫面 ──
+  // ── 遊戲結束畫面 ──
   _renderGameOver(ctx, w, h) {
+    // 深色遮罩
     ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
     ctx.fillRect(0, 0, w, h);
 
@@ -886,24 +1019,26 @@ const poseMirror = {
     ctx.fillStyle = C.accent;
     ctx.font = `bold ${titleFont}px sans-serif`;
     ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
 
     if (this._mode === "single") {
-      ctx.fillText("🎉 遊戲結束！", w / 2, titleFont + 20);
+      ctx.fillText("\u{1F389} 遊戲結束！", w / 2, titleFont + 20);
 
       const avgScore = this._roundResults.reduce((s, r) => s + r.bestScore, 0) / this._roundResults.length;
       const perfectCount = this._roundResults.filter(r => r.bestScore >= SCORE_PERFECT).length;
       const greatCount = this._roundResults.filter(r => r.bestScore >= SCORE_GREAT).length;
 
       let verdict;
-      if (perfectCount >= 4) verdict = "姿勢大師！🏆";
-      else if (greatCount >= 4) verdict = "超厲害！⭐";
-      else if (greatCount >= 2) verdict = "做得很好！👍";
-      else verdict = "越來越厲害了！💪";
+      if (perfectCount >= 4) verdict = "姿勢大師！\u{1F3C6}";
+      else if (greatCount >= 4) verdict = "超厲害！\u2B50";
+      else if (greatCount >= 2) verdict = "做得很好！\u{1F44D}";
+      else verdict = "越來越厲害了！\u{1F4AA}";
 
       ctx.fillStyle = C.light;
       ctx.font = `bold ${Math.max(22, h * 0.05)}px sans-serif`;
       ctx.fillText(verdict, w / 2, titleFont + 20 + Math.max(22, h * 0.05) + 20);
 
+      // 平均分數
       const avgFont = Math.max(36, h * 0.1);
       ctx.fillStyle = C.brand;
       ctx.font = `bold ${avgFont}px sans-serif`;
@@ -913,11 +1048,12 @@ const poseMirror = {
       ctx.font = `${Math.max(14, h * 0.03)}px sans-serif`;
       ctx.fillText("平均分數", w / 2, h * 0.4 + avgFont * 0.4 + 10);
 
-      // 每輪成績
+      // 每輪成績列表
       const listTop = h * 0.52;
       const rowH = Math.max(20, h * 0.045);
       ctx.font = `${Math.max(13, h * 0.028)}px sans-serif`;
       ctx.textAlign = "left";
+      ctx.textBaseline = "top";
 
       for (let i = 0; i < this._roundResults.length; i++) {
         const r = this._roundResults[i];
@@ -927,12 +1063,18 @@ const poseMirror = {
         else if (sc >= SCORE_GREAT) ctx.fillStyle = C.success;
         else if (sc >= SCORE_GOOD) ctx.fillStyle = C.accent;
         else ctx.fillStyle = C.light;
-        ctx.fillText(`${i + 1}. ${r.pose.animal}的${r.pose.name}　${sc}%${sc >= SCORE_PERFECT ? " ⭐" : ""}`, w * 0.15, y);
+        ctx.fillText(
+          `${i + 1}. ${r.pose.animal}的${r.pose.name}  ${sc}%${sc >= SCORE_PERFECT ? " \u2B50" : ""}`,
+          w * 0.15, y
+        );
       }
     } else {
       // 雙人結算
       const winner = this._p1Wins > this._p2Wins ? "P1" : (this._p2Wins > this._p1Wins ? "P2" : "平手");
-      ctx.fillText(winner === "平手" ? "🤝 平手！" : `🎉 ${winner} 獲勝！`, w / 2, titleFont + 20);
+      ctx.fillText(
+        winner === "平手" ? "\u{1F91D} 平手！" : `\u{1F389} ${winner} 獲勝！`,
+        w / 2, titleFont + 20
+      );
 
       const scoreFont = Math.max(36, h * 0.1);
       ctx.fillStyle = C.p1;
@@ -947,6 +1089,7 @@ const poseMirror = {
       const rowH = Math.max(20, h * 0.045);
       ctx.font = `${Math.max(13, h * 0.028)}px sans-serif`;
       ctx.textAlign = "center";
+      ctx.textBaseline = "top";
 
       for (let i = 0; i < this._roundResults.length; i++) {
         const r = this._roundResults[i];
@@ -956,15 +1099,16 @@ const poseMirror = {
 
         ctx.fillStyle = r.winner === 1 ? C.p1 : (r.winner === 2 ? C.p2 : C.light);
         ctx.fillText(
-          `${i + 1}. ${r.pose.name}　P1 ${p1s}% vs ${p2s}% P2${r.winner ? (r.winner === 1 ? " ← 勝" : " 勝 →") : ""}`,
+          `${i + 1}. ${r.pose.name}  P1 ${p1s}% vs ${p2s}% P2${r.winner ? (r.winner === 1 ? " \u2190 勝" : " 勝 \u2192") : ""}`,
           w / 2, y
         );
       }
     }
 
-    // 按鈕
+    // 按鈕：「再玩一次」和「回到選單」
     this._renderButton(ctx, "再玩一次", w * 0.28, h * 0.88, w * 0.2, h * 0.07, C.brand);
-    this._renderButton(ctx, "回主選單", w * 0.52, h * 0.88, w * 0.2, h * 0.07, C.dark);
+    this._renderButton(ctx, "回到選單", w * 0.52, h * 0.88, w * 0.2, h * 0.07, C.dark);
+
     this._renderParticles(ctx);
   },
 
@@ -972,6 +1116,7 @@ const poseMirror = {
   // 工具方法
   // ═══════════════════════════════════════
 
+  // ── 圓角矩形 ──
   _roundRect(ctx, x, y, w, h, r) {
     ctx.beginPath();
     ctx.moveTo(x + r, y);
@@ -986,19 +1131,24 @@ const poseMirror = {
     ctx.closePath();
   },
 
-  _renderButton(ctx, text, x, y, w, h, color) {
+  // ── 按鈕繪製 ──
+  _renderButton(ctx, text, x, y, bw, bh, color) {
     ctx.fillStyle = color;
-    this._roundRect(ctx, x, y, w, h, h / 2);
+    this._roundRect(ctx, x, y, bw, bh, bh / 2);
     ctx.fill();
     ctx.fillStyle = C.light;
-    ctx.font = `bold ${Math.max(12, h * 0.4)}px sans-serif`;
+    ctx.font = `bold ${Math.max(12, bh * 0.4)}px sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(text, x + w / 2, y + h / 2);
+    ctx.fillText(text, x + bw / 2, y + bh / 2);
   },
 
+  // ── 粒子特效 ──
   _spawnResultParticles() {
-    const count = (this._bestScore >= SCORE_PERFECT || this._p1Best >= SCORE_PERFECT || this._p2Best >= SCORE_PERFECT) ? 40 : 20;
+    const isPerfect = this._bestScore >= SCORE_PERFECT ||
+                      this._p1Best >= SCORE_PERFECT ||
+                      this._p2Best >= SCORE_PERFECT;
+    const count = isPerfect ? 40 : 20;
     for (let i = 0; i < count; i++) {
       this._particles.push({
         x: this._w / 2 + (Math.random() - 0.5) * this._w * 0.5,
@@ -1016,7 +1166,10 @@ const poseMirror = {
   _updateParticles() {
     for (let i = this._particles.length - 1; i >= 0; i--) {
       const p = this._particles[i];
-      p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life -= p.decay;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.15;
+      p.life -= p.decay;
       if (p.life <= 0) this._particles.splice(i, 1);
     }
   },
@@ -1038,19 +1191,31 @@ const poseMirror = {
 
   handleClick(x, y) {
     if (this._state === STATE.GAME_OVER) {
-      const w = this._w, h = this._h;
-      const btnW = w * 0.2, btnH = h * 0.07, btnY = h * 0.88;
-      if (x >= w * 0.28 && x <= w * 0.28 + btnW && y >= btnY && y <= btnY + btnH) return "replay";
-      if (x >= w * 0.52 && x <= w * 0.52 + btnW && y >= btnY && y <= btnY + btnH) return "menu";
+      const bw = this._w * 0.2;
+      const bh = this._h * 0.07;
+      const btnY = this._h * 0.88;
+
+      // 「再玩一次」按鈕
+      if (x >= this._w * 0.28 && x <= this._w * 0.28 + bw && y >= btnY && y <= btnY + bh) {
+        return "replay";
+      }
+      // 「回到選單」按鈕
+      if (x >= this._w * 0.52 && x <= this._w * 0.52 + bw && y >= btnY && y <= btnY + bh) {
+        return "menu";
+      }
     }
     return null;
   },
 
-  isGameOver() { return this._gameOver; },
+  isGameOver() {
+    return this._gameOver;
+  },
 
   getResults() {
     if (this._mode === "single") {
-      const avg = this._roundResults.reduce((s, r) => s + r.bestScore, 0) / this._roundResults.length;
+      const avg = this._roundResults.length > 0
+        ? this._roundResults.reduce((s, r) => s + r.bestScore, 0) / this._roundResults.length
+        : 0;
       return { averageScore: Math.round(avg), rounds: this._roundResults };
     } else {
       return { p1Wins: this._p1Wins, p2Wins: this._p2Wins, rounds: this._roundResults };
@@ -1061,6 +1226,8 @@ const poseMirror = {
     this._particles = [];
     this._imageCache = {};
     this._hatCache = {};
+    this._lastLandmarks = null;
+    this._lastLandmarksP2 = null;
   },
 };
 
