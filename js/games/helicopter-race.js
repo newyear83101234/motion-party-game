@@ -72,7 +72,8 @@ let quitBtnArea = null, quitConfirmOpen = false;
 let quitConfirmYes = null, quitConfirmNo = null;
 let _resultButtons = [];
 let _warningFired = false;
-let _allLandmarks = [];  // 存儲當前幀的所有 landmarks（供 AR 渲染用）
+let _allLandmarks = [];
+let _clouds = [];  // 雲朵裝飾
 
 // ══════════════════════════════════════════
 // ── 扭動偵測（屁股搖動速度）──
@@ -347,7 +348,7 @@ function renderResults(ctx) {
       outlinedText(ctx, `👑 玩家 ${winner + 1} 贏了！`, _w / 2, _h * 0.15, players[winner].color.main, C.dark, 5);
     }
 
-    drawHelicopter(ctx, _w / 2, _h * 0.32, players[winner].color, Date.now() / 50, 0.5, 60, winner);
+    drawHelicopter(ctx, _w / 2, _h * 0.32, players[winner].color, Date.now() / 50, 0.5, 200, winner);
 
     ctx.font = "bold 24px sans-serif";
     const p1P = Math.round(players[0].height / PHYSICS.maxHeight * 100);
@@ -360,7 +361,7 @@ function renderResults(ctx) {
     const msgC = pct >= 80 ? C.accent : pct >= 50 ? C.success : C.brand;
     ctx.font = "bold 48px 'Arial Black', sans-serif";
     outlinedText(ctx, msg, _w / 2, _h * 0.15, msgC, C.dark, 5);
-    drawHelicopter(ctx, _w / 2, _h * 0.32, players[0].color, Date.now() / 50, 0.3, 60, 0);
+    drawHelicopter(ctx, _w / 2, _h * 0.32, players[0].color, Date.now() / 50, 0.3, 200, 0);
     ctx.font = "bold 64px 'Arial Black', sans-serif";
     outlinedText(ctx, `${pct}%`, _w / 2, _h * 0.50, C.light, C.dark, 5);
     ctx.font = "bold 20px sans-serif";
@@ -430,6 +431,19 @@ const helicopterRace = {
     quitConfirmOpen = false;
     _resultButtons = [];
     _warningFired = false;
+
+    // 初始化雲朵
+    _clouds = [];
+    for (let i = 0; i < 10; i++) {
+      _clouds.push({
+        x: Math.random() * _w,
+        baseY: Math.random() * _h * 1.5 - _h * 0.3,
+        size: 60 + Math.random() * 80,
+        opacity: 0.3 + Math.random() * 0.4,
+        speed: 0.2 + Math.random() * 0.3, // 水平飄移速度
+        layer: Math.floor(Math.random() * 3), // 0=近, 1=中, 2=遠
+      });
+    }
   },
 
   update(allLandmarks, timestamp) {
@@ -489,6 +503,35 @@ const helicopterRace = {
     ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
     ctx.fillRect(0, 0, _w, _h);
 
+    // 雲朵裝飾（視差捲動 + 水平飄移）
+    const maxH = players.length > 0 ? Math.max(...players.map(p => p.height)) : 0;
+    _clouds.forEach(c => {
+      // 水平飄移
+      c.x += c.speed;
+      if (c.x > _w + c.size) c.x = -c.size;
+      // 視差捲動：玩家越高，雲朵越往下
+      const parallax = 0.2 + c.layer * 0.25;
+      const screenY = c.baseY + maxH * _h * parallax;
+      if (screenY < -c.size || screenY > _h + c.size) return;
+      ctx.save();
+      ctx.globalAlpha = c.opacity;
+      if (imgReady(cloudImg)) {
+        // 圖片雲朵（取整張圖按尺寸縮放）
+        const cw = c.size * 1.8;
+        const ch = c.size;
+        ctx.drawImage(cloudImg, c.x - cw / 2, screenY - ch / 2, cw, ch);
+      } else {
+        // fallback：白色圓形組合
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.arc(c.x, screenY, c.size * 0.4, 0, Math.PI * 2);
+        ctx.arc(c.x - c.size * 0.3, screenY + 5, c.size * 0.3, 0, Math.PI * 2);
+        ctx.arc(c.x + c.size * 0.3, screenY + 5, c.size * 0.3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    });
+
     // AR 裝飾 + 屁股偵測標記
     if (gameState === "playing" || gameState === "countdown") {
       players.forEach((p, i) => {
@@ -512,32 +555,42 @@ const helicopterRace = {
           ctx.restore();
         }
 
-        // ── 呼啦圈（髖部位置，搖動時傾斜旋轉）──
-        if (p.hipVisible && imgReady(hulaImg)) {
+        // ── 呼啦圈（髖部位置，根據肩寬縮放，搖動時傾斜旋轉）──
+        if (p.hipVisible) {
           const lHip = lm ? lm[DET.hipL] : null;
           const rHip = lm ? lm[DET.hipR] : null;
-          // 傾斜角度：左右髖 y 差（最大 ±30°）
+          const lSh = lm ? lm[11] : null;
+          const rSh = lm ? lm[12] : null;
+
+          // 呼啦圈寬度：肩寬 × 1.2（環住整個腰部）
+          let hulaW = 350; // fallback
+          if (lSh && rSh && lSh.visibility > 0.2 && rSh.visibility > 0.2) {
+            hulaW = Math.abs(lSh.x - rSh.x) * _w * 1.2;
+          }
+          hulaW = Math.max(hulaW, 350);
+          hulaW += p.currentIntensity * 40;
+          const hulaH = hulaW * 0.45; // 透視壓扁
+
+          // 傾斜角度：左右髖 y 差
           let tiltAngle = 0;
           if (lHip && rHip) {
-            const dy = (lHip.y - rHip.y);
-            tiltAngle = Math.max(-0.5, Math.min(0.5, dy * 5));
+            tiltAngle = Math.max(-0.5, Math.min(0.5, (lHip.y - rHip.y) * 5));
           }
-          // 搖動時額外旋轉
           tiltAngle += Math.sin(Date.now() / 150) * p.currentIntensity * 0.3;
-          const hulaW = 160 + p.currentIntensity * 40;
-          const hulaH = hulaW * 0.5; // 透視壓扁
+
           ctx.save();
           ctx.translate(p.hipScreenX, p.hipScreenY);
           ctx.rotate(tiltAngle);
-          ctx.drawImage(hulaImg, -hulaW / 2, -hulaH / 2, hulaW, hulaH);
-          ctx.restore();
-        } else if (p.hipVisible) {
-          // fallback：emoji
-          const markerSize = 40 + p.currentIntensity * 20;
-          ctx.save();
-          ctx.font = `${markerSize}px sans-serif`;
-          ctx.textAlign = "center"; ctx.textBaseline = "middle";
-          ctx.fillText("🍑", p.hipScreenX, p.hipScreenY);
+          if (imgReady(hulaImg)) {
+            ctx.drawImage(hulaImg, -hulaW / 2, -hulaH / 2, hulaW, hulaH);
+          } else {
+            // fallback：橢圓環
+            ctx.strokeStyle = C.accent;
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, hulaW / 2, hulaH / 2, 0, 0, Math.PI * 2);
+            ctx.stroke();
+          }
           ctx.restore();
         }
       });
@@ -555,15 +608,16 @@ const helicopterRace = {
       }
     }
 
-    // 城市天際線（底部固定）
+    // 城市天際線（底部固定，連續鋪滿）
     if (imgReady(cityImg)) {
-      const cityH = _h * 0.18;
+      const cityH = _h * 0.22;
       const cityW = cityH * (cityImg.naturalWidth / cityImg.naturalHeight);
       ctx.save();
       ctx.globalAlpha = 0.5;
-      // 重複鋪滿底部
-      for (let ox = 0; ox < _w; ox += cityW) {
+      let ox = 0;
+      while (ox < _w) {
         ctx.drawImage(cityImg, ox, _h - cityH, cityW, cityH);
+        ox += cityW - 1; // -1 避免接縫間隙
       }
       ctx.restore();
     }
@@ -572,7 +626,7 @@ const helicopterRace = {
     players.forEach((p, i) => {
       const heliX = _mode === "dual" ? (i === 0 ? _w * 0.3 : _w * 0.7) : _w / 2;
       const heliY = _h * 0.88 - (p.height / PHYSICS.maxHeight) * (_h * 0.75);
-      const heliSize = 45 + p.currentIntensity * 10;
+      const heliSize = 200 + p.currentIntensity * 30;
       drawHelicopter(ctx, heliX, heliY, p.color, p.propellerAngle, p.currentIntensity, heliSize, i);
 
       // 玩家標籤
