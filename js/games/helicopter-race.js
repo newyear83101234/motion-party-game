@@ -22,10 +22,10 @@ const HELI_COLORS = [
 
 // ── 物理參數（幼兒適配，限制最大速度，強調持續搖動）──
 const PHYSICS = {
-  maxThrust:     0.8,    // 最大推進力
-  gravity:       0.55,   // 重力
-  inertiaDecay:  0.92,   // 慣性衰減
-  maxVelocity:   0.6,    // 速度上限
+  maxThrust:     2.5,    // 推力（大幅提高，確保搖動能上升）
+  gravity:       0.3,    // 重力（低，停搖才緩慢下降）
+  inertiaDecay:  0.95,   // 慣性（保持動量）
+  maxVelocity:   1.2,    // 速度上限
   maxHeight:     0.85,   // 最高可達畫面 85%
 };
 
@@ -131,7 +131,7 @@ function calcTwist(landmarks, player) {
 
   const avgDelta = player.shakeHistory.reduce((s, t) => s + t.delta, 0) / player.shakeHistory.length;
   const freq = 1 + Math.min(player.shakeHistory.length / 10, 1.0);
-  const intensity = Math.min(avgDelta * freq * 100, 1.0);  // 中等靈敏度
+  const intensity = Math.min(avgDelta * freq * 250, 1.0);  // 高靈敏度
 
   return intensity;
 }
