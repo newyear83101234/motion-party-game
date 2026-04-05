@@ -50,6 +50,8 @@ const POSE_DATA = [
     animal: "狗狗",
     image: "IMAGES/poses/pose_hands_up.png",
     voiceHint: "把手舉高高！",
+    voiceFile: "MUSIC/pose_01_wansui.wav",
+    hatImage: "IMAGES/poses/hats/hat_hands_up.png",
     targetAngles: {
       leftShoulder: 170,
       rightShoulder: 170,
@@ -79,6 +81,8 @@ const POSE_DATA = [
     animal: "老鷹",
     image: "IMAGES/poses/pose_airplane.png",
     voiceHint: "像飛機一樣張開手！",
+    voiceFile: "MUSIC/pose_02_airplane.wav",
+    hatImage: "IMAGES/poses/hats/hat_airplane.png",
     targetAngles: {
       leftShoulder: 90,
       rightShoulder: 90,
@@ -108,6 +112,8 @@ const POSE_DATA = [
     animal: "兔子",
     image: "IMAGES/poses/pose_big_v.png",
     voiceHint: "雙手打開變 V！",
+    voiceFile: "MUSIC/pose_03_bigv.wav",
+    hatImage: "IMAGES/poses/hats/hat_big_v.png",
     targetAngles: {
       leftShoulder: 135,
       rightShoulder: 135,
@@ -137,6 +143,8 @@ const POSE_DATA = [
     animal: "貓咪",
     image: "IMAGES/poses/pose_hands_on_hips.png",
     voiceHint: "手放腰上，好帥！",
+    voiceFile: "MUSIC/pose_04_handsonhips.wav",
+    hatImage: "IMAGES/poses/hats/hat_hands_on_hips.png",
     targetAngles: {
       leftShoulder: 40,
       rightShoulder: 40,
@@ -166,6 +174,8 @@ const POSE_DATA = [
     animal: "熊貓",
     image: "IMAGES/poses/pose_zombie.png",
     voiceHint: "手伸直直，變殭屍！",
+    voiceFile: "MUSIC/pose_05_zombie.wav",
+    hatImage: "IMAGES/poses/hats/hat_zombie.png",
     targetAngles: {
       leftShoulder: 90,
       rightShoulder: 90,
@@ -195,6 +205,8 @@ const POSE_DATA = [
     animal: "獅子",
     image: "IMAGES/poses/pose_star.png",
     voiceHint: "全身張開變星星！",
+    voiceFile: "MUSIC/pose_06_starfish.wav",
+    hatImage: "IMAGES/poses/hats/hat_star.png",
     targetAngles: {
       leftShoulder: 135,
       rightShoulder: 135,
@@ -224,6 +236,8 @@ const POSE_DATA = [
     animal: "小熊",
     image: "IMAGES/poses/pose_weightlifter.png",
     voiceHint: "舉起來！好有力！",
+    voiceFile: "MUSIC/pose_07_weightlift.wav",
+    hatImage: "IMAGES/poses/hats/hat_weightlifter.png",
     targetAngles: {
       leftShoulder: 135,
       rightShoulder: 135,
@@ -253,6 +267,8 @@ const POSE_DATA = [
     animal: "企鵝",
     image: "IMAGES/poses/pose_superman.png",
     voiceHint: "飛起來！超人出發！",
+    voiceFile: "MUSIC/pose_08_superman.wav",
+    hatImage: "IMAGES/poses/hats/hat_superman.png",
     targetAngles: {
       leftShoulder: 135,
       rightShoulder: 135,
@@ -282,6 +298,8 @@ const POSE_DATA = [
     animal: "貓頭鷹",
     image: "IMAGES/poses/pose_scarecrow.png",
     voiceHint: "站好好，手彎彎！",
+    voiceFile: "MUSIC/pose_09_scarecrow.wav",
+    hatImage: "IMAGES/poses/hats/hat_scarecrow.png",
     targetAngles: {
       leftShoulder: 90,
       rightShoulder: 90,
@@ -311,6 +329,8 @@ const POSE_DATA = [
     animal: "大熊",
     image: "IMAGES/poses/pose_sumo.png",
     voiceHint: "蹲下來，嘿！",
+    voiceFile: "MUSIC/pose_10_sumo.wav",
+    hatImage: "IMAGES/poses/hats/hat_sumo.png",
     targetAngles: {
       leftShoulder: 80,
       rightShoulder: 80,
@@ -340,6 +360,8 @@ const POSE_DATA = [
     animal: "大猩猩",
     image: "IMAGES/poses/pose_gorilla.png",
     voiceHint: "蹲低低，手垂下來！",
+    voiceFile: "MUSIC/pose_11_gorilla.wav",
+    hatImage: "IMAGES/poses/hats/hat_gorilla.png",
     targetAngles: {
       leftShoulder: 20,
       rightShoulder: 20,
@@ -369,6 +391,8 @@ const POSE_DATA = [
     animal: "狐狸",
     image: "IMAGES/poses/pose_surrender.png",
     voiceHint: "雙手舉高，投降！",
+    voiceFile: "MUSIC/pose_12_surrender.wav",
+    hatImage: "IMAGES/poses/hats/hat_surrender.png",
     targetAngles: {
       leftShoulder: 135,
       rightShoulder: 135,

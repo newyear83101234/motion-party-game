@@ -115,11 +115,40 @@ class AudioManager {
 
     // 預載 SFX 音效檔案
     const sfxFiles = {
+      // ── 直升機競賽音效 ──
       sfx_heli_boost:   `${basePath}/sfx_heli_boost.mp3`,
       sfx_heli_whoosh:  `${basePath}/sfx_heli_whoosh.mp3`,
       sfx_heli_win:     `${basePath}/sfx_heli_win.mp3`,
       sfx_countdown:    `${basePath}/sfx_countdown.mp3`,
       sfx_time_warning: `${basePath}/sfx_time_warning.mp3`,
+
+      // ── 姿勢模仿：姿勢語音提示 ──
+      pose_01_wansui:       `${basePath}/pose_01_wansui.wav`,
+      pose_02_airplane:     `${basePath}/pose_02_airplane.wav`,
+      pose_03_bigv:         `${basePath}/pose_03_bigv.wav`,
+      pose_04_handsonhips:  `${basePath}/pose_04_handsonhips.wav`,
+      pose_05_zombie:       `${basePath}/pose_05_zombie.wav`,
+      pose_06_starfish:     `${basePath}/pose_06_starfish.wav`,
+      pose_07_weightlift:   `${basePath}/pose_07_weightlift.wav`,
+      pose_08_superman:     `${basePath}/pose_08_superman.wav`,
+      pose_09_scarecrow:    `${basePath}/pose_09_scarecrow.wav`,
+      pose_10_sumo:         `${basePath}/pose_10_sumo.wav`,
+      pose_11_gorilla:      `${basePath}/pose_11_gorilla.wav`,
+      pose_12_surrender:    `${basePath}/pose_12_surrender.wav`,
+
+      // ── 姿勢模仿：系統音效 ──
+      sys_calibrate:  `${basePath}/sys_01_calibrate.wav`,
+      sys_ready:      `${basePath}/sys_02_ready.wav`,
+      sys_count3:     `${basePath}/sys_03_count3.wav`,
+      sys_count2:     `${basePath}/sys_04_count2.wav`,
+      sys_count1:     `${basePath}/sys_05_count1.wav`,
+      sys_go:         `${basePath}/sys_06_go.wav`,
+      sys_perfect:    `${basePath}/sys_07_perfect.wav`,
+      sys_great:      `${basePath}/sys_08_great.wav`,
+      sys_good:       `${basePath}/sys_09_good.wav`,
+      sys_tryagain:   `${basePath}/sys_10_tryagain.wav`,
+      sys_winner:     `${basePath}/sys_11_winner.wav`,
+      sys_gameover:   `${basePath}/sys_12_gameover.wav`,
     };
     const sfxLoadPromises = Object.entries(sfxFiles).map(async ([key, url]) => {
       try {

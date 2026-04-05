@@ -1,3 +1,442 @@
+# TASK15 — 姿勢模仿遊戲增強：去背、影子引導、雙人模式、音效、頭飾特效
+
+> **目標：** 完善姿勢模仿遊戲的六大項目：圖片去背、影子引導系統（P0）、雙人模式、音效整合、頭部特效、UI 調整
+> **優先級：** P0（核心體驗）
+> **預估影響檔案：** 修改 `js/games/pose-mirror.js`、`js/pose-library.js`、`js/audio-manager.js`、`js/main.js`，新增 `IMAGES/poses/hats/` 目錄，新增 `scripts/remove-bg.py`、`scripts/generate-hats.py`
+
+---
+
+## 步驟 0：圖片去背（將白底轉為透明背景）
+
+### 0.1 安裝依賴
+
+```bash
+pip install rembg onnxruntime Pillow --break-system-packages
+```
+
+如果 `rembg` 安裝失敗（可能因為 onnxruntime 版本衝突），改用 Pillow 白底去除法：
+
+```bash
+pip install Pillow --break-system-packages
+```
+
+### 0.2 建立去背腳本 `scripts/remove-bg.py`
+
+```python
+"""
+姿勢卡片圖片去背腳本
+將白色背景轉為透明，只保留動物圖案
+"""
+import os
+from PIL import Image
+
+INPUT_DIR = "IMAGES/poses"
+# 就地覆蓋原檔案（去背後直接替換）
+
+def remove_white_bg(img_path):
+    """將白色/接近白色的背景轉為透明"""
+    img = Image.open(img_path).convert("RGBA")
+    data = img.getdata()
+
+    new_data = []
+    # 白色容差：RGB 每個通道 > 240 就視為白色背景
+    threshold = 240
+    for item in data:
+        if item[0] > threshold and item[1] > threshold and item[2] > threshold:
+            new_data.append((255, 255, 255, 0))  # 完全透明
+        else:
+            new_data.append(item)
+
+    img.putdata(new_data)
+    img.save(img_path, "PNG")
+    return True
+
+def main():
+    print("=" * 50)
+    print("姿勢卡片圖片去背")
+    print("=" * 50)
+
+    # 只處理 pose_*.png（不處理 stamp 和 title）
+    files = [f for f in os.listdir(INPUT_DIR) if f.startswith("pose_") and f.endswith(".png")]
+
+    for f in sorted(files):
+        filepath = os.path.join(INPUT_DIR, f)
+        print(f"  處理中: {f}...", end=" ")
+        try:
+            remove_white_bg(filepath)
+            print("✓ 完成")
+        except Exception as e:
+            print(f"✗ 錯誤: {e}")
+
+    print(f"\n去背完成，共處理 {len(files)} 張圖片")
+
+if __name__ == "__main__":
+    main()
+```
+
+### 0.3 執行
+
+```bash
+python scripts/remove-bg.py
+```
+
+### 0.4 驗證
+
+用瀏覽器開啟任一張 `IMAGES/poses/pose_*.png`，確認背景是透明的（棋盤格底）而不是白色。
+
+---
+
+## 步驟 1：用 Gemini API 生成 12 頂動物頭飾圖片
+
+### 1.1 建立頭飾目錄
+
+```bash
+mkdir -p IMAGES/poses/hats
+```
+
+### 1.2 建立頭飾生成腳本 `scripts/generate-hats.py`
+
+```python
+"""
+姿勢模仿遊戲 — 動物頭飾圖片批量生成
+使用 Gemini API 生成 12 頂與姿勢動物對應的頭飾
+"""
+import os
+import io
+import time
+from google import genai
+from google.genai import types
+from PIL import Image
+
+API_KEY = "AIzaSyBQW0A0UAJ_FqK3rSq62HC8M6ImjjXs4dQ"
+client = genai.Client(api_key=API_KEY)
+MODEL = "gemini-2.0-flash-preview-image-generation"
+
+OUTPUT_DIR = "IMAGES/poses/hats"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+# ── 12 頂頭飾定義 ──
+HATS = [
+    {
+        "filename": "hat_hands_up.png",
+        "animal": "golden retriever dog",
+        "desc": "cute floppy golden retriever dog ears headband, front view",
+    },
+    {
+        "filename": "hat_airplane.png",
+        "animal": "eagle",
+        "desc": "cute eagle head cap with small beak visor and feather crest on top, front view",
+    },
+    {
+        "filename": "hat_big_v.png",
+        "animal": "rabbit",
+        "desc": "cute tall rabbit ears headband, pink inner ears, front view",
+    },
+    {
+        "filename": "hat_hands_on_hips.png",
+        "animal": "cat",
+        "desc": "cute orange tabby cat ears headband with small bell collar, front view",
+    },
+    {
+        "filename": "hat_zombie.png",
+        "animal": "panda",
+        "desc": "cute round panda ears headband, black and white, front view",
+    },
+    {
+        "filename": "hat_star.png",
+        "animal": "lion",
+        "desc": "cute lion mane headdress forming a circle around the head, golden brown, front view",
+    },
+    {
+        "filename": "hat_weightlifter.png",
+        "animal": "bear",
+        "desc": "cute round brown bear ears headband, simple and round, front view",
+    },
+    {
+        "filename": "hat_superman.png",
+        "animal": "penguin",
+        "desc": "cute penguin head hood hat, black and white with orange beak on forehead, front view",
+    },
+    {
+        "filename": "hat_scarecrow.png",
+        "animal": "owl",
+        "desc": "cute owl ear tufts headband with big round owl eyes on top, brown feathery, front view",
+    },
+    {
+        "filename": "hat_sumo.png",
+        "animal": "big bear",
+        "desc": "cute sumo-style topknot hair bun on a bear ears headband, front view",
+    },
+    {
+        "filename": "hat_gorilla.png",
+        "animal": "gorilla",
+        "desc": "cute dark gorilla forehead ridge headband with small ears, front view",
+    },
+    {
+        "filename": "hat_surrender.png",
+        "animal": "fox",
+        "desc": "cute pointed orange fox ears headband with white inner ear tips, front view",
+    },
+]
+
+PROMPT_TEMPLATE = """Create a single illustration of a {desc}.
+
+Style requirements:
+- Simple flat cartoon illustration, kawaii cute style
+- Bold black outlines, bright cheerful colors
+- Pure white background, absolutely nothing else in the image
+- The headband/hat should be shown from the FRONT VIEW
+- It should look like it can be worn on a child's head
+- NO face, NO body, ONLY the headband/hat accessory itself
+- NO text, NO labels, NO watermarks
+- Centered in the image with some padding around it
+- Size: suitable to overlay on top of a person's head in a game"""
+
+
+def generate_and_save(prompt, filepath, max_retries=3):
+    """呼叫 Gemini API 生成圖片並儲存"""
+    for attempt in range(max_retries):
+        try:
+            print(f"  生成中 (第 {attempt + 1} 次)...")
+            response = client.models.generate_content(
+                model=MODEL,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_modalities=["Text", "Image"]
+                ),
+            )
+            for part in response.candidates[0].content.parts:
+                if part.inline_data is not None:
+                    img = Image.open(io.BytesIO(part.inline_data.data))
+                    img = img.resize((256, 256), Image.LANCZOS)
+                    img.save(filepath, "PNG", quality=95)
+                    print(f"  ✓ 已儲存: {filepath}")
+                    return True
+            print(f"  ✗ 回應中沒有圖片，重試...")
+        except Exception as e:
+            print(f"  ✗ 錯誤: {e}")
+            if attempt < max_retries - 1:
+                wait = 10 * (attempt + 1)
+                print(f"  等待 {wait} 秒後重試...")
+                time.sleep(wait)
+    print(f"  ✗✗✗ 生成失敗: {filepath}")
+    return False
+
+
+def remove_white_bg(filepath):
+    """將白色背景轉為透明"""
+    img = Image.open(filepath).convert("RGBA")
+    data = img.getdata()
+    new_data = []
+    for item in data:
+        if item[0] > 240 and item[1] > 240 and item[2] > 240:
+            new_data.append((255, 255, 255, 0))
+        else:
+            new_data.append(item)
+    img.putdata(new_data)
+    img.save(filepath, "PNG")
+
+
+def main():
+    print("=" * 60)
+    print("姿勢模仿遊戲 — 動物頭飾批量生成")
+    print("=" * 60)
+
+    success = 0
+    for i, hat in enumerate(HATS):
+        filepath = os.path.join(OUTPUT_DIR, hat["filename"])
+        print(f"\n[{i+1}/{len(HATS)}] {hat['animal']} 頭飾")
+        prompt = PROMPT_TEMPLATE.format(desc=hat["desc"])
+        if generate_and_save(prompt, filepath):
+            # 生成後立刻去背
+            print(f"  去背中...", end=" ")
+            try:
+                remove_white_bg(filepath)
+                print("✓")
+            except:
+                print("（跳過）")
+            success += 1
+        if i < len(HATS) - 1:
+            time.sleep(3)
+
+    print(f"\n完成！成功: {success}/{len(HATS)}")
+
+if __name__ == "__main__":
+    main()
+```
+
+### 1.3 執行
+
+```bash
+python scripts/generate-hats.py
+```
+
+### 1.4 驗證
+
+`IMAGES/poses/hats/` 下應有 12 個透明背景的 PNG 檔案。
+
+---
+
+## 步驟 2：修改 `js/pose-library.js` — 加入音檔路徑與頭飾路徑
+
+### 2.1 在每個姿勢資料中新增兩個欄位
+
+在 POSE_DATA 陣列中，為每個姿勢物件加入 `voiceFile` 和 `hatImage` 欄位。
+
+**第 1 個姿勢（pose_hands_up）：** 在 `voiceHint: "把手舉高高！",` 這行後面加入：
+
+```javascript
+    voiceFile: "MUSIC/pose_01_wansui.wav",
+    hatImage: "IMAGES/poses/hats/hat_hands_up.png",
+```
+
+**第 2 個姿勢（pose_airplane）：**
+
+```javascript
+    voiceFile: "MUSIC/pose_02_airplane.wav",
+    hatImage: "IMAGES/poses/hats/hat_airplane.png",
+```
+
+**第 3 個姿勢（pose_big_v）：**
+
+```javascript
+    voiceFile: "MUSIC/pose_03_bigv.wav",
+    hatImage: "IMAGES/poses/hats/hat_big_v.png",
+```
+
+**第 4 個姿勢（pose_hands_on_hips）：**
+
+```javascript
+    voiceFile: "MUSIC/pose_04_handsonhips.wav",
+    hatImage: "IMAGES/poses/hats/hat_hands_on_hips.png",
+```
+
+**第 5 個姿勢（pose_zombie）：**
+
+```javascript
+    voiceFile: "MUSIC/pose_05_zombie.wav",
+    hatImage: "IMAGES/poses/hats/hat_zombie.png",
+```
+
+**第 6 個姿勢（pose_star）：**
+
+```javascript
+    voiceFile: "MUSIC/pose_06_starfish.wav",
+    hatImage: "IMAGES/poses/hats/hat_star.png",
+```
+
+**第 7 個姿勢（pose_weightlifter）：**
+
+```javascript
+    voiceFile: "MUSIC/pose_07_weightlift.wav",
+    hatImage: "IMAGES/poses/hats/hat_weightlifter.png",
+```
+
+**第 8 個姿勢（pose_superman）：**
+
+```javascript
+    voiceFile: "MUSIC/pose_08_superman.wav",
+    hatImage: "IMAGES/poses/hats/hat_superman.png",
+```
+
+**第 9 個姿勢（pose_scarecrow）：**
+
+```javascript
+    voiceFile: "MUSIC/pose_09_scarecrow.wav",
+    hatImage: "IMAGES/poses/hats/hat_scarecrow.png",
+```
+
+**第 10 個姿勢（pose_sumo）：**
+
+```javascript
+    voiceFile: "MUSIC/pose_10_sumo.wav",
+    hatImage: "IMAGES/poses/hats/hat_sumo.png",
+```
+
+**第 11 個姿勢（pose_gorilla）：**
+
+```javascript
+    voiceFile: "MUSIC/pose_11_gorilla.wav",
+    hatImage: "IMAGES/poses/hats/hat_gorilla.png",
+```
+
+**第 12 個姿勢（pose_surrender）：**
+
+```javascript
+    voiceFile: "MUSIC/pose_12_surrender.wav",
+    hatImage: "IMAGES/poses/hats/hat_surrender.png",
+```
+
+---
+
+## 步驟 3：修改 `js/audio-manager.js` — 加入姿勢模仿音效預載
+
+### 3.1 在 `init()` 方法中，找到預載 SFX 的區塊
+
+找到這段：
+
+```javascript
+    const sfxFiles = {
+      sfx_heli_boost:   `${basePath}/sfx_heli_boost.mp3`,
+      sfx_heli_whoosh:  `${basePath}/sfx_heli_whoosh.mp3`,
+      sfx_heli_win:     `${basePath}/sfx_heli_win.mp3`,
+      sfx_countdown:    `${basePath}/sfx_countdown.mp3`,
+      sfx_time_warning: `${basePath}/sfx_time_warning.mp3`,
+    };
+```
+
+替換為（加入姿勢模仿的所有音效）：
+
+```javascript
+    const sfxFiles = {
+      // ── 直升機競賽音效 ──
+      sfx_heli_boost:   `${basePath}/sfx_heli_boost.mp3`,
+      sfx_heli_whoosh:  `${basePath}/sfx_heli_whoosh.mp3`,
+      sfx_heli_win:     `${basePath}/sfx_heli_win.mp3`,
+      sfx_countdown:    `${basePath}/sfx_countdown.mp3`,
+      sfx_time_warning: `${basePath}/sfx_time_warning.mp3`,
+
+      // ── 姿勢模仿：姿勢語音提示 ──
+      pose_01_wansui:       `${basePath}/pose_01_wansui.wav`,
+      pose_02_airplane:     `${basePath}/pose_02_airplane.wav`,
+      pose_03_bigv:         `${basePath}/pose_03_bigv.wav`,
+      pose_04_handsonhips:  `${basePath}/pose_04_handsonhips.wav`,
+      pose_05_zombie:       `${basePath}/pose_05_zombie.wav`,
+      pose_06_starfish:     `${basePath}/pose_06_starfish.wav`,
+      pose_07_weightlift:   `${basePath}/pose_07_weightlift.wav`,
+      pose_08_superman:     `${basePath}/pose_08_superman.wav`,
+      pose_09_scarecrow:    `${basePath}/pose_09_scarecrow.wav`,
+      pose_10_sumo:         `${basePath}/pose_10_sumo.wav`,
+      pose_11_gorilla:      `${basePath}/pose_11_gorilla.wav`,
+      pose_12_surrender:    `${basePath}/pose_12_surrender.wav`,
+
+      // ── 姿勢模仿：系統音效 ──
+      sys_calibrate:  `${basePath}/sys_01_calibrate.wav`,
+      sys_ready:      `${basePath}/sys_02_ready.wav`,
+      sys_count3:     `${basePath}/sys_03_count3.wav`,
+      sys_count2:     `${basePath}/sys_04_count2.wav`,
+      sys_count1:     `${basePath}/sys_05_count1.wav`,
+      sys_go:         `${basePath}/sys_06_go.wav`,
+      sys_perfect:    `${basePath}/sys_07_perfect.wav`,
+      sys_great:      `${basePath}/sys_08_great.wav`,
+      sys_good:       `${basePath}/sys_09_good.wav`,
+      sys_tryagain:   `${basePath}/sys_10_tryagain.wav`,
+      sys_winner:     `${basePath}/sys_11_winner.wav`,
+      sys_gameover:   `${basePath}/sys_12_gameover.wav`,
+    };
+```
+
+這樣所有音效都會在遊戲初始化時預載到 `_sfxBuffers` 中，後續用 `playSFXFromFile("sys_perfect")` 就能播放。
+
+---
+
+## 步驟 4：大幅修改 `js/games/pose-mirror.js` — 核心增強
+
+以下是需要修改的重點區塊。由於修改量大，建議整個檔案重寫。
+
+### 4.1 完整替換 `js/games/pose-mirror.js`
+
+```javascript
 /**
  * 姿勢模仿（Pose Mirror）— 遊戲主模組 v2
  * 增強版：影子引導、雙人模式、音效、頭飾特效、UI 重排
@@ -1114,3 +1553,77 @@ const poseMirror = {
 };
 
 export default poseMirror;
+```
+
+---
+
+## 步驟 5：修改 `js/main.js` — 確保雙人模式傳入正確
+
+確認 `main.js` 中啟動姿勢模仿遊戲時，`numPoses` 設定正確：
+
+找到設定 `numPoses` 的邏輯，確認：
+- 單人模式：`numPoses = 1`
+- 雙人模式：`numPoses = 2`
+
+這個邏輯應該已經存在（直升機和敲冰塊已有），確認姿勢模仿也走同樣路徑即可。
+
+---
+
+## 步驟 6：驗證清單
+
+### 6.1 圖片去背
+
+- [ ] `IMAGES/poses/pose_*.png` 背景已透明（在遊戲中不再有白色方塊）
+
+### 6.2 頭飾
+
+- [ ] `IMAGES/poses/hats/` 下有 12 個透明背景 PNG
+- [ ] 遊戲中偵測階段，玩家頭上顯示對應動物頭飾
+- [ ] 頭飾大小隨距離（肩寬）自動縮放
+
+### 6.3 影子引導（P0）
+
+- [ ] 偵測階段，玩家身上疊加白色半透明虛線骨架
+- [ ] 骨架位置根據玩家的肩膀和髖部動態對齊
+- [ ] 骨架不會遮住三色回饋或分數
+
+### 6.4 音效
+
+- [ ] 進入校準 → 播放 `sys_01_calibrate.wav`
+- [ ] 校準成功 → 播放 `sys_02_ready.wav`
+- [ ] 展示姿勢 → 播放對應語音（如 `pose_04_handsonhips.wav`）
+- [ ] 倒數 3-2-1 → 分別播放 `sys_03/04/05`
+- [ ] GO! → 播放 `sys_06_go.wav`
+- [ ] 結果 PERFECT → `sys_07_perfect.wav`
+- [ ] 結果 GREAT → `sys_08_great.wav`
+- [ ] 結果 GOOD → `sys_09_good.wav`
+- [ ] 結果 < 50% → `sys_10_tryagain.wav`
+- [ ] 結算畫面 → `sys_12_gameover.wav`
+
+### 6.5 雙人模式
+
+- [ ] 主選單可選擇雙人模式進入姿勢模仿
+- [ ] 校準階段偵測兩人全身，顯示 P1/P2 標示
+- [ ] 偵測階段左右各顯示各自的百分比
+- [ ] 每輪結果顯示 P1 vs P2 比分
+- [ ] 結算畫面顯示勝者和每輪紀錄
+- [ ] 雙人勝者 → 播放 `sys_11_winner.wav`
+
+### 6.6 UI 調整
+
+- [ ] 姿勢卡片在偵測階段位於左上角（佔 28% 寬度），不遮住軀幹
+- [ ] 分數字體佔畫面高度 18%（`h * 0.18`），遠距離可讀
+- [ ] 卡片底框為半透明（75% 不透明度）
+- [ ] 計時器在頂部中央
+
+---
+
+## 注意事項
+
+1. **影子引導的骨架位置計算**是本 TASK 最難的部分。`_calcTargetJoint` 方法用目標角度推算各關節的理想位置，但角度→座標的轉換涉及三角函數，可能需要實際測試微調。如果影子骨架位置不太對，調整 `_renderTargetSkeleton` 中的 `unit`、`armLen`、`legLen` 比例係數。
+
+2. **頭飾大小**根據肩寬計算（`shoulderW * 1.0`），如果太大或太小，調整這個倍率。
+
+3. **音效預載量增加很多**（24 個新檔案），如果初始載入太慢，可以考慮延遲載入姿勢模仿的音效（只在選擇這款遊戲時才載入）。
+
+4. **鏡頭座標翻轉**：MediaPipe 回傳的 x 座標在鏡頭模式下已經是翻轉的，影子引導和頭飾定位不需要額外處理。如果發現左右相反，在 x 座標前加 `(1 - x)` 翻轉。
