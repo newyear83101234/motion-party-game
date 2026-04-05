@@ -38,7 +38,7 @@ const heliImages = [];
   const img = new Image(); img.src = p; heliImages[i] = img;
 });
 const cloudImg = new Image(); cloudImg.src = "IMAGES/cloud.png";
-const cityImg = new Image(); cityImg.src = "IMAGES/city_skyline.png";
+// cityImg 已移除，改用 Canvas 繪製
 const gogglesImg = new Image(); gogglesImg.src = "IMAGES/aviator_goggles.png";
 const hulaImg = new Image(); hulaImg.src = "IMAGES/hula_hoop.png";
 
@@ -615,17 +615,45 @@ const helicopterRace = {
       }
     }
 
-    // 城市天際線（底部固定，連續鋪滿）
-    if (imgReady(cityImg)) {
-      const cityH = _h * 0.22;
-      const cityW = cityH * (cityImg.naturalWidth / cityImg.naturalHeight);
+    // 城市天際線（Canvas 繪製，無縫 + 半透明剪影）
+    {
       ctx.save();
-      ctx.globalAlpha = 0.5;
-      let ox = 0;
-      while (ox < _w) {
-        ctx.drawImage(cityImg, ox, _h - cityH, cityW, cityH);
-        ox += cityW - 1; // -1 避免接縫間隙
-      }
+      ctx.globalAlpha = 0.25;
+      const baseY = _h;
+      const skyH = _h * 0.18;
+      const buildings = [
+        { x: 0.00, w: 0.04, h: 0.45 }, { x: 0.04, w: 0.03, h: 0.70 },
+        { x: 0.07, w: 0.05, h: 0.55 }, { x: 0.12, w: 0.02, h: 0.85 },
+        { x: 0.14, w: 0.04, h: 0.50 }, { x: 0.18, w: 0.06, h: 0.40 },
+        { x: 0.24, w: 0.03, h: 0.90 }, { x: 0.27, w: 0.05, h: 0.55 },
+        { x: 0.32, w: 0.04, h: 0.65 }, { x: 0.36, w: 0.03, h: 0.45 },
+        { x: 0.39, w: 0.05, h: 0.35 }, { x: 0.44, w: 0.02, h: 0.75 },
+        { x: 0.46, w: 0.06, h: 0.50 },
+        { x: 0.52, w: 0.04, h: 0.55 }, { x: 0.56, w: 0.03, h: 0.80 },
+        { x: 0.59, w: 0.05, h: 0.45 }, { x: 0.64, w: 0.02, h: 0.70 },
+        { x: 0.66, w: 0.04, h: 0.60 }, { x: 0.70, w: 0.06, h: 0.38 },
+        { x: 0.76, w: 0.03, h: 0.85 }, { x: 0.79, w: 0.04, h: 0.50 },
+        { x: 0.83, w: 0.05, h: 0.65 }, { x: 0.88, w: 0.03, h: 0.42 },
+        { x: 0.91, w: 0.04, h: 0.55 }, { x: 0.95, w: 0.05, h: 0.48 },
+      ];
+      ctx.fillStyle = "#1a1a2e";
+      buildings.forEach(b => {
+        ctx.fillRect(b.x * _w, baseY - b.h * skyH, b.w * _w, b.h * skyH);
+      });
+      ctx.fillStyle = "rgba(255, 220, 100, 0.6)";
+      buildings.forEach(b => {
+        if (b.h < 0.5) return;
+        const bx = b.x * _w, bw = b.w * _w, bh = b.h * skyH;
+        const cols = Math.max(1, Math.floor(bw / 8));
+        const rows = Math.max(1, Math.floor(bh / 14));
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            if (((r * 7 + c * 13 + Math.floor(b.x * 100)) % 3) === 0) {
+              ctx.fillRect(bx + 4 + c * (bw - 8) / cols, baseY - bh + 6 + r * 14, 4, 6);
+            }
+          }
+        }
+      });
       ctx.restore();
     }
 
