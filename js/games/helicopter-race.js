@@ -75,6 +75,10 @@ let _warningFired = false;
 let _allLandmarks = [];
 let _clouds = [];  // 雲朵裝飾
 
+// 雙人 ID 穩定追蹤（避免 PoseLandmarker 每幀 swap 造成 lastCX 污染產生假推進力）
+let _prevP1ShoulderX = null;
+let _prevP2ShoulderX = null;
+
 // ══════════════════════════════════════════
 // ── 扭動偵測（屁股搖動速度）──
 // ══════════════════════════════════════════
@@ -476,13 +480,50 @@ const helicopterRace = {
         return;
       }
 
-      // 儲存 landmarks 供渲染用
-      _allLandmarks = allLandmarks || [];
+      // ── 雙人 ID 穩定（4-distance 最近匹配）──
+      // 歷史踩坑：allLandmarks 順序每幀可能 swap，若直接用 [i] 會污染 player.lastCX
+      // 造成計算出假的「大扭動」推進力，玩家感覺直升機無故暴衝
+      let stableLandmarks = allLandmarks || [];
+      if (_mode === "dual" && stableLandmarks.length >= 2) {
+        const getShoulderX = (lm) => {
+          const ls = lm[11], rs = lm[12];
+          if (ls && rs && ls.visibility > 0.1 && rs.visibility > 0.1) {
+            return (ls.x + rs.x) / 2;
+          }
+          return null;
+        };
+        const sx0 = getShoulderX(stableLandmarks[0]);
+        const sx1 = getShoulderX(stableLandmarks[1]);
+        let p1Lm = stableLandmarks[0];
+        let p2Lm = stableLandmarks[1];
 
-      // 更新扭動強度
+        if (_prevP1ShoulderX != null && _prevP2ShoulderX != null &&
+            sx0 !== null && sx1 !== null) {
+          const d00 = Math.abs(sx0 - _prevP1ShoulderX);
+          const d01 = Math.abs(sx0 - _prevP2ShoulderX);
+          const d10 = Math.abs(sx1 - _prevP1ShoulderX);
+          const d11 = Math.abs(sx1 - _prevP2ShoulderX);
+          if (d01 + d10 < d00 + d11) {
+            p1Lm = stableLandmarks[1];
+            p2Lm = stableLandmarks[0];
+          }
+        } else if (_prevP1ShoulderX == null && sx0 !== null && sx1 !== null) {
+          // 首幀初始分配：畫面左邊（較小的 sx）為 P1
+          if (sx1 < sx0) { p1Lm = stableLandmarks[1]; p2Lm = stableLandmarks[0]; }
+        }
+
+        _prevP1ShoulderX = getShoulderX(p1Lm) ?? _prevP1ShoulderX;
+        _prevP2ShoulderX = getShoulderX(p2Lm) ?? _prevP2ShoulderX;
+        stableLandmarks = [p1Lm, p2Lm];
+      }
+
+      // 儲存 landmarks 供渲染用
+      _allLandmarks = stableLandmarks;
+
+      // 更新扭動強度（用穩定後的 landmarks）
       players.forEach((p, i) => {
-        if (allLandmarks && allLandmarks[i]) {
-          p.currentIntensity = calcTwist(allLandmarks[i], p);
+        if (stableLandmarks[i]) {
+          p.currentIntensity = calcTwist(stableLandmarks[i], p);
         } else {
           p.currentIntensity *= 0.85;
         }

@@ -12,7 +12,8 @@ class AudioManager {
     this._sfxGain = null;
     this._bgmGain = null;
     this._muted = false;
-    this._volume = 4.0;
+    // _volume 預設 3.0，上限 5.0（對齊 CLAUDE.md 5.3 節五層音量強化策略第三層）
+    this._volume = 3.0;
 
     // BGM 相關
     /** @type {AudioBufferSourceNode|null} */
@@ -23,6 +24,10 @@ class AudioManager {
 
     // SFX 檔案緩衝
     this._sfxBuffers = {};
+
+    // SFX 節流（150ms 內同 ID 最多 5 次；全域 16 source，BGM 不計）
+    this._sfxThrottleMap = new Map();  // id -> [timestamps in ms]
+    this._activeSfxCount = 0;           // 全域 SFX source 計數
 
     // 防止重複初始化
     this._initialized = false;
@@ -88,9 +93,11 @@ class AudioManager {
     this._bgmBoost.connect(this._bgmGain);
 
     // 預載 BGM 檔案
+    // TASK9 第七輪新增的 BGM（bgm_menu.mp3 100 BPM 溫馨、bgm_gameplay.mp3 128 BPM 活潑），
+    // 原先 bgm_01/bgm_02 已被取代（仍保留在 MUSIC/ 當備援）
     const bgmFiles = {
-      menu:     `${basePath}/bgm_01_main_menu.mp3`,
-      gameplay: `${basePath}/bgm_02_gameplay.mp3`,
+      menu:     `${basePath}/bgm_menu.mp3`,
+      gameplay: `${basePath}/bgm_gameplay.mp3`,
       results:  `${basePath}/bgm_03_results.mp3`,
     };
 
@@ -273,6 +280,16 @@ class AudioManager {
    */
   play(id) {
     if (!this._ctx || this._muted) return;
+
+    // 節流：同 ID 150ms 內最多 5 次；全域 active source 超過 16 則 drop
+    const nowMs = this._ctx.currentTime * 1000;
+    const timestamps = this._sfxThrottleMap.get(id) || [];
+    const recent = timestamps.filter(t => nowMs - t < 150);
+    if (recent.length >= 5) return;
+    if (this._activeSfxCount >= 16) return;
+    recent.push(nowMs);
+    this._sfxThrottleMap.set(id, recent);
+
     this.resume();
 
     switch (id) {
@@ -319,10 +336,22 @@ class AudioManager {
    */
   playSFXFromFile(name) {
     if (!this._ctx || this._muted || !this._sfxBuffers[name]) return;
+
+    // 節流（同上）
+    const nowMs = this._ctx.currentTime * 1000;
+    const timestamps = this._sfxThrottleMap.get(name) || [];
+    const recent = timestamps.filter(t => nowMs - t < 150);
+    if (recent.length >= 5) return;
+    if (this._activeSfxCount >= 16) return;
+    recent.push(nowMs);
+    this._sfxThrottleMap.set(name, recent);
+
     this.resume();
     const source = this._ctx.createBufferSource();
     source.buffer = this._sfxBuffers[name];
     source.connect(this._sfxGain);
+    this._activeSfxCount++;
+    source.onended = () => { this._activeSfxCount = Math.max(0, this._activeSfxCount - 1); };
     source.start();
   }
 
@@ -767,9 +796,14 @@ class AudioManager {
   // ── 音量控制 ──
   // ══════════════════════════════════════════
 
-  /** 設定 BGM 音量（0-1） */
+  /**
+   * 設定 BGM 音量
+   * @param {number} level - 0-5.0（對齊 main.js 的 MAX_VOLUME=5）
+   *   歷史踩坑：原本 Math.min(1, ...) 會把 _bgmGain 的 4.0 基準鎖死到 1.0，
+   *   導致音量五層強化策略第三層（masterGain 上限 5.0）形同虛設，玩家反映「音量還是小」
+   */
   setBGMVolume(level) {
-    const val = Math.max(0, Math.min(1, level));
+    const val = Math.max(0, Math.min(5.0, level));
     if (this._bgmGain) {
       this._bgmGain.gain.setValueAtTime(val, this._ctx.currentTime);
     }
@@ -780,9 +814,12 @@ class AudioManager {
     return this._bgmGain ? this._bgmGain.gain.value : 4.0;
   }
 
-  /** 設定 SFX 音量（0-1） */
+  /**
+   * 設定 SFX 音量
+   * @param {number} level - 0-5.0（對齊 main.js 的 MAX_VOLUME=5）
+   */
   setSFXVolume(level) {
-    const val = Math.max(0, Math.min(1, level));
+    const val = Math.max(0, Math.min(5.0, level));
     if (this._sfxGain) {
       this._sfxGain.gain.setValueAtTime(val, this._ctx.currentTime);
     }
@@ -790,11 +827,15 @@ class AudioManager {
 
   /** 取得 SFX 音量 */
   getSFXVolume() {
-    return this._sfxGain ? this._sfxGain.gain.value : 1.0;
+    return this._sfxGain ? this._sfxGain.gain.value : 4.0;
   }
 
+  /**
+   * 設定主音量
+   * @param {number} level - 0-5.0（預設 3.0，上限 5.0）
+   */
   setVolume(level) {
-    this._volume = Math.max(0, Math.min(1, level));
+    this._volume = Math.max(0, Math.min(5.0, level));
     if (this._masterGain) {
       this._masterGain.gain.setValueAtTime(this._volume, this._ctx.currentTime);
     }

@@ -4,4 +4,5 @@ Thumbs.db
 *.log
 .env
 .claude/
+.agent-backup/
 TASK*-IMPLEMENTATION-GUIDE.md

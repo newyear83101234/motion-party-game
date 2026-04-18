@@ -76,6 +76,10 @@ const poseMirror = {
   _audio: null,
   _gameOver: false,
 
+  // 雙人 ID 穩定追蹤（顯式初始化為 null，避免 == null 判斷對 undefined 也成立造成未來 refactor 出錯）
+  _prevP1ShoulderX: null,
+  _prevP2ShoulderX: null,
+
   // 遊戲流程
   _state: STATE.CALIBRATION,
   _stateStartTime: 0,
@@ -199,8 +203,43 @@ const poseMirror = {
   update(allLandmarks, timestamp) {
     if (this._gameOver) return;
 
-    const lm1 = allLandmarks && allLandmarks[0] ? allLandmarks[0] : null;
-    const lm2 = allLandmarks && allLandmarks[1] ? allLandmarks[1] : null;
+    // ── 雙人 ID 穩定（4-distance 最近匹配）──
+    // 歷史踩坑：PoseLandmarker 每幀回傳的 allLandmarks 順序可能 swap，
+    // 直接用 [0]/[1] 會讓 P1/P2 分數互相污染。必須先用「上一幀質心」認 ID 再用。
+    let lm1 = allLandmarks && allLandmarks[0] ? allLandmarks[0] : null;
+    let lm2 = allLandmarks && allLandmarks[1] ? allLandmarks[1] : null;
+
+    if (this._mode === "dual" && lm1 && lm2) {
+      const getShoulderX = (lm) => {
+        const ls = lm[11], rs = lm[12];
+        if (ls && rs && ls.visibility > 0.1 && rs.visibility > 0.1) {
+          return (ls.x + rs.x) / 2;
+        }
+        return null;
+      };
+      const sx0 = getShoulderX(lm1);
+      const sx1 = getShoulderX(lm2);
+
+      if (this._prevP1ShoulderX != null && this._prevP2ShoulderX != null &&
+          sx0 !== null && sx1 !== null) {
+        const d00 = Math.abs(sx0 - this._prevP1ShoulderX);
+        const d01 = Math.abs(sx0 - this._prevP2ShoulderX);
+        const d10 = Math.abs(sx1 - this._prevP1ShoulderX);
+        const d11 = Math.abs(sx1 - this._prevP2ShoulderX);
+        // 交換條件：新[0]→舊P2 + 新[1]→舊P1 比原順序更近
+        if (d01 + d10 < d00 + d11) {
+          [lm1, lm2] = [lm2, lm1];
+        }
+      } else if (this._prevP1ShoulderX == null && sx0 !== null && sx1 !== null) {
+        // 首幀初始分配：畫面左邊（較小的 sx）為 P1
+        if (sx1 < sx0) [lm1, lm2] = [lm2, lm1];
+      }
+
+      // 更新上一幀位置
+      this._prevP1ShoulderX = getShoulderX(lm1) ?? this._prevP1ShoulderX;
+      this._prevP2ShoulderX = getShoulderX(lm2) ?? this._prevP2ShoulderX;
+    }
+
     this._lastLandmarks = lm1;
     this._lastLandmarksP2 = lm2;
 

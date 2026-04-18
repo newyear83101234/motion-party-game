@@ -21,7 +21,7 @@ const C = {
 // ── 遊戲常數（2-6 歲幼兒適配）──
 const GAME_DURATION    = 45;       // 原 60 → 45 秒（幼兒注意力短）
 const HIT_RADIUS_EXTRA = 55;      // 原 30 → 55（放寬碰撞判定）
-const MIN_SWIPE_SPEED  = 0.008;   // 原 0.015 → 0.008（小朋友揮動較慢）
+const MIN_SWIPE_SPEED  = 0.012;   // 0.008 偏低（MediaPipe 抖動會產生 ~0.005 假速度，有刷分風險），0.012 折衷（SPEC 原 0.02 太嚴）
 const WRIST_LEFT       = 15;
 const WRIST_RIGHT      = 16;
 const COMBO_TIMEOUT    = 2000;    // 連擊中斷時間（ms）
@@ -505,6 +505,9 @@ export default {
           p1Lm = allLandmarks[1];
           p2Lm = allLandmarks[0];
         }
+      } else if (this._prevP1ShoulderX === null && sx0 !== null && sx1 !== null) {
+        // 首幀初始分配：畫面左邊（較小的 sx）為 P1，避免第一幀 MediaPipe 順序不定造成整輪錯位
+        if (sx1 < sx0) { p1Lm = allLandmarks[1]; p2Lm = allLandmarks[0]; }
       }
       // 用 swap 後的結果更新上一幀位置
       this._prevP1ShoulderX = getShoulderX(p1Lm) ?? this._prevP1ShoulderX;

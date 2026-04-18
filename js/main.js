@@ -31,6 +31,9 @@ const statusEl = document.getElementById("status");
 // FPS 計數器
 const fpsCounter = new FPSCounter(fpsEl);
 
+// ── 調試開關（正式版必須 false）──
+const DEBUG = false;
+
 // 應用程式狀態
 let appState = "menu";       // "menu" | "modeSelect" | "playing" | "gameover"
 let currentGame = null;
@@ -568,9 +571,9 @@ canvas.addEventListener("click", async (e) => {
         }
         audioManager.play("menu_click");
         selectedMode = btn.mode;
-        // 雙人模式需要 numPoses: 2
+        // 雙人模式需要 numPoses: 2（await 確保舊實例被 close、新實例就緒後再進遊戲）
         if (selectedMode === "dual") {
-          initPoseDetector(2);
+          await initPoseDetector(2);
         }
         startGame(currentGameName);
         break;
@@ -589,9 +592,9 @@ canvas.addEventListener("click", async (e) => {
       currentGame = null;
       currentGameName = "";
       appState = "menu";
-      // 雙人模式回選單時恢復 numPoses: 1
+      // 雙人模式回選單時恢復 numPoses: 1（await 確保舊實例被 close）
       if (selectedMode === "dual") {
-        initPoseDetector(1);
+        await initPoseDetector(1);
       }
       selectedMode = "single";
       audioManager.stopBGM(0);
@@ -690,8 +693,8 @@ function loop(timestamp) {
     currentGame.render(ctx);
   }
 
-  // debug：偵測人數
-  if (allLandmarks.length > 0) {
+  // debug：偵測人數（正式版禁止顯示，CLAUDE.md 第六節紅線）
+  if (DEBUG && allLandmarks.length > 0) {
     ctx.fillStyle = "rgba(255,255,255,0.35)";
     ctx.font = "12px monospace";
     ctx.textAlign = "left";
