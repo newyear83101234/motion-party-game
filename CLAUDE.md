@@ -122,20 +122,24 @@ motion-party-game/
 
 ### 11.1 主審員速查
 
-| 修改主題 | 主審 | 副審 / Route 對象 |
-|---------|------|-------------------|
-| `js/audio-manager.js`、`MUSIC/`、`assets/sounds/` | **漢吉** | 里維（架構） |
-| `js/pose-detector.js`、`js/pose-comparator.js` | **阿爾敏** | 里維（架構） |
-| `js/pose-library.js`（姿勢庫資料） | **莎夏**（姿勢對 2-6 歲合不合適） | 阿爾敏（座標可行性） |
-| 任何使用 landmarks 的遊戲邏輯 | **阿爾敏** | 希斯特莉亞（視覺呈現） |
-| 雙人模式行為 | **阿爾敏** | 希斯特莉亞（HUD 分割） |
-| `IMAGES/` 資產、render 程式碼、HUD/UI、裝扮貼圖 | **希斯特莉亞** | 阿爾敏（座標源） |
-| `js/main.js`、`js/renderer.js`、`js/fps-counter.js` 等架構/共用工具 | **里維** | — |
-| `js/camera.js`、權限提示文案、任何 fetch / WebSocket / canvas.toBlob | **米卡莎** | 里維（錯誤處理） |
-| `deploy.sh`、cache-bust（`?v=BUILD`）、GitHub Pages 設定、跨瀏覽器議題 | **艾冉** | 阿爾敏（wasm/GPU） |
-| 選單流程、教學畫面、結算畫面、loading、家長指引 | **莎夏** | 希斯特莉亞（視覺）/ 米卡莎（家長文案） |
-| `SPEC.md` 修改 | **里維** | 涉及領域的審查員（改音訊規格找漢吉、改體感找阿爾敏⋯⋯） |
-| 新增/修改 agent 本身 | **艾爾文** | — |
+| 修改主題 | 主審 | 位置 | 副審 / Route 對象 |
+|---------|------|------|-------------------|
+| `js/audio-manager.js`、`MUSIC/`、`assets/sounds/` | **漢吉** | 專案層 | 里維（架構） |
+| `js/pose-detector.js`、`js/pose-comparator.js` | **阿爾敏** | 專案層 | 里維（架構） |
+| `js/pose-library.js`（姿勢庫資料） | **莎夏**（姿勢對 2-6 歲合不合適） | 專案層 | 阿爾敏（座標可行性） |
+| 任何使用 landmarks 的遊戲邏輯 | **阿爾敏** | 專案層 | 希斯特莉亞（視覺呈現） |
+| 雙人模式行為 | **阿爾敏** | 專案層 | 希斯特莉亞（HUD 分割） |
+| `IMAGES/` 資產、render 程式碼、HUD/UI、裝扮貼圖 | **希斯特莉亞** | 專案層 | 阿爾敏（座標源） |
+| `js/main.js`、`js/renderer.js`、`js/fps-counter.js` 等架構/共用工具 | **里維** | 全域 | — |
+| `js/camera.js`、權限提示文案、任何 fetch / WebSocket / canvas.toBlob | **米卡莎** | 專案層 | 里維（錯誤處理） |
+| `deploy.sh`、cache-bust（`?v=BUILD`）、GitHub Pages 設定、跨瀏覽器議題 | **艾冉** | 專案層 | 阿爾敏（wasm/GPU） |
+| 選單流程、教學畫面、結算畫面、loading、家長指引 | **莎夏** | 專案層 | 希斯特莉亞（視覺）/ 米卡莎（家長文案） |
+| `SPEC.md` 修改 | **里維** | 全域 | 涉及領域的審查員（改音訊規格找漢吉、改體感找阿爾敏⋯⋯） |
+| 新增/修改 agent 本身 | **艾爾文** | 全域 | — |
+
+**位置說明**：
+- **全域**（`C:\Users\newye\.claude\agents\`）：所有專案通用，換電腦需重新 setup
+- **專案層**（`d:\Claude\Projects\party game\.claude\agents\`）：僅本專案看得到；`.claude/` 在 `.gitignore` 內，所以**不會跟 git 走**
 
 ### 11.2 灰色地帶仲裁規則
 
