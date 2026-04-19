@@ -42,13 +42,13 @@ const DIFFICULTY = {
   easy: {
     addRange: [1, 10], answerMax: 20,
     bubbleCount: 3, balloonSize: 180,
-    timeLimit: 20,  // 每題 20 秒
+    timeLimit: 12,  // 每題固定 12 秒（戳對也等到時間到才換下一題）
     label: "初階", subLabel: "1-10 加法", color: "#1ABC9C",
   },
   medium: {
     addRange: [1, 20], answerMax: 40,
     bubbleCount: 4, balloonSize: 160,
-    timeLimit: 15,
+    timeLimit: 12,
     label: "中階", subLabel: "1-20 加法", color: "#F5A623",
   },
   hard: {
@@ -242,12 +242,11 @@ function spawnBalloons(question, ownerSide = "both") {
 
   const slotWidth = (rightBound - leftBound) / question.choices.length;
 
-  // 目標位置：畫面上半中段（避免幼兒舉手太高手痠）
-  // 題目面板底部約 y=170，氣球從 y=_h*0.42 開始（手平舉位置）
-  // 但要確保跟題目面板有 30px 間距且不會超過畫面 65%
-  const minY = 170 + d.balloonSize * 0.5 + 30;
-  const idealY = _h * 0.42;
-  const maxY = _h * 0.65 - d.balloonSize * 0.5;
+  // 目標位置：畫面上方靠近題目面板（避免手在身體中間區域動就誤觸）
+  // 題目面板底部約 y=170，氣球緊接其下（手要刻意抬高才搆到）
+  const minY = 170 + d.balloonSize * 0.5 + 20;
+  const idealY = _h * 0.32;
+  const maxY = _h * 0.45 - d.balloonSize * 0.5;
   const targetY = Math.max(minY, Math.min(maxY, idealY));
   question.choices.forEach((value, i) => {
     const targetX = leftBound + slotWidth * (i + 0.5) + (Math.random() * 20 - 10);
@@ -624,8 +623,11 @@ export default mathBubble;
 
 function _processPlayer(landmarks, who, timestamp) {
   if (!landmarks) return;
-  const balloons = (who === "p2") ? _balloonsP2 : _balloons;
-  const prev = (who === "p2") ? _prevWristP2 : _prevWristP1;
+  // 已戳對該題 → 鎖定不可再戳（等時間到換新題）
+  const isP2 = (who === "p2");
+  if (isP2 ? _waitingNextQuestionP2 : _waitingNextQuestion) return;
+  const balloons = isP2 ? _balloonsP2 : _balloons;
+  const prev = isP2 ? _prevWristP2 : _prevWristP1;
 
   for (const handIdx of [WRIST_LEFT, WRIST_RIGHT]) {
     const wristLm = landmarks[handIdx];
@@ -721,14 +723,10 @@ function _onBalloonHit(b, who, timestamp) {
     if (_audio) try { _audio.play("ice_hit"); } catch (_) {}
     playVoice("fb_good");
 
-    // 進下一題（短延遲）
+    // 戳對後設旗標等時間到才換新題（每題固定 12 秒節奏）
+    // 玩家可以欣賞紙屑飄完，剩下氣球繼續飄但不再可戳
     if (isP2) _waitingNextQuestionP2 = true;
     else      _waitingNextQuestion = true;
-    // 1200ms 讓紙屑飄完、玩家享受到成就感
-    setTimeout(() => {
-      if (_state !== "playing") return;
-      _startNewQuestion(who, performance.now());
-    }, 1200);
 
   } else {
     // 戳錯！輕彈、語音「再想想」、不扣分
@@ -745,15 +743,7 @@ function _onBalloonHit(b, who, timestamp) {
     playVoice("fb_think");
     // 用 emoji 替代純文字（5 歲不識字也能看懂）
     _floatTexts.push(_makeFloatText("🤔", b.x, b.y - 30, C.warning, 56));
-
-    // 連錯 2 題提示「叫爸爸媽媽」（用 emoji + 延長到 5 秒）
-    const cw = isP2 ? _consecutiveWrongP2 : _consecutiveWrong;
-    if (cw >= 2) {
-      _shakeMessages.push({ text: "👨‍👩‍👧  叫爸爸媽媽", y: _h * 0.45, life: 5000, start: timestamp, color: C.brand, big: true });
-      playVoice("ask_parent");
-      if (isP2) _consecutiveWrongP2 = 0;
-      else      _consecutiveWrong = 0;
-    }
+    // 連錯計數仍保留（未來可能用），但不再彈「叫爸爸媽媽」提示
   }
 }
 
@@ -809,27 +799,41 @@ function _startNewQuestion(who, timestamp) {
 
 function _checkQuestionTimeout(who, timestamp) {
   const isP2 = (who === "p2");
+  const limit = DIFFICULTY[_difficulty].timeLimit * 1000;
   if (isP2) {
-    if (_waitingNextQuestionP2 || !_questionP2) return;
+    if (!_questionP2) return;
+    // 已戳對 → 等到時間到才換新題（每題固定 12 秒節奏）
+    if (_waitingNextQuestionP2) {
+      if (timestamp - _questionStartTimeP2 >= limit) {
+        _startNewQuestion("p2", timestamp);
+      }
+      return;
+    }
+    // 顯示答案中 → 等 2 秒換題
     if (_showAnswerStartP2 > 0) {
       if (timestamp - _showAnswerStartP2 >= SHOW_ANSWER_DURATION) {
         _startNewQuestion("p2", timestamp);
       }
       return;
     }
-    const limit = DIFFICULTY[_difficulty].timeLimit * 1000;
+    // 沒戳對也沒在顯示答案 → 時間到顯示答案
     if (timestamp - _questionStartTimeP2 >= limit) {
       _showAnswer("p2", timestamp);
     }
   } else {
-    if (_waitingNextQuestion || !_questionP1) return;
+    if (!_questionP1) return;
+    if (_waitingNextQuestion) {
+      if (timestamp - _questionStartTime >= limit) {
+        _startNewQuestion("p1", timestamp);
+      }
+      return;
+    }
     if (_showAnswerStart > 0) {
       if (timestamp - _showAnswerStart >= SHOW_ANSWER_DURATION) {
         _startNewQuestion("p1", timestamp);
       }
       return;
     }
-    const limit = DIFFICULTY[_difficulty].timeLimit * 1000;
     if (timestamp - _questionStartTime >= limit) {
       _showAnswer("p1", timestamp);
     }
