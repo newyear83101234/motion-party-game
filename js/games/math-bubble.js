@@ -12,6 +12,9 @@
 // ── 調試開關 ──
 const DEBUG_MODE = false;
 
+// ── 語音開關（人聲太吵時關閉；保留所有 .mp3 檔案，未來一行可開回來）──
+const VOICE_ENABLED = false;
+
 // ── 配色 ──
 const C = {
   bg:        "rgba(255,255,255,0.92)",
@@ -65,7 +68,10 @@ const HIT_RADIUS_EXTRA = 30;       // 碰撞容許半徑
 const TOTAL_QUESTIONS = 10;        // 一局最多 10 題（或 60 秒到）
 const GAME_DURATION = 60;          // 60 秒一局
 const SHOW_ANSWER_DURATION = 2000; // 時間到顯示答案 2 秒
-const BALLOON_FLOAT_BASE = -1.3;   // 氣球往上飄速度（px/frame）— 從 -0.7 加快讓題目唸完氣球已飄到中央
+// 氣球行為：從畫面上方滑入，停在上方 1/3 區域只做輕微擺動（不再從下飄上來造成穿過手腕誤判）
+const BALLOON_ENTER_DURATION = 600; // ms 從畫面外滑入的時間
+const BALLOON_HOVER_AMP = 8;        // 停留時上下浮動幅度（px）
+const BALLOON_SWAY_AMP = 14;        // 停留時左右擺動幅度（px）
 const COMBO_TIMEOUT = 4000;        // 連擊中斷時間
 const BUILD = (typeof window !== "undefined" && window.BUILD) || "0";
 
@@ -202,20 +208,23 @@ function generateQuestion(diffKey) {
 //   氣球工廠
 // ════════════════════════════════════════════
 
-function createBalloon(value, x, y, colorIdx, size, owner = "both") {
+function createBalloon(value, targetX, targetY, colorIdx, size, owner = "both") {
   return {
     value,
-    x, y,
+    // 起始位置：畫面上方外（-150）；目標位置：上方 1/3
+    x: targetX,
+    y: -150,
+    targetX,
+    targetY,
     color: BALLOON_COLORS[colorIdx % BALLOON_COLORS.length],
     size,
     owner,                          // "both" | "p1" | "p2"
-    state: "alive",                 // "alive" | "popping" | "wrong" | "showing-answer"
-    stateStart: 0,
+    state: "entering",              // "entering" | "alive" | "popping" | "wrong" | "showing-answer"
+    stateStart: performance.now(),
     rotation: (Math.random() - 0.5) * 0.1,
     swayPhase: Math.random() * Math.PI * 2,
-    floatSpeed: BALLOON_FLOAT_BASE + (Math.random() - 0.5) * 0.2,
-    isCorrect: false,               // 設置時填
-    glowOwner: null,                // 雙人模式：被誰戳中的（"p1"/"p2"），用於光環
+    isCorrect: false,
+    glowOwner: null,
   };
 }
 
@@ -231,12 +240,15 @@ function spawnBalloons(question, ownerSide = "both") {
 
   const slotWidth = (rightBound - leftBound) / question.choices.length;
 
+  // 目標位置：上方 1/3 區域，水平等距分布
+  // 題目面板高度 ~190 px（含點點圖示），氣球放在面板下方一點
+  const targetY = 250 + d.balloonSize * 0.5;
   question.choices.forEach((value, i) => {
-    const x = leftBound + slotWidth * (i + 0.5) + (Math.random() * 30 - 15);
-    // 氣球初始 y：靠近畫面底，題目唸完（約 4 秒）氣球已飄到畫面中段可戳區
-    const y = _h + 30 + Math.random() * 80;
-    const b = createBalloon(value, x, y, i, d.balloonSize, ownerSide);
+    const targetX = leftBound + slotWidth * (i + 0.5) + (Math.random() * 20 - 10);
+    const b = createBalloon(value, targetX, targetY, i, d.balloonSize, ownerSide);
     b.isCorrect = (value === question.answer);
+    // 起始位置時間錯開讓氣球依序滑入（給節奏感）
+    b.stateStart = performance.now() + i * 80;
     balloons.push(b);
   });
 
@@ -249,6 +261,7 @@ function spawnBalloons(question, ownerSide = "both") {
 // ════════════════════════════════════════════
 
 function playVoice(name) {
+  if (!VOICE_ENABLED) return;
   // 用 cloneNode 允許多次重疊播放
   if (!_voiceCache[name]) {
     _voiceCache[name] = new Audio(`MUSIC/math_voice/${name}.mp3?v=${BUILD}`);
@@ -264,6 +277,7 @@ function playVoice(name) {
  * 同時間最多一個序列在跑：呼叫此函式會中斷上一個序列（避免「答案是 8 三 加 五」搶播）。
  */
 async function playVoiceSeq(names, gapMs = 80) {
+  if (!VOICE_ENABLED) return;
   // 中斷舊序列
   _voiceSeqToken++;
   const myToken = _voiceSeqToken;
@@ -412,7 +426,7 @@ const mathBubble = {
         _gameStartTime = timestamp;
         if (_audio) {
           try { _audio.play("countdown_go"); } catch (_) {}
-          try { _audio.stopBGM(0); _audio.playBGM("gameplay"); } catch (_) {}
+          // 不切到 gameplay BGM（太活潑），保持 menu BGM 的輕柔調性給算數遊戲
         }
         _startNewQuestion("p1", timestamp);
         if (_mode === "dual") _startNewQuestion("p2", timestamp);
@@ -855,12 +869,24 @@ function _endGame(timestamp) {
 function _updateBalloons(balloons, timestamp) {
   for (let i = balloons.length - 1; i >= 0; i--) {
     const b = balloons[i];
-    if (b.state === "alive") {
-      b.y += b.floatSpeed;
-      b.x += Math.sin((timestamp / 600) + b.swayPhase) * 0.4;
-      b.rotation = Math.sin((timestamp / 800) + b.swayPhase) * 0.05;
-      // 飄出畫面頂端 → 移除
-      if (b.y < -b.size) balloons.splice(i, 1);
+    if (b.state === "entering") {
+      // 從 -150 滑入到 targetY（ease-out）
+      const elapsed = timestamp - b.stateStart;
+      if (elapsed < 0) continue; // 等錯開時間
+      const t = Math.min(1, elapsed / BALLOON_ENTER_DURATION);
+      const easeT = 1 - Math.pow(1 - t, 3);
+      b.y = -150 + (b.targetY - (-150)) * easeT;
+      b.x = b.targetX;
+      if (t >= 1) {
+        b.state = "alive";
+        b.stateStart = timestamp;
+        b.y = b.targetY;
+      }
+    } else if (b.state === "alive") {
+      // 停留在目標位置，只做輕微擺動（不再從下飄上避免穿過手腕誤判）
+      b.x = b.targetX + Math.sin((timestamp / 800) + b.swayPhase) * BALLOON_SWAY_AMP;
+      b.y = b.targetY + Math.cos((timestamp / 700) + b.swayPhase) * BALLOON_HOVER_AMP;
+      b.rotation = Math.sin((timestamp / 900) + b.swayPhase) * 0.05;
     } else if (b.state === "popping") {
       // 0.4 秒後消失
       if (timestamp - b.stateStart > 400) balloons.splice(i, 1);
@@ -868,6 +894,7 @@ function _updateBalloons(balloons, timestamp) {
       // 0.6 秒後恢復 alive（讓玩家還能戳到）
       if (timestamp - b.stateStart > 600) {
         b.state = "alive";
+        b.stateStart = timestamp;
       }
     } else if (b.state === "showing-answer") {
       // 不移動、繼續閃爍
