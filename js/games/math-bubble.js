@@ -143,6 +143,8 @@ let _tutorialMessageShown = false;
 let _newRecord = false;
 // 最後 3 秒倒數音效標記
 let _lastSecondsBeeped = new Set();
+// 難度卡點擊回饋（VOICE 關上後最重要的「我有按到」確認）
+let _diffClickFlash = null; // { diffKey, start }
 
 // 語音播放快取
 const _voiceCache = {};
@@ -240,9 +242,13 @@ function spawnBalloons(question, ownerSide = "both") {
 
   const slotWidth = (rightBound - leftBound) / question.choices.length;
 
-  // 目標位置：上方 1/3 區域，水平等距分布
-  // 題目面板高度 ~190 px（含點點圖示），氣球放在面板下方一點
-  const targetY = 250 + d.balloonSize * 0.5;
+  // 目標位置：畫面上半中段（避免幼兒舉手太高手痠）
+  // 題目面板底部約 y=170，氣球從 y=_h*0.42 開始（手平舉位置）
+  // 但要確保跟題目面板有 30px 間距且不會超過畫面 65%
+  const minY = 170 + d.balloonSize * 0.5 + 30;
+  const idealY = _h * 0.42;
+  const maxY = _h * 0.65 - d.balloonSize * 0.5;
+  const targetY = Math.max(minY, Math.min(maxY, idealY));
   question.choices.forEach((value, i) => {
     const targetX = leftBound + slotWidth * (i + 0.5) + (Math.random() * 20 - 10);
     const b = createBalloon(value, targetX, targetY, i, d.balloonSize, ownerSide);
@@ -366,6 +372,7 @@ const mathBubble = {
     _tutorialMessageShown = false;
     _newRecord = false;
     _lastSecondsBeeped = new Set();
+    _diffClickFlash = null;
 
     // 首次教學偵測
     _firstTime = !localStorage.getItem("mathBubble_played");
@@ -430,9 +437,9 @@ const mathBubble = {
         }
         _startNewQuestion("p1", timestamp);
         if (_mode === "dual") _startNewQuestion("p2", timestamp);
-        // 首次教學提示
+        // 首次教學提示（VOICE_ENABLED=false 也要看得懂，所以加 emoji + 延長到 5 秒）
         if (_firstTime && !_tutorialMessageShown) {
-          _shakeMessages.push({ text: "揮揮手戳氣球！", y: _h * 0.4, life: 2500, start: timestamp, color: C.brand });
+          _shakeMessages.push({ text: "👋  戳戳看  🎈", y: _h * 0.4, life: 5000, start: timestamp, color: C.brand, big: true });
           playVoice("tut_wave");
           _tutorialMessageShown = true;
           localStorage.setItem("mathBubble_played", "1");
@@ -575,17 +582,22 @@ const mathBubble = {
       for (const btn of _difficultyButtons) {
         if (cx >= btn.x && cx <= btn.x + btn.w && cy >= btn.y && cy <= btn.y + btn.h) {
           _difficulty = btn.diffKey;
-          _state = "countdown";
-          _stateStartTime = performance.now();
-          _countdownNum = 3;
+          // 立即視覺確認（無論 VOICE_ENABLED）：卡片放大發光 350ms 後才進倒數
+          _diffClickFlash = { diffKey: btn.diffKey, start: performance.now() };
           if (_audio) {
             try { _audio.play("btn_click"); } catch (_) {}
-            try { _audio.play("countdown_3"); } catch (_) {}
           }
-          // 用語音朗讀選了什麼難度（讓不識字的家長和小孩確認）
-          // 初階朗讀「一加一」、中階「一加二十」、高階「一加五十」當示意
+          // 用語音朗讀示意（VOICE_ENABLED=true 時才有效）
           const samples = { easy: ["num_1","op_plus","num_10"], medium: ["num_1","op_plus","num_20"], hard: ["num_1","op_plus","num_50"] };
           if (samples[btn.diffKey]) playVoiceSeq(samples[btn.diffKey]);
+          // 350ms 後才真正進倒數（讓視覺回饋有時間呈現）
+          setTimeout(() => {
+            if (_state !== "difficulty-select") return;
+            _state = "countdown";
+            _stateStartTime = performance.now();
+            _countdownNum = 3;
+            if (_audio) try { _audio.play("countdown_3"); } catch (_) {}
+          }, 350);
           return;
         }
       }
@@ -618,6 +630,12 @@ function _processPlayer(landmarks, who, timestamp) {
   for (const handIdx of [WRIST_LEFT, WRIST_RIGHT]) {
     const wristLm = landmarks[handIdx];
     if (!wristLm || wristLm.visibility < 0.4) continue;
+    // NaN 防禦：低光源/極端角度時 MediaPipe 偶吐 NaN，會污染 prev 歷史導致永遠戳不到
+    if (!Number.isFinite(wristLm.x) || !Number.isFinite(wristLm.y)) {
+      const handKey = (handIdx === WRIST_LEFT) ? "left" : "right";
+      prev[handKey] = null;
+      continue;
+    }
 
     // 鏡像翻轉（與 ice-breaker 一致）
     const wx = (1 - wristLm.x) * _w;
@@ -725,12 +743,13 @@ function _onBalloonHit(b, who, timestamp) {
     }
     if (_audio) try { _audio.play("miss"); } catch (_) {}
     playVoice("fb_think");
-    _floatTexts.push(_makeFloatText("再想想", b.x, b.y - 30, C.warning));
+    // 用 emoji 替代純文字（5 歲不識字也能看懂）
+    _floatTexts.push(_makeFloatText("🤔", b.x, b.y - 30, C.warning, 56));
 
-    // 連錯 2 題提示「叫爸爸媽媽」
+    // 連錯 2 題提示「叫爸爸媽媽」（用 emoji + 延長到 5 秒）
     const cw = isP2 ? _consecutiveWrongP2 : _consecutiveWrong;
     if (cw >= 2) {
-      _shakeMessages.push({ text: "要不要叫爸爸媽媽？", y: _h * 0.45, life: 2500, start: timestamp, color: C.brand });
+      _shakeMessages.push({ text: "👨‍👩‍👧  叫爸爸媽媽", y: _h * 0.45, life: 5000, start: timestamp, color: C.brand, big: true });
       playVoice("ask_parent");
       if (isP2) _consecutiveWrongP2 = 0;
       else      _consecutiveWrong = 0;
@@ -839,7 +858,8 @@ function _endGame(timestamp) {
   _stateStartTime = timestamp;
   if (_audio) {
     try { _audio.stopBGM(0); _audio.playBGM("results"); } catch (_) {}
-    try { _audio.play("game_over"); } catch (_) {}
+    // 用 confetti 音效慶祝結算（audio-manager 沒有 game_over case，原本會靜默）
+    try { _audio.play("confetti"); } catch (_) {}
   }
   // 結算紙屑慶祝
   for (let i = 0; i < 5; i++) {
@@ -1099,8 +1119,8 @@ function _renderComboGlows(ctx) {
 //   飄字 + 中央訊息
 // ════════════════════════════════════════════
 
-function _makeFloatText(text, x, y, color) {
-  return { text, x, y, vy: -1.5, life: 1.0, color, start: performance.now() };
+function _makeFloatText(text, x, y, color, fontSize = 32) {
+  return { text, x, y, vy: -1.5, life: 1.0, color, start: performance.now(), fontSize };
 }
 
 function _updateFloatTexts() {
@@ -1116,7 +1136,7 @@ function _renderFloatTexts(ctx) {
   for (const t of _floatTexts) {
     ctx.save();
     ctx.globalAlpha = Math.max(0, t.life);
-    ctx.font = "bold 32px sans-serif";
+    ctx.font = `bold ${t.fontSize || 32}px sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.lineWidth = 4;
@@ -1142,18 +1162,21 @@ function _renderShakeMessages(ctx) {
     const t = elapsed / m.life;
     if (t > 1) continue;
     const alpha = t < 0.15 ? t / 0.15 : (t > 0.85 ? (1 - t) / 0.15 : 1);
+    // big 模式：字體更大、輕微脈動讓 5 歲注意力被吸引
+    const fontSize = m.big ? 64 : 48;
+    const pulse = m.big ? 1 + Math.sin(elapsed / 200) * 0.04 : 1;
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.font = "bold 48px sans-serif";
+    ctx.font = `bold ${Math.floor(fontSize * pulse)}px sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     // 圓角背景框
-    const padding = 30;
+    const padding = m.big ? 50 : 30;
     const textWidth = ctx.measureText(m.text).width;
     const boxW = textWidth + padding * 2;
-    const boxH = 80;
+    const boxH = m.big ? 110 : 80;
     ctx.fillStyle = C.panelBg;
-    _rrect(ctx, _w / 2 - boxW / 2, m.y - boxH / 2, boxW, boxH, 16);
+    _rrect(ctx, _w / 2 - boxW / 2, m.y - boxH / 2, boxW, boxH, 20);
     ctx.fill();
     // 文字
     ctx.lineWidth = 5;
@@ -1198,11 +1221,13 @@ function _renderQuestionPanel(ctx, q, centerX, owner) {
 
   // 點點圖示輔助（給不識字的幼兒視覺化）— 高階數字大就不畫了
   if (q.a + q.b <= 30) {
-    _drawDotGroup(ctx, centerX - 80, y + 95, q.a, "#FF6B6B");
+    // 點點起始 X 動態計算，避免雙人模式溢出畫面
+    const dotOffset = _mode === "dual" ? Math.min(60, panelW * 0.25) : 80;
+    _drawDotGroup(ctx, centerX - dotOffset, y + 95, q.a, "#FF6B6B");
     ctx.fillStyle = "#666";
     ctx.font = "bold 24px sans-serif";
     ctx.fillText("+", centerX, y + 95);
-    _drawDotGroup(ctx, centerX + 30, y + 95, q.b, "#74C0FC");
+    _drawDotGroup(ctx, centerX + dotOffset * 0.5, y + 95, q.b, "#74C0FC");
   }
 
   // 雙人模式下方標 P1 / P2
@@ -1285,12 +1310,12 @@ function _renderHUD(ctx) {
   ctx.textBaseline = "middle";
   ctx.fillText("⏱ " + timeStr, 12 + 65, _h - 70 + 28);
 
-  // 分數（右上角；雙人各佔一邊）
+  // 分數徽章 y=190 避免跟題目面板（y=20-170）重疊
   if (_mode === "dual") {
-    _drawScoreBadge(ctx, 12, 130, _score, _combo, "P1", C.p1);
-    _drawScoreBadge(ctx, _w - 220 - 12, 130, _scoreP2, _comboP2, "P2", C.p2);
+    _drawScoreBadge(ctx, 12, 190, _score, _combo, "P1", C.p1);
+    _drawScoreBadge(ctx, _w - 220 - 12, 190, _scoreP2, _comboP2, "P2", C.p2);
   } else {
-    _drawScoreBadge(ctx, _w - 220 - 12, 130, _score, _combo, "分數", C.brand);
+    _drawScoreBadge(ctx, _w - 220 - 12, 190, _score, _combo, "分數", C.brand);
   }
 
   ctx.restore();
@@ -1369,6 +1394,27 @@ function _renderDifficultySelect(ctx) {
     const x = (_w - btnW) / 2;
     const y = startY + i * (btnH + gap);
 
+    // 點擊回饋：被選中的卡放大發光 350ms（VOICE 關上後最重要的「我有按到」確認）
+    let flashScale = 1;
+    let flashGlow = 0;
+    if (_diffClickFlash && _diffClickFlash.diffKey === key) {
+      const elapsed = performance.now() - _diffClickFlash.start;
+      const t = Math.min(1, elapsed / 350);
+      flashScale = 1 + (1 - t) * 0.08;
+      flashGlow = (1 - t) * 30;
+    }
+
+    ctx.save();
+    if (flashScale !== 1) {
+      ctx.translate(x + btnW / 2, y + btnH / 2);
+      ctx.scale(flashScale, flashScale);
+      ctx.translate(-(x + btnW / 2), -(y + btnH / 2));
+    }
+    if (flashGlow > 0) {
+      ctx.shadowColor = d.color;
+      ctx.shadowBlur = flashGlow;
+    }
+
     // 背景
     ctx.fillStyle = "rgba(255,255,255,0.95)";
     _rrect(ctx, x, y, btnW, btnH, 18);
@@ -1392,6 +1438,8 @@ function _renderDifficultySelect(ctx) {
     ctx.font = "bold 22px sans-serif";
     ctx.textAlign = "right";
     ctx.fillText(`${d.timeLimit} 秒/題`, x + btnW - 20, y + 70);
+
+    ctx.restore();
 
     _difficultyButtons.push({ x, y, w: btnW, h: btnH, diffKey: key });
   });
