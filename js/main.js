@@ -11,6 +11,7 @@ import audioManager from "./audio-manager.js";
 import iceBreaker from "./games/ice-breaker.js";
 import helicopterRace from "./games/helicopter-race.js";
 import poseMirror from "./games/pose-mirror.js";
+import mathBubble from "./games/math-bubble.js";
 
 // ── 配色（與遊戲一致）──
 const C = {
@@ -148,12 +149,13 @@ function renderMenu() {
     { name: "ice-breaker", label: "❄  敲冰塊",     desc: "揮動手臂敲碎冰塊", color: "#4A90D9" },
     { name: "pose-mirror", label: "🪞  姿勢模仿",  desc: "模仿動物姿勢得分",   color: "#9B59B6" },
     { name: "helicopter",  label: "🚁  直升機競賽", desc: "扭動身體讓直升機飛高", color: C.brand },
+    { name: "math-bubble", label: "🎈  數字氣球",  desc: "戳對加法答案氣球（5-7 歲）", color: "#1ABC9C" },
   ];
 
   menuButtons = [];
   games.forEach((game, i) => {
     const y = startY + i * (btnH + 18);
-    const enabled = game.name === "ice-breaker" || game.name === "helicopter" || game.name === "pose-mirror";
+    const enabled = game.name === "ice-breaker" || game.name === "helicopter" || game.name === "pose-mirror" || game.name === "math-bubble";
 
     ctx.save();
     if (enabled) shadowOn(ctx);
@@ -553,7 +555,7 @@ canvas.addEventListener("click", async (e) => {
     for (const btn of menuButtons) {
       if (cx >= btn.x && cx <= btn.x + btn.w &&
           cy >= btn.y && cy <= btn.y + btn.h) {
-        if (btn.game === "ice-breaker" || btn.game === "helicopter" || btn.game === "pose-mirror") {
+        if (btn.game === "ice-breaker" || btn.game === "helicopter" || btn.game === "pose-mirror" || btn.game === "math-bubble") {
           audioManager.play("menu_click");
           currentGameName = btn.game;
           appState = "modeSelect";
@@ -639,6 +641,8 @@ function startGame(gameName) {
     currentGame = helicopterRace;
   } else if (gameName === "pose-mirror") {
     currentGame = poseMirror;
+  } else if (gameName === "math-bubble") {
+    currentGame = mathBubble;
   }
   if (!currentGame) return;
   currentGameName = gameName;
@@ -646,7 +650,8 @@ function startGame(gameName) {
   // 切換 BGM（直升機遊戲在倒數結束後自行播放）
   audioManager.stopBGM(0);
   audioManager.setBGMPlaybackRate(1.0);
-  if (gameName !== "helicopter") {
+  // math-bubble 和 helicopter 自己管 BGM（math-bubble 在難度選擇時播 menu）
+  if (gameName !== "helicopter" && gameName !== "math-bubble") {
     audioManager.playBGM("gameplay");
   }
 
