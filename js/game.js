@@ -4,10 +4,10 @@
  * 玩法：鏡頭看到你 → 怪獸掉下來 → 揮手打掉（藍/紫=+1、金Boss=+5），
  *       不要打到紅炸彈怪（-1 命）。連續打中累積 Combo。
  *
- * 超人力霸王：
- *   - 變身開場動畫（transform 狀態，用生成的英雄圖 hero.png）
- *   - 遊戲中：開放式頭盔 helmet.png 貼在頭上（露臉、跟著頭轉）
- *   - 雙手發光光線
+ * 超人力霸王（全部用「生成美術」，不再用程式畫陽春圖形）：
+ *   - 變身開場動畫（hero.png）
+ *   - 遊戲中：頭盔 helmet.png（露臉）+ 胸甲 chest.png（貼身上）
+ *   - 雙手 = 發光能量拳
  * 介面零中文（全符號）、6-10 歲、判定放寬、打中要爽。
  */
 
@@ -34,14 +34,15 @@ const SPRITE_SRC = {
 const sprites = {};
 for (const key in SPRITE_SRC) { const img = new Image(); img.src = SPRITE_SRC[key]; sprites[key] = img; }
 
-// 超人素材（之後生好放進來；還沒有時程式會自動略過、不報錯）
+// 超人素材（生成美術；還沒生的圖程式會自動略過、不報錯）
 const helmetImg = new Image(); helmetImg.src = "IMAGE/sprites/helmet.png"; // 開放式頭盔（露臉）
 const heroImg = new Image(); heroImg.src = "IMAGE/sprites/hero.png";       // 變身開場英雄圖
+const chestImg = new Image(); chestImg.src = "IMAGE/sprites/chest.png";    // 胸甲（貼身上）
 const imgReady = (im) => im && im.complete && im.naturalWidth > 0;
 
-// 頭盔貼合微調參數（之後依阿葉回報調整）
-const HELMET_SCALE = 1.7;      // 相對臉寬的倍率（調小，不要蓋太多）
-const HELMET_Y_OFFSET = -0.05; // 上下偏移（負=往上）
+// 貼合微調參數（之後依阿葉回報調整）
+const HELMET_SCALE = 1.7, HELMET_Y_OFFSET = -0.05; // 頭盔大小 / 上下
+const CHEST_SCALE = 1.5, CHEST_Y_OFFSET = 0.0;     // 胸甲大小 / 上下
 
 // ===================== 背景音樂 =====================
 const bgm = new Audio("MUSIC/theme.mp3");
@@ -79,16 +80,13 @@ function beep(freq, dur = 0.12, type = "triangle", vol = 0.3) {
 function sndHit(c) { beep(520 + Math.min(c, 20) * 28, 0.10, "square", 0.25); }
 function sndGold() { beep(880, 0.10, "triangle", 0.3); setTimeout(() => beep(1320, 0.14, "triangle", 0.3), 70); }
 function sndBomb() { beep(120, 0.35, "sawtooth", 0.45); beep(60, 0.5, "square", 0.4); setTimeout(() => beep(80, 0.3, "sawtooth", 0.35), 120); }
-function sndTransform() { // 變身「咻——」上升掃頻
+function sndTransform() {
   if (!audioCtx || muted) return;
   const t = audioCtx.currentTime;
   const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
   osc.type = "sawtooth";
-  osc.frequency.setValueAtTime(200, t);
-  osc.frequency.exponentialRampToValueAtTime(1500, t + 1.2);
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(0.35, t + 0.1);
-  g.gain.exponentialRampToValueAtTime(0.001, t + 1.6);
+  osc.frequency.setValueAtTime(200, t); osc.frequency.exponentialRampToValueAtTime(1500, t + 1.2);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.35, t + 0.1); g.gain.exponentialRampToValueAtTime(0.001, t + 1.6);
   osc.connect(g).connect(audioCtx.destination);
   osc.start(t); osc.stop(t + 1.7);
 }
@@ -111,7 +109,7 @@ async function startGame() {
     await initPoseDetector(1);
     resetGame();
     playBgm();
-    transformT = 0; sndTransform(); state = "transform"; // 進變身開場
+    transformT = 0; sndTransform(); state = "transform";
   } catch (err) { console.error("啟動失敗：", err); state = "boot"; }
   starting = false;
 }
@@ -166,7 +164,7 @@ function hitTarget(t) {
   if (t.type === "bomb") {
     lives--; combo = 0; shake = 28; bombFx = 1;
     burst(t.x, t.y, "#ff5252", 26); sndBomb();
-    if (lives <= 0) { bombFx = 1.5; gameOverPending = true; } // 先把爆炸播完再結束
+    if (lives <= 0) { bombFx = 1.5; gameOverPending = true; }
     return;
   }
   combo++; bestCombo = Math.max(bestCombo, combo);
@@ -179,8 +177,7 @@ function hitTarget(t) {
 
 // ===================== 更新（playing） =====================
 function update(dt) {
-  // 致命炸彈：先把爆炸特效播完，再進結束畫面（不要太突然）
-  if (gameOverPending) {
+  if (gameOverPending) { // 致命炸彈：先把爆炸播完再結束
     for (const p of particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 600 * dt; p.life -= dt * 1.6; }
     particles = particles.filter((p) => p.life > 0);
     if (shake > 0) shake = Math.max(0, shake - dt * 60);
@@ -227,7 +224,7 @@ function drawCameraMirrored() {
   ctx.restore(); ctx.filter = "none";
 }
 
-// ===================== 繪製：開放式頭盔（露臉、跟著頭轉） =====================
+// ===================== 關節點工具 =====================
 function pt(i) {
   if (!poseLandmarks) return null;
   const p = poseLandmarks[i];
@@ -237,53 +234,26 @@ function pt(i) {
 function mid(a, b) { return a && b ? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } : null; }
 function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 
-// 超人身體（黑外框卡通風：身體 + 手臂 + 紅手套，跟著動）
-function outlinedLimb(a, b, w) {
-  if (!a || !b) return;
-  ctx.lineCap = "round"; ctx.lineJoin = "round";
-  ctx.strokeStyle = "#1a1a1a"; ctx.lineWidth = w * 1.32; // 黑外框
-  ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-  ctx.strokeStyle = "#d4d8df"; ctx.lineWidth = w;        // 銀色
-  ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-  ctx.strokeStyle = "rgba(255,255,255,0.45)"; ctx.lineWidth = w * 0.22; // 高光
-  ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-}
-function drawHeroBody() {
+// ===================== 繪製：胸甲（生成美術，貼身上、跟著轉） =====================
+function drawChest() {
+  if (!imgReady(chestImg)) return;
   const sL = pt(11), sR = pt(12);
   if (!sL || !sR) return;
-  const sw = Math.max(dist(sL, sR), shortSide() * 0.18), armW = sw * 0.30;
-  // 手臂
-  outlinedLimb(sL, pt(13), armW); outlinedLimb(pt(13), pt(15), armW * 0.88);
-  outlinedLimb(sR, pt(14), armW); outlinedLimb(pt(14), pt(16), armW * 0.88);
-  // 軀幹
-  let hL = pt(23), hR = pt(24);
-  if (!hL) hL = { x: sL.x, y: sL.y + sw * 1.15 };
-  if (!hR) hR = { x: sR.x, y: sR.y + sw * 1.15 };
-  const chest = mid(sL, sR), belly = mid(hL, hR);
-  ctx.save(); ctx.lineJoin = "round";
-  ctx.beginPath();
-  ctx.moveTo(sL.x, sL.y); ctx.lineTo(sR.x, sR.y); ctx.lineTo(hR.x, hR.y); ctx.lineTo(hL.x, hL.y); ctx.closePath();
-  ctx.strokeStyle = "#1a1a1a"; ctx.lineWidth = sw * 0.10; ctx.stroke();
-  ctx.fillStyle = "#d4d8df"; ctx.fill();
-  // 紅色胸甲線
-  ctx.strokeStyle = "#e8362a"; ctx.lineWidth = sw * 0.14; ctx.lineCap = "round";
-  ctx.beginPath(); ctx.moveTo(chest.x, chest.y); ctx.lineTo(belly.x, belly.y); ctx.stroke();
+  const sw = dist(sL, sR);
+  const chest = mid(sL, sR), hips = mid(pt(23), pt(24));
+  const ang = Math.atan2(sR.y - sL.y, sR.x - sL.x);
+  const size = sw * CHEST_SCALE;
+  const aspect = chestImg.naturalHeight / chestImg.naturalWidth;
+  let cx = chest.x, cy = chest.y + sw * 0.55;
+  if (hips) { cx = chest.x * 0.55 + hips.x * 0.45; cy = chest.y * 0.55 + hips.y * 0.45; }
+  ctx.save(); ctx.translate(cx, cy + sw * CHEST_Y_OFFSET); ctx.rotate(ang);
+  ctx.drawImage(chestImg, -size / 2, -size * aspect / 2, size, size * aspect);
   ctx.restore();
-  // 胸口能量計（黑框 + 會閃）
-  const pulse = 0.55 + 0.45 * Math.sin(elapsed * 6);
-  const ct = { x: chest.x * 0.5 + belly.x * 0.5, y: chest.y * 0.6 + belly.y * 0.4 };
-  ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc(ct.x, ct.y, sw * 0.14, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = `rgba(90,210,255,${pulse})`; ctx.beginPath(); ctx.arc(ct.x, ct.y, sw * 0.10, 0, Math.PI * 2); ctx.fill();
-  // 紅手套（跟著手）
-  for (const wi of [15, 16]) {
-    const w = pt(wi); if (!w) continue;
-    ctx.fillStyle = "#1a1a1a"; ctx.beginPath(); ctx.arc(w.x, w.y, armW * 0.72, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "#e8362a"; ctx.beginPath(); ctx.arc(w.x, w.y, armW * 0.56, 0, Math.PI * 2); ctx.fill();
-  }
 }
 
+// ===================== 繪製：開放式頭盔（露臉、跟著頭轉） =====================
 function drawHelmet() {
-  if (!imgReady(helmetImg)) return; // 還沒生頭盔圖就先不畫
+  if (!imgReady(helmetImg)) return;
   const earL = pt(7), earR = pt(8), nose = pt(0);
   const head = mid(earL, earR) || nose;
   if (!head) return;
@@ -314,15 +284,18 @@ function drawTarget(t) {
   ctx.restore();
 }
 
-// ===================== 繪製：雙手光線 / 粒子 =====================
+// ===================== 繪製：能量拳（雙手） / 粒子 =====================
 function drawHands() {
   for (const h of hands) {
     const hr = HAND_R();
     const g = ctx.createRadialGradient(h.x, h.y, 0, h.x, h.y, hr);
-    g.addColorStop(0, "rgba(255,255,255,0.95)");
-    g.addColorStop(0.4, "rgba(120,220,255,0.6)");
-    g.addColorStop(1, "rgba(120,220,255,0)");
+    g.addColorStop(0, "rgba(255,255,255,1)");
+    g.addColorStop(0.25, "rgba(190,240,255,0.9)");
+    g.addColorStop(0.6, "rgba(70,180,255,0.5)");
+    g.addColorStop(1, "rgba(70,180,255,0)");
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(h.x, h.y, hr, 0, Math.PI * 2); ctx.fill();
+    // 亮核心
+    ctx.fillStyle = "rgba(255,255,255,0.95)"; ctx.beginPath(); ctx.arc(h.x, h.y, hr * 0.32, 0, Math.PI * 2); ctx.fill();
   }
 }
 function drawParticles() {
@@ -347,21 +320,18 @@ function drawBombFx() {
   ctx.globalAlpha = Math.min(1, k * 1.6); ctx.fillText("💥", W / 2, H / 2); ctx.globalAlpha = 1;
 }
 
-// ===================== 變身開場動畫 =====================
+// ===================== 變身開場（只先出現超人） =====================
 function drawTransform(dt) {
   transformT += dt;
-  const k = Math.min(1, transformT / TRANSFORM_DUR); // 0→1
+  const k = Math.min(1, transformT / TRANSFORM_DUR);
   drawCameraMirrored();
-  // 變暗，聚焦在超人登場（不畫頭盔、不出怪獸）
-  ctx.fillStyle = "rgba(5,8,20,0.55)"; ctx.fillRect(0, 0, W, H);
-  // 旋轉放射光
+  ctx.fillStyle = "rgba(5,8,20,0.55)"; ctx.fillRect(0, 0, W, H); // 變暗聚焦
   ctx.save(); ctx.translate(W / 2, H * 0.52);
   const rays = 18, fade = 1 - Math.abs(0.5 - k) * 2;
   ctx.strokeStyle = `rgba(180,230,255,${0.6 * fade})`; ctx.lineWidth = shortSide() * 0.012;
   ctx.rotate(transformT * 2.5);
   for (let i = 0; i < rays; i++) { ctx.rotate(Math.PI * 2 / rays); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(shortSide() * 0.9 * k, 0); ctx.stroke(); }
   ctx.restore();
-  // 英雄圖：從小放大落定
   if (imgReady(heroImg)) {
     const s = shortSide() * (0.4 + 0.55 * Math.min(1, k * 1.6));
     const aspect = heroImg.naturalHeight / heroImg.naturalWidth;
@@ -369,10 +339,8 @@ function drawTransform(dt) {
     ctx.drawImage(heroImg, W / 2 - s / 2, H * 0.55 - s * aspect / 2, s, s * aspect);
     ctx.globalAlpha = 1;
   }
-  // 中段白閃
   const fl = Math.max(0, 1 - Math.abs(0.5 - k) * 3.5);
   if (fl > 0) { ctx.fillStyle = `rgba(255,255,255,${fl * 0.75})`; ctx.fillRect(0, 0, W, H); }
-  // 變身完成 → 開始遊戲（延遲 0.7 秒才掉第一隻怪，不突兀）
   if (transformT >= TRANSFORM_DUR) { transformT = 0; spawnTimer = 0.7; state = "playing"; }
 }
 
@@ -436,11 +404,11 @@ function loop(ts) {
     ctx.save();
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
     drawCameraMirrored();
-    drawHeroBody();
-    drawHelmet();
+    drawChest();   // 胸甲（生成美術）
+    drawHelmet();  // 頭盔（生成美術）
     for (const t of targets) drawTarget(t);
     drawParticles();
-    drawHands();
+    drawHands();    // 能量拳
     ctx.restore();
     drawBombFx();
     drawHUD();
