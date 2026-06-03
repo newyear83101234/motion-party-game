@@ -35,7 +35,7 @@ const sprites = {};
 for (const key in SPRITE_SRC) { const img = new Image(); img.src = SPRITE_SRC[key]; sprites[key] = img; }
 
 // ===================== 背景音樂 =====================
-const bgm = new Audio("music/theme.mp3");
+const bgm = new Audio("MUSIC/theme.mp3");
 bgm.loop = true;
 bgm.volume = 0.5;
 let muted = false;
