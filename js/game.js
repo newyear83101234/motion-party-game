@@ -41,7 +41,7 @@ const chestImg = new Image(); chestImg.src = "IMAGE/sprites/chest.png";    // �
 const imgReady = (im) => im && im.complete && im.naturalWidth > 0;
 
 // 貼合微調參數（之後依阿葉回報調整）
-const HELMET_SCALE = 1.7, HELMET_Y_OFFSET = -0.05; // 頭盔大小 / 上下
+const HELMET_SCALE = 1.5, HELMET_Y_OFFSET = -0.5; // 頭盔大小 / 上下（上移：只蓋頭髮、露整臉）
 const CHEST_SCALE = 1.5, CHEST_Y_OFFSET = 0.0;     // 胸甲大小 / 上下
 
 // ===================== 背景音樂 =====================
@@ -54,6 +54,7 @@ let state = "boot"; // boot → loading → transform → playing → gameover
 let score = 0, combo = 0, bestCombo = 0, lives = 3;
 let targets = [], particles = [], hands = [], poseLandmarks = null;
 let shake = 0, bombFx = 0, transformT = 0, gameOverPending = false;
+let superCharge = 0, superFx = 0, superCool = 0; // 大招：充能 / 特效 / 冷卻
 let spawnTimer = 0, spawnInterval = 0.85, fallSpeed = 0.28, elapsed = 0, lastTs = 0;
 const TRANSFORM_DUR = 2.0;
 
@@ -90,11 +91,28 @@ function sndTransform() {
   osc.connect(g).connect(audioCtx.destination);
   osc.start(t); osc.stop(t + 1.7);
 }
+function sndSuper() { // 大招音效（上升和弦）
+  if (!audioCtx || muted) return;
+  const t = audioCtx.currentTime;
+  [330, 440, 660, 880].forEach((f, i) => {
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = "triangle"; o.frequency.setValueAtTime(f, t + i * 0.05);
+    g.gain.setValueAtTime(0.22, t + i * 0.05); g.gain.exponentialRampToValueAtTime(0.001, t + 0.55 + i * 0.05);
+    o.connect(g).connect(audioCtx.destination); o.start(t + i * 0.05); o.stop(t + 0.65 + i * 0.05);
+  });
+}
+function fireSuper() { // 放大招：清掉全場怪獸
+  for (const t of targets) { if (t.type !== "bomb") score += 2; burst(t.x, t.y, t.type === "bomb" ? "#ff5252" : "#7fe0ff", 16); }
+  targets = [];
+  superFx = 1; shake = 24; superCharge = 0; superCool = 2.0;
+  sndSuper();
+}
 
 // ===================== 開始 / 重設 =====================
 function resetGame() {
   score = 0; combo = 0; bestCombo = 0; lives = 3;
   targets = []; particles = []; shake = 0; bombFx = 0; gameOverPending = false;
+  superCharge = 0; superFx = 0; superCool = 0;
   spawnTimer = 0; spawnInterval = 0.85; fallSpeed = 0.28; elapsed = 0;
 }
 function playBgm() { bgm.muted = muted; bgm.play().catch(() => {}); }
@@ -203,6 +221,13 @@ function update(dt) {
   }
   checkHits();
 
+  // 大招充能：雙手都舉到「頭以上」就充能，滿了自動發射
+  const lw = poseLandmarks && poseLandmarks[15], rw = poseLandmarks && poseLandmarks[16], nz = poseLandmarks && poseLandmarks[0];
+  const handsUp = lw && rw && nz && lw.visibility > 0.3 && rw.visibility > 0.3 && lw.y < nz.y - 0.02 && rw.y < nz.y - 0.02;
+  if (superCool > 0) superCool = Math.max(0, superCool - dt);
+  else if (handsUp) { superCharge += dt; if (superCharge >= 1) fireSuper(); }
+  else superCharge = Math.max(0, superCharge - dt * 1.5);
+
   for (const t of targets) {
     if (t.dead) continue;
     t.y += t.vy * dt; t.wobble += dt * 4;
@@ -215,6 +240,7 @@ function update(dt) {
 
   if (shake > 0) shake = Math.max(0, shake - dt * 60);
   if (bombFx > 0) bombFx = Math.max(0, bombFx - dt * 1.6);
+  if (superFx > 0) superFx = Math.max(0, superFx - dt * 1.4);
 }
 
 // ===================== 繪製：鏡頭 =====================
@@ -320,6 +346,34 @@ function drawBombFx() {
   ctx.globalAlpha = Math.min(1, k * 1.6); ctx.fillText("💥", W / 2, H / 2); ctx.globalAlpha = 1;
 }
 
+// 大招充能球（頭頂上方）
+function drawSuperCharge() {
+  if (superCharge <= 0) return;
+  const nose = pt(0); if (!nose) return;
+  const k = Math.min(1, superCharge);
+  const cx = nose.x, cy = nose.y - shortSide() * 0.22;
+  const r = shortSide() * (0.04 + 0.12 * k);
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+  g.addColorStop(0, "rgba(255,255,255,0.95)");
+  g.addColorStop(0.5, `rgba(120,220,255,${0.7 * k})`);
+  g.addColorStop(1, "rgba(120,220,255,0)");
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.lineWidth = shortSide() * 0.012;
+  ctx.beginPath(); ctx.arc(cx, cy, r * 1.3, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * k); ctx.stroke();
+}
+// 大招全螢幕光波
+function drawSuperFx() {
+  if (superFx <= 0) return;
+  const k = superFx;
+  ctx.fillStyle = `rgba(150,230,255,${0.45 * k})`; ctx.fillRect(0, 0, W, H);
+  ctx.save(); ctx.globalAlpha = k;
+  const bw = W * (0.2 + (1 - k) * 0.85);
+  const grad = ctx.createLinearGradient(W / 2 - bw / 2, 0, W / 2 + bw / 2, 0);
+  grad.addColorStop(0, "rgba(120,220,255,0)"); grad.addColorStop(0.5, "rgba(255,255,255,0.9)"); grad.addColorStop(1, "rgba(120,220,255,0)");
+  ctx.fillStyle = grad; ctx.fillRect(W / 2 - bw / 2, 0, bw, H);
+  ctx.restore();
+}
+
 // ===================== 變身開場（只先出現超人） =====================
 function drawTransform(dt) {
   transformT += dt;
@@ -409,8 +463,10 @@ function loop(ts) {
     for (const t of targets) drawTarget(t);
     drawParticles();
     drawHands();    // 能量拳
+    drawSuperCharge(); // 大招充能球
     ctx.restore();
     drawBombFx();
+    drawSuperFx();   // 大招光波（全螢幕）
     drawHUD();
   } else if (state === "gameover") drawGameOver();
   requestAnimationFrame(loop);
