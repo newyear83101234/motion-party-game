@@ -52,7 +52,7 @@ let muted = false;
 let state = "boot"; // boot → loading → transform → playing → gameover
 let score = 0, combo = 0, bestCombo = 0, lives = 3;
 let targets = [], particles = [], hands = [], poseLandmarks = null;
-let shake = 0, bombFx = 0, transformT = 0;
+let shake = 0, bombFx = 0, transformT = 0, gameOverPending = false;
 let spawnTimer = 0, spawnInterval = 0.85, fallSpeed = 0.28, elapsed = 0, lastTs = 0;
 const TRANSFORM_DUR = 1.7;
 
@@ -96,7 +96,7 @@ function sndTransform() { // 變身「咻——」上升掃頻
 // ===================== 開始 / 重設 =====================
 function resetGame() {
   score = 0; combo = 0; bestCombo = 0; lives = 3;
-  targets = []; particles = []; shake = 0; bombFx = 0;
+  targets = []; particles = []; shake = 0; bombFx = 0; gameOverPending = false;
   spawnTimer = 0; spawnInterval = 0.85; fallSpeed = 0.28; elapsed = 0;
 }
 function playBgm() { bgm.muted = muted; bgm.play().catch(() => {}); }
@@ -166,7 +166,7 @@ function hitTarget(t) {
   if (t.type === "bomb") {
     lives--; combo = 0; shake = 28; bombFx = 1;
     burst(t.x, t.y, "#ff5252", 26); sndBomb();
-    if (lives <= 0) state = "gameover";
+    if (lives <= 0) { bombFx = 1.5; gameOverPending = true; } // 先把爆炸播完再結束
     return;
   }
   combo++; bestCombo = Math.max(bestCombo, combo);
@@ -179,6 +179,15 @@ function hitTarget(t) {
 
 // ===================== 更新（playing） =====================
 function update(dt) {
+  // 致命炸彈：先把爆炸特效播完，再進結束畫面（不要太突然）
+  if (gameOverPending) {
+    for (const p of particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 600 * dt; p.life -= dt * 1.6; }
+    particles = particles.filter((p) => p.life > 0);
+    if (shake > 0) shake = Math.max(0, shake - dt * 60);
+    if (bombFx > 0) bombFx = Math.max(0, bombFx - dt * 1.6);
+    if (bombFx <= 0) { state = "gameover"; gameOverPending = false; }
+    return;
+  }
   elapsed += dt;
   const lvl = Math.floor(elapsed / 12);
   spawnInterval = Math.max(0.32, 0.85 - lvl * 0.08);
