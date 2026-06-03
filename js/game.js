@@ -40,8 +40,8 @@ const heroImg = new Image(); heroImg.src = "IMAGE/sprites/hero.png";       // �
 const imgReady = (im) => im && im.complete && im.naturalWidth > 0;
 
 // 頭盔貼合微調參數（之後依阿葉回報調整）
-const HELMET_SCALE = 2.7;     // 相對臉寬的倍率
-const HELMET_Y_OFFSET = -0.15; // 上下偏移（負=往上）
+const HELMET_SCALE = 1.7;      // 相對臉寬的倍率（調小，不要蓋太多）
+const HELMET_Y_OFFSET = -0.05; // 上下偏移（負=往上）
 
 // ===================== 背景音樂 =====================
 const bgm = new Audio("MUSIC/theme.mp3");
@@ -54,7 +54,7 @@ let score = 0, combo = 0, bestCombo = 0, lives = 3;
 let targets = [], particles = [], hands = [], poseLandmarks = null;
 let shake = 0, bombFx = 0, transformT = 0, gameOverPending = false;
 let spawnTimer = 0, spawnInterval = 0.85, fallSpeed = 0.28, elapsed = 0, lastTs = 0;
-const TRANSFORM_DUR = 1.7;
+const TRANSFORM_DUR = 2.0;
 
 const shortSide = () => Math.min(W, H);
 const HAND_R = () => shortSide() * 0.10;
@@ -237,6 +237,51 @@ function pt(i) {
 function mid(a, b) { return a && b ? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } : null; }
 function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 
+// 超人身體（黑外框卡通風：身體 + 手臂 + 紅手套，跟著動）
+function outlinedLimb(a, b, w) {
+  if (!a || !b) return;
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  ctx.strokeStyle = "#1a1a1a"; ctx.lineWidth = w * 1.32; // 黑外框
+  ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  ctx.strokeStyle = "#d4d8df"; ctx.lineWidth = w;        // 銀色
+  ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  ctx.strokeStyle = "rgba(255,255,255,0.45)"; ctx.lineWidth = w * 0.22; // 高光
+  ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+}
+function drawHeroBody() {
+  const sL = pt(11), sR = pt(12);
+  if (!sL || !sR) return;
+  const sw = Math.max(dist(sL, sR), shortSide() * 0.18), armW = sw * 0.30;
+  // 手臂
+  outlinedLimb(sL, pt(13), armW); outlinedLimb(pt(13), pt(15), armW * 0.88);
+  outlinedLimb(sR, pt(14), armW); outlinedLimb(pt(14), pt(16), armW * 0.88);
+  // 軀幹
+  let hL = pt(23), hR = pt(24);
+  if (!hL) hL = { x: sL.x, y: sL.y + sw * 1.15 };
+  if (!hR) hR = { x: sR.x, y: sR.y + sw * 1.15 };
+  const chest = mid(sL, sR), belly = mid(hL, hR);
+  ctx.save(); ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(sL.x, sL.y); ctx.lineTo(sR.x, sR.y); ctx.lineTo(hR.x, hR.y); ctx.lineTo(hL.x, hL.y); ctx.closePath();
+  ctx.strokeStyle = "#1a1a1a"; ctx.lineWidth = sw * 0.10; ctx.stroke();
+  ctx.fillStyle = "#d4d8df"; ctx.fill();
+  // 紅色胸甲線
+  ctx.strokeStyle = "#e8362a"; ctx.lineWidth = sw * 0.14; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(chest.x, chest.y); ctx.lineTo(belly.x, belly.y); ctx.stroke();
+  ctx.restore();
+  // 胸口能量計（黑框 + 會閃）
+  const pulse = 0.55 + 0.45 * Math.sin(elapsed * 6);
+  const ct = { x: chest.x * 0.5 + belly.x * 0.5, y: chest.y * 0.6 + belly.y * 0.4 };
+  ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc(ct.x, ct.y, sw * 0.14, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = `rgba(90,210,255,${pulse})`; ctx.beginPath(); ctx.arc(ct.x, ct.y, sw * 0.10, 0, Math.PI * 2); ctx.fill();
+  // 紅手套（跟著手）
+  for (const wi of [15, 16]) {
+    const w = pt(wi); if (!w) continue;
+    ctx.fillStyle = "#1a1a1a"; ctx.beginPath(); ctx.arc(w.x, w.y, armW * 0.72, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#e8362a"; ctx.beginPath(); ctx.arc(w.x, w.y, armW * 0.56, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
 function drawHelmet() {
   if (!imgReady(helmetImg)) return; // 還沒生頭盔圖就先不畫
   const earL = pt(7), earR = pt(8), nose = pt(0);
@@ -306,32 +351,29 @@ function drawBombFx() {
 function drawTransform(dt) {
   transformT += dt;
   const k = Math.min(1, transformT / TRANSFORM_DUR); // 0→1
-  // 抓一次身體，讓頭盔在變身時也戴上
-  const people = detect(video, performance.now());
-  poseLandmarks = people.length > 0 ? people[0] : null;
-
   drawCameraMirrored();
+  // 變暗，聚焦在超人登場（不畫頭盔、不出怪獸）
+  ctx.fillStyle = "rgba(5,8,20,0.55)"; ctx.fillRect(0, 0, W, H);
   // 旋轉放射光
-  ctx.save(); ctx.translate(W / 2, H * 0.45);
-  const rays = 16, fade = 1 - Math.abs(0.5 - k) * 2;
-  ctx.strokeStyle = `rgba(180,230,255,${0.55 * fade})`; ctx.lineWidth = shortSide() * 0.012;
+  ctx.save(); ctx.translate(W / 2, H * 0.52);
+  const rays = 18, fade = 1 - Math.abs(0.5 - k) * 2;
+  ctx.strokeStyle = `rgba(180,230,255,${0.6 * fade})`; ctx.lineWidth = shortSide() * 0.012;
   ctx.rotate(transformT * 2.5);
-  for (let i = 0; i < rays; i++) { ctx.rotate(Math.PI * 2 / rays); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(shortSide() * 0.85 * k, 0); ctx.stroke(); }
+  for (let i = 0; i < rays; i++) { ctx.rotate(Math.PI * 2 / rays); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(shortSide() * 0.9 * k, 0); ctx.stroke(); }
   ctx.restore();
-  // 英雄圖放大淡入（若已生好）
+  // 英雄圖：從小放大落定
   if (imgReady(heroImg)) {
-    const s = shortSide() * (0.55 + 0.45 * Math.min(1, k * 1.4));
+    const s = shortSide() * (0.4 + 0.55 * Math.min(1, k * 1.6));
     const aspect = heroImg.naturalHeight / heroImg.naturalWidth;
-    ctx.globalAlpha = Math.min(1, k * 2);
-    ctx.drawImage(heroImg, W / 2 - s / 2, H * 0.52 - s * aspect / 2, s, s * aspect);
+    ctx.globalAlpha = Math.min(1, k * 2.2);
+    ctx.drawImage(heroImg, W / 2 - s / 2, H * 0.55 - s * aspect / 2, s, s * aspect);
     ctx.globalAlpha = 1;
   }
-  drawHelmet();
   // 中段白閃
-  const fl = Math.max(0, 1 - Math.abs(0.45 - k) * 4);
-  if (fl > 0) { ctx.fillStyle = `rgba(255,255,255,${fl * 0.7})`; ctx.fillRect(0, 0, W, H); }
-
-  if (transformT >= TRANSFORM_DUR) { transformT = 0; state = "playing"; }
+  const fl = Math.max(0, 1 - Math.abs(0.5 - k) * 3.5);
+  if (fl > 0) { ctx.fillStyle = `rgba(255,255,255,${fl * 0.75})`; ctx.fillRect(0, 0, W, H); }
+  // 變身完成 → 開始遊戲（延遲 0.7 秒才掉第一隻怪，不突兀）
+  if (transformT >= TRANSFORM_DUR) { transformT = 0; spawnTimer = 0.7; state = "playing"; }
 }
 
 // ===================== HUD / 畫面 =====================
@@ -394,6 +436,7 @@ function loop(ts) {
     ctx.save();
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
     drawCameraMirrored();
+    drawHeroBody();
     drawHelmet();
     for (const t of targets) drawTarget(t);
     drawParticles();
