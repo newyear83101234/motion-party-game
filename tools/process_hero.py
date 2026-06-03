@@ -13,7 +13,7 @@ BASE = r"d:\Claude\Projects\GAME DIY\IMAGE"
 OUT = os.path.join(BASE, "sprites")
 os.makedirs(OUT, exist_ok=True)
 
-JOBS = [("helmet.png", "helmet.png"), ("hero.png", "hero.png")]
+JOBS = [("helmet.png", "helmet.png"), ("hero.png", "hero.png"), ("chest.png", "chest.png")]
 
 def process(src_path, out_path):
     im = Image.open(src_path).convert("RGB")
@@ -34,6 +34,7 @@ def process(src_path, out_path):
     out[..., 1] = g2.astype(np.uint8)
     out[..., 2] = b.astype(np.uint8)
     out[..., 3] = np.where(green, 0, 255).astype(np.uint8)
+    out[green] = (0, 0, 0, 0)  # 透明像素 RGB 也歸零，徹底消除綠邊/預覽殘綠
 
     rgba = Image.fromarray(out, "RGBA")
     bbox = rgba.getbbox()
