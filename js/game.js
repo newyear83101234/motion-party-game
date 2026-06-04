@@ -48,6 +48,8 @@ const CHEST_SCALE = 1.5, CHEST_Y_OFFSET = 0.0;     // 胸甲大小 / 上下
 // ===================== 背景音樂 =====================
 const bgm = new Audio("MUSIC/theme.mp3");
 bgm.loop = true; bgm.volume = 0.5;
+const winSfx = new Audio("MUSIC/victory.mp3"); winSfx.volume = 0.85; winSfx.preload = "auto"; // 勝利音效(Suno)；沒檔就用合成備援
+const superSfx = new Audio("MUSIC/super.mp3"); superSfx.volume = 0.8; superSfx.preload = "auto";  // 大招音效(Suno)；同上
 let muted = false;
 
 // ===================== 遊戲狀態 =====================
@@ -56,6 +58,7 @@ let score = 0, combo = 0, bestCombo = 0, lives = 3;
 let targets = [], particles = [], hands = [], poseLandmarks = null, latestMask = null;
 let shake = 0, bombFx = 0, transformT = 0, gameOverPending = false;
 let superCharge = 0, superFx = 0, superCool = 0; // 大招：充能 / 特效 / 冷卻
+let stage = 1, killCount = 0, bossActive = false, boss = null, bossHitCd = 0, bossClearFx = 0; // 關卡 / Boss
 let spawnTimer = 0, spawnInterval = 0.85, fallSpeed = 0.28, elapsed = 0, lastTs = 0;
 const TRANSFORM_DUR = 2.0;
 
@@ -102,11 +105,40 @@ function sndSuper() { // 大招音效（上升和弦）
     o.connect(g).connect(audioCtx.destination); o.start(t + i * 0.05); o.stop(t + 0.65 + i * 0.05);
   });
 }
-function fireSuper() { // 放大招：清掉全場怪獸
+function playSfxFile(a) { // 有 Suno 音檔就播，回傳是否成功（沒檔回 false → 用合成備援）
+  if (muted) return false;
+  if (a.readyState >= 2) { try { a.currentTime = 0; a.play().catch(() => {}); return true; } catch (e) {} }
+  return false;
+}
+function sndVictory() { // 合成勝利號角（Suno 音檔的備援）
+  if (!audioCtx || muted) return;
+  const t = audioCtx.currentTime;
+  [523, 659, 784, 1047].forEach((f, i) => {
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = "triangle"; o.frequency.setValueAtTime(f, t + i * 0.12);
+    g.gain.setValueAtTime(0.25, t + i * 0.12); g.gain.exponentialRampToValueAtTime(0.001, t + 0.6 + i * 0.12);
+    o.connect(g).connect(audioCtx.destination); o.start(t + i * 0.12); o.stop(t + 0.7 + i * 0.12);
+  });
+}
+function startBoss() { // 出現大魔王
+  bossActive = true;
+  for (const t of targets) burst(t.x, t.y, "#7fe0ff", 6);
+  targets = [];
+  const hp = 8 + stage * 3;
+  boss = { x: W / 2, y: H * 0.26, hp, maxHp: hp, t: 0, r: shortSide() * 0.17 };
+}
+function defeatBoss() { // 打贏 Boss
+  for (let i = 0; i < 4; i++) burst(boss.x + (Math.random() - 0.5) * boss.r * 2, boss.y + (Math.random() - 0.5) * boss.r * 2, "#ffd54a", 22);
+  score += 20 + stage * 10;
+  bossActive = false; boss = null; stage++; bossClearFx = 1.6; shake = 18;
+  if (!playSfxFile(winSfx)) sndVictory();
+}
+function fireSuper() { // 放大招：清掉全場怪獸（對 Boss 也造成大傷害）
   for (const t of targets) { if (t.type !== "bomb") score += 2; burst(t.x, t.y, t.type === "bomb" ? "#ff5252" : "#7fe0ff", 16); }
   targets = [];
+  if (bossActive && boss) { boss.hp -= 5; burst(boss.x, boss.y, "#7fe0ff", 24); if (boss.hp <= 0) defeatBoss(); }
   superFx = 1; shake = 24; superCharge = 0; superCool = 2.0;
-  sndSuper();
+  if (!playSfxFile(superSfx)) sndSuper();
 }
 
 // ===================== 開始 / 重設 =====================
@@ -114,6 +146,7 @@ function resetGame() {
   score = 0; combo = 0; bestCombo = 0; lives = 3;
   targets = []; particles = []; shake = 0; bombFx = 0; gameOverPending = false;
   superCharge = 0; superFx = 0; superCool = 0;
+  stage = 1; killCount = 0; bossActive = false; boss = null; bossHitCd = 0; bossClearFx = 0;
   spawnTimer = 0; spawnInterval = 0.85; fallSpeed = 0.28; elapsed = 0;
 }
 function playBgm() { bgm.muted = muted; bgm.play().catch(() => {}); }
@@ -186,7 +219,7 @@ function hitTarget(t) {
     if (lives <= 0) { bombFx = 1.5; gameOverPending = true; }
     return;
   }
-  combo++; bestCombo = Math.max(bestCombo, combo);
+  combo++; bestCombo = Math.max(bestCombo, combo); killCount++;
   const gain = t.type === "gold" ? 5 : 1;
   score += gain * (1 + Math.floor(combo / 5));
   shake = Math.min(14, 6 + combo * 0.3);
@@ -205,11 +238,14 @@ function update(dt) {
     return;
   }
   elapsed += dt;
-  const lvl = Math.floor(elapsed / 12);
-  spawnInterval = Math.max(0.32, 0.85 - lvl * 0.08);
-  fallSpeed = 0.28 + lvl * 0.05;
-  spawnTimer -= dt;
-  if (spawnTimer <= 0) { spawnTarget(); spawnTimer = spawnInterval; }
+  const lvl = Math.floor(elapsed / 12) + (stage - 1); // 關卡越高越快
+  spawnInterval = Math.max(0.30, 0.85 - lvl * 0.07);
+  fallSpeed = 0.26 + lvl * 0.045;
+  if (!bossActive) {
+    spawnTimer -= dt;
+    if (spawnTimer <= 0) { spawnTarget(); spawnTimer = spawnInterval; }
+    if (killCount >= 12) { killCount = 0; startBoss(); } // 打夠小怪 → 出 Boss
+  }
 
   const res = detect(video, performance.now());
   const people = res.landmarks;
@@ -231,6 +267,24 @@ function update(dt) {
   else if (handsUp) { superCharge += dt; if (superCharge >= 1) fireSuper(); }
   else superCharge = Math.max(0, superCharge - dt * 1.5);
 
+  // Boss 移動 + 受擊
+  if (bossActive && boss) {
+    boss.t += dt;
+    boss.x = W / 2 + Math.sin(boss.t * 0.8) * W * 0.3;
+    boss.y = H * 0.24 + Math.sin(boss.t * 1.6) * H * 0.04;
+    if (bossHitCd > 0) bossHitCd -= dt;
+    if (bossHitCd <= 0) {
+      for (const h of hands) {
+        if ((h.x - boss.x) ** 2 + (h.y - boss.y) ** 2 < (boss.r + HAND_R()) ** 2) {
+          boss.hp -= 1; bossHitCd = 0.12; shake = 8; sndHit(3);
+          burst(boss.x + (Math.random() - 0.5) * boss.r, boss.y + (Math.random() - 0.5) * boss.r, "#ffd54a", 8);
+          break;
+        }
+      }
+    }
+    if (boss.hp <= 0) defeatBoss();
+  }
+
   for (const t of targets) {
     if (t.dead) continue;
     t.y += t.vy * dt; t.wobble += dt * 4;
@@ -244,6 +298,7 @@ function update(dt) {
   if (shake > 0) shake = Math.max(0, shake - dt * 60);
   if (bombFx > 0) bombFx = Math.max(0, bombFx - dt * 1.6);
   if (superFx > 0) superFx = Math.max(0, superFx - dt * 1.4);
+  if (bossClearFx > 0) bossClearFx = Math.max(0, bossClearFx - dt);
 }
 
 // ===================== 繪製：鏡頭 =====================
@@ -350,6 +405,28 @@ function drawTarget(t) {
   if (imgReady(img)) ctx.drawImage(img, -drawR, -drawR, drawR * 2, drawR * 2);
   else { ctx.fillStyle = t.type === "gold" ? "#f6a609" : t.type === "bomb" ? "#222" : "#0288d1"; ctx.beginPath(); ctx.arc(0, 0, tr, 0, Math.PI * 2); ctx.fill(); }
   ctx.restore();
+}
+
+// ===================== 繪製：Boss + 血條 + 過關 =====================
+function drawBoss() {
+  if (!boss) return;
+  const r = boss.r;
+  ctx.save(); ctx.globalAlpha = 0.35 + 0.2 * Math.sin(boss.t * 4);
+  ctx.fillStyle = "#ffd54a"; ctx.beginPath(); ctx.arc(boss.x, boss.y, r * 1.18, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  const img = sprites.boss;
+  if (imgReady(img)) ctx.drawImage(img, boss.x - r, boss.y - r, r * 2, r * 2);
+  else { ctx.fillStyle = "#f6a609"; ctx.beginPath(); ctx.arc(boss.x, boss.y, r, 0, Math.PI * 2); ctx.fill(); }
+  // 血條
+  const bw = W * 0.6, bh = shortSide() * 0.028, bx = (W - bw) / 2, by = shortSide() * 0.12;
+  ctx.fillStyle = "rgba(0,0,0,0.45)"; ctx.fillRect(bx, by, bw, bh);
+  ctx.fillStyle = "#ff4444"; ctx.fillRect(bx, by, bw * Math.max(0, boss.hp / boss.maxHp), bh);
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.strokeRect(bx, by, bw, bh);
+}
+function drawBossClearFx() {
+  if (bossClearFx <= 0) return;
+  ctx.save(); ctx.globalAlpha = Math.min(1, bossClearFx);
+  ctx.font = `${shortSide() * 0.3}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("🏆", W / 2, H * 0.4); ctx.restore();
 }
 
 // ===================== 繪製：能量拳（雙手） / 粒子 =====================
@@ -503,12 +580,14 @@ function loop(ts) {
     drawChest();   // 胸甲（生成美術）
     drawHelmet();  // 頭盔（生成美術）
     for (const t of targets) drawTarget(t);
+    if (bossActive) drawBoss();
     drawParticles();
     drawHands();    // 能量拳
     drawSuperCharge(); // 大招充能球
     ctx.restore();
     drawBombFx();
     drawSuperFx();   // 大招光波（全螢幕）
+    drawBossClearFx(); // 過關 🏆
     drawHUD();
   } else if (state === "gameover") drawGameOver();
   requestAnimationFrame(loop);
