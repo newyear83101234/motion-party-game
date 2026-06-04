@@ -41,6 +41,9 @@ const chestImg = new Image(); chestImg.src = "IMAGE/sprites/chest.png";    // �
 const cityImg = new Image(); cityImg.src = "IMAGE/city.png";               // 城市背景（打怪）
 const spaceImg = new Image(); spaceImg.src = "IMAGE/space.png";            // 太空背景（躲避）
 const meteorImg = new Image(); meteorImg.src = "IMAGE/sprites/meteor.png"; // 隕石
+const logoImg = new Image(); logoImg.src = "IMAGE/sprites/logo.png";        // 選單標題徽章
+const warnImg = new Image(); warnImg.src = "IMAGE/sprites/boss_warning.png"; // Boss 預警
+const starImg = new Image(); starImg.src = "IMAGE/sprites/star.png";        // 星星（躲避收集）
 const imgReady = (im) => im && im.complete && im.naturalWidth > 0;
 
 // 貼合微調參數（之後依阿葉回報調整）
@@ -48,11 +51,20 @@ const HELMET_SCALE = 1.5, HELMET_Y_OFFSET = -0.5; // 頭盔大小 / 上下（上
 const CHEST_SCALE = 1.5, CHEST_Y_OFFSET = 0.0;     // 胸甲大小 / 上下
 
 // ===================== 背景音樂 =====================
-const bgm = new Audio("MUSIC/theme.mp3");
-bgm.loop = true; bgm.volume = 0.5;
-const winSfx = new Audio("MUSIC/victory.mp3"); winSfx.volume = 0.85; winSfx.preload = "auto"; // 勝利音效(Suno)；沒檔就用合成備援
-const superSfx = new Audio("MUSIC/super.mp3"); superSfx.volume = 0.8; superSfx.preload = "auto";  // 大招音效(Suno)；同上
+const bgmTheme = new Audio("MUSIC/theme.mp3");     // 打怪 BGM
+const bgmMenu = new Audio("MUSIC/menu.mp3");       // 選單音樂
+const bgmDodge = new Audio("MUSIC/dodge_bgm.mp3"); // 太空關 BGM
+[bgmTheme, bgmMenu, bgmDodge].forEach((a) => { a.loop = true; a.volume = 0.5; });
+let activeBgm = null;
+const winSfx = new Audio("MUSIC/victory.mp3"); winSfx.volume = 0.85; winSfx.preload = "auto"; // 勝利音效(Suno)
+const superSfx = new Audio("MUSIC/super.mp3"); superSfx.volume = 0.8; superSfx.preload = "auto";  // 大招音效(Suno)
 let muted = false;
+function playBgmTrack(a) { // 切換 BGM（暫停其他、播這首）
+  if (activeBgm === a) { a.muted = muted; if (a.paused) a.play().catch(() => {}); return; }
+  if (activeBgm) { try { activeBgm.pause(); } catch (e) {} }
+  activeBgm = a; a.muted = muted; a.play().catch(() => {});
+}
+function setMuted(m) { muted = m; [bgmTheme, bgmMenu, bgmDodge].forEach((a) => { a.muted = m; }); }
 
 // ===================== 遊戲狀態 =====================
 let state = "boot"; // boot → loading → transform → playing → gameover
@@ -60,9 +72,9 @@ let score = 0, combo = 0, bestCombo = 0, lives = 3;
 let targets = [], particles = [], hands = [], poseLandmarks = null, latestMask = null;
 let shake = 0, bombFx = 0, transformT = 0, gameOverPending = false;
 let superCharge = 0, superFx = 0, superCool = 0; // 大招：充能 / 特效 / 冷卻
-let stage = 1, killCount = 0, bossActive = false, boss = null, bossHitCd = 0, bossClearFx = 0; // 關卡 / Boss
+let stage = 1, killCount = 0, bossActive = false, boss = null, bossHitCd = 0, bossClearFx = 0, bossWarnT = 0; // 關卡 / Boss / 預警
 let currentGame = "whack";          // 目前遊戲："whack"（打怪）| "dodge"（躲避）
-let meteors = [], dodgeInvuln = 0;  // 躲避遊戲：隕石陣列 / 受擊後無敵時間
+let meteors = [], dodgeInvuln = 0, stars = [], starTimer = 0; // 躲避：隕石 / 無敵 / 星星 / 星星計時
 let floatTexts = [];                // 飄分數文字（+1 / +5 往上飄）
 let bestWhack = 0, bestDodge = 0;   // 最高分（localStorage）
 let allPose = [], superHead = null; // 雙人：所有偵測到的人 / 大招充能者的頭
@@ -180,11 +192,11 @@ function resetGame() {
   score = 0; combo = 0; bestCombo = 0; lives = 3;
   targets = []; particles = []; shake = 0; bombFx = 0; gameOverPending = false;
   superCharge = 0; superFx = 0; superCool = 0;
-  stage = 1; killCount = 0; bossActive = false; boss = null; bossHitCd = 0; bossClearFx = 0;
-  meteors = []; floatTexts = []; dodgeInvuln = 0;
+  stage = 1; killCount = 0; bossActive = false; boss = null; bossHitCd = 0; bossClearFx = 0; bossWarnT = 0;
+  meteors = []; floatTexts = []; dodgeInvuln = 0; stars = []; starTimer = 0;
   spawnTimer = 0; spawnInterval = 0.85; fallSpeed = 0.28; elapsed = 0;
 }
-function playBgm() { bgm.muted = muted; bgm.play().catch(() => {}); }
+// BGM 改用上方 playBgmTrack(track) 切換
 
 let starting = false;
 async function startGame() {
@@ -192,9 +204,10 @@ async function startGame() {
   starting = true; state = "loading";
   try {
     initAudio();
+    [bgmTheme, bgmMenu, bgmDodge].forEach((a) => { try { a.play().then(() => a.pause()).catch(() => {}); } catch (e) {} }); // 在使用者手勢內解鎖音訊
     await startCamera(video);
     await initPoseDetector(2); // 偵測最多 2 人（雙人合作）
-    playBgm();
+    playBgmTrack(bgmMenu);
     state = "menu"; // 載入完成 → 進「選遊戲」選單
   } catch (err) { console.error("啟動失敗：", err); state = "boot"; }
   starting = false;
@@ -217,12 +230,12 @@ function senseBody() {
 function resetDodge() {
   score = 0; combo = 0; bestCombo = 0; lives = 3;
   particles = []; shake = 0; bombFx = 0; gameOverPending = false;
-  targets = []; bossActive = false; boss = null; bossHitCd = 0; bossClearFx = 0;
+  targets = []; bossActive = false; boss = null; bossHitCd = 0; bossClearFx = 0; bossWarnT = 0;
   superCharge = 0; superFx = 0; superCool = 0;
-  meteors = []; floatTexts = []; dodgeInvuln = 0; spawnTimer = 0; elapsed = 0;
+  meteors = []; floatTexts = []; dodgeInvuln = 0; stars = []; starTimer = 0; spawnTimer = 0; elapsed = 0;
 }
-function startWhack() { currentGame = "whack"; resetGame(); playBgm(); transformT = 0; sndTransform(); state = "transform"; }
-function startDodge() { currentGame = "dodge"; resetDodge(); playBgm(); spawnTimer = 0.6; state = "playing"; }
+function startWhack() { currentGame = "whack"; resetGame(); playBgmTrack(bgmTheme); transformT = 0; sndTransform(); state = "transform"; }
+function startDodge() { currentGame = "dodge"; resetDodge(); playBgmTrack(bgmDodge); spawnTimer = 0.6; state = "playing"; }
 function pickGame(g) { if (g === "dodge") startDodge(); else startWhack(); }
 
 canvas.addEventListener("pointerdown", (e) => {
@@ -232,13 +245,13 @@ canvas.addEventListener("pointerdown", (e) => {
   if (state === "menu") { pickGame(px < W / 2 ? "whack" : "dodge"); return; } // 左=打怪 右=躲避
   if (state === "gameover") {
     const rr = shortSide() * 0.07, hx = shortSide() * 0.04 + rr, hy = shortSide() * 0.04 + rr;
-    if ((px - hx) ** 2 + (py - hy) ** 2 < rr * rr) { state = "menu"; return; } // 🏠 回選單
+    if ((px - hx) ** 2 + (py - hy) ** 2 < rr * rr) { playBgmTrack(bgmMenu); state = "menu"; return; } // 🏠 回選單
     if (currentGame === "dodge") startDodge(); else startWhack(); // 🔁 重玩
     return;
   }
   if (state === "playing") {
     const r = shortSide() * 0.06, pad = shortSide() * 0.04, cx = pad + r, cy = H - pad - r;
-    if ((px - cx) ** 2 + (py - cy) ** 2 < r * r) { muted = !muted; bgm.muted = muted; }
+    if ((px - cx) ** 2 + (py - cy) ** 2 < r * r) setMuted(!muted);
   }
 });
 
@@ -309,9 +322,12 @@ function update(dt) {
   spawnInterval = Math.max(0.30, 0.85 - lvl * 0.07);
   fallSpeed = 0.26 + lvl * 0.045;
   if (!bossActive) {
-    spawnTimer -= dt;
-    if (spawnTimer <= 0) { spawnTarget(); spawnTimer = spawnInterval; }
-    if (killCount >= 12) { killCount = 0; startBoss(); } // 打夠小怪 → 出 Boss
+    if (bossWarnT > 0) { bossWarnT -= dt; if (bossWarnT <= 0) startBoss(); } // 預警跑完才出 Boss
+    else {
+      spawnTimer -= dt;
+      if (spawnTimer <= 0) { spawnTarget(); spawnTimer = spawnInterval; }
+      if (killCount >= 12) { killCount = 0; bossWarnT = 1.2; beep(740, 0.18, "square", 0.28); } // 打夠 → Boss 預警
+    }
   }
 
   senseBody();
@@ -689,12 +705,13 @@ function drawCard(x, y, w, h, r, bgImg, border, tint, icon1, icon2, best) {
 }
 function drawMenu() {
   ctx.fillStyle = "#0b1020"; ctx.fillRect(0, 0, W, H);
-  const cy = H * 0.24, ch = H * 0.54, cw = W * 0.4, rad = shortSide() * 0.04;
+  if (imgReady(logoImg)) { const sz = shortSide() * 0.32; ctx.drawImage(logoImg, W / 2 - sz / 2, H * 0.02, sz, sz); } // 標題徽章
+  const cy = H * 0.3, ch = H * 0.5, cw = W * 0.4, rad = shortSide() * 0.04;
   drawCard(W * 0.06, cy, cw, ch, rad, cityImg, "rgba(90,170,255,0.95)", "rgba(20,40,90,0.45)", "👊", "🦖", bestWhack);
   drawCard(W * 0.54, cy, cw, ch, rad, spaceImg, "rgba(190,110,255,0.95)", "rgba(40,20,80,0.45)", "🏃", "☄️", bestDodge);
-  if ((Math.floor(performance.now() / 400) % 2) === 0) { // 閃爍提示
+  if ((Math.floor(performance.now() / 400) % 2) === 0) { // 閃爍提示（底部）
     ctx.fillStyle = "#fff"; ctx.font = `${shortSide() * 0.08}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText("👆", W / 2, H * 0.13);
+    ctx.fillText("👆", W / 2, H * 0.88);
   }
 }
 
@@ -702,6 +719,26 @@ function drawMenu() {
 function spawnMeteor(mfall) {
   const r = shortSide() * (0.05 + Math.random() * 0.045);
   meteors.push({ x: r + Math.random() * (W - 2 * r), y: -r, vy: mfall * H * (0.85 + Math.random() * 0.5), r, spin: Math.random() * 6, dead: false });
+}
+function spawnStar() {
+  const r = shortSide() * 0.06;
+  stars.push({ x: r + Math.random() * (W - 2 * r), y: -r, vy: 0.3 * H * (0.8 + Math.random() * 0.4), r, spin: Math.random() * 6, dead: false });
+}
+function sndStar() { beep(1046, 0.08, "triangle", 0.3); setTimeout(() => beep(1568, 0.12, "triangle", 0.3), 60); }
+function drawStar(s) {
+  ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(Math.sin(s.spin) * 0.2);
+  if (imgReady(starImg)) ctx.drawImage(starImg, -s.r, -s.r, s.r * 2, s.r * 2);
+  else { ctx.fillStyle = "#ffd54a"; ctx.beginPath(); ctx.arc(0, 0, s.r, 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+}
+// Boss 出現前的紅色 ! 預警
+function drawBossWarning() {
+  if (bossWarnT <= 0 || !imgReady(warnImg)) return;
+  const k = bossWarnT / 1.2;
+  const sz = shortSide() * (0.24 + 0.04 * Math.sin(performance.now() / 70));
+  ctx.save(); ctx.globalAlpha = Math.min(1, k * 2);
+  ctx.drawImage(warnImg, W / 2 - sz / 2, H * 0.3 - sz / 2, sz, sz);
+  ctx.restore();
 }
 function updateDodge(dt) {
   if (gameOverPending) {
@@ -743,6 +780,16 @@ function updateDodge(dt) {
     }
   }
   meteors = meteors.filter((m) => !m.dead);
+  // 星星（移動身體去接 → +5）
+  starTimer -= dt;
+  if (starTimer <= 0) { spawnStar(); starTimer = 2.5 + Math.random() * 2.5; }
+  for (const s of stars) {
+    if (s.dead) continue;
+    s.y += s.vy * dt; s.spin += dt * 2;
+    if (s.y - s.r > H) { s.dead = true; }
+    else { for (const b of bodyPts) { if ((b.x - s.x) ** 2 + (b.y - s.y) ** 2 < (s.r + bodyR) ** 2) { s.dead = true; score += 5; addFloat(s.x, s.y, "+5", "#ffd54a", shortSide() * 0.08); burst(s.x, s.y, "#ffd54a", 16); sndStar(); break; } } }
+  }
+  stars = stars.filter((s) => !s.dead);
   for (const p of particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 600 * dt; p.life -= dt * 1.6; }
   particles = particles.filter((p) => p.life > 0);
   updateFloats(dt);
@@ -783,6 +830,7 @@ function drawDodgePlaying() {
   ctx.save();
   if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
   drawSceneWith(spaceImg); // 太空背景 + 把你摳出來
+  for (const s of stars) drawStar(s);
   for (const m of meteors) drawMeteor(m);
   drawDodgeWarnings();      // 危險預警 ▼
   drawParticles();
@@ -809,6 +857,7 @@ function drawWhackPlaying() {
   drawBombFx();
   drawSuperFx();
   drawBossClearFx();
+  drawBossWarning(); // Boss 出現預警
   drawHUD();
 }
 

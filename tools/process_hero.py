@@ -13,7 +13,9 @@ BASE = r"d:\Claude\Projects\GAME DIY\IMAGE"
 OUT = os.path.join(BASE, "sprites")
 os.makedirs(OUT, exist_ok=True)
 
-JOBS = [("helmet.png", "helmet.png"), ("hero.png", "hero.png"), ("chest.png", "chest.png"), ("meteor.png", "meteor.png")]
+JOBS = [("helmet.png", "helmet.png"), ("hero.png", "hero.png"), ("chest.png", "chest.png"),
+        ("meteor.png", "meteor.png"), ("logo.png", "logo.png"),
+        ("boss_warning.png", "boss_warning.png"), ("star.png", "star.png")]
 
 def process(src_path, out_path):
     im = Image.open(src_path).convert("RGB")
