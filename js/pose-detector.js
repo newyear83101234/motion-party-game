@@ -36,6 +36,7 @@ export async function initPoseDetector(numPoses = 1) {
     },
     runningMode: "VIDEO",
     numPoses: numPoses,
+    outputSegmentationMasks: true, // 輸出人體遮罩（背景替換用）
   });
 }
 
@@ -61,8 +62,16 @@ function filterNaN(landmarks) {
  * @returns {Array<Array<{x:number, y:number, z:number, visibility:number}>>} 各玩家的 33 個關鍵點（座標為 0~1 比例）
  */
 export function detect(video, timestamp) {
-  if (!poseLandmarker) return [];
-  if (!video || video.readyState < 2) return [];
+  if (!poseLandmarker) return { landmarks: [], mask: null };
+  if (!video || video.readyState < 2) return { landmarks: [], mask: null };
   const result = poseLandmarker.detectForVideo(video, timestamp);
-  return filterNaN(result.landmarks || []);
+  const landmarks = filterNaN(result.landmarks || []);
+  let mask = null;
+  const masks = result.segmentationMasks;
+  if (masks && masks[0]) {
+    const m = masks[0];
+    try { mask = { data: m.getAsFloat32Array(), width: m.width, height: m.height }; } catch (e) { mask = null; }
+    try { m.close(); } catch (e) {} // 釋放 WASM 記憶體，避免洩漏
+  }
+  return { landmarks, mask };
 }

@@ -38,6 +38,7 @@ for (const key in SPRITE_SRC) { const img = new Image(); img.src = SPRITE_SRC[ke
 const helmetImg = new Image(); helmetImg.src = "IMAGE/sprites/helmet.png"; // 開放式頭盔（露臉）
 const heroImg = new Image(); heroImg.src = "IMAGE/sprites/hero.png";       // 變身開場英雄圖
 const chestImg = new Image(); chestImg.src = "IMAGE/sprites/chest.png";    // 胸甲（貼身上）
+const cityImg = new Image(); cityImg.src = "IMAGE/city.png";               // 城市背景
 const imgReady = (im) => im && im.complete && im.naturalWidth > 0;
 
 // 貼合微調參數（之後依阿葉回報調整）
@@ -52,7 +53,7 @@ let muted = false;
 // ===================== 遊戲狀態 =====================
 let state = "boot"; // boot → loading → transform → playing → gameover
 let score = 0, combo = 0, bestCombo = 0, lives = 3;
-let targets = [], particles = [], hands = [], poseLandmarks = null;
+let targets = [], particles = [], hands = [], poseLandmarks = null, latestMask = null;
 let shake = 0, bombFx = 0, transformT = 0, gameOverPending = false;
 let superCharge = 0, superFx = 0, superCool = 0; // 大招：充能 / 特效 / 冷卻
 let spawnTimer = 0, spawnInterval = 0.85, fallSpeed = 0.28, elapsed = 0, lastTs = 0;
@@ -210,8 +211,10 @@ function update(dt) {
   spawnTimer -= dt;
   if (spawnTimer <= 0) { spawnTarget(); spawnTimer = spawnInterval; }
 
-  const people = detect(video, performance.now());
+  const res = detect(video, performance.now());
+  const people = res.landmarks;
   poseLandmarks = people.length > 0 ? people[0] : null;
+  latestMask = res.mask;
   hands = [];
   if (poseLandmarks) {
     for (const idx of [15, 16, 19, 20]) {
@@ -248,6 +251,45 @@ function drawCameraMirrored() {
   ctx.save(); ctx.filter = "brightness(1.05) saturate(1.05)";
   ctx.scale(-1, 1); ctx.drawImage(video, -W, 0, W, H);
   ctx.restore(); ctx.filter = "none";
+}
+
+// ---- 背景替換：城市 + 把人摳出來疊上去 ----
+let _personCv = null, _personCx = null, _maskCv = null, _maskCx = null, _maskImg = null;
+function drawCityBg() {
+  const iw = cityImg.naturalWidth, ih = cityImg.naturalHeight;
+  const s = Math.max(W / iw, H / ih), dw = iw * s, dh = ih * s; // cover 填滿
+  ctx.drawImage(cityImg, (W - dw) / 2, (H - dh) / 2, dw, dh);
+}
+function drawPersonMasked(mask) {
+  if (!_personCv || _personCv.width !== W || _personCv.height !== H) {
+    _personCv = document.createElement("canvas"); _personCv.width = W; _personCv.height = H;
+    _personCx = _personCv.getContext("2d");
+  }
+  const pcx = _personCx;
+  pcx.setTransform(1, 0, 0, 1, 0, 0);
+  pcx.globalCompositeOperation = "source-over";
+  pcx.clearRect(0, 0, W, H);
+  pcx.save(); pcx.scale(-1, 1); pcx.drawImage(video, -W, 0, W, H); pcx.restore(); // 鏡像鏡頭
+  // 把遮罩畫進小 canvas（人=不透明）
+  const mw = mask.width, mh = mask.height;
+  if (!_maskCv || _maskCv.width !== mw || _maskCv.height !== mh) {
+    _maskCv = document.createElement("canvas"); _maskCv.width = mw; _maskCv.height = mh;
+    _maskCx = _maskCv.getContext("2d"); _maskImg = _maskCx.createImageData(mw, mh);
+  }
+  const d = _maskImg.data, src = mask.data;
+  for (let i = 0; i < src.length; i++) {
+    const j = i * 4; d[j] = 255; d[j + 1] = 255; d[j + 2] = 255;
+    d[j + 3] = src[i] > 0.5 ? 255 : (src[i] * src[i] * 255) | 0; // 人保留、邊緣柔化
+  }
+  _maskCx.putImageData(_maskImg, 0, 0);
+  pcx.globalCompositeOperation = "destination-in"; // 只留人
+  pcx.save(); pcx.scale(-1, 1); pcx.drawImage(_maskCv, -W, 0, W, H); pcx.restore();
+  pcx.globalCompositeOperation = "source-over";
+  ctx.drawImage(_personCv, 0, 0);
+}
+function drawScene() {
+  if (latestMask && imgReady(cityImg)) { drawCityBg(); drawPersonMasked(latestMask); }
+  else drawCameraMirrored(); // 還沒有遮罩/城市時，退回顯示原鏡頭
 }
 
 // ===================== 關節點工具 =====================
@@ -457,7 +499,7 @@ function loop(ts) {
     update(dt);
     ctx.save();
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
-    drawCameraMirrored();
+    drawScene();   // 城市背景 + 把你摳出來
     drawChest();   // 胸甲（生成美術）
     drawHelmet();  // 頭盔（生成美術）
     for (const t of targets) drawTarget(t);
