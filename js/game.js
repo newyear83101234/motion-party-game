@@ -59,6 +59,8 @@ let targets = [], particles = [], hands = [], poseLandmarks = null, latestMask =
 let shake = 0, bombFx = 0, transformT = 0, gameOverPending = false;
 let superCharge = 0, superFx = 0, superCool = 0; // 大招：充能 / 特效 / 冷卻
 let stage = 1, killCount = 0, bossActive = false, boss = null, bossHitCd = 0, bossClearFx = 0; // 關卡 / Boss
+let currentGame = "whack";          // 目前遊戲："whack"（打怪）| "dodge"（躲避）
+let meteors = [], dodgeInvuln = 0;  // 躲避遊戲：隕石陣列 / 受擊後無敵時間
 let spawnTimer = 0, spawnInterval = 0.85, fallSpeed = 0.28, elapsed = 0, lastTs = 0;
 const TRANSFORM_DUR = 2.0;
 
@@ -159,20 +161,49 @@ async function startGame() {
     initAudio();
     await startCamera(video);
     await initPoseDetector(1);
-    resetGame();
     playBgm();
-    transformT = 0; sndTransform(); state = "transform";
+    state = "menu"; // 載入完成 → 進「選遊戲」選單
   } catch (err) { console.error("啟動失敗：", err); state = "boot"; }
   starting = false;
 }
 
+// 共用：偵測身體 → 填 poseLandmarks / hands / latestMask（兩個遊戲都用）
+function senseBody() {
+  const res = detect(video, performance.now());
+  const people = res.landmarks;
+  poseLandmarks = people.length > 0 ? people[0] : null;
+  latestMask = res.mask;
+  hands = [];
+  if (poseLandmarks) {
+    for (const idx of [15, 16, 19, 20]) {
+      const p = poseLandmarks[idx];
+      if (p && p.visibility > 0.3) hands.push({ x: (1 - p.x) * W, y: p.y * H });
+    }
+  }
+}
+function resetDodge() {
+  score = 0; combo = 0; bestCombo = 0; lives = 3;
+  particles = []; shake = 0; bombFx = 0; gameOverPending = false;
+  targets = []; bossActive = false; boss = null;
+  meteors = []; dodgeInvuln = 0; spawnTimer = 0; elapsed = 0;
+}
+function startWhack() { currentGame = "whack"; resetGame(); playBgm(); transformT = 0; sndTransform(); state = "transform"; }
+function startDodge() { currentGame = "dodge"; resetDodge(); playBgm(); spawnTimer = 0.6; state = "playing"; }
+function pickGame(g) { if (g === "dodge") startDodge(); else startWhack(); }
+
 canvas.addEventListener("pointerdown", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const px = e.clientX - rect.left, py = e.clientY - rect.top;
   if (state === "boot") { startGame(); return; }
-  if (state === "gameover") { resetGame(); playBgm(); transformT = 0; sndTransform(); state = "transform"; return; }
+  if (state === "menu") { pickGame(px < W / 2 ? "whack" : "dodge"); return; } // 左=打怪 右=躲避
+  if (state === "gameover") {
+    const rr = shortSide() * 0.07, hx = shortSide() * 0.04 + rr, hy = shortSide() * 0.04 + rr;
+    if ((px - hx) ** 2 + (py - hy) ** 2 < rr * rr) { state = "menu"; return; } // 🏠 回選單
+    if (currentGame === "dodge") startDodge(); else startWhack(); // 🔁 重玩
+    return;
+  }
   if (state === "playing") {
     const r = shortSide() * 0.06, pad = shortSide() * 0.04, cx = pad + r, cy = H - pad - r;
-    const rect = canvas.getBoundingClientRect();
-    const px = e.clientX - rect.left, py = e.clientY - rect.top;
     if ((px - cx) ** 2 + (py - cy) ** 2 < r * r) { muted = !muted; bgm.muted = muted; }
   }
 });
@@ -247,17 +278,7 @@ function update(dt) {
     if (killCount >= 12) { killCount = 0; startBoss(); } // 打夠小怪 → 出 Boss
   }
 
-  const res = detect(video, performance.now());
-  const people = res.landmarks;
-  poseLandmarks = people.length > 0 ? people[0] : null;
-  latestMask = res.mask;
-  hands = [];
-  if (poseLandmarks) {
-    for (const idx of [15, 16, 19, 20]) {
-      const p = poseLandmarks[idx];
-      if (p && p.visibility > 0.3) hands.push({ x: (1 - p.x) * W, y: p.y * H });
-    }
-  }
+  senseBody();
   checkHits();
 
   // 大招充能：雙手都舉到「頭以上」就充能，滿了自動發射
@@ -560,9 +581,138 @@ function drawGameOver() {
   ctx.fillStyle = "rgba(0,0,0,0.55)"; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
   ctx.font = `bold ${shortSide() * 0.18}px sans-serif`; ctx.fillText("⭐ " + score, W / 2, H * 0.32);
-  ctx.font = `${shortSide() * 0.08}px sans-serif`; ctx.fillStyle = "#ffeb3b";
-  ctx.fillText("✕" + bestCombo, W / 2, H * 0.46);
-  drawOverlayCircleButton("🔁");
+  if (currentGame === "whack") {
+    ctx.font = `${shortSide() * 0.08}px sans-serif`; ctx.fillStyle = "#ffeb3b";
+    ctx.fillText("✕" + bestCombo, W / 2, H * 0.46);
+  }
+  drawOverlayCircleButton("🔁"); // 重玩
+  // 🏠 回選單（左上）
+  const rr = shortSide() * 0.07, hx = shortSide() * 0.04 + rr, hy = shortSide() * 0.04 + rr;
+  ctx.fillStyle = "rgba(255,255,255,0.18)"; ctx.beginPath(); ctx.arc(hx, hy, rr, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.font = `${rr * 1.1}px sans-serif`;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("🏠", hx, hy + rr * 0.05);
+}
+
+// ===================== 選遊戲選單 =====================
+function roundRectFill(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath(); ctx.fill();
+}
+function drawMenu() {
+  ctx.fillStyle = "#0b1020"; ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  const rad = shortSide() * 0.04;
+  // 左：打怪
+  ctx.fillStyle = "rgba(40,70,140,0.55)"; roundRectFill(W * 0.06, H * 0.26, W * 0.4, H * 0.48, rad);
+  ctx.fillStyle = "#fff"; ctx.font = `${shortSide() * 0.18}px sans-serif`; ctx.fillText("👊", W * 0.26, H * 0.42);
+  ctx.font = `${shortSide() * 0.13}px sans-serif`; ctx.fillText("🦖", W * 0.26, H * 0.6);
+  // 右：躲避
+  ctx.fillStyle = "rgba(90,45,130,0.55)"; roundRectFill(W * 0.54, H * 0.26, W * 0.4, H * 0.48, rad);
+  ctx.fillStyle = "#fff"; ctx.font = `${shortSide() * 0.18}px sans-serif`; ctx.fillText("🏃", W * 0.74, H * 0.42);
+  ctx.font = `${shortSide() * 0.13}px sans-serif`; ctx.fillText("☄️", W * 0.74, H * 0.6);
+}
+
+// ===================== 躲避遊戲（太空躲隕石） =====================
+function spawnMeteor(mfall) {
+  const r = shortSide() * (0.05 + Math.random() * 0.045);
+  meteors.push({ x: r + Math.random() * (W - 2 * r), y: -r, vy: mfall * H * (0.85 + Math.random() * 0.5), r, spin: Math.random() * 6, dead: false });
+}
+function updateDodge(dt) {
+  if (gameOverPending) {
+    for (const p of particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 600 * dt; p.life -= dt * 1.6; }
+    particles = particles.filter((p) => p.life > 0);
+    if (shake > 0) shake = Math.max(0, shake - dt * 60);
+    if (bombFx > 0) bombFx = Math.max(0, bombFx - dt * 1.6);
+    if (bombFx <= 0) { state = "gameover"; gameOverPending = false; }
+    return;
+  }
+  senseBody();
+  elapsed += dt;
+  const lvl = Math.floor(elapsed / 12);
+  const interval = Math.max(0.42, 1.0 - lvl * 0.08);
+  const mfall = 0.32 + lvl * 0.05;
+  spawnTimer -= dt;
+  if (spawnTimer <= 0) { spawnMeteor(mfall); spawnTimer = interval; }
+  if (dodgeInvuln > 0) dodgeInvuln -= dt;
+  // 身體危險點（頭、雙肩、雙臀、軀幹中心）
+  const bodyPts = [];
+  for (const i of [0, 11, 12, 23, 24]) { const p = pt(i); if (p) bodyPts.push(p); }
+  const tm = mid(pt(11), pt(12)); if (tm) bodyPts.push(tm);
+  const bodyR = shortSide() * 0.07;
+  for (const m of meteors) {
+    if (m.dead) continue;
+    m.y += m.vy * dt; m.spin += dt * 3;
+    if (m.y - m.r > H) { m.dead = true; score += 1; } // 成功躲過 +1
+    else if (dodgeInvuln <= 0) {
+      for (const b of bodyPts) {
+        if ((b.x - m.x) ** 2 + (b.y - m.y) ** 2 < (m.r + bodyR) ** 2) {
+          m.dead = true; lives--; dodgeInvuln = 1.0; shake = 26; bombFx = 1;
+          burst(m.x, m.y, "#ff7043", 22); sndBomb();
+          if (lives <= 0) { gameOverPending = true; bombFx = 1.3; }
+          break;
+        }
+      }
+    }
+  }
+  meteors = meteors.filter((m) => !m.dead);
+  for (const p of particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 600 * dt; p.life -= dt * 1.6; }
+  particles = particles.filter((p) => p.life > 0);
+  if (shake > 0) shake = Math.max(0, shake - dt * 60);
+  if (bombFx > 0) bombFx = Math.max(0, bombFx - dt * 1.6);
+}
+function drawSpaceTint() {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "rgba(5,6,30,0.5)"); g.addColorStop(0.5, "rgba(5,6,30,0.12)"); g.addColorStop(1, "rgba(5,6,30,0)");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+}
+function drawMeteor(m) {
+  ctx.save(); ctx.translate(m.x, m.y);
+  const tg = ctx.createLinearGradient(0, -m.r * 2.6, 0, 0);
+  tg.addColorStop(0, "rgba(255,120,0,0)"); tg.addColorStop(1, "rgba(255,160,40,0.6)");
+  ctx.fillStyle = tg; ctx.beginPath(); ctx.moveTo(-m.r * 0.6, 0); ctx.lineTo(0, -m.r * 2.6); ctx.lineTo(m.r * 0.6, 0); ctx.closePath(); ctx.fill();
+  ctx.rotate(m.spin * 0.2);
+  const g = ctx.createRadialGradient(-m.r * 0.3, -m.r * 0.3, m.r * 0.2, 0, 0, m.r);
+  g.addColorStop(0, "#9e9e9e"); g.addColorStop(1, "#4a4a4a");
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, m.r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "rgba(0,0,0,0.25)";
+  ctx.beginPath(); ctx.arc(m.r * 0.3, -m.r * 0.2, m.r * 0.22, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(-m.r * 0.2, m.r * 0.3, m.r * 0.16, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+function drawDodgePlaying() {
+  ctx.save();
+  if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+  drawCameraMirrored();
+  drawSpaceTint();
+  for (const m of meteors) drawMeteor(m);
+  drawParticles();
+  ctx.restore();
+  drawBombFx();
+  drawHUD();
+}
+
+// ===================== 打怪遊戲畫面 =====================
+function drawWhackPlaying() {
+  ctx.save();
+  if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+  drawScene();   // 城市背景 + 把你摳出來
+  drawChest();   // 胸甲
+  drawHelmet();  // 頭盔
+  for (const t of targets) drawTarget(t);
+  if (bossActive) drawBoss();
+  drawParticles();
+  drawHands();    // 能量拳
+  drawSuperCharge(); // 大招充能球
+  ctx.restore();
+  drawBombFx();
+  drawSuperFx();
+  drawBossClearFx();
+  drawHUD();
 }
 
 // ===================== 主迴圈 =====================
@@ -571,24 +721,11 @@ function loop(ts) {
   lastTs = ts;
   if (state === "boot") drawBoot();
   else if (state === "loading") drawLoading();
+  else if (state === "menu") drawMenu();
   else if (state === "transform") drawTransform(dt);
   else if (state === "playing") {
-    update(dt);
-    ctx.save();
-    if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
-    drawScene();   // 城市背景 + 把你摳出來
-    drawChest();   // 胸甲（生成美術）
-    drawHelmet();  // 頭盔（生成美術）
-    for (const t of targets) drawTarget(t);
-    if (bossActive) drawBoss();
-    drawParticles();
-    drawHands();    // 能量拳
-    drawSuperCharge(); // 大招充能球
-    ctx.restore();
-    drawBombFx();
-    drawSuperFx();   // 大招光波（全螢幕）
-    drawBossClearFx(); // 過關 🏆
-    drawHUD();
+    if (currentGame === "dodge") { updateDodge(dt); drawDodgePlaying(); }
+    else { update(dt); drawWhackPlaying(); }
   } else if (state === "gameover") drawGameOver();
   requestAnimationFrame(loop);
 }
