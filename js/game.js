@@ -38,7 +38,9 @@ for (const key in SPRITE_SRC) { const img = new Image(); img.src = SPRITE_SRC[ke
 const helmetImg = new Image(); helmetImg.src = "IMAGE/sprites/helmet.png"; // 開放式頭盔（露臉）
 const heroImg = new Image(); heroImg.src = "IMAGE/sprites/hero.png";       // 變身開場英雄圖
 const chestImg = new Image(); chestImg.src = "IMAGE/sprites/chest.png";    // 胸甲（貼身上）
-const cityImg = new Image(); cityImg.src = "IMAGE/city.png";               // 城市背景
+const cityImg = new Image(); cityImg.src = "IMAGE/city.png";               // 城市背景（打怪）
+const spaceImg = new Image(); spaceImg.src = "IMAGE/space.png";            // 太空背景（躲避）
+const meteorImg = new Image(); meteorImg.src = "IMAGE/sprites/meteor.png"; // 隕石
 const imgReady = (im) => im && im.complete && im.naturalWidth > 0;
 
 // 貼合微調參數（之後依阿葉回報調整）
@@ -61,8 +63,34 @@ let superCharge = 0, superFx = 0, superCool = 0; // 大招：充能 / 特效 / �
 let stage = 1, killCount = 0, bossActive = false, boss = null, bossHitCd = 0, bossClearFx = 0; // 關卡 / Boss
 let currentGame = "whack";          // 目前遊戲："whack"（打怪）| "dodge"（躲避）
 let meteors = [], dodgeInvuln = 0;  // 躲避遊戲：隕石陣列 / 受擊後無敵時間
+let floatTexts = [];                // 飄分數文字（+1 / +5 往上飄）
+let bestWhack = 0, bestDodge = 0;   // 最高分（localStorage）
 let spawnTimer = 0, spawnInterval = 0.85, fallSpeed = 0.28, elapsed = 0, lastTs = 0;
 const TRANSFORM_DUR = 2.0;
+// 最高分（存在手機裡，給「破紀錄」動機）
+function lsGet(k) { try { return +(localStorage.getItem(k) || 0); } catch (e) { return 0; } }
+function lsSet(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
+bestWhack = lsGet("best_whack"); bestDodge = lsGet("best_dodge");
+function commitBest() {
+  if (currentGame === "whack") { if (score > bestWhack) { bestWhack = score; lsSet("best_whack", score); } }
+  else { if (score > bestDodge) { bestDodge = score; lsSet("best_dodge", score); } }
+}
+// 飄分數文字
+function addFloat(x, y, text, color, size) { floatTexts.push({ x, y, text, color, size, life: 1 }); }
+function updateFloats(dt) {
+  for (const f of floatTexts) { f.y -= dt * shortSide() * 0.55; f.life -= dt * 1.3; }
+  floatTexts = floatTexts.filter((f) => f.life > 0);
+}
+function drawFloatTexts() {
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  for (const f of floatTexts) {
+    ctx.globalAlpha = Math.max(0, f.life);
+    ctx.font = `bold ${f.size}px sans-serif`;
+    ctx.lineWidth = f.size * 0.14; ctx.strokeStyle = "rgba(0,0,0,0.6)";
+    ctx.strokeText(f.text, f.x, f.y); ctx.fillStyle = f.color; ctx.fillText(f.text, f.x, f.y);
+  }
+  ctx.globalAlpha = 1;
+}
 
 const shortSide = () => Math.min(W, H);
 const HAND_R = () => shortSide() * 0.10;
@@ -131,8 +159,11 @@ function startBoss() { // 出現大魔王
 }
 function defeatBoss() { // 打贏 Boss
   for (let i = 0; i < 4; i++) burst(boss.x + (Math.random() - 0.5) * boss.r * 2, boss.y + (Math.random() - 0.5) * boss.r * 2, "#ffd54a", 22);
-  score += 20 + stage * 10;
-  bossActive = false; boss = null; stage++; bossClearFx = 1.6; shake = 18;
+  for (let i = 0; i < 6; i++) burst(Math.random() * W, H * 0.1 + Math.random() * H * 0.3, "#ffe082", 8); // 滿天金色慶祝
+  const reward = 20 + stage * 10;
+  addFloat(boss.x, boss.y, "+" + reward, "#ffd54a", shortSide() * 0.1);
+  score += reward;
+  bossActive = false; boss = null; stage++; bossClearFx = 2.4; shake = 18;
   if (!playSfxFile(winSfx)) sndVictory();
 }
 function fireSuper() { // 放大招：清掉全場怪獸（對 Boss 也造成大傷害）
@@ -149,6 +180,7 @@ function resetGame() {
   targets = []; particles = []; shake = 0; bombFx = 0; gameOverPending = false;
   superCharge = 0; superFx = 0; superCool = 0;
   stage = 1; killCount = 0; bossActive = false; boss = null; bossHitCd = 0; bossClearFx = 0;
+  meteors = []; floatTexts = []; dodgeInvuln = 0;
   spawnTimer = 0; spawnInterval = 0.85; fallSpeed = 0.28; elapsed = 0;
 }
 function playBgm() { bgm.muted = muted; bgm.play().catch(() => {}); }
@@ -184,8 +216,9 @@ function senseBody() {
 function resetDodge() {
   score = 0; combo = 0; bestCombo = 0; lives = 3;
   particles = []; shake = 0; bombFx = 0; gameOverPending = false;
-  targets = []; bossActive = false; boss = null;
-  meteors = []; dodgeInvuln = 0; spawnTimer = 0; elapsed = 0;
+  targets = []; bossActive = false; boss = null; bossHitCd = 0; bossClearFx = 0;
+  superCharge = 0; superFx = 0; superCool = 0;
+  meteors = []; floatTexts = []; dodgeInvuln = 0; spawnTimer = 0; elapsed = 0;
 }
 function startWhack() { currentGame = "whack"; resetGame(); playBgm(); transformT = 0; sndTransform(); state = "transform"; }
 function startDodge() { currentGame = "dodge"; resetDodge(); playBgm(); spawnTimer = 0.6; state = "playing"; }
@@ -252,8 +285,10 @@ function hitTarget(t) {
   }
   combo++; bestCombo = Math.max(bestCombo, combo); killCount++;
   const gain = t.type === "gold" ? 5 : 1;
-  score += gain * (1 + Math.floor(combo / 5));
+  const pts = gain * (1 + Math.floor(combo / 5));
+  score += pts;
   shake = Math.min(14, 6 + combo * 0.3);
+  addFloat(t.x, t.y - tRadius(t), "+" + pts, t.type === "gold" ? "#ffd54a" : "#fff", shortSide() * (t.type === "gold" ? 0.09 : 0.07));
   if (t.type === "gold") { burst(t.x, t.y, "#ffd54a", 20); sndGold(); }
   else { burst(t.x, t.y, "#4fc3f7", 14); sndHit(combo); }
 }
@@ -265,7 +300,7 @@ function update(dt) {
     particles = particles.filter((p) => p.life > 0);
     if (shake > 0) shake = Math.max(0, shake - dt * 60);
     if (bombFx > 0) bombFx = Math.max(0, bombFx - dt * 1.6);
-    if (bombFx <= 0) { state = "gameover"; gameOverPending = false; }
+    if (bombFx <= 0) { commitBest(); state = "gameover"; gameOverPending = false; }
     return;
   }
   elapsed += dt;
@@ -309,12 +344,13 @@ function update(dt) {
   for (const t of targets) {
     if (t.dead) continue;
     t.y += t.vy * dt; t.wobble += dt * 4;
-    if (t.y - tRadius(t) > H) { t.dead = true; if (t.type !== "bomb") combo = 0; }
+    if (t.y - tRadius(t) > H) { t.dead = true; if (t.type !== "bomb") { combo = 0; burst(t.x, H - 6, "#888", 5); } } // 漏接小爆煙
   }
   targets = targets.filter((t) => !t.dead);
 
   for (const p of particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 600 * dt; p.life -= dt * 1.6; }
   particles = particles.filter((p) => p.life > 0);
+  updateFloats(dt);
 
   if (shake > 0) shake = Math.max(0, shake - dt * 60);
   if (bombFx > 0) bombFx = Math.max(0, bombFx - dt * 1.6);
@@ -330,11 +366,11 @@ function drawCameraMirrored() {
 }
 
 // ---- 背景替換：城市 + 把人摳出來疊上去 ----
-let _personCv = null, _personCx = null, _maskCv = null, _maskCx = null, _maskImg = null;
-function drawCityBg() {
-  const iw = cityImg.naturalWidth, ih = cityImg.naturalHeight;
+let _personCv = null, _personCx = null, _maskCv = null, _maskCx = null, _maskImg = null, _maskTick = 0;
+function drawBgCover(img) {
+  const iw = img.naturalWidth, ih = img.naturalHeight;
   const s = Math.max(W / iw, H / ih), dw = iw * s, dh = ih * s; // cover 填滿
-  ctx.drawImage(cityImg, (W - dw) / 2, (H - dh) / 2, dw, dh);
+  ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
 }
 function drawPersonMasked(mask) {
   if (!_personCv || _personCv.width !== W || _personCv.height !== H) {
@@ -348,24 +384,28 @@ function drawPersonMasked(mask) {
   pcx.save(); pcx.scale(-1, 1); pcx.drawImage(video, -W, 0, W, H); pcx.restore(); // 鏡像鏡頭
   // 把遮罩畫進小 canvas（人=不透明）
   const mw = mask.width, mh = mask.height;
+  let justCreated = false;
   if (!_maskCv || _maskCv.width !== mw || _maskCv.height !== mh) {
     _maskCv = document.createElement("canvas"); _maskCv.width = mw; _maskCv.height = mh;
-    _maskCx = _maskCv.getContext("2d"); _maskImg = _maskCx.createImageData(mw, mh);
+    _maskCx = _maskCv.getContext("2d"); _maskImg = _maskCx.createImageData(mw, mh); justCreated = true;
   }
-  const d = _maskImg.data, src = mask.data;
-  for (let i = 0; i < src.length; i++) {
-    const j = i * 4; d[j] = 255; d[j + 1] = 255; d[j + 2] = 255;
-    d[j + 3] = src[i] > 0.5 ? 255 : (src[i] * src[i] * 255) | 0; // 人保留、邊緣柔化
+  _maskTick++;
+  if (justCreated || _maskTick % 2 === 1) { // 隔幀才重算遮罩像素（人形變化慢）
+    const d = _maskImg.data, src = mask.data;
+    for (let i = 0; i < src.length; i++) {
+      const j = i * 4; d[j] = 255; d[j + 1] = 255; d[j + 2] = 255;
+      d[j + 3] = src[i] > 0.5 ? 255 : (src[i] * src[i] * 255) | 0; // 人保留、邊緣柔化
+    }
+    _maskCx.putImageData(_maskImg, 0, 0);
   }
-  _maskCx.putImageData(_maskImg, 0, 0);
   pcx.globalCompositeOperation = "destination-in"; // 只留人
   pcx.save(); pcx.scale(-1, 1); pcx.drawImage(_maskCv, -W, 0, W, H); pcx.restore();
   pcx.globalCompositeOperation = "source-over";
   ctx.drawImage(_personCv, 0, 0);
 }
-function drawScene() {
-  if (latestMask && imgReady(cityImg)) { drawCityBg(); drawPersonMasked(latestMask); }
-  else drawCameraMirrored(); // 還沒有遮罩/城市時，退回顯示原鏡頭
+function drawSceneWith(bgImg) {
+  if (latestMask && imgReady(bgImg)) { drawBgCover(bgImg); drawPersonMasked(latestMask); }
+  else drawCameraMirrored(); // 還沒有遮罩/背景時，退回原鏡頭
 }
 
 // ===================== 關節點工具 =====================
@@ -445,9 +485,18 @@ function drawBoss() {
 }
 function drawBossClearFx() {
   if (bossClearFx <= 0) return;
-  ctx.save(); ctx.globalAlpha = Math.min(1, bossClearFx);
-  ctx.font = `${shortSide() * 0.3}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillText("🏆", W / 2, H * 0.4); ctx.restore();
+  const k = bossClearFx / 2.4; // 1→0
+  ctx.save(); // 擴散光環
+  ctx.globalAlpha = k * 0.5; ctx.strokeStyle = "#ffe082"; ctx.lineWidth = shortSide() * 0.02;
+  ctx.beginPath(); ctx.arc(W / 2, H * 0.38, shortSide() * (1 - k) * 1.3, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+  ctx.save(); ctx.globalAlpha = Math.min(1, k * 1.6);
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font = `${shortSide() * 0.3}px sans-serif`; ctx.fillText("🏆", W / 2, H * 0.36);
+  ctx.font = `bold ${shortSide() * 0.1}px sans-serif`; // 進入下一關 ▶ N
+  ctx.lineWidth = shortSide() * 0.01; ctx.strokeStyle = "rgba(0,0,0,0.5)";
+  ctx.strokeText("▶ " + stage, W / 2, H * 0.55); ctx.fillStyle = "#fff"; ctx.fillText("▶ " + stage, W / 2, H * 0.55);
+  ctx.restore();
 }
 
 // ===================== 繪製：能量拳（雙手） / 粒子 =====================
@@ -541,21 +590,27 @@ function drawTransform(dt) {
 // ===================== HUD / 畫面 =====================
 function drawHUD() {
   const pad = shortSide() * 0.04, fs = shortSide() * 0.07;
-  ctx.textBaseline = "top"; ctx.font = `${fs}px sans-serif`;
-  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 8; ctx.fillStyle = "#fff";
-  ctx.textAlign = "left"; ctx.fillText("⭐ " + score, pad, pad);
-  ctx.textAlign = "right"; ctx.fillText("❤️".repeat(Math.max(0, lives)), W - pad, pad);
-  ctx.shadowBlur = 0;
+  // 分數（左上，圓角底框，任何背景都看得清）
+  ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.font = `bold ${fs}px sans-serif`;
+  const sTxt = "⭐ " + score, sw = ctx.measureText(sTxt).width;
+  ctx.fillStyle = "rgba(0,0,0,0.4)"; roundRectFill(pad - fs * 0.2, pad, sw + fs * 0.5, fs * 1.25, fs * 0.3);
+  ctx.fillStyle = "#fff"; ctx.fillText(sTxt, pad + fs * 0.08, pad + fs * 0.65);
+  // 命（右上，逐顆固定間距）
+  const gap = fs * 0.52;
+  ctx.textAlign = "center"; ctx.font = `${fs}px sans-serif`;
+  for (let i = 0; i < lives; i++) ctx.fillText("❤️", W - pad - fs * 0.5 - i * gap, pad + fs * 0.65);
+  // Combo（描邊，移高避開怪物路徑）
   if (combo >= 2) {
-    const big = shortSide() * (0.12 + Math.min(combo, 30) * 0.004);
+    const big = shortSide() * (0.11 + Math.min(combo, 30) * 0.004);
     ctx.font = `bold ${big}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillStyle = "#ffeb3b"; ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 12;
-    ctx.fillText("✕" + combo, W / 2, H * 0.16); ctx.shadowBlur = 0;
+    ctx.lineWidth = big * 0.08; ctx.strokeStyle = "rgba(0,0,0,0.6)"; ctx.strokeText("✕" + combo, W / 2, H * 0.09);
+    ctx.fillStyle = "#ffeb3b"; ctx.fillText("✕" + combo, W / 2, H * 0.09);
   }
+  // 靜音鈕（左下）
   const r = shortSide() * 0.06, cx = pad + r, cy = H - pad - r;
-  ctx.fillStyle = "rgba(0,0,0,0.35)"; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
   ctx.font = `${r * 1.05}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillText(muted ? "🔇" : "🔊", cx, cy + r * 0.05);
+  ctx.fillText(muted ? "🔇" : "🔊", cx, cy);
 }
 function drawOverlayCircleButton(symbol) {
   const r = shortSide() * 0.16;
@@ -585,6 +640,11 @@ function drawGameOver() {
     ctx.font = `${shortSide() * 0.08}px sans-serif`; ctx.fillStyle = "#ffeb3b";
     ctx.fillText("✕" + bestCombo, W / 2, H * 0.46);
   }
+  // 最高分（破紀錄 🎉，否則 🏅）
+  const best = currentGame === "whack" ? bestWhack : bestDodge;
+  const isNew = score >= best && score > 0;
+  ctx.font = `${shortSide() * 0.07}px sans-serif`; ctx.fillStyle = "#ffd54a"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText((isNew ? "🎉 " : "🏅 ") + best, W / 2, H * 0.72);
   drawOverlayCircleButton("🔁"); // 重玩
   // 🏠 回選單（左上）
   const rr = shortSide() * 0.07, hx = shortSide() * 0.04 + rr, hy = shortSide() * 0.04 + rr;
@@ -594,27 +654,41 @@ function drawGameOver() {
 }
 
 // ===================== 選遊戲選單 =====================
-function roundRectFill(x, y, w, h, r) {
+function roundRectPath(x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.arcTo(x + w, y, x + w, y + h, r);
   ctx.arcTo(x + w, y + h, x, y + h, r);
   ctx.arcTo(x, y + h, x, y, r);
   ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath(); ctx.fill();
+  ctx.closePath();
+}
+function roundRectFill(x, y, w, h, r) { roundRectPath(x, y, w, h, r); ctx.fill(); }
+function drawCard(x, y, w, h, r, bgImg, border, tint, icon1, icon2, best) {
+  ctx.save();
+  roundRectPath(x, y, w, h, r); ctx.clip();
+  if (imgReady(bgImg)) {
+    const iw = bgImg.naturalWidth, ih = bgImg.naturalHeight, s = Math.max(w / iw, h / ih), dw = iw * s, dh = ih * s;
+    ctx.drawImage(bgImg, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+  } else { ctx.fillStyle = "#1a2238"; ctx.fillRect(x, y, w, h); }
+  ctx.fillStyle = tint; ctx.fillRect(x, y, w, h);
+  ctx.restore();
+  ctx.strokeStyle = border; ctx.lineWidth = shortSide() * 0.007; roundRectPath(x, y, w, h, r); ctx.stroke();
+  ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font = `${shortSide() * 0.2}px sans-serif`; ctx.fillText(icon1, x + w / 2, y + h * 0.38);
+  ctx.font = `${shortSide() * 0.1}px sans-serif`; ctx.fillText(icon2, x + w / 2, y + h * 0.66);
+  ctx.font = `bold ${shortSide() * 0.06}px sans-serif`; ctx.fillStyle = "#ffd54a";
+  ctx.fillText("🏅" + best, x + w / 2, y + h * 0.88);
 }
 function drawMenu() {
   ctx.fillStyle = "#0b1020"; ctx.fillRect(0, 0, W, H);
-  ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  const rad = shortSide() * 0.04;
-  // 左：打怪
-  ctx.fillStyle = "rgba(40,70,140,0.55)"; roundRectFill(W * 0.06, H * 0.26, W * 0.4, H * 0.48, rad);
-  ctx.fillStyle = "#fff"; ctx.font = `${shortSide() * 0.18}px sans-serif`; ctx.fillText("👊", W * 0.26, H * 0.42);
-  ctx.font = `${shortSide() * 0.13}px sans-serif`; ctx.fillText("🦖", W * 0.26, H * 0.6);
-  // 右：躲避
-  ctx.fillStyle = "rgba(90,45,130,0.55)"; roundRectFill(W * 0.54, H * 0.26, W * 0.4, H * 0.48, rad);
-  ctx.fillStyle = "#fff"; ctx.font = `${shortSide() * 0.18}px sans-serif`; ctx.fillText("🏃", W * 0.74, H * 0.42);
-  ctx.font = `${shortSide() * 0.13}px sans-serif`; ctx.fillText("☄️", W * 0.74, H * 0.6);
+  const cy = H * 0.24, ch = H * 0.54, cw = W * 0.4, rad = shortSide() * 0.04;
+  drawCard(W * 0.06, cy, cw, ch, rad, cityImg, "rgba(90,170,255,0.95)", "rgba(20,40,90,0.45)", "👊", "🦖", bestWhack);
+  drawCard(W * 0.54, cy, cw, ch, rad, spaceImg, "rgba(190,110,255,0.95)", "rgba(40,20,80,0.45)", "🏃", "☄️", bestDodge);
+  if ((Math.floor(performance.now() / 400) % 2) === 0) { // 閃爍提示
+    ctx.fillStyle = "#fff"; ctx.font = `${shortSide() * 0.08}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("👆", W / 2, H * 0.13);
+  }
 }
 
 // ===================== 躲避遊戲（太空躲隕石） =====================
@@ -628,7 +702,7 @@ function updateDodge(dt) {
     particles = particles.filter((p) => p.life > 0);
     if (shake > 0) shake = Math.max(0, shake - dt * 60);
     if (bombFx > 0) bombFx = Math.max(0, bombFx - dt * 1.6);
-    if (bombFx <= 0) { state = "gameover"; gameOverPending = false; }
+    if (bombFx <= 0) { commitBest(); state = "gameover"; gameOverPending = false; }
     return;
   }
   senseBody();
@@ -662,8 +736,16 @@ function updateDodge(dt) {
   meteors = meteors.filter((m) => !m.dead);
   for (const p of particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 600 * dt; p.life -= dt * 1.6; }
   particles = particles.filter((p) => p.life > 0);
+  updateFloats(dt);
   if (shake > 0) shake = Math.max(0, shake - dt * 60);
   if (bombFx > 0) bombFx = Math.max(0, bombFx - dt * 1.6);
+}
+// 危險預警：上方紅色 ▼ 標出即將砸下的隕石
+function drawDodgeWarnings() {
+  if ((Math.floor(performance.now() / 120) % 2) !== 0) return; // 閃爍
+  ctx.fillStyle = "#ff3b30"; ctx.font = `${shortSide() * 0.06}px sans-serif`;
+  ctx.textAlign = "center"; ctx.textBaseline = "top";
+  for (const m of meteors) { if (!m.dead && m.y < H * 0.2) ctx.fillText("▼", m.x, H * 0.015); }
 }
 function drawSpaceTint() {
   const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -676,21 +758,26 @@ function drawMeteor(m) {
   tg.addColorStop(0, "rgba(255,120,0,0)"); tg.addColorStop(1, "rgba(255,160,40,0.6)");
   ctx.fillStyle = tg; ctx.beginPath(); ctx.moveTo(-m.r * 0.6, 0); ctx.lineTo(0, -m.r * 2.6); ctx.lineTo(m.r * 0.6, 0); ctx.closePath(); ctx.fill();
   ctx.rotate(m.spin * 0.2);
-  const g = ctx.createRadialGradient(-m.r * 0.3, -m.r * 0.3, m.r * 0.2, 0, 0, m.r);
-  g.addColorStop(0, "#9e9e9e"); g.addColorStop(1, "#4a4a4a");
-  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, m.r, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = "rgba(0,0,0,0.25)";
-  ctx.beginPath(); ctx.arc(m.r * 0.3, -m.r * 0.2, m.r * 0.22, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(-m.r * 0.2, m.r * 0.3, m.r * 0.16, 0, Math.PI * 2); ctx.fill();
+  if (imgReady(meteorImg)) {
+    ctx.drawImage(meteorImg, -m.r * 1.08, -m.r * 1.08, m.r * 2.16, m.r * 2.16);
+  } else {
+    const g = ctx.createRadialGradient(-m.r * 0.3, -m.r * 0.3, m.r * 0.2, 0, 0, m.r);
+    g.addColorStop(0, "#9e9e9e"); g.addColorStop(1, "#4a4a4a");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, m.r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.beginPath(); ctx.arc(m.r * 0.3, -m.r * 0.2, m.r * 0.22, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-m.r * 0.2, m.r * 0.3, m.r * 0.16, 0, Math.PI * 2); ctx.fill();
+  }
   ctx.restore();
 }
 function drawDodgePlaying() {
   ctx.save();
   if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
-  drawCameraMirrored();
-  drawSpaceTint();
+  drawSceneWith(spaceImg); // 太空背景 + 把你摳出來
   for (const m of meteors) drawMeteor(m);
+  drawDodgeWarnings();      // 危險預警 ▼
   drawParticles();
+  drawFloatTexts();
   ctx.restore();
   drawBombFx();
   drawHUD();
@@ -700,7 +787,7 @@ function drawDodgePlaying() {
 function drawWhackPlaying() {
   ctx.save();
   if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
-  drawScene();   // 城市背景 + 把你摳出來
+  drawSceneWith(cityImg);   // 城市背景 + 把你摳出來
   drawChest();   // 胸甲
   drawHelmet();  // 頭盔
   for (const t of targets) drawTarget(t);
@@ -708,6 +795,7 @@ function drawWhackPlaying() {
   drawParticles();
   drawHands();    // 能量拳
   drawSuperCharge(); // 大招充能球
+  drawFloatTexts();
   ctx.restore();
   drawBombFx();
   drawSuperFx();
@@ -719,6 +807,7 @@ function drawWhackPlaying() {
 function loop(ts) {
   const dt = lastTs ? Math.min(0.05, (ts - lastTs) / 1000) : 0;
   lastTs = ts;
+  if (audioCtx && audioCtx.state === "suspended") audioCtx.resume(); // iOS 切背景回來後恢復音效
   if (state === "boot") drawBoot();
   else if (state === "loading") drawLoading();
   else if (state === "menu") drawMenu();

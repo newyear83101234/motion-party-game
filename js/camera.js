@@ -13,6 +13,11 @@
  * @returns {Promise<HTMLVideoElement>} 已就緒的 video 元素
  */
 export async function startCamera(videoEl, width = 640, height = 480) {
+  // 先關掉舊串流，避免重複呼叫時鏡頭被佔著、指示燈一直亮
+  if (videoEl.srcObject) {
+    try { videoEl.srcObject.getTracks().forEach((t) => t.stop()); } catch (e) {}
+    videoEl.srcObject = null;
+  }
   const constraints = {
     video: {
       facingMode: "user", // 前置鏡頭
