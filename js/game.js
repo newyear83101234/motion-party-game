@@ -65,6 +65,7 @@ let currentGame = "whack";          // 目前遊戲："whack"（打怪）| "dodg
 let meteors = [], dodgeInvuln = 0;  // 躲避遊戲：隕石陣列 / 受擊後無敵時間
 let floatTexts = [];                // 飄分數文字（+1 / +5 往上飄）
 let bestWhack = 0, bestDodge = 0;   // 最高分（localStorage）
+let allPose = [], superHead = null; // 雙人：所有偵測到的人 / 大招充能者的頭
 let spawnTimer = 0, spawnInterval = 0.85, fallSpeed = 0.28, elapsed = 0, lastTs = 0;
 const TRANSFORM_DUR = 2.0;
 // 最高分（存在手機裡，給「破紀錄」動機）
@@ -192,7 +193,7 @@ async function startGame() {
   try {
     initAudio();
     await startCamera(video);
-    await initPoseDetector(1);
+    await initPoseDetector(2); // 偵測最多 2 人（雙人合作）
     playBgm();
     state = "menu"; // 載入完成 → 進「選遊戲」選單
   } catch (err) { console.error("啟動失敗：", err); state = "boot"; }
@@ -202,13 +203,13 @@ async function startGame() {
 // 共用：偵測身體 → 填 poseLandmarks / hands / latestMask（兩個遊戲都用）
 function senseBody() {
   const res = detect(video, performance.now());
-  const people = res.landmarks;
-  poseLandmarks = people.length > 0 ? people[0] : null;
+  allPose = res.landmarks;                          // 所有偵測到的人（最多 2）
+  poseLandmarks = allPose.length > 0 ? allPose[0] : null;
   latestMask = res.mask;
   hands = [];
-  if (poseLandmarks) {
+  for (const lm of allPose) {                       // 把每個人的手都收進來（雙人共打）
     for (const idx of [15, 16, 19, 20]) {
-      const p = poseLandmarks[idx];
+      const p = lm[idx];
       if (p && p.visibility > 0.3) hands.push({ x: (1 - p.x) * W, y: p.y * H });
     }
   }
@@ -317,10 +318,13 @@ function update(dt) {
   checkHits();
 
   // 大招充能：雙手都舉到「頭以上」就充能，滿了自動發射
-  const lw = poseLandmarks && poseLandmarks[15], rw = poseLandmarks && poseLandmarks[16], nz = poseLandmarks && poseLandmarks[0];
-  const handsUp = lw && rw && nz && lw.visibility > 0.3 && rw.visibility > 0.3 && lw.y < nz.y - 0.02 && rw.y < nz.y - 0.02;
+  superHead = null;
+  for (const lm of allPose) { // 任何一個人雙手舉過頭就充能
+    const lw = lm[15], rw = lm[16], nz = lm[0];
+    if (lw && rw && nz && lw.visibility > 0.3 && rw.visibility > 0.3 && lw.y < nz.y - 0.02 && rw.y < nz.y - 0.02) { superHead = ptL(lm, 0); break; }
+  }
   if (superCool > 0) superCool = Math.max(0, superCool - dt);
-  else if (handsUp) { superCharge += dt; if (superCharge >= 1) fireSuper(); }
+  else if (superHead) { superCharge += dt; if (superCharge >= 1) fireSuper(); }
   else superCharge = Math.max(0, superCharge - dt * 1.5);
 
   // Boss 移動 + 受擊
@@ -417,14 +421,16 @@ function pt(i) {
 }
 function mid(a, b) { return a && b ? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } : null; }
 function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+// 取「某個人 lm」的第 i 個關節點螢幕座標（雙人用）
+function ptL(lm, i) { const p = lm[i]; if (!p || p.visibility < 0.3) return null; return { x: (1 - p.x) * W, y: p.y * H }; }
 
 // ===================== 繪製：胸甲（生成美術，貼身上、跟著轉） =====================
-function drawChest() {
-  if (!imgReady(chestImg)) return;
-  const sL = pt(11), sR = pt(12);
+function drawChest() { if (imgReady(chestImg)) for (const lm of allPose) drawChestFor(lm); }
+function drawChestFor(lm) {
+  const sL = ptL(lm, 11), sR = ptL(lm, 12);
   if (!sL || !sR) return;
   const sw = dist(sL, sR);
-  const chest = mid(sL, sR), hips = mid(pt(23), pt(24));
+  const chest = mid(sL, sR), hips = mid(ptL(lm, 23), ptL(lm, 24));
   const ang = Math.atan2(sR.y - sL.y, sR.x - sL.x);
   const size = sw * CHEST_SCALE;
   const aspect = chestImg.naturalHeight / chestImg.naturalWidth;
@@ -436,9 +442,9 @@ function drawChest() {
 }
 
 // ===================== 繪製：開放式頭盔（露臉、跟著頭轉） =====================
-function drawHelmet() {
-  if (!imgReady(helmetImg)) return;
-  const earL = pt(7), earR = pt(8), nose = pt(0);
+function drawHelmet() { if (imgReady(helmetImg)) for (const lm of allPose) drawHelmetFor(lm); }
+function drawHelmetFor(lm) {
+  const earL = ptL(lm, 7), earR = ptL(lm, 8), nose = ptL(lm, 0);
   const head = mid(earL, earR) || nose;
   if (!head) return;
   let fw = (earL && earR) ? dist(earL, earR) : shortSide() * 0.18;
@@ -538,7 +544,7 @@ function drawBombFx() {
 // 大招充能球（頭頂上方）
 function drawSuperCharge() {
   if (superCharge <= 0) return;
-  const nose = pt(0); if (!nose) return;
+  const nose = superHead || pt(0); if (!nose) return;
   const k = Math.min(1, superCharge);
   const cx = nose.x, cy = nose.y - shortSide() * 0.22;
   const r = shortSide() * (0.04 + 0.12 * k);
@@ -611,6 +617,7 @@ function drawHUD() {
   ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
   ctx.font = `${r * 1.05}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
   ctx.fillText(muted ? "🔇" : "🔊", cx, cy);
+  if (allPose.length >= 2) { ctx.font = `${fs * 0.85}px sans-serif`; ctx.fillStyle = "#fff"; ctx.fillText("👥", W / 2, pad + fs * 0.55); } // 雙人指示
 }
 function drawOverlayCircleButton(symbol) {
   const r = shortSide() * 0.16;
@@ -715,8 +722,10 @@ function updateDodge(dt) {
   if (dodgeInvuln > 0) dodgeInvuln -= dt;
   // 身體危險點（頭、雙肩、雙臀、軀幹中心）
   const bodyPts = [];
-  for (const i of [0, 11, 12, 23, 24]) { const p = pt(i); if (p) bodyPts.push(p); }
-  const tm = mid(pt(11), pt(12)); if (tm) bodyPts.push(tm);
+  for (const lm of allPose) { // 每個人的身體都是危險區（雙人一起躲）
+    for (const i of [0, 11, 12, 23, 24]) { const p = ptL(lm, i); if (p) bodyPts.push(p); }
+    const tm = mid(ptL(lm, 11), ptL(lm, 12)); if (tm) bodyPts.push(tm);
+  }
   const bodyR = shortSide() * 0.07;
   for (const m of meteors) {
     if (m.dead) continue;
