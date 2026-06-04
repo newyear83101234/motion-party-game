@@ -44,6 +44,9 @@ const meteorImg = new Image(); meteorImg.src = "IMAGE/sprites/meteor.png"; // �
 const logoImg = new Image(); logoImg.src = "IMAGE/sprites/logo.png";        // 選單標題徽章
 const warnImg = new Image(); warnImg.src = "IMAGE/sprites/boss_warning.png"; // Boss 預警
 const starImg = new Image(); starImg.src = "IMAGE/sprites/star.png";        // 星星（躲避收集）
+const bossBigImg = new Image(); bossBigImg.src = "IMAGE/sprites/boss_big.png"; // 大魔王
+const comboBgImg = new Image(); comboBgImg.src = "IMAGE/sprites/combo_bg.png"; // Combo 底襯
+const gameoverImg = new Image(); gameoverImg.src = "IMAGE/gameover_bg.png";    // 結束畫面背景
 const imgReady = (im) => im && im.complete && im.naturalWidth > 0;
 
 // 貼合微調參數（之後依阿葉回報調整）
@@ -496,7 +499,7 @@ function drawBoss() {
   const r = boss.r;
   ctx.save(); ctx.globalAlpha = 0.35 + 0.2 * Math.sin(boss.t * 4);
   ctx.fillStyle = "#ffd54a"; ctx.beginPath(); ctx.arc(boss.x, boss.y, r * 1.18, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-  const img = sprites.boss;
+  const img = imgReady(bossBigImg) ? bossBigImg : sprites.boss;
   if (imgReady(img)) ctx.drawImage(img, boss.x - r, boss.y - r, r * 2, r * 2);
   else { ctx.fillStyle = "#f6a609"; ctx.beginPath(); ctx.arc(boss.x, boss.y, r, 0, Math.PI * 2); ctx.fill(); }
   // 血條
@@ -624,9 +627,13 @@ function drawHUD() {
   // Combo（描邊，移高避開怪物路徑）
   if (combo >= 2) {
     const big = shortSide() * (0.11 + Math.min(combo, 30) * 0.004);
+    if (imgReady(comboBgImg)) {
+      const bw = big * 3.6, bh = bw * comboBgImg.naturalHeight / comboBgImg.naturalWidth;
+      ctx.drawImage(comboBgImg, W / 2 - bw / 2, H * 0.09 - bh / 2, bw, bh);
+    }
     ctx.font = `bold ${big}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.lineWidth = big * 0.08; ctx.strokeStyle = "rgba(0,0,0,0.6)"; ctx.strokeText("✕" + combo, W / 2, H * 0.09);
-    ctx.fillStyle = "#ffeb3b"; ctx.fillText("✕" + combo, W / 2, H * 0.09);
+    ctx.fillStyle = "#fff"; ctx.fillText("✕" + combo, W / 2, H * 0.09);
   }
   // 靜音鈕（左下）
   const r = shortSide() * 0.06, cx = pad + r, cy = H - pad - r;
@@ -655,8 +662,8 @@ function drawLoading() {
   ctx.strokeStyle = "#4fc3f7"; ctx.beginPath(); ctx.arc(W / 2, H / 2, r, a, a + Math.PI * 1.2); ctx.stroke();
 }
 function drawGameOver() {
-  drawCameraMirrored();
-  ctx.fillStyle = "rgba(0,0,0,0.55)"; ctx.fillRect(0, 0, W, H);
+  if (imgReady(gameoverImg)) { drawBgCover(gameoverImg); ctx.fillStyle = "rgba(0,0,0,0.35)"; ctx.fillRect(0, 0, W, H); }
+  else { drawCameraMirrored(); ctx.fillStyle = "rgba(0,0,0,0.55)"; ctx.fillRect(0, 0, W, H); }
   ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
   ctx.font = `bold ${shortSide() * 0.18}px sans-serif`; ctx.fillText("⭐ " + score, W / 2, H * 0.32);
   if (currentGame === "whack") {
