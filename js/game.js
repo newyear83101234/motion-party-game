@@ -20,7 +20,13 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
 let W = 0, H = 0;
-function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+function resize() {
+  // 限制 canvas 內部解析度上限：投映到電視/大螢幕時減輕繪製負擔、避免卡頓
+  const cssW = window.innerWidth, cssH = window.innerHeight, cap = 1280;
+  const sc = Math.min(1, cap / Math.max(cssW, cssH));
+  W = canvas.width = Math.round(cssW * sc);
+  H = canvas.height = Math.round(cssH * sc);
+}
 window.addEventListener("resize", resize);
 resize();
 
@@ -81,12 +87,18 @@ let meteors = [], dodgeInvuln = 0, stars = [], starTimer = 0; // 躲避：隕石
 let floatTexts = [];                // 飄分數文字（+1 / +5 往上飄）
 let bestWhack = 0, bestDodge = 0;   // 最高分（localStorage）
 let allPose = [], superHead = null; // 雙人：所有偵測到的人 / 大招充能者的頭
+let playerMode = "solo";            // 玩家模式："solo"（單人）| "duo"（雙人）
+let starCount = 0, dodgeCores = []; // 接到的星星數 / 躲避護盾核心位置
+let superUsedEver = false;          // 是否用過大招（用過就不再顯示教學）
+const WIN_STAGE = 3, DODGE_GOAL = 40; // 通關條件：打怪打贏3隻Boss / 躲避達標分數
 let spawnTimer = 0, spawnInterval = 0.85, fallSpeed = 0.28, elapsed = 0, lastTs = 0;
 const TRANSFORM_DUR = 2.0;
 // 最高分（存在手機裡，給「破紀錄」動機）
 function lsGet(k) { try { return +(localStorage.getItem(k) || 0); } catch (e) { return 0; } }
 function lsSet(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
 bestWhack = lsGet("best_whack"); bestDodge = lsGet("best_dodge");
+playerMode = lsGet("player_mode") === 1 ? "duo" : "solo";
+superUsedEver = lsGet("super_used") === 1;
 function commitBest() {
   if (currentGame === "whack") { if (score > bestWhack) { bestWhack = score; lsSet("best_whack", score); } }
   else { if (score > bestDodge) { bestDodge = score; lsSet("best_dodge", score); } }
@@ -181,12 +193,14 @@ function defeatBoss() { // 打贏 Boss
   score += reward;
   bossActive = false; boss = null; stage++; bossClearFx = 2.4; shake = 18;
   if (!playSfxFile(winSfx)) sndVictory();
+  if (stage > WIN_STAGE) { commitBest(); state = "win"; } // 打贏 WIN_STAGE 隻 Boss → 通關
 }
 function fireSuper() { // 放大招：清掉全場怪獸（對 Boss 也造成大傷害）
   for (const t of targets) { if (t.type !== "bomb") score += 2; burst(t.x, t.y, t.type === "bomb" ? "#ff5252" : "#7fe0ff", 16); }
   targets = [];
   if (bossActive && boss) { boss.hp -= 5; burst(boss.x, boss.y, "#7fe0ff", 24); if (boss.hp <= 0) defeatBoss(); }
   superFx = 1; shake = 24; superCharge = 0; superCool = 2.0;
+  if (!superUsedEver) { superUsedEver = true; lsSet("super_used", 1); } // 用過就不再顯示教學
   if (!playSfxFile(superSfx)) sndSuper();
 }
 
@@ -209,7 +223,7 @@ async function startGame() {
     initAudio();
     [bgmTheme, bgmMenu, bgmDodge].forEach((a) => { try { a.play().then(() => a.pause()).catch(() => {}); } catch (e) {} }); // 在使用者手勢內解鎖音訊
     await startCamera(video);
-    await initPoseDetector(2); // 偵測最多 2 人（雙人合作）
+    await initPoseDetector(playerMode === "duo" ? 2 : 1); // 單人只抓1人(省效能)、雙人抓2人
     playBgmTrack(bgmMenu);
     state = "menu"; // 載入完成 → 進「選遊戲」選單
   } catch (err) { console.error("啟動失敗：", err); state = "boot"; }
@@ -235,18 +249,28 @@ function resetDodge() {
   particles = []; shake = 0; bombFx = 0; gameOverPending = false;
   targets = []; bossActive = false; boss = null; bossHitCd = 0; bossClearFx = 0; bossWarnT = 0;
   superCharge = 0; superFx = 0; superCool = 0;
-  meteors = []; floatTexts = []; dodgeInvuln = 0; stars = []; starTimer = 0; spawnTimer = 0; elapsed = 0;
+  meteors = []; floatTexts = []; dodgeInvuln = 0; stars = []; starTimer = 0; starCount = 0; dodgeCores = []; spawnTimer = 0; elapsed = 0;
 }
 function startWhack() { currentGame = "whack"; resetGame(); playBgmTrack(bgmTheme); transformT = 0; sndTransform(); state = "transform"; }
 function startDodge() { currentGame = "dodge"; resetDodge(); playBgmTrack(bgmDodge); spawnTimer = 0.6; state = "playing"; }
 function pickGame(g) { if (g === "dodge") startDodge(); else startWhack(); }
+function togglePlayerMode() {
+  playerMode = playerMode === "duo" ? "solo" : "duo";
+  lsSet("player_mode", playerMode === "duo" ? 1 : 0);
+  initPoseDetector(playerMode === "duo" ? 2 : 1).catch(() => {}); // 重建模型（單人省效能 + 不被路人干擾）
+}
 
 canvas.addEventListener("pointerdown", (e) => {
   const rect = canvas.getBoundingClientRect();
-  const px = e.clientX - rect.left, py = e.clientY - rect.top;
+  const px = (e.clientX - rect.left) * (W / rect.width);   // 校正：CSS 座標 → canvas 座標
+  const py = (e.clientY - rect.top) * (H / rect.height);
   if (state === "boot") { startGame(); return; }
-  if (state === "menu") { pickGame(px < W / 2 ? "whack" : "dodge"); return; } // 左=打怪 右=躲避
-  if (state === "gameover") {
+  if (state === "menu") {
+    const r = shortSide() * 0.085, mx = W / 2, my = H * 0.9; // 模式切換鈕（底部中央）
+    if ((px - mx) ** 2 + (py - my) ** 2 < r * r) { togglePlayerMode(); return; }
+    pickGame(px < W / 2 ? "whack" : "dodge"); return; // 左=打怪 右=躲避
+  }
+  if (state === "gameover" || state === "win") {
     const rr = shortSide() * 0.07, hx = shortSide() * 0.04 + rr, hy = shortSide() * 0.04 + rr;
     if ((px - hx) ** 2 + (py - hy) ** 2 < rr * rr) { playBgmTrack(bgmMenu); state = "menu"; return; } // 🏠 回選單
     if (currentGame === "dodge") startDodge(); else startWhack(); // 🔁 重玩
@@ -682,6 +706,21 @@ function drawGameOver() {
   ctx.fillStyle = "#fff"; ctx.font = `${rr * 1.1}px sans-serif`;
   ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("🏠", hx, hy + rr * 0.05);
 }
+// 通關畫面（達成條件）
+function drawWin() {
+  if (imgReady(gameoverImg)) { drawBgCover(gameoverImg); ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.fillRect(0, 0, W, H); }
+  else { ctx.fillStyle = "#0b1020"; ctx.fillRect(0, 0, W, H); }
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font = `${shortSide() * 0.22}px sans-serif`; ctx.fillText("🏆", W / 2, H * 0.16);
+  ctx.fillStyle = "#fff"; ctx.font = `bold ${shortSide() * 0.16}px sans-serif`; ctx.fillText("⭐ " + score, W / 2, H * 0.33);
+  ctx.font = `${shortSide() * 0.09}px sans-serif`; ctx.fillStyle = "#ffd54a"; ctx.fillText("🎉🎉🎉", W / 2, H * 0.45);
+  const best = currentGame === "whack" ? bestWhack : bestDodge;
+  ctx.font = `${shortSide() * 0.07}px sans-serif`; ctx.fillText("🏅 " + best, W / 2, H * 0.72);
+  drawOverlayCircleButton("🔁");
+  const rr = shortSide() * 0.07, hx = shortSide() * 0.04 + rr, hy = shortSide() * 0.04 + rr;
+  ctx.fillStyle = "rgba(255,255,255,0.18)"; ctx.beginPath(); ctx.arc(hx, hy, rr, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.font = `${rr * 1.1}px sans-serif`; ctx.fillText("🏠", hx, hy + rr * 0.05);
+}
 
 // ===================== 選遊戲選單 =====================
 function roundRectPath(x, y, w, h, r) {
@@ -716,10 +755,12 @@ function drawMenu() {
   const cy = H * 0.3, ch = H * 0.5, cw = W * 0.4, rad = shortSide() * 0.04;
   drawCard(W * 0.06, cy, cw, ch, rad, cityImg, "rgba(90,170,255,0.95)", "rgba(20,40,90,0.45)", "👊", "🦖", bestWhack);
   drawCard(W * 0.54, cy, cw, ch, rad, spaceImg, "rgba(190,110,255,0.95)", "rgba(40,20,80,0.45)", "🏃", "☄️", bestDodge);
-  if ((Math.floor(performance.now() / 400) % 2) === 0) { // 閃爍提示（底部）
-    ctx.fillStyle = "#fff"; ctx.font = `${shortSide() * 0.08}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText("👆", W / 2, H * 0.88);
-  }
+  // 單人/雙人 模式切換鈕（底部中央）
+  const mr = shortSide() * 0.085, mx = W / 2, my = H * 0.9;
+  ctx.fillStyle = "rgba(255,255,255,0.16)"; ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.6)"; ctx.lineWidth = mr * 0.08; ctx.stroke();
+  ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font = `${mr}px sans-serif`; ctx.fillText(playerMode === "duo" ? "👥" : "👤", mx, my);
 }
 
 // ===================== 躲避遊戲（太空躲隕石） =====================
@@ -737,6 +778,34 @@ function drawStar(s) {
   if (imgReady(starImg)) ctx.drawImage(starImg, -s.r, -s.r, s.r * 2, s.r * 2);
   else { ctx.fillStyle = "#ffd54a"; ctx.beginPath(); ctx.arc(0, 0, s.r, 0, Math.PI * 2); ctx.fill(); }
   ctx.restore();
+}
+// 每個人胸口一個護盾核心（躲避遊戲：要保護的東西 / 接星星的接點）
+function getCores() {
+  const cores = [];
+  for (const lm of allPose) {
+    const sL = ptL(lm, 11), sR = ptL(lm, 12);
+    if (!sL || !sR) continue;
+    const sw = dist(sL, sR);
+    const chest = mid(sL, sR), hips = mid(ptL(lm, 23), ptL(lm, 24));
+    let cx = chest.x, cy = chest.y + sw * 0.4;
+    if (hips) { cx = chest.x * 0.5 + hips.x * 0.5; cy = chest.y * 0.5 + hips.y * 0.5; }
+    cores.push({ x: cx, y: cy, r: Math.max(sw * 0.5, shortSide() * 0.09) });
+  }
+  return cores;
+}
+function drawCores() {
+  const pulse = 0.6 + 0.3 * Math.sin(performance.now() / 200);
+  for (const c of dodgeCores) {
+    const g = ctx.createRadialGradient(c.x, c.y, c.r * 0.2, c.x, c.y, c.r);
+    g.addColorStop(0, "rgba(120,220,255,0.1)");
+    g.addColorStop(0.75, `rgba(90,180,255,${0.18 * pulse})`);
+    g.addColorStop(1, `rgba(120,220,255,${0.55 * pulse})`);
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = `rgba(160,235,255,${0.85 * pulse})`; ctx.lineWidth = shortSide() * 0.008;
+    ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2); ctx.stroke();
+    ctx.font = `${c.r * 0.85}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("🛡️", c.x, c.y);
+  }
 }
 // Boss 出現前的紅色 ! 預警
 function drawBossWarning() {
@@ -758,26 +827,21 @@ function updateDodge(dt) {
   }
   senseBody();
   elapsed += dt;
-  const lvl = Math.floor(elapsed / 12);
-  const interval = Math.max(0.42, 1.0 - lvl * 0.08);
-  const mfall = 0.32 + lvl * 0.05;
+  const lvl = Math.floor(elapsed / 14);
+  const interval = Math.max(0.55, 1.1 - lvl * 0.06); // 生成放慢
+  const mfall = 0.22 + lvl * 0.035;                   // 掉落放慢
   spawnTimer -= dt;
   if (spawnTimer <= 0) { spawnMeteor(mfall); spawnTimer = interval; }
   if (dodgeInvuln > 0) dodgeInvuln -= dt;
-  // 身體危險點（頭、雙肩、雙臀、軀幹中心）
-  const bodyPts = [];
-  for (const lm of allPose) { // 每個人的身體都是危險區（雙人一起躲）
-    for (const i of [0, 11, 12, 23, 24]) { const p = ptL(lm, i); if (p) bodyPts.push(p); }
-    const tm = mid(ptL(lm, 11), ptL(lm, 12)); if (tm) bodyPts.push(tm);
-  }
-  const bodyR = shortSide() * 0.07;
+  dodgeCores = getCores(); // 每個人胸口一個發光護盾（要保護、別被砸到的東西）
+  // 隕石：砸到護盾 → 扣命
   for (const m of meteors) {
     if (m.dead) continue;
     m.y += m.vy * dt; m.spin += dt * 3;
-    if (m.y - m.r > H) { m.dead = true; score += 1; } // 成功躲過 +1
+    if (m.y - m.r > H) { m.dead = true; score += 1; } // 躲過 +1
     else if (dodgeInvuln <= 0) {
-      for (const b of bodyPts) {
-        if ((b.x - m.x) ** 2 + (b.y - m.y) ** 2 < (m.r + bodyR) ** 2) {
+      for (const c of dodgeCores) {
+        if ((c.x - m.x) ** 2 + (c.y - m.y) ** 2 < (m.r + c.r) ** 2) {
           m.dead = true; lives--; dodgeInvuln = 1.0; shake = 26; bombFx = 1;
           burst(m.x, m.y, "#ff7043", 22); sndBomb();
           if (lives <= 0) { gameOverPending = true; bombFx = 1.3; }
@@ -787,16 +851,26 @@ function updateDodge(dt) {
     }
   }
   meteors = meteors.filter((m) => !m.dead);
-  // 星星（移動身體去接 → +5）
+  // 星星：用護盾接到 → +5，每 5 顆回 1 命
   starTimer -= dt;
   if (starTimer <= 0) { spawnStar(); starTimer = 2.5 + Math.random() * 2.5; }
   for (const s of stars) {
     if (s.dead) continue;
     s.y += s.vy * dt; s.spin += dt * 2;
     if (s.y - s.r > H) { s.dead = true; }
-    else { for (const b of bodyPts) { if ((b.x - s.x) ** 2 + (b.y - s.y) ** 2 < (s.r + bodyR) ** 2) { s.dead = true; score += 5; addFloat(s.x, s.y, "+5", "#ffd54a", shortSide() * 0.08); burst(s.x, s.y, "#ffd54a", 16); sndStar(); break; } } }
+    else {
+      for (const c of dodgeCores) {
+        if ((c.x - s.x) ** 2 + (c.y - s.y) ** 2 < (s.r + c.r) ** 2) {
+          s.dead = true; score += 5; starCount++;
+          addFloat(s.x, s.y, "+5", "#ffd54a", shortSide() * 0.08); burst(s.x, s.y, "#ffd54a", 16); sndStar();
+          if (starCount % 5 === 0 && lives < 5) { lives++; addFloat(s.x, s.y - shortSide() * 0.08, "❤️+1", "#ff6b6b", shortSide() * 0.09); beep(1318, 0.15, "triangle", 0.3); }
+          break;
+        }
+      }
+    }
   }
   stars = stars.filter((s) => !s.dead);
+  if (score >= DODGE_GOAL) { commitBest(); state = "win"; return; } // 達標通關
   for (const p of particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 600 * dt; p.life -= dt * 1.6; }
   particles = particles.filter((p) => p.life > 0);
   updateFloats(dt);
@@ -837,6 +911,7 @@ function drawDodgePlaying() {
   ctx.save();
   if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
   drawSceneWith(spaceImg); // 太空背景 + 把你摳出來
+  drawCores();             // 護盾（要保護的東西）
   for (const s of stars) drawStar(s);
   for (const m of meteors) drawMeteor(m);
   drawDodgeWarnings();      // 危險預警 ▼
@@ -865,7 +940,19 @@ function drawWhackPlaying() {
   drawSuperFx();
   drawBossClearFx();
   drawBossWarning(); // Boss 出現預警
+  drawSuperHint();   // 大招教學（沒用過時）
   drawHUD();
+}
+function drawSuperHint() {
+  if (superUsedEver) return;
+  const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 250);
+  ctx.save(); ctx.globalAlpha = 0.55 + 0.45 * pulse;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font = `${shortSide() * 0.06}px sans-serif`; ctx.fillStyle = "#fff";
+  ctx.fillText("⬆️ ⬆️", W / 2, H * 0.72);
+  ctx.font = `${shortSide() * 0.12}px sans-serif`;
+  ctx.fillText("🙌", W / 2, H * 0.8);
+  ctx.restore();
 }
 
 // ===================== 主迴圈 =====================
@@ -881,6 +968,7 @@ function loop(ts) {
     if (currentGame === "dodge") { updateDodge(dt); drawDodgePlaying(); }
     else { update(dt); drawWhackPlaying(); }
   } else if (state === "gameover") drawGameOver();
+  else if (state === "win") drawWin();
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
