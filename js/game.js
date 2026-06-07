@@ -83,8 +83,9 @@ const sfxHurt = new Audio("MUSIC/sfx_hurt.mp3"); sfxHurt.volume = 0.85; sfxHurt.
 const bgVideo = document.createElement("video");
 bgVideo.src = "VIDEO/runner_bg.mp4"; bgVideo.loop = true; bgVideo.muted = true; bgVideo.preload = "auto";
 bgVideo.playsInline = true; bgVideo.setAttribute("playsinline", ""); bgVideo.setAttribute("webkit-playsinline", "");
-bgVideo.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1;display:none";
+bgVideo.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:none";
 document.body.appendChild(bgVideo);
+canvas.style.zIndex = "1"; // canvas 疊在背景影片之上（runner clearRect 透明處才露出影片）
 let runnerBgOn = false, runnerBgDegraded = false; // 是否用影片背景 / 是否因效能降級
 function showBgVideo(on) {
   if (on && bgVideo.readyState >= 2 && !runnerBgDegraded) { bgVideo.style.display = "block"; bgVideo.play().catch(() => {}); runnerBgOn = true; }
