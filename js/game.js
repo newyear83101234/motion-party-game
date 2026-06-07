@@ -54,6 +54,7 @@ const bossBigImg = new Image(); bossBigImg.src = "IMAGE/sprites/boss_big.png"; /
 const comboBgImg = new Image(); comboBgImg.src = "IMAGE/sprites/combo_bg.png"; // Combo 底襯
 const gameoverImg = new Image(); gameoverImg.src = "IMAGE/gameover_bg.png";    // 結束畫面背景
 const lawnImg = new Image(); lawnImg.src = "IMAGE/lawn.png";                  // 草坪背景（植物大戰殭屍）
+const runnerFirstImg = new Image(); runnerFirstImg.src = "IMAGE/runner_bg_first.png"; // 影片第一幀（影片還沒播時當墊檔、街景一致）
 const zombieImg = new Image(); zombieImg.src = "IMAGE/sprites/zombie.png";    // 殭屍
 const zombie2Img = new Image(); zombie2Img.src = "IMAGE/sprites/zombie2.png"; // 鐵桶殭屍（耐打、高分）
 const houseImg = new Image(); houseImg.src = "IMAGE/sprites/house.png";       // 向日葵/豌豆射手陣地（要守的家）
@@ -1431,23 +1432,22 @@ function fillPoseSilhouette(c, cx, cy, s, key) {
 }
 const _wallCache = {};
 function getWallCanvas(pose) {              // 預烤「中間挖空人形洞」的看板（每姿勢快取一次）
-  const key = pose + "_" + W + "x" + H;
-  if (_wallCache[key]) return _wallCache[key];
-  const bw = Math.max(2, Math.round(W * 1.1)), bh = Math.max(2, Math.round(H * 0.95));
+  if (_wallCache[pose]) return _wallCache[pose];
+  const bw = 760, bh = 1000;                                                                  // 固定直式人形牌比例（不隨螢幕方向變橫條）
   const oc = document.createElement("canvas"); oc.width = bw; oc.height = bh;
   const c = oc.getContext("2d");
   c.fillStyle = "#1f9e2e"; c.fillRect(0, 0, bw, bh);                                          // 綠牌面（像影片）
-  c.fillStyle = "#157a22"; c.fillRect(0, 0, bw, bh * 0.06); c.fillRect(0, bh * 0.94, bw, bh * 0.06); // 上下橫木
-  c.lineWidth = bw * 0.03; c.strokeStyle = "#ffd56b"; c.strokeRect(c.lineWidth, c.lineWidth, bw - c.lineWidth * 2, bh - c.lineWidth * 2); // 金邊
+  c.fillStyle = "#157a22"; c.fillRect(0, 0, bw, bh * 0.05); c.fillRect(0, bh * 0.95, bw, bh * 0.05); // 上下橫木
+  c.lineWidth = bw * 0.035; c.strokeStyle = "#ffd56b"; c.strokeRect(c.lineWidth, c.lineWidth, bw - c.lineWidth * 2, bh - c.lineWidth * 2); // 金邊
   c.globalCompositeOperation = "destination-out";                                             // 挖空人形洞（透出後方）
-  fillPoseSilhouette(c, bw / 2, bh / 2, Math.min(bw, bh) * 0.72, pose);
+  fillPoseSilhouette(c, bw / 2, bh / 2, 640, pose);
   c.globalCompositeOperation = "source-over";
-  _wallCache[key] = oc; return oc;
+  _wallCache[pose] = oc; return oc;
 }
 function drawRunnerWall(o) {
   if (o.z >= 1) return;                      // 還在地平線外先不畫
   const s = 1 - o.z;
-  const wallW = W * 1.3 * s, wallH = H * 1.02 * s; // 放大、越近越佔滿畫面
+  const wallH = Math.min(H * 0.9, shortSide() * 1.4 * s), wallW = wallH * 0.76; // 固定直式比例、不超出畫面
   if (wallW < 8) return;
   const cx = W / 2, cy = RUN_VP_Y() + (H - RUN_VP_Y()) * (1 - o.z) - wallH * 0.5;
   const matching = o.st === "judge" && anyPoseMatch(o.pose);
@@ -1482,13 +1482,15 @@ function drawCamWindow() {                 // 右下角小鏡頭框（看得到�
 function drawRunnerPlaying() {
   const useVid = syncBgVideo();            // 每幀重評估（影片載好就自動接上）
   if (useVid) ctx.clearRect(0, 0, W, H);                                   // 透明 → 露出後面的循環影片
+  else if (imgReady(runnerFirstImg)) drawBgCover(runnerFirstImg);          // 影片還沒播 → 用影片第一幀(街景一致、消除開場跳變)
   else if (imgReady(lawnImg)) drawBgCover(lawnImg);
   else drawPvzLawnFallback();
+  const streetBg = useVid || imgReady(runnerFirstImg);                     // 背景已是街景(影片或首幀)
   ctx.save();
   if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
-  if (!useVid) drawRunnerGround();         // 影片自帶前進感，不用程式速度線
+  if (!useVid) drawRunnerGround();         // 影片自帶前進感；靜態墊檔時畫速度線補動感
   for (const o of runnerObjs) {            // 已依 z 由遠到近排序
-    if (o.type === "tree") { if (!useVid) drawRunnerTree(o); } // 影片自帶路樹
+    if (o.type === "tree") { if (!streetBg) drawRunnerTree(o); } // 街景背景不畫程式樹(會跟街景打架)
     else if (o.type === "zombie") drawRunnerZombie(o);
     else if (o.type === "wall") drawRunnerWall(o);
   }
@@ -1498,8 +1500,7 @@ function drawRunnerPlaying() {
   ctx.restore();
   drawBombFx();
   drawRunnerHint();
-  drawCamWindow();
-  drawHUD();
+  drawHUD();                               // 右下角小鏡頭已移除（畫面有拳套即可）
 }
 function drawRunnerFists() {                // 雙手畫拳擊手套（取代光點）
   for (const h of hands) {
