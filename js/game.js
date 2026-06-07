@@ -312,7 +312,7 @@ function resetPvz() { // 往前衝 runner 的重設
   prevHands = []; punchSpeed = 0; poseFrame = 0; runnerStripe = 0; pvzTarget = null;
   elapsed = 0;
 }
-function startPvz() { currentGame = "pvz"; resetPvz(); playBgmTrack(bgmPvz); _fpsLow = 0; runnerBgDegraded = false; runnerWantBg = true; bgVideo.play().catch(() => {}); state = "playing"; }
+function startPvz() { currentGame = "pvz"; resetPvz(); playBgmTrack(bgmPvz); _fpsLow = 0; runnerBgDegraded = false; runnerWantBg = true; try { bgVideo.playbackRate = 0.65; } catch (e) {} bgVideo.play().catch(() => {}); state = "playing"; } // 影片放慢=前進更慢
 function pickGame(g) { if (g === "dodge") startDodge(); else if (g === "pvz") startPvz(); else startWhack(); }
 function togglePlayerMode() {
   playerMode = playerMode === "duo" ? "solo" : "duo";
@@ -1258,7 +1258,7 @@ function projRun(worldX, z) {
   return { x, y, scale, visible: z < 1.0 };
 }
 const RUN_GOAL = 30;                       // 通關分數（打殭屍+1、穿看板+3）
-const ZOMBIE_Z_SPEED = 0.32;              // 殭屍/看板逼近速度（固定、比背景慢=慢慢變大走過來）
+const ZOMBIE_Z_SPEED = 0.17;              // 殭屍/看板逼近速度（放很慢=慢慢變大走過來）
 function runnerSpawnEvent() {              // 生一個事件：殭屍 或 鏤空看板
   if (Math.random() < 0.32) {             // 看板
     runnerObjs.push({ type: "wall", worldX: 0, z: 1.3, pose: pickPose(), st: "approach", judgeT: 0, result: null });
@@ -1292,13 +1292,13 @@ function updateRunner(dt) {
   poseFrame++;
   if (poseFrame % 2 === 0) { senseBody(); punchSpeed = computePunchSpeed(); } // 隔幀偵測省效能
   elapsed += dt;
-  runnerSpeed = Math.min(1.3, 0.5 + elapsed * 0.02);   // 越跑越快
+  runnerSpeed = Math.min(0.75, 0.32 + elapsed * 0.012);   // 前進放慢很多、緩慢加速
   runnerDist += runnerSpeed * dt;
   runnerStripe = (runnerStripe + runnerSpeed * dt) % 1; // 地面速度線流動
   // 生成
   const wallOnScreen = runnerObjs.some((o) => o.type === "wall" && o.st !== "pass" && o.st !== "fail");
   runnerSpawnT -= dt;
-  if (runnerSpawnT <= 0 && !wallOnScreen) { runnerSpawnEvent(); runnerSpawnT = Math.max(1.0, 1.8 - elapsed * 0.02); } // 看板在場時暫停生成(降認知負荷)
+  if (runnerSpawnT <= 0 && !wallOnScreen) { runnerSpawnEvent(); runnerSpawnT = Math.max(2.6, 4.2 - elapsed * 0.03); } // 出現頻率放慢很多、看板在場時暫停生成
   runnerBuildT -= dt;
   if (runnerBuildT <= 0) { // 左右各噴一棵樹掠過 → 前進感
     const hue = 95 + Math.random() * 35;
@@ -1327,7 +1327,7 @@ function updateRunner(dt) {
       }
       if (!o.dead && o.z <= 0.02) { o.dead = true; lives--; combo = 0; shake = 22; bombFx = 0.9; if (!playSfxFile(sfxHurt)) sndBomb(); if (lives <= 0) { gameOverPending = true; bombFx = 1.3; } } // 撞到玩家
     } else if (o.type === "wall") {
-      if (o.st === "approach" && o.z < 0.4) { o.st = "judge"; o.judgeT = 0.9; }
+      if (o.st === "approach" && o.z < 0.45) { o.st = "judge"; o.judgeT = 2.2; } // 更早開判定窗、給足反應時間
       if (o.st === "judge") {
         o.judgeT -= dt;
         if (anyPoseMatch(o.pose)) { o.st = "pass"; score += 3; const pr = projRun(0, o.z); addFloat(W / 2, pr.y, "+3", "#aef36b", shortSide() * 0.1); burst(W / 2, pr.y, "#aef36b", 20); if (!playSfxFile(sfxCorrect)) beep(880, 0.1, "triangle", 0.3); }
@@ -1453,7 +1453,8 @@ function drawRunnerWall(o) {
   const matching = o.st === "judge" && anyPoseMatch(o.pose);
   const oc = getWallCanvas(o.pose);
   ctx.save();
-  ctx.globalAlpha = o.st === "pass" ? Math.max(0, o.z * 16) : 0.92;                            // 穿過後淡出
+  const fadeIn = Math.min(1, (1 - o.z) * 3);                                                   // 遠時半透明漸入、近時實心（減少突兀違和）
+  ctx.globalAlpha = o.st === "pass" ? Math.max(0, o.z * 16) : 0.92 * fadeIn;
   ctx.filter = (matching || o.st === "pass") ? "hue-rotate(120deg) saturate(1.5)" : o.st === "fail" ? "grayscale(0.85)" : "none"; // 做對變綠(舊iOS不支援filter→維持紅,仍可玩)
   ctx.drawImage(oc, cx - wallW / 2, cy - wallH / 2, wallW, wallH);
   ctx.restore();
@@ -1492,13 +1493,23 @@ function drawRunnerPlaying() {
     else if (o.type === "wall") drawRunnerWall(o);
   }
   drawParticles();
-  drawHands();                             // 玩家拳頭（發光拳，看得到打到哪）
+  drawRunnerFists();                       // 玩家拳套（看得到打到哪）
   drawFloatTexts();
   ctx.restore();
   drawBombFx();
   drawRunnerHint();
   drawCamWindow();
   drawHUD();
+}
+function drawRunnerFists() {                // 雙手畫拳擊手套（取代光點）
+  for (const h of hands) {
+    const r = HAND_R();
+    const g = ctx.createRadialGradient(h.x, h.y, 0, h.x, h.y, r);
+    g.addColorStop(0, "rgba(255,255,255,0.45)"); g.addColorStop(1, "rgba(255,170,60,0)"); // 淡光暈底
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(h.x, h.y, r, 0, Math.PI * 2); ctx.fill();
+    ctx.font = `${r * 1.9}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("🥊", h.x, h.y);          // 拳套
+  }
 }
 
 // ===================== 主迴圈 =====================
