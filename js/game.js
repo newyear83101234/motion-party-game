@@ -86,10 +86,17 @@ bgVideo.playsInline = true; bgVideo.setAttribute("playsinline", ""); bgVideo.set
 bgVideo.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:none";
 document.body.appendChild(bgVideo);
 canvas.style.zIndex = "1"; // canvas 疊在背景影片之上（runner clearRect 透明處才露出影片）
-let runnerBgOn = false, runnerBgDegraded = false; // 是否用影片背景 / 是否因效能降級
-function showBgVideo(on) {
-  if (on && bgVideo.readyState >= 2 && !runnerBgDegraded) { bgVideo.style.display = "block"; bgVideo.play().catch(() => {}); runnerBgOn = true; }
-  else { bgVideo.style.display = "none"; try { bgVideo.pause(); } catch (e) {} runnerBgOn = false; }
+let runnerWantBg = false, runnerBgDegraded = false; // 此局想用影片背景 / 是否因效能降級
+// 每幀重評估：影片晚點才載好也會自動接上（解決「進場時影片還沒下載完→永遠 fallback」的 bug）。回傳是否真的在用影片
+function syncBgVideo() {
+  const want = runnerWantBg && !runnerBgDegraded && bgVideo.readyState >= 2;
+  if (want) {
+    if (bgVideo.style.display !== "block") bgVideo.style.display = "block";
+    if (bgVideo.paused) bgVideo.play().catch(() => {});
+    return !bgVideo.paused;
+  }
+  if (bgVideo.style.display !== "none") { bgVideo.style.display = "none"; try { bgVideo.pause(); } catch (e) {} }
+  return false;
 }
 // FPS 監控：runner 用影片背景時若連續太卡 → 自動降級回靜態背景
 let _fpsFrames = 0, _fpsLast = 0, _fpsLow = 0;
@@ -98,8 +105,8 @@ function fpsTick(ts) {
   if (!_fpsLast) { _fpsLast = ts; return; }
   if (ts - _fpsLast >= 1000) {
     const fps = _fpsFrames * 1000 / (ts - _fpsLast); _fpsFrames = 0; _fpsLast = ts;
-    if (state === "playing" && currentGame === "pvz" && runnerBgOn) {
-      if (fps < 22) { _fpsLow++; if (_fpsLow >= 2) { runnerBgDegraded = true; showBgVideo(false); } } else _fpsLow = 0;
+    if (state === "playing" && currentGame === "pvz" && runnerWantBg && !runnerBgDegraded && elapsed > 5) {
+      if (fps < 15) { _fpsLow++; if (_fpsLow >= 4) runnerBgDegraded = true; } else _fpsLow = 0; // 5秒寬限後、連續4秒<15fps才降級(優先讓影片顯示)
     }
   }
 }
@@ -266,6 +273,7 @@ async function startGame() {
   try {
     initAudio();
     ALL_BGM.forEach((a) => { try { a.muted = true; const p = a.play(); if (p) p.then(() => { a.pause(); a.currentTime = 0; }).catch(() => {}); } catch (e) {} }); // 靜音播一下解鎖手機音訊、立刻歸零（避免脫稿殘留）
+    try { const pv = bgVideo.play(); if (pv) pv.then(() => bgVideo.pause()).catch(() => {}); } catch (e) {} // 在使用者手勢內解鎖背景影片自動播放
     await startCamera(video);
     await initPoseDetector(playerMode === "duo" ? 2 : 1); // 單人只抓1人(省效能)、雙人抓2人
     playBgmTrack(bgmMenu);
@@ -304,7 +312,7 @@ function resetPvz() { // 往前衝 runner 的重設
   prevHands = []; punchSpeed = 0; poseFrame = 0; runnerStripe = 0; pvzTarget = null;
   elapsed = 0;
 }
-function startPvz() { currentGame = "pvz"; resetPvz(); playBgmTrack(bgmPvz); _fpsLow = 0; showBgVideo(true); state = "playing"; }
+function startPvz() { currentGame = "pvz"; resetPvz(); playBgmTrack(bgmPvz); _fpsLow = 0; runnerBgDegraded = false; runnerWantBg = true; bgVideo.play().catch(() => {}); state = "playing"; }
 function pickGame(g) { if (g === "dodge") startDodge(); else if (g === "pvz") startPvz(); else startWhack(); }
 function togglePlayerMode() {
   playerMode = playerMode === "duo" ? "solo" : "duo";
@@ -1471,7 +1479,7 @@ function drawCamWindow() {                 // 右下角小鏡頭框（看得到�
   ctx.strokeStyle = "rgba(255,255,255,0.8)"; ctx.lineWidth = shortSide() * 0.006; roundRectPath(x, y, w, h, w * 0.08); ctx.stroke();
 }
 function drawRunnerPlaying() {
-  const useVid = runnerBgOn && bgVideo.readyState >= 2 && !bgVideo.paused; // 影片背景在播？
+  const useVid = syncBgVideo();            // 每幀重評估（影片載好就自動接上）
   if (useVid) ctx.clearRect(0, 0, W, H);                                   // 透明 → 露出後面的循環影片
   else if (imgReady(lawnImg)) drawBgCover(lawnImg);
   else drawPvzLawnFallback();
@@ -1498,7 +1506,7 @@ function loop(ts) {
   const dt = lastTs ? Math.min(0.05, (ts - lastTs) / 1000) : 0;
   lastTs = ts;
   fpsTick(ts);
-  if (!(state === "playing" && currentGame === "pvz") && bgVideo.style.display === "block") showBgVideo(false); // 離開往前衝就關背景影片
+  if (!(state === "playing" && currentGame === "pvz")) { runnerWantBg = false; if (bgVideo.style.display === "block") { bgVideo.style.display = "none"; try { bgVideo.pause(); } catch (e) {} } } // 離開往前衝就關背景影片
   if (audioCtx && audioCtx.state === "suspended") audioCtx.resume(); // iOS 切背景回來後恢復音效
   if (state === "boot") drawBoot();
   else if (state === "loading") drawLoading();
