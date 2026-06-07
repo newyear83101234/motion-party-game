@@ -1228,10 +1228,11 @@ function runnerSpawnEvent() {              // 生一個事件：殭屍 或 鏤�
   if (Math.random() < 0.32) {             // 看板
     runnerObjs.push({ type: "wall", worldX: 0, z: 1, pose: pickPose(), st: "approach", judgeT: 0, result: null });
     pvzTarget = runnerObjs[runnerObjs.length - 1].pose;
-  } else {                                 // 殭屍
+  } else {                                 // 殭屍：固定從左右兩側出現
     const lvl = Math.floor(elapsed / 18);
     const tough = lvl >= 1 && Math.random() < 0.3;
-    runnerObjs.push({ type: "zombie", worldX: (Math.random() - 0.5) * 1.0, z: 1, hp: tough ? 2 : 1, tough, dead: false, hitCd: 0, wobble: Math.random() * 6 });
+    const side = Math.random() < 0.5 ? -1 : 1;
+    runnerObjs.push({ type: "zombie", worldX: side * (0.4 + Math.random() * 0.25), side, z: 1, hp: tough ? 2 : 1, tough, dead: false, hitCd: 0, wobble: Math.random() * 6 });
   }
 }
 function runnerSpawnBuilding() {           // 路旁房子/樹（純佈景、製造速度感）
@@ -1260,23 +1261,31 @@ function updateRunner(dt) {
   runnerDist += runnerSpeed * dt;
   runnerStripe = (runnerStripe + runnerSpeed * dt) % 1; // 地面速度線流動
   // 生成
+  const wallOnScreen = runnerObjs.some((o) => o.type === "wall" && o.st !== "pass" && o.st !== "fail");
   runnerSpawnT -= dt;
-  if (runnerSpawnT <= 0) { runnerSpawnEvent(); runnerSpawnT = Math.max(1.0, 1.8 - elapsed * 0.02); }
-  // 路旁佈景由 lawn 背景本身提供（兩排房子），不再另畫方塊房子
+  if (runnerSpawnT <= 0 && !wallOnScreen) { runnerSpawnEvent(); runnerSpawnT = Math.max(1.0, 1.8 - elapsed * 0.02); } // 看板在場時暫停生成(降認知負荷)
+  runnerBuildT -= dt;
+  if (runnerBuildT <= 0) { // 左右各噴一棵樹掠過 → 前進感
+    const hue = 95 + Math.random() * 35;
+    runnerObjs.push({ type: "tree", worldX: -(0.62 + Math.random() * 0.5), z: 1, hue });
+    runnerObjs.push({ type: "tree", worldX: (0.62 + Math.random() * 0.5), z: 1, hue });
+    runnerBuildT = Math.max(0.18, 0.34 - elapsed * 0.004);
+  }
   // 移動 + 邏輯
   const HR = HAND_R();
   for (const o of runnerObjs) {
     o.z -= runnerSpeed * dt;
     if (o.type === "zombie") {
-      o.wobble += dt * 7; if (o.hitCd > 0) o.hitCd -= dt;
-      if (!o.dead && o.z < 0.32 && o.z > 0.02 && o.hitCd <= 0 && punchSpeed > shortSide() * 0.035) {
+      o.wobble += dt * 7; if (o.hitCd > 0) o.hitCd -= dt; if (o.knock) o.knock *= 0.88;
+      if (!o.dead && o.z < 0.34 && o.z > 0.02 && o.hitCd <= 0 && punchSpeed > shortSide() * 0.05) { // 門檻提高=要真的揮才算
         const pr = projRun(o.worldX, o.z);
-        const cr = Math.min(shortSide() * 0.12 * pr.scale * 0.7, shortSide() * 0.22);
+        const cr = Math.min(shortSide() * 0.14 * pr.scale, shortSide() * 0.24);
         for (const h of hands) {
-          if ((h.x - pr.x) ** 2 + (h.y - pr.y) ** 2 < (cr + HR * 0.6) ** 2) {
-            o.hp--; o.hitCd = 0.25;
-            if (o.hp <= 0) { o.dead = true; const pts = o.tough ? 2 : 1; score += pts; combo++; bestCombo = Math.max(bestCombo, combo); addFloat(pr.x, pr.y, "+" + pts, "#aef36b", shortSide() * 0.08); burst(pr.x, pr.y, "#7cb342", 16); if (!playSfxFile(sfxZombie)) beep(300, 0.12, "square", 0.3); }
-            else { burst(pr.x, pr.y, "#cddc39", 8); beep(360, 0.08, "square", 0.25); }
+          if ((h.x - pr.x) ** 2 + (h.y - pr.y) ** 2 < (cr + HR) ** 2) {
+            o.hp--; o.hitCd = 0.25; shake = Math.max(shake, 8);
+            burst(h.x, h.y, "#ffffff", 10);            // 拳頭打擊白閃
+            if (o.hp <= 0) { o.dead = true; const pts = o.tough ? 2 : 1; score += pts; combo++; bestCombo = Math.max(bestCombo, combo); addFloat(pr.x, pr.y, "+" + pts, "#aef36b", shortSide() * 0.09); burst(pr.x, pr.y, "#7cb342", 18); if (!playSfxFile(sfxZombie)) beep(300, 0.12, "square", 0.3); }
+            else { o.knock = (o.worldX < 0 ? -1 : 1) * 0.12; burst(pr.x, pr.y, "#cddc39", 10); beep(360, 0.08, "square", 0.25); } // 鐵桶第一下被打歪
             break;
           }
         }
@@ -1301,17 +1310,36 @@ function updateRunner(dt) {
   if (bombFx > 0) bombFx = Math.max(0, bombFx - dt * 1.6);
 }
 // ---- runner 繪製 ----
-function drawRunnerGround() {              // 地面 + 往前流動的速度線（疊在 lawn 背景的路面上）
+function drawRunnerGround() {              // 地面流動速度線（疊在 lawn 路面上、製造前進感）
   const vy = RUN_VP_Y();
+  const speedA = Math.min(1, runnerSpeed / 1.3);
   ctx.save();
-  ctx.strokeStyle = "rgba(255,255,255,0.16)"; ctx.lineWidth = Math.max(2, shortSide() * 0.006);
-  for (let i = 0; i < 8; i++) {
-    const z = ((i / 8 + runnerStripe) % 1);          // 0~1 流動
+  // 20 條橫向速度線（密+亮+隨速度增強）
+  ctx.lineWidth = Math.max(1.5, shortSide() * 0.004);
+  for (let i = 0; i < 20; i++) {
+    const z = ((i / 20 + runnerStripe) % 1);
     const p = projRun(0, z);
-    const halfW = (W * 0.5) * (1 - z) * 0.9;
-    ctx.globalAlpha = (1 - z) * 0.5;
+    const halfW = (W * 0.5) * (1 - z) * 0.92;
+    ctx.strokeStyle = `rgba(255,255,210,${(1 - z) * (0.28 + 0.5 * speedA)})`;
     ctx.beginPath(); ctx.moveTo(W / 2 - halfW, p.y); ctx.lineTo(W / 2 + halfW, p.y); ctx.stroke();
   }
+  // 左右兩條透視路邊線（往滅點收斂）
+  ctx.lineWidth = Math.max(2, shortSide() * 0.008);
+  ctx.strokeStyle = `rgba(255,255,170,${0.45 * speedA})`;
+  ctx.beginPath();
+  ctx.moveTo(W * 0.18, H); ctx.lineTo(W / 2, vy);
+  ctx.moveTo(W * 0.82, H); ctx.lineTo(W / 2, vy);
+  ctx.stroke();
+  ctx.restore();
+}
+function drawRunnerTree(o) {               // 路側樹（從滅點往兩側掠過、parallax 前進感）
+  const p = projRun(o.worldX, o.z);
+  const s = shortSide() * 0.5 * p.scale;
+  if (s < 4) return;
+  ctx.save(); ctx.globalAlpha = Math.min(1, (1 - o.z) * 1.8);
+  ctx.fillStyle = "#7a5230"; ctx.fillRect(p.x - s * 0.06, p.y - s * 0.5, s * 0.12, s * 0.5);        // 樹幹
+  ctx.fillStyle = `hsl(${o.hue},55%,42%)`; ctx.beginPath(); ctx.arc(p.x, p.y - s * 0.6, s * 0.34, 0, Math.PI * 2); ctx.fill(); // 樹冠
+  ctx.fillStyle = `hsl(${o.hue},55%,50%)`; ctx.beginPath(); ctx.arc(p.x - s * 0.12, p.y - s * 0.72, s * 0.2, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
 function drawRunnerBuilding(o) {
@@ -1323,37 +1351,79 @@ function drawRunnerBuilding(o) {
   ctx.restore();
 }
 function drawRunnerZombie(o) {
-  const p = projRun(o.worldX, o.z);
-  const w = shortSide() * 0.24 * p.scale, h = w * 1.25;
-  const inRange = o.z < 0.32 && o.z > 0.02;
+  const p = projRun(o.worldX + (o.knock || 0), o.z);
+  const w = shortSide() * 0.24 * p.scale;
+  const inRange = o.z < 0.34 && o.z > 0.02;
   ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Math.sin(o.wobble) * 0.06);
-  if (inRange) { ctx.shadowColor = "#ffe23a"; ctx.shadowBlur = shortSide() * 0.04; } // 可打擊：發光提示
+  if (inRange) { ctx.shadowColor = "#ffe23a"; ctx.shadowBlur = shortSide() * 0.05; } // 可打擊：發光提示
   const zimg = o.tough ? zombie2Img : zombieImg;
   if (imgReady(zimg)) { const asp = zimg.naturalHeight / zimg.naturalWidth; ctx.drawImage(zimg, -w / 2, -w * asp * 0.92, w, w * asp); }
-  else { ctx.fillStyle = "#6f8f3a"; ctx.beginPath(); ctx.arc(0, -h * 0.3, w * 0.5, 0, Math.PI * 2); ctx.fill(); }
+  else { ctx.fillStyle = "#6f8f3a"; ctx.beginPath(); ctx.arc(0, -w * 0.4, w * 0.5, 0, Math.PI * 2); ctx.fill(); }
   ctx.restore();
+  if (inRange) {                          // 揮拳提示（頭頂閃爍拳頭）
+    ctx.save();
+    ctx.globalAlpha = 0.55 + 0.45 * Math.sin(performance.now() / 150);
+    ctx.font = `${Math.max(shortSide() * 0.06, w * 0.5)}px sans-serif`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("👊", p.x, p.y - w * 0.9);
+    ctx.restore();
+  }
+}
+// 粗手臂（實心多邊形，給挖洞剪影用）
+function fillThickArm(c, x1, y1, x2, y2, thick) {
+  const ang = Math.atan2(y2 - y1, x2 - x1) + Math.PI / 2;
+  const dx = Math.cos(ang) * thick / 2, dy = Math.sin(ang) * thick / 2;
+  c.beginPath(); c.moveTo(x1 + dx, y1 + dy); c.lineTo(x2 + dx, y2 + dy); c.lineTo(x2 - dx, y2 - dy); c.lineTo(x1 - dx, y1 - dy); c.closePath(); c.fill();
+  c.beginPath(); c.arc(x2, y2, thick / 2, 0, Math.PI * 2); c.fill(); // 手端圓頭
+}
+// 實心人形剪影（填滿，給 destination-out 挖洞用）
+function fillPoseSilhouette(c, cx, cy, s, key) {
+  c.fillStyle = "#000";
+  const headR = s * 0.13, neckY = cy - s * 0.26, hipY = neckY + s * 0.46, shY = neckY + s * 0.05;
+  c.beginPath(); c.arc(cx, neckY - headR * 0.6, headR, 0, Math.PI * 2); c.fill();          // 頭
+  c.fillRect(cx - s * 0.12, neckY, s * 0.24, s * 0.48);                                      // 身體
+  const armW = s * 0.13, legW = s * 0.15;
+  const legSpread = key === "star" ? s * 0.26 : s * 0.1;
+  fillThickArm(c, cx, hipY, cx - legSpread, cy + s * 0.5, legW);                             // 腿
+  fillThickArm(c, cx, hipY, cx + legSpread, cy + s * 0.5, legW);
+  if (key === "handsup") { fillThickArm(c, cx, shY, cx - s * 0.18, neckY - headR * 2.2, armW); fillThickArm(c, cx, shY, cx + s * 0.18, neckY - headR * 2.2, armW); }
+  else if (key === "star") { fillThickArm(c, cx, shY, cx - s * 0.42, cy - s * 0.42, armW); fillThickArm(c, cx, shY, cx + s * 0.42, cy - s * 0.42, armW); }
+  else if (key === "tpose") { fillThickArm(c, cx, shY, cx - s * 0.46, shY, armW); fillThickArm(c, cx, shY, cx + s * 0.46, shY, armW); }
+  else if (key === "handshead") { fillThickArm(c, cx, shY, cx - s * 0.26, shY - s * 0.06, armW); fillThickArm(c, cx - s * 0.26, shY - s * 0.06, cx - s * 0.1, neckY - headR * 1.2, armW); fillThickArm(c, cx, shY, cx + s * 0.26, shY - s * 0.06, armW); fillThickArm(c, cx + s * 0.26, shY - s * 0.06, cx + s * 0.1, neckY - headR * 1.2, armW); }
+  else if (key === "armscross") { fillThickArm(c, cx, shY, cx + s * 0.2, hipY - s * 0.04, armW); fillThickArm(c, cx, shY, cx - s * 0.2, hipY - s * 0.04, armW); }
+  else if (key === "onehand") { fillThickArm(c, cx, shY, cx + s * 0.18, neckY - headR * 2.2, armW); fillThickArm(c, cx, shY, cx - s * 0.16, hipY - s * 0.02, armW); }
+}
+const _wallCache = {};
+function getWallCanvas(pose) {              // 預烤「中間挖空人形洞」的看板（每姿勢快取一次）
+  const key = pose + "_" + W + "x" + H;
+  if (_wallCache[key]) return _wallCache[key];
+  const bw = Math.max(2, Math.round(W * 1.1)), bh = Math.max(2, Math.round(H * 0.95));
+  const oc = document.createElement("canvas"); oc.width = bw; oc.height = bh;
+  const c = oc.getContext("2d");
+  c.fillStyle = "#b8402f"; c.fillRect(0, 0, bw, bh);                                          // 紅木牌面
+  c.fillStyle = "#8f2e20"; c.fillRect(0, 0, bw, bh * 0.06); c.fillRect(0, bh * 0.94, bw, bh * 0.06); // 上下橫木
+  c.lineWidth = bw * 0.025; c.strokeStyle = "#ffd56b"; c.strokeRect(c.lineWidth, c.lineWidth, bw - c.lineWidth * 2, bh - c.lineWidth * 2); // 金邊
+  c.globalCompositeOperation = "destination-out";                                             // 挖洞
+  fillPoseSilhouette(c, bw / 2, bh / 2, Math.min(bw, bh) * 0.6, pose);
+  c.globalCompositeOperation = "source-over";
+  _wallCache[key] = oc; return oc;
 }
 function drawRunnerWall(o) {
-  const p = projRun(0, o.z);
-  const s = p.scale;
-  const wallW = W * 1.1 * s, wallH = H * 0.95 * s, cx = W / 2, cy = RUN_VP_Y() + (H - RUN_VP_Y()) * (1 - o.z) - wallH * 0.5;
+  const s = 1 - o.z;
+  const wallW = W * 1.1 * s, wallH = H * 0.95 * s;
+  if (wallW < 8) return;
+  const cx = W / 2, cy = RUN_VP_Y() + (H - RUN_VP_Y()) * (1 - o.z) - wallH * 0.5;
   const matching = o.st === "judge" && anyPoseMatch(o.pose);
+  const oc = getWallCanvas(o.pose);
   ctx.save();
-  ctx.globalAlpha = o.st === "pass" ? Math.max(0, 0.8 - (0.04 - Math.min(0.04, o.z)) * 10) : 0.82;
-  // 牆面（做對變綠、判定中黃、平常紅）
-  ctx.fillStyle = o.st === "pass" || matching ? "rgba(80,180,60,0.85)" : o.st === "fail" ? "rgba(120,120,120,0.85)" : "rgba(200,60,50,0.8)";
-  roundRectFill(cx - wallW / 2, cy - wallH / 2, wallW, wallH, wallW * 0.04);
-  ctx.strokeStyle = "#fff"; ctx.lineWidth = wallW * 0.012; roundRectPath(cx - wallW / 2, cy - wallH / 2, wallW, wallH, wallW * 0.04); ctx.stroke();
-  // 中間人形洞（用公主示範圖）
-  const pimg = poseImgs[o.pose];
-  const ph = wallH * 0.7, pw = ph * 0.62;
-  if (imgReady(pimg)) { const asp = pimg.naturalHeight / pimg.naturalWidth; let dh = ph, dw = dh / asp; ctx.globalAlpha *= 1; ctx.drawImage(pimg, cx - dw / 2, cy - dh / 2, dw, dh); }
-  else drawPoseFigure(cx, cy, ph, o.pose, "#fff");
+  ctx.globalAlpha = o.st === "pass" ? Math.max(0, o.z * 16) : 0.92;                            // 穿過後淡出
+  ctx.filter = (matching || o.st === "pass") ? "hue-rotate(120deg) saturate(1.5)" : o.st === "fail" ? "grayscale(0.85)" : "none"; // 做對變綠(舊iOS不支援filter→維持紅,仍可玩)
+  ctx.drawImage(oc, cx - wallW / 2, cy - wallH / 2, wallW, wallH);
   ctx.restore();
 }
 function drawRunnerHint() {                // 看板還遠時、上方先提示「等下要擺的姿勢」
   let nextWall = null;
-  for (const o of runnerObjs) if (o.type === "wall" && o.z > 0.4 && (!nextWall || o.z < nextWall.z)) nextWall = o;
+  for (const o of runnerObjs) if (o.type === "wall" && (o.st === "approach" || o.st === "judge") && (!nextWall || o.z < nextWall.z)) nextWall = o;
   if (!nextWall) return;
   const pimg = poseImgs[nextWall.pose];
   const s = shortSide() * 0.16, x = W / 2 - s / 2, y = H * 0.04;
@@ -1377,11 +1447,12 @@ function drawRunnerPlaying() {
   if (imgReady(lawnImg)) drawBgCover(lawnImg); else drawPvzLawnFallback(); // lawn 本身就是往前的路景
   drawRunnerGround();
   for (const o of runnerObjs) {            // 已依 z 由遠到近排序
-    if (o.type === "build") drawRunnerBuilding(o);
+    if (o.type === "tree") drawRunnerTree(o);
     else if (o.type === "zombie") drawRunnerZombie(o);
     else if (o.type === "wall") drawRunnerWall(o);
   }
   drawParticles();
+  drawHands();                             // 玩家拳頭（發光拳，看得到打到哪）
   drawFloatTexts();
   ctx.restore();
   drawBombFx();
