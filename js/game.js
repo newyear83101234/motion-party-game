@@ -55,8 +55,10 @@ const comboBgImg = new Image(); comboBgImg.src = "IMAGE/sprites/combo_bg.png"; /
 const gameoverImg = new Image(); gameoverImg.src = "IMAGE/gameover_bg.png";    // 結束畫面背景
 const lawnImg = new Image(); lawnImg.src = "IMAGE/lawn.png";                  // 草坪背景（植物大戰殭屍）
 const runnerFirstImg = new Image(); runnerFirstImg.src = "IMAGE/runner_bg_first.png"; // 影片第一幀（影片還沒播時當墊檔、街景一致）
-const zombieImg = new Image(); zombieImg.src = "IMAGE/sprites/zombie.png";    // 殭屍
+const zombieImg = new Image(); zombieImg.src = "IMAGE/sprites/zombie.png";    // 殭屍（走路第1格）
+const zombieImgB = new Image(); zombieImgB.src = "IMAGE/sprites/zombie_b.png"; // 殭屍走路第2格（有放才會走動、沒放自動沿用第1格）
 const zombie2Img = new Image(); zombie2Img.src = "IMAGE/sprites/zombie2.png"; // 鐵桶殭屍（耐打、高分）
+const zombie2ImgB = new Image(); zombie2ImgB.src = "IMAGE/sprites/zombie2_b.png"; // 鐵桶殭屍走路第2格
 const houseImg = new Image(); houseImg.src = "IMAGE/sprites/house.png";       // 向日葵/豌豆射手陣地（要守的家）
 const poseImgs = {}; // 6 張公主姿勢示範圖（姿勢卡用）
 for (const k of ["handsup", "star", "tpose", "handshead", "armscross", "onehand"]) { const im = new Image(); im.src = "IMAGE/sprites/pose_" + k + ".png"; poseImgs[k] = im; }
@@ -712,16 +714,17 @@ function drawHUD() {
   const gap = fs * 0.52;
   ctx.textAlign = "center"; ctx.font = `${fs}px sans-serif`;
   for (let i = 0; i < lives; i++) ctx.fillText("❤️", W - pad - fs * 0.5 - i * gap, pad + fs * 0.65);
-  // Combo（描邊，移高避開怪物路徑）
+  // Combo（描邊，移高避開怪物路徑；runner 模式下移避開頂部中央的姿勢提示圖）
   if (combo >= 2) {
+    const comboY = currentGame === "pvz" ? H * 0.21 : H * 0.09;
     const big = shortSide() * (0.11 + Math.min(combo, 30) * 0.004);
     if (imgReady(comboBgImg)) {
       const bw = big * 3.6, bh = bw * comboBgImg.naturalHeight / comboBgImg.naturalWidth;
-      ctx.drawImage(comboBgImg, W / 2 - bw / 2, H * 0.09 - bh / 2, bw, bh);
+      ctx.drawImage(comboBgImg, W / 2 - bw / 2, comboY - bh / 2, bw, bh);
     }
     ctx.font = `bold ${big}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.lineWidth = big * 0.08; ctx.strokeStyle = "rgba(0,0,0,0.6)"; ctx.strokeText("✕" + combo, W / 2, H * 0.09);
-    ctx.fillStyle = "#fff"; ctx.fillText("✕" + combo, W / 2, H * 0.09);
+    ctx.lineWidth = big * 0.08; ctx.strokeStyle = "rgba(0,0,0,0.6)"; ctx.strokeText("✕" + combo, W / 2, comboY);
+    ctx.fillStyle = "#fff"; ctx.fillText("✕" + combo, W / 2, comboY);
   }
   // 靜音鈕（左下）
   const r = shortSide() * 0.06, cx = pad + r, cy = H - pad - r;
@@ -1260,15 +1263,32 @@ function projRun(worldX, z) {
 }
 const RUN_GOAL = 30;                       // 通關分數（打殭屍+1、穿看板+3）
 const ZOMBIE_Z_SPEED = 0.17;              // 殭屍/看板逼近速度（放很慢=慢慢變大走過來）
-function runnerSpawnEvent() {              // 生一個事件：殭屍 或 鏤空看板
+const ZOMBIE_FAST_SPEED = 0.30;           // 快速殭屍逼近速度（要提早打）
+const WARN_DUR = 0.7;                       // 殭屍出現前的「預告」秒數（地面警示先閃→才走出來）
+function makeZombieSpec() {                 // 決定一隻殭屍的種類（隨關卡進度解鎖）
+  const lvl = Math.floor(elapsed / 18);
+  if (lvl >= 2 && Math.random() < 0.26) return { kind: "fast", hp: 1, zspd: ZOMBIE_FAST_SPEED };   // 快速殭屍
+  if (lvl >= 1 && Math.random() < 0.30) return { kind: "tough", hp: 2, zspd: ZOMBIE_Z_SPEED };     // 鐵桶殭屍
+  return { kind: "normal", hp: 1, zspd: ZOMBIE_Z_SPEED };                                            // 普通殭屍
+}
+function runnerSpawnEvent() {              // 生一個事件：殭屍(可能成群) 或 鏤空看板
   if (Math.random() < 0.32) {             // 看板
     runnerObjs.push({ type: "wall", worldX: 0, z: 1.3, pose: pickPose(), st: "approach", judgeT: 0, result: null });
     pvzTarget = runnerObjs[runnerObjs.length - 1].pose;
-  } else {                                 // 殭屍：固定從左右兩側出現
-    const lvl = Math.floor(elapsed / 18);
-    const tough = lvl >= 1 && Math.random() < 0.3;
-    const side = Math.random() < 0.5 ? -1 : 1;
-    runnerObjs.push({ type: "zombie", worldX: side * (0.1 + Math.random() * 0.14), side, z: 1.4, hp: tough ? 2 : 1, tough, dead: false, hitCd: 0, wobble: Math.random() * 6, stepPhase: Math.random() * Math.PI * 2 }); // 貼馬路(±0.1~0.24)、由滅點走近
+    return;
+  }
+  // 殭屍：依關卡決定成群數量（1~3 隻），每隻先放「預告」標記、WARN_DUR 秒後才走出來
+  const lvl = Math.floor(elapsed / 18);
+  let n = 1;
+  if (lvl >= 3 && Math.random() < 0.22) n = 3;
+  else if (lvl >= 1 && Math.random() < 0.38) n = 2;
+  let spread;
+  if (n === 1) { const s = Math.random() < 0.5 ? -1 : 1; spread = [s * (0.1 + Math.random() * 0.14)]; }
+  else if (n === 2) spread = [-0.16, 0.16];
+  else spread = [-0.2, 0, 0.2];
+  for (let i = 0; i < n; i++) {
+    const wx = spread[i] + (Math.random() - 0.5) * 0.05;
+    runnerObjs.push({ type: "warn", worldX: wx, z: 0.92, t: WARN_DUR + i * 0.16, spec: makeZombieSpec() }); // 預告(在地平線附近閃)、錯開抵達時間
   }
 }
 function runnerSpawnBuilding() {           // 路旁房子/樹（純佈景、製造速度感）
@@ -1310,13 +1330,14 @@ function updateRunner(dt) {
   // 移動 + 邏輯
   const HR = HAND_R();
   for (const o of runnerObjs) {
-    o.z -= (o.type === "zombie" || o.type === "wall" ? ZOMBIE_Z_SPEED : runnerSpeed) * dt; // 殭屍/看板慢慢逼近、樹快速掠過
+    if (o.type === "warn") { o.t -= dt; continue; }                    // 預告標記不移動、只倒數
+    o.z -= (o.type === "zombie" ? (o.zspd || ZOMBIE_Z_SPEED) : o.type === "wall" ? ZOMBIE_Z_SPEED * (o.z < 0.3 ? 2.4 : 1) : runnerSpeed) * dt; // 殭屍各自速度(快速殭屍更快)、看板靠近時加速衝過(穿過去感)、樹快掠過
     if (o.type === "zombie") {
       if (o.dead) { o.deadAlpha = (o.deadAlpha != null ? o.deadAlpha : 1) - dt * 3; o.deadScale = (o.deadScale || 1) + dt * 1.6; o.wobble += dt * 12; continue; } // 打爆動畫：放大+旋轉+淡出
       o.wobble += dt * 7; if (o.hitCd > 0) o.hitCd -= dt; if (o.knock) o.knock *= 0.88;
       if (!o.dead && o.z < 0.55 && o.z > 0.02 && o.hitCd <= 0 && punchSpeed > shortSide() * 0.05) { // 可打範圍加寬(更早能打)
         const pr = projRun(o.worldX, o.z);
-        const cr = Math.min(shortSide() * 0.14 * pr.scale, shortSide() * 0.24);
+        const cr = Math.min(shortSide() * 0.16 * pr.scale, shortSide() * 0.26);
         for (const h of hands) {
           if ((h.x - pr.x) ** 2 + (h.y - pr.y) ** 2 < (cr + HR) ** 2) {
             o.hp--; o.hitCd = 0.25; shake = Math.max(shake, 8);
@@ -1329,7 +1350,7 @@ function updateRunner(dt) {
       }
       if (!o.dead && o.z <= 0.02) { o.dead = true; o.deadAlpha = 1; o.deadScale = 1; lives--; combo = 0; shake = 22; bombFx = 0.9; if (!playSfxFile(sfxHurt)) sndBomb(); if (lives <= 0) { gameOverPending = true; bombFx = 1.3; } } // 撞到玩家
     } else if (o.type === "wall") {
-      if (o.st === "approach" && o.z < 0.45) { o.st = "judge"; o.judgeT = 2.2; } // 更早開判定窗、給足反應時間
+      if (o.st === "approach" && o.z < 0.6) { o.st = "judge"; o.judgeT = 2.4; } // 提早開判定窗(補償靠近加速)、給足反應時間
       if (o.st === "judge") {
         o.judgeT -= dt;
         if (anyPoseMatch(o.pose)) { o.st = "pass"; score += 3; const pr = projRun(0, o.z); addFloat(W / 2, pr.y, "+3", "#aef36b", shortSide() * 0.1); burst(W / 2, pr.y, "#aef36b", 20); if (!playSfxFile(sfxCorrect)) beep(880, 0.1, "triangle", 0.3); }
@@ -1337,7 +1358,14 @@ function updateRunner(dt) {
       }
     }
   }
-  runnerObjs = runnerObjs.filter((o) => o.z > -0.06 && !(o.type === "zombie" && o.dead && o.deadAlpha <= 0)); // 死亡動畫播完才移除
+  for (const o of runnerObjs) {                                       // 預告倒數到 → 從同一位置走出殭屍
+    if (o.type === "warn" && o.t <= 0) {
+      const sp = o.spec;
+      runnerObjs.push({ type: "zombie", worldX: o.worldX, side: o.worldX < 0 ? -1 : 1, z: 0.98, hp: sp.hp, tough: sp.kind === "tough", fast: sp.kind === "fast", zspd: sp.zspd, dead: false, hitCd: 0, wobble: Math.random() * 6, stepPhase: Math.random() * Math.PI * 2 });
+      o._done = true;
+    }
+  }
+  runnerObjs = runnerObjs.filter((o) => !(o.type === "warn" && o._done) && o.z > -0.06 && !(o.type === "zombie" && o.dead && o.deadAlpha <= 0)); // 預告轉殭屍後移除、死亡動畫播完才移除
   runnerObjs.sort((a, b) => b.z - a.z); // 遠的先畫
   if (score >= RUN_GOAL) { commitBest(); if (!playSfxFile(pvzWinSfx)) sndVictory(); state = "win"; return; }
   for (const p of particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 600 * dt; p.life -= dt * 1.6; }
@@ -1387,31 +1415,61 @@ function drawRunnerBuilding(o) {
   ctx.fillStyle = `hsl(${o.hue},45%,42%)`; ctx.fillRect(p.x - w / 2, p.y - h, w, h * 0.18); // 屋頂帶
   ctx.restore();
 }
+const ZOMBIE_W = 0.30;                      // 殭屍基準寬度(佔短邊比例)、放大讓存在感更強
+function pickZombieFrame(o) {               // 2格走路動畫：依走路相位切換(第2格沒放圖就一直用第1格)
+  const a = o.tough ? zombie2Img : zombieImg;
+  const b = o.tough ? zombie2ImgB : zombieImgB;
+  if (!imgReady(b)) return a;
+  return Math.sin(o.wobble * 0.5 + (o.stepPhase || 0)) >= 0 ? a : b; // 與上下 bob 同相位、腳步對得上
+}
+function drawRunnerWarn(o) {                // 殭屍出現前的地面預告（黃=普通/鐵桶、紅=快速）
+  const p = projRun(o.worldX, o.z);
+  if (!p.visible) return;
+  const fast = o.spec.kind === "fast";
+  const col = fast ? "#ff3a28" : "#ffce00";
+  const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 110);
+  const s = shortSide() * 0.06;
+  ctx.save();
+  ctx.globalAlpha = 0.25 + 0.45 * pulse;    // 地面警示橢圓（殭屍即將出現處）
+  ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(p.x, p.y, s * 1.2, s * 0.45, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.globalAlpha = 0.9;                     // 警告三角(手繪、不靠 emoji、跳動)
+  ctx.translate(p.x, p.y - s * 1.7 - pulse * s * 0.5);
+  ctx.beginPath(); ctx.moveTo(0, -s * 0.72); ctx.lineTo(s * 0.62, s * 0.5); ctx.lineTo(-s * 0.62, s * 0.5); ctx.closePath();
+  ctx.fillStyle = col; ctx.fill(); ctx.lineWidth = Math.max(2, s * 0.1); ctx.strokeStyle = "#222"; ctx.stroke();
+  ctx.fillStyle = "#222"; ctx.fillRect(-s * 0.07, -s * 0.32, s * 0.14, s * 0.5); ctx.beginPath(); ctx.arc(0, s * 0.34, s * 0.1, 0, Math.PI * 2); ctx.fill(); // 驚嘆號
+  ctx.restore();
+}
 function drawRunnerZombie(o) {
   const p = projRun(o.worldX + (o.knock || 0), o.z);
   if (!p.visible) return;                   // 還在地平線外（剛生成、很遠）先不畫
-  const zimg = o.tough ? zombie2Img : zombieImg;
+  const zimg = pickZombieFrame(o);          // 2格走路動畫
   const asp = imgReady(zimg) ? zimg.naturalHeight / zimg.naturalWidth : 1.2;
+  const fast = !!o.fast;
   // 打爆動畫：放大+旋轉+淡出
   if (o.dead) {
-    const w = shortSide() * 0.24 * p.scale * (o.deadScale || 1);
+    const w = shortSide() * ZOMBIE_W * p.scale * (o.deadScale || 1);
     ctx.save(); ctx.globalAlpha = Math.max(0, o.deadAlpha != null ? o.deadAlpha : 1);
     ctx.translate(p.x, p.y); ctx.rotate(o.wobble * 0.15);
     if (imgReady(zimg)) ctx.drawImage(zimg, -w / 2, -w * asp * 0.92, w, w * asp);
     ctx.restore(); return;
   }
-  const w = shortSide() * 0.24 * p.scale;
+  const w = shortSide() * ZOMBIE_W * p.scale;
   const inRange = o.z < 0.55 && o.z > 0.02;
   const bob = Math.sin(o.wobble * 0.5 + (o.stepPhase || 0)) * w * 0.07; // 上下走路擺動
   ctx.save(); ctx.translate(p.x, p.y);
   ctx.fillStyle = "rgba(0,0,0,0.2)"; ctx.beginPath(); ctx.ellipse(0, 0, w * 0.34, w * 0.12, 0, 0, Math.PI * 2); ctx.fill(); // 腳下陰影(留在地面、不跟著bob)
   ctx.translate(0, bob);                    // bobbing
   ctx.rotate(Math.sin(o.wobble) * 0.06);
+  if (fast) {                               // 快速殭屍：紅色脈動光暈(警示「快、要提早打」)
+    ctx.save(); ctx.globalAlpha = 0.3 + 0.25 * Math.sin(performance.now() / 80);
+    ctx.fillStyle = "#ff3320"; ctx.beginPath(); ctx.ellipse(0, -w * asp * 0.42, w * 0.46, w * asp * 0.52, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
   if (imgReady(zimg)) ctx.drawImage(zimg, -w / 2, -w * asp * 0.92, w, w * asp);
   else { ctx.fillStyle = "#6f8f3a"; ctx.beginPath(); ctx.arc(0, -w * 0.4, w * 0.5, 0, Math.PI * 2); ctx.fill(); }
-  if (inRange) {                            // 可打擊：黃色方框(取代shadowBlur,iOS相容)
+  if (inRange) {                            // 可打擊：方框(快速=紅、其他=黃；取代shadowBlur,iOS相容)
     const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 180);
-    ctx.strokeStyle = `rgba(255,220,0,${0.55 + pulse * 0.45})`; ctx.lineWidth = Math.max(2, w * 0.06);
+    ctx.strokeStyle = fast ? `rgba(255,70,40,${0.6 + pulse * 0.4})` : `rgba(255,220,0,${0.55 + pulse * 0.45})`; ctx.lineWidth = Math.max(2, w * 0.06);
     ctx.strokeRect(-w / 2, -w * asp * 0.92, w, w * asp);
   }
   ctx.restore();
@@ -1420,7 +1478,7 @@ function drawRunnerZombie(o) {
     ctx.font = `bold ${Math.max(shortSide() * 0.06, w * 0.55)}px sans-serif`;
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.lineWidth = Math.max(3, w * 0.06); ctx.strokeStyle = "#333"; ctx.strokeText("▼", p.x, ay);
-    ctx.fillStyle = "#ffdd00"; ctx.fillText("▼", p.x, ay);
+    ctx.fillStyle = fast ? "#ff5030" : "#ffdd00"; ctx.fillText("▼", p.x, ay);
   }
 }
 // 粗手臂（實心多邊形，給挖洞剪影用）
@@ -1464,14 +1522,14 @@ function getWallCanvas(pose) {              // 預烤「中間挖空人形洞」
 function drawRunnerWall(o) {
   if (o.z >= 1) return;                      // 還在地平線外先不畫
   const s = 1 - o.z;
-  const wallH = Math.min(H * 0.9, shortSide() * 1.4 * s), wallW = wallH * 0.76; // 固定直式比例、不超出畫面
+  const wallH = Math.min(H * 1.8, shortSide() * 1.6 * s), wallW = wallH * 0.76; // 靠近時長大到超過螢幕→人形洞罩住鏡頭=穿過去感
   if (wallW < 8) return;
   const cx = W / 2, cy = RUN_VP_Y() + (H - RUN_VP_Y()) * (1 - o.z) - wallH * 0.5;
   const matching = o.st === "judge" && anyPoseMatch(o.pose);
   const oc = getWallCanvas(o.pose);
   ctx.save();
   const fadeIn = Math.min(1, (1 - o.z) * 3);                                                   // 遠時半透明漸入、近時實心（減少突兀違和）
-  ctx.globalAlpha = o.st === "pass" ? Math.max(0, o.z * 16) : 0.92 * fadeIn;
+  ctx.globalAlpha = 0.92 * fadeIn;                                                             // 做對也保持實體、長大綠色衝過再離場(穿過去)，不在原地淡掉
   ctx.filter = (matching || o.st === "pass") ? "hue-rotate(120deg) saturate(1.5)" : o.st === "fail" ? "grayscale(0.85)" : "none"; // 做對變綠(舊iOS不支援filter→維持紅,仍可玩)
   ctx.drawImage(oc, cx - wallW / 2, cy - wallH / 2, wallW, wallH);
   ctx.restore();
@@ -1508,6 +1566,7 @@ function drawRunnerPlaying() {
   if (!useVid) drawRunnerGround();         // 影片自帶前進感；靜態墊檔時畫速度線補動感
   for (const o of runnerObjs) {            // 已依 z 由遠到近排序
     if (o.type === "tree") { if (!streetBg) drawRunnerTree(o); } // 街景背景不畫程式樹(會跟街景打架)
+    else if (o.type === "warn") drawRunnerWarn(o);   // 殭屍出現前的地面預告
     else if (o.type === "zombie") drawRunnerZombie(o);
     else if (o.type === "wall") drawRunnerWall(o);
   }
@@ -1536,6 +1595,7 @@ function loop(ts) {
   lastTs = ts;
   fpsTick(ts);
   if (!(state === "playing" && currentGame === "pvz")) { runnerWantBg = false; if (bgVideo.style.display === "block") { bgVideo.style.display = "none"; try { bgVideo.pause(); } catch (e) {} } } // 離開往前衝就關背景影片
+  if ((state === "win" || state === "gameover") && activeBgm) { for (const t of ALL_BGM) { try { t.pause(); } catch (e) {} } activeBgm = null; } // 結算畫面停掉所有 BGM：victory 音效不被遊戲 BGM 疊著重複播
   if (audioCtx && audioCtx.state === "suspended") audioCtx.resume(); // iOS 切背景回來後恢復音效
   if (state === "boot") drawBoot();
   else if (state === "loading") drawLoading();
