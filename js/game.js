@@ -1268,7 +1268,7 @@ function runnerSpawnEvent() {              // 生一個事件：殭屍 或 鏤�
     const lvl = Math.floor(elapsed / 18);
     const tough = lvl >= 1 && Math.random() < 0.3;
     const side = Math.random() < 0.5 ? -1 : 1;
-    runnerObjs.push({ type: "zombie", worldX: side * (0.4 + Math.random() * 0.25), side, z: 1.4, hp: tough ? 2 : 1, tough, dead: false, hitCd: 0, wobble: Math.random() * 6 });
+    runnerObjs.push({ type: "zombie", worldX: side * (0.1 + Math.random() * 0.14), side, z: 1.4, hp: tough ? 2 : 1, tough, dead: false, hitCd: 0, wobble: Math.random() * 6 }); // 貼馬路(±0.1~0.24)、由滅點走近
   }
 }
 function runnerSpawnBuilding() {           // 路旁房子/樹（純佈景、製造速度感）
@@ -1391,7 +1391,9 @@ function drawRunnerZombie(o) {
   if (!p.visible) return;                   // 還在地平線外（剛生成、很遠）先不畫
   const w = shortSide() * 0.24 * p.scale;
   const inRange = o.z < 0.55 && o.z > 0.02;
-  ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Math.sin(o.wobble) * 0.06);
+  ctx.save(); ctx.translate(p.x, p.y);
+  ctx.fillStyle = "rgba(0,0,0,0.18)"; ctx.beginPath(); ctx.ellipse(0, 0, w * 0.34, w * 0.12, 0, 0, Math.PI * 2); ctx.fill(); // 腳下落地陰影(不漂浮)
+  ctx.rotate(Math.sin(o.wobble) * 0.06);
   if (inRange) { ctx.shadowColor = "#ffe23a"; ctx.shadowBlur = shortSide() * 0.05; } // 可打擊：發光提示
   const zimg = o.tough ? zombie2Img : zombieImg;
   if (imgReady(zimg)) { const asp = zimg.naturalHeight / zimg.naturalWidth; ctx.drawImage(zimg, -w / 2, -w * asp * 0.92, w, w * asp); }
