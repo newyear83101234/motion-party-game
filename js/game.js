@@ -79,6 +79,29 @@ const pvzWinSfx = new Audio("MUSIC/victory_pvz.mp3"); pvzWinSfx.volume = 0.85; p
 const sfxCorrect = new Audio("MUSIC/sfx_correct.mp3"); sfxCorrect.volume = 0.7; sfxCorrect.preload = "auto"; // 姿勢做對/射豌豆
 const sfxZombie = new Audio("MUSIC/sfx_zombie.mp3"); sfxZombie.volume = 0.8; sfxZombie.preload = "auto"; // 殭屍倒下
 const sfxHurt = new Audio("MUSIC/sfx_hurt.mp3"); sfxHurt.volume = 0.85; sfxHurt.preload = "auto"; // 被攻進扣命
+// 往前衝背景影片（Seedance 第一人稱街景循環）：用 CSS 墊在透明 canvas 後面、走硬體解碼最省效能
+const bgVideo = document.createElement("video");
+bgVideo.src = "VIDEO/runner_bg.mp4"; bgVideo.loop = true; bgVideo.muted = true; bgVideo.preload = "auto";
+bgVideo.playsInline = true; bgVideo.setAttribute("playsinline", ""); bgVideo.setAttribute("webkit-playsinline", "");
+bgVideo.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1;display:none";
+document.body.appendChild(bgVideo);
+let runnerBgOn = false, runnerBgDegraded = false; // 是否用影片背景 / 是否因效能降級
+function showBgVideo(on) {
+  if (on && bgVideo.readyState >= 2 && !runnerBgDegraded) { bgVideo.style.display = "block"; bgVideo.play().catch(() => {}); runnerBgOn = true; }
+  else { bgVideo.style.display = "none"; try { bgVideo.pause(); } catch (e) {} runnerBgOn = false; }
+}
+// FPS 監控：runner 用影片背景時若連續太卡 → 自動降級回靜態背景
+let _fpsFrames = 0, _fpsLast = 0, _fpsLow = 0;
+function fpsTick(ts) {
+  _fpsFrames++;
+  if (!_fpsLast) { _fpsLast = ts; return; }
+  if (ts - _fpsLast >= 1000) {
+    const fps = _fpsFrames * 1000 / (ts - _fpsLast); _fpsFrames = 0; _fpsLast = ts;
+    if (state === "playing" && currentGame === "pvz" && runnerBgOn) {
+      if (fps < 22) { _fpsLow++; if (_fpsLow >= 2) { runnerBgDegraded = true; showBgVideo(false); } } else _fpsLow = 0;
+    }
+  }
+}
 let muted = false;
 const ALL_BGM = [bgmTheme, bgmMenu, bgmDodge, bgmPvz];
 function playBgmTrack(a) { // 切換 BGM：先暫停「所有其他首」（根治解鎖時脫稿播放的殘留），再播這首
@@ -280,7 +303,7 @@ function resetPvz() { // 往前衝 runner 的重設
   prevHands = []; punchSpeed = 0; poseFrame = 0; runnerStripe = 0; pvzTarget = null;
   elapsed = 0;
 }
-function startPvz() { currentGame = "pvz"; resetPvz(); playBgmTrack(bgmPvz); state = "playing"; }
+function startPvz() { currentGame = "pvz"; resetPvz(); playBgmTrack(bgmPvz); _fpsLow = 0; showBgVideo(true); state = "playing"; }
 function pickGame(g) { if (g === "dodge") startDodge(); else if (g === "pvz") startPvz(); else startWhack(); }
 function togglePlayerMode() {
   playerMode = playerMode === "duo" ? "solo" : "duo";
@@ -445,7 +468,8 @@ function drawCameraMirrored() {
 // ---- 背景替換：城市 + 把人摳出來疊上去 ----
 let _personCv = null, _personCx = null, _maskCv = null, _maskCx = null, _maskImg = null, _maskTick = 0;
 function drawBgCover(img) {
-  const iw = img.naturalWidth, ih = img.naturalHeight;
+  const iw = img.videoWidth || img.naturalWidth, ih = img.videoHeight || img.naturalHeight;
+  if (!iw || !ih) return;
   const s = Math.max(W / iw, H / ih), dw = iw * s, dh = ih * s; // cover 填滿
   ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
 }
@@ -1218,21 +1242,23 @@ function drawPvzPlaying() {
 // 偽3D投影：worldX(-1~1 左右)、z(0=貼臉 ~ 1=遠方滅點) → 螢幕座標 + scale
 const RUN_VP_Y = () => H * 0.34;          // 地平線/滅點 Y
 function projRun(worldX, z) {
-  const scale = Math.max(0.0001, 1 - z);
+  const cz = Math.min(z, 0.999);           // z>1（地平線外）夾住、不畫
+  const scale = Math.max(0.0001, 1 - cz);
   const x = W / 2 + worldX * W * 0.62 * scale;
-  const y = RUN_VP_Y() + (H - RUN_VP_Y()) * (1 - z);
-  return { x, y, scale };
+  const y = RUN_VP_Y() + (H - RUN_VP_Y()) * (1 - cz);
+  return { x, y, scale, visible: z < 1.0 };
 }
 const RUN_GOAL = 30;                       // 通關分數（打殭屍+1、穿看板+3）
+const ZOMBIE_Z_SPEED = 0.32;              // 殭屍/看板逼近速度（固定、比背景慢=慢慢變大走過來）
 function runnerSpawnEvent() {              // 生一個事件：殭屍 或 鏤空看板
   if (Math.random() < 0.32) {             // 看板
-    runnerObjs.push({ type: "wall", worldX: 0, z: 1, pose: pickPose(), st: "approach", judgeT: 0, result: null });
+    runnerObjs.push({ type: "wall", worldX: 0, z: 1.3, pose: pickPose(), st: "approach", judgeT: 0, result: null });
     pvzTarget = runnerObjs[runnerObjs.length - 1].pose;
   } else {                                 // 殭屍：固定從左右兩側出現
     const lvl = Math.floor(elapsed / 18);
     const tough = lvl >= 1 && Math.random() < 0.3;
     const side = Math.random() < 0.5 ? -1 : 1;
-    runnerObjs.push({ type: "zombie", worldX: side * (0.4 + Math.random() * 0.25), side, z: 1, hp: tough ? 2 : 1, tough, dead: false, hitCd: 0, wobble: Math.random() * 6 });
+    runnerObjs.push({ type: "zombie", worldX: side * (0.4 + Math.random() * 0.25), side, z: 1.4, hp: tough ? 2 : 1, tough, dead: false, hitCd: 0, wobble: Math.random() * 6 });
   }
 }
 function runnerSpawnBuilding() {           // 路旁房子/樹（純佈景、製造速度感）
@@ -1274,10 +1300,10 @@ function updateRunner(dt) {
   // 移動 + 邏輯
   const HR = HAND_R();
   for (const o of runnerObjs) {
-    o.z -= runnerSpeed * dt;
+    o.z -= (o.type === "zombie" || o.type === "wall" ? ZOMBIE_Z_SPEED : runnerSpeed) * dt; // 殭屍/看板慢慢逼近、樹快速掠過
     if (o.type === "zombie") {
       o.wobble += dt * 7; if (o.hitCd > 0) o.hitCd -= dt; if (o.knock) o.knock *= 0.88;
-      if (!o.dead && o.z < 0.34 && o.z > 0.02 && o.hitCd <= 0 && punchSpeed > shortSide() * 0.05) { // 門檻提高=要真的揮才算
+      if (!o.dead && o.z < 0.55 && o.z > 0.02 && o.hitCd <= 0 && punchSpeed > shortSide() * 0.05) { // 可打範圍加寬(更早能打)
         const pr = projRun(o.worldX, o.z);
         const cr = Math.min(shortSide() * 0.14 * pr.scale, shortSide() * 0.24);
         for (const h of hands) {
@@ -1352,8 +1378,9 @@ function drawRunnerBuilding(o) {
 }
 function drawRunnerZombie(o) {
   const p = projRun(o.worldX + (o.knock || 0), o.z);
+  if (!p.visible) return;                   // 還在地平線外（剛生成、很遠）先不畫
   const w = shortSide() * 0.24 * p.scale;
-  const inRange = o.z < 0.34 && o.z > 0.02;
+  const inRange = o.z < 0.55 && o.z > 0.02;
   ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Math.sin(o.wobble) * 0.06);
   if (inRange) { ctx.shadowColor = "#ffe23a"; ctx.shadowBlur = shortSide() * 0.05; } // 可打擊：發光提示
   const zimg = o.tough ? zombie2Img : zombieImg;
@@ -1400,17 +1427,18 @@ function getWallCanvas(pose) {              // 預烤「中間挖空人形洞」
   const bw = Math.max(2, Math.round(W * 1.1)), bh = Math.max(2, Math.round(H * 0.95));
   const oc = document.createElement("canvas"); oc.width = bw; oc.height = bh;
   const c = oc.getContext("2d");
-  c.fillStyle = "#b8402f"; c.fillRect(0, 0, bw, bh);                                          // 紅木牌面
-  c.fillStyle = "#8f2e20"; c.fillRect(0, 0, bw, bh * 0.06); c.fillRect(0, bh * 0.94, bw, bh * 0.06); // 上下橫木
-  c.lineWidth = bw * 0.025; c.strokeStyle = "#ffd56b"; c.strokeRect(c.lineWidth, c.lineWidth, bw - c.lineWidth * 2, bh - c.lineWidth * 2); // 金邊
-  c.globalCompositeOperation = "destination-out";                                             // 挖洞
-  fillPoseSilhouette(c, bw / 2, bh / 2, Math.min(bw, bh) * 0.6, pose);
+  c.fillStyle = "#1f9e2e"; c.fillRect(0, 0, bw, bh);                                          // 綠牌面（像影片）
+  c.fillStyle = "#157a22"; c.fillRect(0, 0, bw, bh * 0.06); c.fillRect(0, bh * 0.94, bw, bh * 0.06); // 上下橫木
+  c.lineWidth = bw * 0.03; c.strokeStyle = "#ffd56b"; c.strokeRect(c.lineWidth, c.lineWidth, bw - c.lineWidth * 2, bh - c.lineWidth * 2); // 金邊
+  c.globalCompositeOperation = "destination-out";                                             // 挖空人形洞（透出後方）
+  fillPoseSilhouette(c, bw / 2, bh / 2, Math.min(bw, bh) * 0.72, pose);
   c.globalCompositeOperation = "source-over";
   _wallCache[key] = oc; return oc;
 }
 function drawRunnerWall(o) {
+  if (o.z >= 1) return;                      // 還在地平線外先不畫
   const s = 1 - o.z;
-  const wallW = W * 1.1 * s, wallH = H * 0.95 * s;
+  const wallW = W * 1.3 * s, wallH = H * 1.02 * s; // 放大、越近越佔滿畫面
   if (wallW < 8) return;
   const cx = W / 2, cy = RUN_VP_Y() + (H - RUN_VP_Y()) * (1 - o.z) - wallH * 0.5;
   const matching = o.st === "judge" && anyPoseMatch(o.pose);
@@ -1442,12 +1470,15 @@ function drawCamWindow() {                 // 右下角小鏡頭框（看得到�
   ctx.strokeStyle = "rgba(255,255,255,0.8)"; ctx.lineWidth = shortSide() * 0.006; roundRectPath(x, y, w, h, w * 0.08); ctx.stroke();
 }
 function drawRunnerPlaying() {
+  const useVid = runnerBgOn && bgVideo.readyState >= 2 && !bgVideo.paused; // 影片背景在播？
+  if (useVid) ctx.clearRect(0, 0, W, H);                                   // 透明 → 露出後面的循環影片
+  else if (imgReady(lawnImg)) drawBgCover(lawnImg);
+  else drawPvzLawnFallback();
   ctx.save();
   if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
-  if (imgReady(lawnImg)) drawBgCover(lawnImg); else drawPvzLawnFallback(); // lawn 本身就是往前的路景
-  drawRunnerGround();
+  if (!useVid) drawRunnerGround();         // 影片自帶前進感，不用程式速度線
   for (const o of runnerObjs) {            // 已依 z 由遠到近排序
-    if (o.type === "tree") drawRunnerTree(o);
+    if (o.type === "tree") { if (!useVid) drawRunnerTree(o); } // 影片自帶路樹
     else if (o.type === "zombie") drawRunnerZombie(o);
     else if (o.type === "wall") drawRunnerWall(o);
   }
@@ -1465,6 +1496,8 @@ function drawRunnerPlaying() {
 function loop(ts) {
   const dt = lastTs ? Math.min(0.05, (ts - lastTs) / 1000) : 0;
   lastTs = ts;
+  fpsTick(ts);
+  if (!(state === "playing" && currentGame === "pvz") && bgVideo.style.display === "block") showBgVideo(false); // 離開往前衝就關背景影片
   if (audioCtx && audioCtx.state === "suspended") audioCtx.resume(); // iOS 切背景回來後恢復音效
   if (state === "boot") drawBoot();
   else if (state === "loading") drawLoading();
