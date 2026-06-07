@@ -99,7 +99,10 @@ let meteors = [], dodgeInvuln = 0, stars = [], starTimer = 0; // 躲避：隕石
 let floatTexts = [];                // 飄分數文字（+1 / +5 往上飄）
 let bestWhack = 0, bestDodge = 0, bestPvz = 0;   // 最高分（localStorage）
 // 植物大戰殭屍（pvz：比動作擋殭屍）狀態
-let pvzZombies = [], pvzPeas = [], pvzTarget = null, pvzHold = 0, pvzLock = 0, pvzSpawnT = 0, pvzFireFx = 0;
+let pvzZombies = [], pvzPeas = [], pvzTarget = null, pvzHold = 0, pvzLock = 0, pvzSpawnT = 0, pvzFireFx = 0; // (舊守家版，已停用)
+// 往前衝 runner 狀態（第三遊戲現用）
+let runnerObjs = [], runnerSpeed = 0.5, runnerDist = 0, runnerSpawnT = 0, runnerBuildT = 0;
+let prevHands = [], punchSpeed = 0, poseFrame = 0, runnerStripe = 0;
 const PVZ_POSES = ["handsup", "star", "tpose", "handshead", "armscross", "onehand"]; // 6 個姿勢（key 對應 pose 圖檔名）
 let allPose = [], superHead = null; // 雙人：所有偵測到的人 / 大招充能者的頭
 let playerMode = "solo";            // 玩家模式："solo"（單人）| "duo"（雙人）
@@ -270,13 +273,14 @@ function resetDodge() {
 }
 function startWhack() { currentGame = "whack"; resetGame(); playBgmTrack(bgmTheme); transformT = 0; sndTransform(); state = "transform"; }
 function startDodge() { currentGame = "dodge"; resetDodge(); playBgmTrack(bgmDodge); spawnTimer = 0.6; state = "playing"; }
-function resetPvz() {
+function resetPvz() { // 往前衝 runner 的重設
   score = 0; combo = 0; bestCombo = 0; lives = 3;
   particles = []; floatTexts = []; shake = 0; bombFx = 0; gameOverPending = false;
-  pvzZombies = []; pvzPeas = []; pvzTarget = null; pvzHold = 0; pvzLock = 0; pvzSpawnT = 1.2; pvzFireFx = 0;
+  runnerObjs = []; runnerSpeed = 0.5; runnerDist = 0; runnerSpawnT = 1.0; runnerBuildT = 0.3;
+  prevHands = []; punchSpeed = 0; poseFrame = 0; runnerStripe = 0; pvzTarget = null;
   elapsed = 0;
 }
-function startPvz() { currentGame = "pvz"; resetPvz(); playBgmTrack(bgmPvz); pvzTarget = pickPose(); state = "playing"; }
+function startPvz() { currentGame = "pvz"; resetPvz(); playBgmTrack(bgmPvz); state = "playing"; }
 function pickGame(g) { if (g === "dodge") startDodge(); else if (g === "pvz") startPvz(); else startWhack(); }
 function togglePlayerMode() {
   playerMode = playerMode === "duo" ? "solo" : "duo";
@@ -323,6 +327,7 @@ function spawnTarget() {
 
 // ===================== 粒子 =====================
 function burst(x, y, color, n = 14) {
+  if (particles.length > 90) return; // 上限保護：避免特效爆量讓手機掉幀
   for (let i = 0; i < n; i++) {
     const a = Math.random() * Math.PI * 2, sp = 120 + Math.random() * 320;
     particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, color, r: 3 + Math.random() * 5 });
@@ -780,7 +785,7 @@ function menuCards() {
   return [
     { x: x0, y: cy, w: cw, h: ch, game: "whack", bg: cityImg, border: "rgba(90,170,255,0.95)", tint: "rgba(20,40,90,0.45)", i1: "👊", i2: "🦖", best: bestWhack },
     { x: x0 + (cw + gap), y: cy, w: cw, h: ch, game: "dodge", bg: spaceImg, border: "rgba(190,110,255,0.95)", tint: "rgba(40,20,80,0.45)", i1: "🏃", i2: "☄️", best: bestDodge },
-    { x: x0 + (cw + gap) * 2, y: cy, w: cw, h: ch, game: "pvz", bg: lawnImg, border: "rgba(120,210,90,0.95)", tint: "rgba(20,70,20,0.45)", i1: "🧟", i2: "🌻", best: bestPvz },
+    { x: x0 + (cw + gap) * 2, y: cy, w: cw, h: ch, game: "pvz", bg: lawnImg, border: "rgba(120,210,90,0.95)", tint: "rgba(20,70,20,0.45)", i1: "🏃", i2: "🧟", best: bestPvz },
   ];
 }
 function drawMenu() {
@@ -1209,6 +1214,182 @@ function drawPvzPlaying() {
   drawHUD();
 }
 
+// ===================== 往前衝 runner（第三遊戲：植物大戰殭屍 往前衝）=====================
+// 偽3D投影：worldX(-1~1 左右)、z(0=貼臉 ~ 1=遠方滅點) → 螢幕座標 + scale
+const RUN_VP_Y = () => H * 0.34;          // 地平線/滅點 Y
+function projRun(worldX, z) {
+  const scale = Math.max(0.0001, 1 - z);
+  const x = W / 2 + worldX * W * 0.62 * scale;
+  const y = RUN_VP_Y() + (H - RUN_VP_Y()) * (1 - z);
+  return { x, y, scale };
+}
+const RUN_GOAL = 30;                       // 通關分數（打殭屍+1、穿看板+3）
+function runnerSpawnEvent() {              // 生一個事件：殭屍 或 鏤空看板
+  if (Math.random() < 0.32) {             // 看板
+    runnerObjs.push({ type: "wall", worldX: 0, z: 1, pose: pickPose(), st: "approach", judgeT: 0, result: null });
+    pvzTarget = runnerObjs[runnerObjs.length - 1].pose;
+  } else {                                 // 殭屍
+    const lvl = Math.floor(elapsed / 18);
+    const tough = lvl >= 1 && Math.random() < 0.3;
+    runnerObjs.push({ type: "zombie", worldX: (Math.random() - 0.5) * 1.0, z: 1, hp: tough ? 2 : 1, tough, dead: false, hitCd: 0, wobble: Math.random() * 6 });
+  }
+}
+function runnerSpawnBuilding() {           // 路旁房子/樹（純佈景、製造速度感）
+  const side = Math.random() < 0.5 ? -1 : 1;
+  runnerObjs.push({ type: "build", worldX: side * (0.78 + Math.random() * 0.5), z: 1, h: 0.18 + Math.random() * 0.22, hue: 20 + Math.random() * 40 });
+}
+function computePunchSpeed() {             // 揮拳速度 = 手相對上一取樣移動的最大距離
+  let mx = 0;
+  for (const h of hands) { let best = 1e9; for (const p of prevHands) { const d = Math.hypot(h.x - p.x, h.y - p.y); if (d < best) best = d; } if (best < 1e9) mx = Math.max(mx, best); }
+  prevHands = hands.map((h) => ({ x: h.x, y: h.y }));
+  return mx;
+}
+function updateRunner(dt) {
+  if (gameOverPending) {
+    for (const p of particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 600 * dt; p.life -= dt * 1.6; }
+    particles = particles.filter((p) => p.life > 0);
+    if (shake > 0) shake = Math.max(0, shake - dt * 60);
+    if (bombFx > 0) bombFx = Math.max(0, bombFx - dt * 1.6);
+    if (bombFx <= 0) { commitBest(); state = "gameover"; gameOverPending = false; }
+    return;
+  }
+  poseFrame++;
+  if (poseFrame % 2 === 0) { senseBody(); punchSpeed = computePunchSpeed(); } // 隔幀偵測省效能
+  elapsed += dt;
+  runnerSpeed = Math.min(1.3, 0.5 + elapsed * 0.02);   // 越跑越快
+  runnerDist += runnerSpeed * dt;
+  runnerStripe = (runnerStripe + runnerSpeed * dt) % 1; // 地面速度線流動
+  // 生成
+  runnerSpawnT -= dt;
+  if (runnerSpawnT <= 0) { runnerSpawnEvent(); runnerSpawnT = Math.max(1.0, 1.8 - elapsed * 0.02); }
+  // 路旁佈景由 lawn 背景本身提供（兩排房子），不再另畫方塊房子
+  // 移動 + 邏輯
+  const HR = HAND_R();
+  for (const o of runnerObjs) {
+    o.z -= runnerSpeed * dt;
+    if (o.type === "zombie") {
+      o.wobble += dt * 7; if (o.hitCd > 0) o.hitCd -= dt;
+      if (!o.dead && o.z < 0.32 && o.z > 0.02 && o.hitCd <= 0 && punchSpeed > shortSide() * 0.035) {
+        const pr = projRun(o.worldX, o.z);
+        const cr = Math.min(shortSide() * 0.12 * pr.scale * 0.7, shortSide() * 0.22);
+        for (const h of hands) {
+          if ((h.x - pr.x) ** 2 + (h.y - pr.y) ** 2 < (cr + HR * 0.6) ** 2) {
+            o.hp--; o.hitCd = 0.25;
+            if (o.hp <= 0) { o.dead = true; const pts = o.tough ? 2 : 1; score += pts; combo++; bestCombo = Math.max(bestCombo, combo); addFloat(pr.x, pr.y, "+" + pts, "#aef36b", shortSide() * 0.08); burst(pr.x, pr.y, "#7cb342", 16); if (!playSfxFile(sfxZombie)) beep(300, 0.12, "square", 0.3); }
+            else { burst(pr.x, pr.y, "#cddc39", 8); beep(360, 0.08, "square", 0.25); }
+            break;
+          }
+        }
+      }
+      if (!o.dead && o.z <= 0.02) { o.dead = true; lives--; combo = 0; shake = 22; bombFx = 0.9; if (!playSfxFile(sfxHurt)) sndBomb(); if (lives <= 0) { gameOverPending = true; bombFx = 1.3; } } // 撞到玩家
+    } else if (o.type === "wall") {
+      if (o.st === "approach" && o.z < 0.4) { o.st = "judge"; o.judgeT = 0.9; }
+      if (o.st === "judge") {
+        o.judgeT -= dt;
+        if (anyPoseMatch(o.pose)) { o.st = "pass"; score += 3; const pr = projRun(0, o.z); addFloat(W / 2, pr.y, "+3", "#aef36b", shortSide() * 0.1); burst(W / 2, pr.y, "#aef36b", 20); if (!playSfxFile(sfxCorrect)) beep(880, 0.1, "triangle", 0.3); }
+        else if (o.judgeT <= 0 || o.z <= 0.04) { o.st = "fail"; lives--; combo = 0; shake = 24; bombFx = 1; if (!playSfxFile(sfxHurt)) sndBomb(); if (lives <= 0) { gameOverPending = true; bombFx = 1.3; } }
+      }
+    }
+  }
+  runnerObjs = runnerObjs.filter((o) => o.z > -0.06 && !(o.type === "zombie" && o.dead));
+  runnerObjs.sort((a, b) => b.z - a.z); // 遠的先畫
+  if (score >= RUN_GOAL) { commitBest(); if (!playSfxFile(pvzWinSfx)) sndVictory(); state = "win"; return; }
+  for (const p of particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 600 * dt; p.life -= dt * 1.6; }
+  particles = particles.filter((p) => p.life > 0);
+  updateFloats(dt);
+  if (shake > 0) shake = Math.max(0, shake - dt * 60);
+  if (bombFx > 0) bombFx = Math.max(0, bombFx - dt * 1.6);
+}
+// ---- runner 繪製 ----
+function drawRunnerGround() {              // 地面 + 往前流動的速度線（疊在 lawn 背景的路面上）
+  const vy = RUN_VP_Y();
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,255,255,0.16)"; ctx.lineWidth = Math.max(2, shortSide() * 0.006);
+  for (let i = 0; i < 8; i++) {
+    const z = ((i / 8 + runnerStripe) % 1);          // 0~1 流動
+    const p = projRun(0, z);
+    const halfW = (W * 0.5) * (1 - z) * 0.9;
+    ctx.globalAlpha = (1 - z) * 0.5;
+    ctx.beginPath(); ctx.moveTo(W / 2 - halfW, p.y); ctx.lineTo(W / 2 + halfW, p.y); ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawRunnerBuilding(o) {
+  const p = projRun(o.worldX, o.z);
+  const w = shortSide() * 0.5 * p.scale, h = H * o.h * (0.6 + (1 - o.z));
+  ctx.save(); ctx.globalAlpha = Math.min(1, (1 - o.z) * 1.6);
+  ctx.fillStyle = `hsl(${o.hue},45%,55%)`; ctx.fillRect(p.x - w / 2, p.y - h, w, h);
+  ctx.fillStyle = `hsl(${o.hue},45%,42%)`; ctx.fillRect(p.x - w / 2, p.y - h, w, h * 0.18); // 屋頂帶
+  ctx.restore();
+}
+function drawRunnerZombie(o) {
+  const p = projRun(o.worldX, o.z);
+  const w = shortSide() * 0.24 * p.scale, h = w * 1.25;
+  const inRange = o.z < 0.32 && o.z > 0.02;
+  ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Math.sin(o.wobble) * 0.06);
+  if (inRange) { ctx.shadowColor = "#ffe23a"; ctx.shadowBlur = shortSide() * 0.04; } // 可打擊：發光提示
+  const zimg = o.tough ? zombie2Img : zombieImg;
+  if (imgReady(zimg)) { const asp = zimg.naturalHeight / zimg.naturalWidth; ctx.drawImage(zimg, -w / 2, -w * asp * 0.92, w, w * asp); }
+  else { ctx.fillStyle = "#6f8f3a"; ctx.beginPath(); ctx.arc(0, -h * 0.3, w * 0.5, 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+}
+function drawRunnerWall(o) {
+  const p = projRun(0, o.z);
+  const s = p.scale;
+  const wallW = W * 1.1 * s, wallH = H * 0.95 * s, cx = W / 2, cy = RUN_VP_Y() + (H - RUN_VP_Y()) * (1 - o.z) - wallH * 0.5;
+  const matching = o.st === "judge" && anyPoseMatch(o.pose);
+  ctx.save();
+  ctx.globalAlpha = o.st === "pass" ? Math.max(0, 0.8 - (0.04 - Math.min(0.04, o.z)) * 10) : 0.82;
+  // 牆面（做對變綠、判定中黃、平常紅）
+  ctx.fillStyle = o.st === "pass" || matching ? "rgba(80,180,60,0.85)" : o.st === "fail" ? "rgba(120,120,120,0.85)" : "rgba(200,60,50,0.8)";
+  roundRectFill(cx - wallW / 2, cy - wallH / 2, wallW, wallH, wallW * 0.04);
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = wallW * 0.012; roundRectPath(cx - wallW / 2, cy - wallH / 2, wallW, wallH, wallW * 0.04); ctx.stroke();
+  // 中間人形洞（用公主示範圖）
+  const pimg = poseImgs[o.pose];
+  const ph = wallH * 0.7, pw = ph * 0.62;
+  if (imgReady(pimg)) { const asp = pimg.naturalHeight / pimg.naturalWidth; let dh = ph, dw = dh / asp; ctx.globalAlpha *= 1; ctx.drawImage(pimg, cx - dw / 2, cy - dh / 2, dw, dh); }
+  else drawPoseFigure(cx, cy, ph, o.pose, "#fff");
+  ctx.restore();
+}
+function drawRunnerHint() {                // 看板還遠時、上方先提示「等下要擺的姿勢」
+  let nextWall = null;
+  for (const o of runnerObjs) if (o.type === "wall" && o.z > 0.4 && (!nextWall || o.z < nextWall.z)) nextWall = o;
+  if (!nextWall) return;
+  const pimg = poseImgs[nextWall.pose];
+  const s = shortSide() * 0.16, x = W / 2 - s / 2, y = H * 0.04;
+  ctx.save(); ctx.globalAlpha = 0.9;
+  ctx.fillStyle = "rgba(0,0,0,0.4)"; roundRectFill(x - s * 0.1, y - s * 0.05, s * 1.2, s * 1.15, s * 0.12);
+  if (imgReady(pimg)) { const asp = pimg.naturalHeight / pimg.naturalWidth; ctx.drawImage(pimg, x, y, s, s * asp > s * 1 ? s : s * asp); }
+  ctx.restore();
+}
+function drawCamWindow() {                 // 右下角小鏡頭框（看得到自己）
+  const w = W * 0.24, h = w * 0.78, pad = shortSide() * 0.03, x = W - w - pad, y = H - h - pad;
+  ctx.save();
+  roundRectPath(x, y, w, h, w * 0.08); ctx.clip();
+  ctx.translate(x + w, y); ctx.scale(-1, 1);
+  try { ctx.drawImage(video, 0, 0, w, h); } catch (e) {}
+  ctx.restore();
+  ctx.strokeStyle = "rgba(255,255,255,0.8)"; ctx.lineWidth = shortSide() * 0.006; roundRectPath(x, y, w, h, w * 0.08); ctx.stroke();
+}
+function drawRunnerPlaying() {
+  ctx.save();
+  if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+  if (imgReady(lawnImg)) drawBgCover(lawnImg); else drawPvzLawnFallback(); // lawn 本身就是往前的路景
+  drawRunnerGround();
+  for (const o of runnerObjs) {            // 已依 z 由遠到近排序
+    if (o.type === "build") drawRunnerBuilding(o);
+    else if (o.type === "zombie") drawRunnerZombie(o);
+    else if (o.type === "wall") drawRunnerWall(o);
+  }
+  drawParticles();
+  drawFloatTexts();
+  ctx.restore();
+  drawBombFx();
+  drawRunnerHint();
+  drawCamWindow();
+  drawHUD();
+}
+
 // ===================== 主迴圈 =====================
 function loop(ts) {
   const dt = lastTs ? Math.min(0.05, (ts - lastTs) / 1000) : 0;
@@ -1220,7 +1401,7 @@ function loop(ts) {
   else if (state === "transform") drawTransform(dt);
   else if (state === "playing") {
     if (currentGame === "dodge") { updateDodge(dt); drawDodgePlaying(); }
-    else if (currentGame === "pvz") { updatePvz(dt); drawPvzPlaying(); }
+    else if (currentGame === "pvz") { updateRunner(dt); drawRunnerPlaying(); }
     else { update(dt); drawWhackPlaying(); }
   } else if (state === "gameover") drawGameOver();
   else if (state === "win") drawWin();

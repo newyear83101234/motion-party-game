@@ -5,9 +5,8 @@
  */
 
 // 從 jsDelivr CDN 載入 MediaPipe Vision
-// ⚠️ TODO（上線前處理）：@latest 是定時炸彈，哪天 MediaPipe 大改版這裡會壞掉。
-//    階段 4 部署前要鎖成固定版本，例如 @0.10.x。現在先用 @latest 確保跑得起來。
-const VISION_CDN = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest";
+// 已鎖版本（原本 @latest 是定時炸彈，哪天 MediaPipe 大改版會壞掉）
+const VISION_CDN = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
 
 /** @type {any} */
 let poseLandmarker = null;
@@ -16,7 +15,7 @@ let poseLandmarker = null;
  * 初始化 PoseLandmarker（只偵測 1 個人）
  * @returns {Promise<void>}
  */
-export async function initPoseDetector(numPoses = 1) {
+export async function initPoseDetector(numPoses = 1, withMask = true) {
   if (poseLandmarker) {
     try { poseLandmarker.close(); } catch (_) {}
     poseLandmarker = null;
@@ -36,7 +35,7 @@ export async function initPoseDetector(numPoses = 1) {
     },
     runningMode: "VIDEO",
     numPoses: numPoses,
-    outputSegmentationMasks: true, // 輸出人體遮罩（背景替換用）
+    outputSegmentationMasks: withMask, // 輸出人體遮罩（背景替換用）；往前衝 runner 不需要、關掉省效能
   });
 }
 
