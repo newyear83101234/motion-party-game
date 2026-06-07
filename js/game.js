@@ -1268,7 +1268,7 @@ function runnerSpawnEvent() {              // 生一個事件：殭屍 或 鏤�
     const lvl = Math.floor(elapsed / 18);
     const tough = lvl >= 1 && Math.random() < 0.3;
     const side = Math.random() < 0.5 ? -1 : 1;
-    runnerObjs.push({ type: "zombie", worldX: side * (0.1 + Math.random() * 0.14), side, z: 1.4, hp: tough ? 2 : 1, tough, dead: false, hitCd: 0, wobble: Math.random() * 6 }); // 貼馬路(±0.1~0.24)、由滅點走近
+    runnerObjs.push({ type: "zombie", worldX: side * (0.1 + Math.random() * 0.14), side, z: 1.4, hp: tough ? 2 : 1, tough, dead: false, hitCd: 0, wobble: Math.random() * 6, stepPhase: Math.random() * Math.PI * 2 }); // 貼馬路(±0.1~0.24)、由滅點走近
   }
 }
 function runnerSpawnBuilding() {           // 路旁房子/樹（純佈景、製造速度感）
@@ -1312,6 +1312,7 @@ function updateRunner(dt) {
   for (const o of runnerObjs) {
     o.z -= (o.type === "zombie" || o.type === "wall" ? ZOMBIE_Z_SPEED : runnerSpeed) * dt; // 殭屍/看板慢慢逼近、樹快速掠過
     if (o.type === "zombie") {
+      if (o.dead) { o.deadAlpha = (o.deadAlpha != null ? o.deadAlpha : 1) - dt * 3; o.deadScale = (o.deadScale || 1) + dt * 1.6; o.wobble += dt * 12; continue; } // 打爆動畫：放大+旋轉+淡出
       o.wobble += dt * 7; if (o.hitCd > 0) o.hitCd -= dt; if (o.knock) o.knock *= 0.88;
       if (!o.dead && o.z < 0.55 && o.z > 0.02 && o.hitCd <= 0 && punchSpeed > shortSide() * 0.05) { // 可打範圍加寬(更早能打)
         const pr = projRun(o.worldX, o.z);
@@ -1320,13 +1321,13 @@ function updateRunner(dt) {
           if ((h.x - pr.x) ** 2 + (h.y - pr.y) ** 2 < (cr + HR) ** 2) {
             o.hp--; o.hitCd = 0.25; shake = Math.max(shake, 8);
             burst(h.x, h.y, "#ffffff", 10);            // 拳頭打擊白閃
-            if (o.hp <= 0) { o.dead = true; const pts = o.tough ? 2 : 1; score += pts; combo++; bestCombo = Math.max(bestCombo, combo); addFloat(pr.x, pr.y, "+" + pts, "#aef36b", shortSide() * 0.09); burst(pr.x, pr.y, "#7cb342", 18); if (!playSfxFile(sfxZombie)) beep(300, 0.12, "square", 0.3); }
+            if (o.hp <= 0) { o.dead = true; o.deadAlpha = 1; o.deadScale = 1; const pts = o.tough ? 2 : 1; score += pts; combo++; bestCombo = Math.max(bestCombo, combo); addFloat(h.x, h.y, "+" + pts, "#aef36b", shortSide() * 0.09); burst(pr.x, pr.y, "#7cb342", 18); if (!playSfxFile(sfxZombie)) beep(300, 0.12, "square", 0.3); } // 分數從打中的手跳出
             else { o.knock = (o.worldX < 0 ? -1 : 1) * 0.12; burst(pr.x, pr.y, "#cddc39", 10); beep(360, 0.08, "square", 0.25); } // 鐵桶第一下被打歪
             break;
           }
         }
       }
-      if (!o.dead && o.z <= 0.02) { o.dead = true; lives--; combo = 0; shake = 22; bombFx = 0.9; if (!playSfxFile(sfxHurt)) sndBomb(); if (lives <= 0) { gameOverPending = true; bombFx = 1.3; } } // 撞到玩家
+      if (!o.dead && o.z <= 0.02) { o.dead = true; o.deadAlpha = 1; o.deadScale = 1; lives--; combo = 0; shake = 22; bombFx = 0.9; if (!playSfxFile(sfxHurt)) sndBomb(); if (lives <= 0) { gameOverPending = true; bombFx = 1.3; } } // 撞到玩家
     } else if (o.type === "wall") {
       if (o.st === "approach" && o.z < 0.45) { o.st = "judge"; o.judgeT = 2.2; } // 更早開判定窗、給足反應時間
       if (o.st === "judge") {
@@ -1336,7 +1337,7 @@ function updateRunner(dt) {
       }
     }
   }
-  runnerObjs = runnerObjs.filter((o) => o.z > -0.06 && !(o.type === "zombie" && o.dead));
+  runnerObjs = runnerObjs.filter((o) => o.z > -0.06 && !(o.type === "zombie" && o.dead && o.deadAlpha <= 0)); // 死亡動畫播完才移除
   runnerObjs.sort((a, b) => b.z - a.z); // 遠的先畫
   if (score >= RUN_GOAL) { commitBest(); if (!playSfxFile(pvzWinSfx)) sndVictory(); state = "win"; return; }
   for (const p of particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 600 * dt; p.life -= dt * 1.6; }
@@ -1389,23 +1390,37 @@ function drawRunnerBuilding(o) {
 function drawRunnerZombie(o) {
   const p = projRun(o.worldX + (o.knock || 0), o.z);
   if (!p.visible) return;                   // 還在地平線外（剛生成、很遠）先不畫
+  const zimg = o.tough ? zombie2Img : zombieImg;
+  const asp = imgReady(zimg) ? zimg.naturalHeight / zimg.naturalWidth : 1.2;
+  // 打爆動畫：放大+旋轉+淡出
+  if (o.dead) {
+    const w = shortSide() * 0.24 * p.scale * (o.deadScale || 1);
+    ctx.save(); ctx.globalAlpha = Math.max(0, o.deadAlpha != null ? o.deadAlpha : 1);
+    ctx.translate(p.x, p.y); ctx.rotate(o.wobble * 0.15);
+    if (imgReady(zimg)) ctx.drawImage(zimg, -w / 2, -w * asp * 0.92, w, w * asp);
+    ctx.restore(); return;
+  }
   const w = shortSide() * 0.24 * p.scale;
   const inRange = o.z < 0.55 && o.z > 0.02;
+  const bob = Math.sin(o.wobble * 0.5 + (o.stepPhase || 0)) * w * 0.07; // 上下走路擺動
   ctx.save(); ctx.translate(p.x, p.y);
-  ctx.fillStyle = "rgba(0,0,0,0.18)"; ctx.beginPath(); ctx.ellipse(0, 0, w * 0.34, w * 0.12, 0, 0, Math.PI * 2); ctx.fill(); // 腳下落地陰影(不漂浮)
+  ctx.fillStyle = "rgba(0,0,0,0.2)"; ctx.beginPath(); ctx.ellipse(0, 0, w * 0.34, w * 0.12, 0, 0, Math.PI * 2); ctx.fill(); // 腳下陰影(留在地面、不跟著bob)
+  ctx.translate(0, bob);                    // bobbing
   ctx.rotate(Math.sin(o.wobble) * 0.06);
-  if (inRange) { ctx.shadowColor = "#ffe23a"; ctx.shadowBlur = shortSide() * 0.05; } // 可打擊：發光提示
-  const zimg = o.tough ? zombie2Img : zombieImg;
-  if (imgReady(zimg)) { const asp = zimg.naturalHeight / zimg.naturalWidth; ctx.drawImage(zimg, -w / 2, -w * asp * 0.92, w, w * asp); }
+  if (imgReady(zimg)) ctx.drawImage(zimg, -w / 2, -w * asp * 0.92, w, w * asp);
   else { ctx.fillStyle = "#6f8f3a"; ctx.beginPath(); ctx.arc(0, -w * 0.4, w * 0.5, 0, Math.PI * 2); ctx.fill(); }
+  if (inRange) {                            // 可打擊：黃色方框(取代shadowBlur,iOS相容)
+    const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 180);
+    ctx.strokeStyle = `rgba(255,220,0,${0.55 + pulse * 0.45})`; ctx.lineWidth = Math.max(2, w * 0.06);
+    ctx.strokeRect(-w / 2, -w * asp * 0.92, w, w * asp);
+  }
   ctx.restore();
-  if (inRange) {                          // 揮拳提示（頭頂閃爍拳頭）
-    ctx.save();
-    ctx.globalAlpha = 0.55 + 0.45 * Math.sin(performance.now() / 150);
-    ctx.font = `${Math.max(shortSide() * 0.06, w * 0.5)}px sans-serif`;
+  if (inRange) {                            // 頭頂往下箭頭(描邊、不靠emoji、Android也看得到)
+    const ay = p.y - w * asp * 0.92 - w * 0.25 + Math.sin(performance.now() / 200) * w * 0.1;
+    ctx.font = `bold ${Math.max(shortSide() * 0.06, w * 0.55)}px sans-serif`;
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText("👊", p.x, p.y - w * 0.9);
-    ctx.restore();
+    ctx.lineWidth = Math.max(3, w * 0.06); ctx.strokeStyle = "#333"; ctx.strokeText("▼", p.x, ay);
+    ctx.fillStyle = "#ffdd00"; ctx.fillText("▼", p.x, ay);
   }
 }
 // 粗手臂（實心多邊形，給挖洞剪影用）
