@@ -147,7 +147,7 @@ let kpStars = 0, kpStolen = 0, kpPerfect = 0, kpGood = 0;
 let kpStage = "intro", kpBossCharge = 0; // intro|verse|chorus|bridge|boss|done
 let kpTutorIdx = 0; // 教學前奏目前示範到第幾式
 let kpPwOK = false, kpPwBuf = "";          // 密碼門：是否通過 / 已輸入緩衝
-const KP_SONG_BPM = 123, KP_SONG_OFFSET = 0; // GOLDEN 實測 123BPM、offset 之後填
+const KP_SONG_BPM = 123, KP_SONG_OFFSET = 0.18; // GOLDEN 實測 123BPM、首起聲 0.18s（ffmpeg 量測）
 // 第一版用現有已驗證、互斥乾淨的姿勢（排除叉腰handshead易遮擋；保留好判的）
 const KP_POSES = ["handsup", "star", "tpose", "armscross", "onehand"];
 function kpBeatTime(beat) { return KP_SONG_OFFSET + beat * 60 / KP_SONG_BPM; } // 第幾拍 → 秒
