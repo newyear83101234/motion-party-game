@@ -892,6 +892,12 @@ function drawGameOver() {
   ctx.fillStyle = "#fff"; ctx.font = `${rr * 1.1}px sans-serif`;
   ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("🏠", hx, hy + rr * 0.05);
 }
+function kpRating() {
+  const total = kpPerfect + kpGood + kpStolen;
+  if (total === 0) return 1;
+  const acc = (kpPerfect + kpGood * 0.5) / total;
+  return acc >= 0.85 ? 3 : acc >= 0.5 ? 2 : 1;
+}
 // 通關畫面（達成條件）
 function drawWin() {
   if (imgReady(gameoverImg)) { drawBgCover(gameoverImg); ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.fillRect(0, 0, W, H); }
@@ -899,7 +905,15 @@ function drawWin() {
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
   ctx.font = `${shortSide() * 0.22}px sans-serif`; ctx.fillText("🏆", W / 2, H * 0.16);
   ctx.fillStyle = "#fff"; ctx.font = `bold ${shortSide() * 0.16}px sans-serif`; ctx.fillText("⭐ " + score, W / 2, H * 0.33);
-  ctx.font = `${shortSide() * 0.09}px sans-serif`; ctx.fillStyle = "#ffd54a"; ctx.fillText("🎉🎉🎉", W / 2, H * 0.45);
+  if (currentGame === "kpop") {
+    const stars = kpRating();
+    ctx.font = `${shortSide() * 0.16}px sans-serif`; ctx.fillStyle = "#ffe96b"; ctx.textAlign = "center";
+    ctx.fillText("⭐".repeat(stars) + "☆".repeat(3 - stars), W / 2, H * 0.3);
+    ctx.font = `${shortSide() * 0.07}px sans-serif`; ctx.fillStyle = "#fff";
+    ctx.fillText("PERFECT " + kpPerfect + "  GOOD " + kpGood, W / 2, H * 0.46);
+  } else {
+    ctx.font = `${shortSide() * 0.09}px sans-serif`; ctx.fillStyle = "#ffd54a"; ctx.fillText("🎉🎉🎉", W / 2, H * 0.45);
+  }
   const best = currentBest();
   ctx.font = `${shortSide() * 0.07}px sans-serif`; ctx.fillText("🏅 " + best, W / 2, H * 0.72);
   drawOverlayCircleButton("🔁");
