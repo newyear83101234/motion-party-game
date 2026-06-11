@@ -159,6 +159,7 @@ function buildTestBeatmap() {
   return { bpm: KP_SONG_BPM, offset: KP_SONG_OFFSET, notes };
 }
 const KP_APPROACH = 2.0;          // 惡魔提前 2 秒出現開始走
+const KP_PERFECT_W = 0.45, KP_GOOD_W = 0.75, KP_SENSE_LAG = 0.12; // 判定窗(秒)、感測延遲補償
 const KP_RING_Y = () => H * 0.62; // 光圈判定區 Y（玩家腳前）
 function kpSpawnDemon(note) {
   const hitTime = kpBeatTime(note.beat);
@@ -1542,6 +1543,30 @@ function updateKpop(dt) {
     if (kpSongTime >= kpBeatTime(n.beat) - KP_APPROACH) { kpSpawnDemon(n); kpNoteIdx++; }
     else break;
   }
+  for (const d of kpDemons) {
+    if (d.dead || d.judged) continue;
+    const rel = kpSongTime - d.hitTime + KP_SENSE_LAG; // <0=還沒到拍、>0=過了
+    if (rel >= -KP_GOOD_W && rel <= KP_GOOD_W) {        // 在判定窗內、且已擺對該姿勢
+      if (anyPoseMatch(d.pose)) {
+        d.judged = true; d.dead = true;
+        const perfect = Math.abs(rel) <= KP_PERFECT_W;
+        const pts = perfect ? 2 : 1; score += pts;
+        if (perfect) kpPerfect++; else kpGood++;
+        combo++; bestCombo = Math.max(bestCombo, combo);
+        const p = kpDemonPos(d);
+        addFloat(p.x, p.y, perfect ? "PERFECT" : "GOOD", perfect ? "#ffe96b" : "#aef36b", shortSide() * (perfect ? 0.08 : 0.07));
+        burst(W / 2, KP_RING_Y(), "#ff7fdc", 22);        // 唱歌光波
+        if (!playSfxFile(sfxCorrect)) beep(880, 0.1, "triangle", 0.3);
+      }
+    } else if (rel > KP_GOOD_W) {                        // 過了窗還沒打掉 → 惡魔偷一顆星搞笑跑掉
+      d.judged = true; d.stolen = true;
+      kpStolen++; combo = 0;
+      const p = kpDemonPos(d);
+      addFloat(p.x, p.y, "⭐➖", "#ff6b6b", shortSide() * 0.07);
+      if (!playSfxFile(sfxZombie)) beep(200, 0.12, "sawtooth", 0.25);
+    }
+  }
+  kpDemons = kpDemons.filter((d) => !d.dead && !(d.stolen && kpSongTime - d.hitTime > 1.2)); // 偷星跑掉的延遲移除做動畫
   if (allPose.length === 0) noPersonT += dt; else noPersonT = 0;
   for (const p of particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 600 * dt; p.life -= dt * 1.6; }
   particles = particles.filter((p) => p.life > 0);
@@ -1564,6 +1589,12 @@ function drawKpopPlaying() {
     const p = kpDemonPos(d);
     const w = shortSide() * 0.22 * p.scale;
     const asp = imgReady(zombieImg) ? zombieImg.naturalHeight / zombieImg.naturalWidth : 1.2;
+    if (d.stolen) {                                      // 偷星後往上翻滾淡出跑掉（不撲玩家、不嚇人）
+      const t = kpSongTime - d.hitTime;
+      ctx.save(); ctx.globalAlpha = Math.max(0, 1 - t); ctx.translate(p.x, p.y - t * H * 0.3); ctx.rotate(t * 6);
+      if (imgReady(zombieImg)) ctx.drawImage(zombieImg, -w / 2, -w * asp * 0.9, w, w * asp);
+      ctx.restore(); continue;
+    }
     if (imgReady(zombieImg)) ctx.drawImage(zombieImg, p.x - w / 2, p.y - w * asp * 0.9, w, w * asp);
     else { ctx.fillStyle = "#a05"; ctx.beginPath(); ctx.arc(p.x, p.y - w * 0.4, w * 0.5, 0, Math.PI * 2); ctx.fill(); }
     kpDrawPoseIcon(d.pose, p.x, p.y - w * asp * 0.9 - shortSide() * 0.06, shortSide() * 0.07);
