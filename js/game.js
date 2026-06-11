@@ -54,6 +54,7 @@ const bossBigImg = new Image(); bossBigImg.src = "IMAGE/sprites/boss_big.png"; /
 const comboBgImg = new Image(); comboBgImg.src = "IMAGE/sprites/combo_bg.png"; // Combo 底襯
 const gameoverImg = new Image(); gameoverImg.src = "IMAGE/gameover_bg.png";    // 結束畫面背景
 const lawnImg = new Image(); lawnImg.src = "IMAGE/lawn.png";                  // 草坪背景（植物大戰殭屍）
+const stageKpopImg = new Image(); stageKpopImg.src = "IMAGE/sprites/stage_kpop.png"; // K-pop 舞台背景（阿葉後製、缺圖時卡片用程式底色）
 const runnerFirstImg = new Image(); runnerFirstImg.src = "IMAGE/runner_bg_first.png"; // 影片第一幀（影片還沒播時當墊檔、街景一致）
 const zombieImg = new Image(); zombieImg.src = "IMAGE/sprites/zombie.png";    // 殭屍（走路第1格）
 const zombieImgB = new Image(); zombieImgB.src = "IMAGE/sprites/zombie_b.png"; // 殭屍走路第2格（有放才會走動、沒放自動沿用第1格）
@@ -130,7 +131,7 @@ let stage = 1, killCount = 0, bossActive = false, boss = null, bossHitCd = 0, bo
 let currentGame = "whack";          // 目前遊戲："whack"（打怪）| "dodge"（躲避）
 let meteors = [], dodgeInvuln = 0, stars = [], starTimer = 0; // 躲避：隕石 / 無敵 / 星星 / 星星計時
 let floatTexts = [];                // 飄分數文字（+1 / +5 往上飄）
-let bestWhack = 0, bestDodge = 0, bestPvz = 0;   // 最高分（localStorage）
+let bestWhack = 0, bestDodge = 0, bestPvz = 0, bestKpop = 0;   // 最高分（localStorage）
 // 植物大戰殭屍（pvz：比動作擋殭屍）狀態
 let pvzTarget = null; // runner 用：目前要擺的姿勢（舊守家版其餘狀態已隨死碼移除）
 // 往前衝 runner 狀態（第三遊戲現用）
@@ -148,7 +149,7 @@ const TRANSFORM_DUR = 2.0;
 // 最高分（存在手機裡，給「破紀錄」動機）
 function lsGet(k) { try { return +(localStorage.getItem(k) || 0); } catch (e) { return 0; } }
 function lsSet(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
-bestWhack = lsGet("best_whack"); bestDodge = lsGet("best_dodge"); bestPvz = lsGet("best_pvz");
+bestWhack = lsGet("best_whack"); bestDodge = lsGet("best_dodge"); bestPvz = lsGet("best_pvz"); bestKpop = lsGet("best_kpop");
 playerMode = lsGet("player_mode") === 1 ? "duo" : "solo";
 superUsedEver = lsGet("super_used") === 1;
 function commitBest() {
@@ -832,11 +833,14 @@ function drawCard(x, y, w, h, r, bgImg, border, tint, icon1, icon2, best) {
 }
 // 選單 3 張遊戲卡（畫面與點擊命中共用同一份座標，避免不一致）
 function menuCards() {
-  const cw = W * 0.28, ch = H * 0.42, cy = H * 0.34, gap = W * 0.04, x0 = W * 0.04;
+  const cw = W * 0.4, ch = H * 0.28, gapX = W * 0.04, gapY = H * 0.035;
+  const x0 = (W - cw * 2 - gapX) / 2, y0 = H * 0.20;
+  const r1y = y0, r2y = y0 + ch + gapY;
   return [
-    { x: x0, y: cy, w: cw, h: ch, game: "whack", bg: cityImg, border: "rgba(90,170,255,0.95)", tint: "rgba(20,40,90,0.45)", i1: "👊", i2: "🦖", best: bestWhack },
-    { x: x0 + (cw + gap), y: cy, w: cw, h: ch, game: "dodge", bg: spaceImg, border: "rgba(190,110,255,0.95)", tint: "rgba(40,20,80,0.45)", i1: "🏃", i2: "☄️", best: bestDodge },
-    { x: x0 + (cw + gap) * 2, y: cy, w: cw, h: ch, game: "pvz", bg: lawnImg, border: "rgba(120,210,90,0.95)", tint: "rgba(20,70,20,0.45)", i1: "🏃", i2: "🧟", best: bestPvz },
+    { x: x0,              y: r1y, w: cw, h: ch, game: "whack", bg: cityImg,      border: "rgba(90,170,255,0.95)",  tint: "rgba(20,40,90,0.45)",  i1: "👊", i2: "🦖", best: bestWhack },
+    { x: x0 + cw + gapX,  y: r1y, w: cw, h: ch, game: "dodge", bg: spaceImg,     border: "rgba(190,110,255,0.95)", tint: "rgba(40,20,80,0.45)",  i1: "🏃", i2: "☄️", best: bestDodge },
+    { x: x0,              y: r2y, w: cw, h: ch, game: "pvz",   bg: lawnImg,      border: "rgba(120,210,90,0.95)",  tint: "rgba(20,70,20,0.45)",  i1: "🏃", i2: "🧟", best: bestPvz },
+    { x: x0 + cw + gapX,  y: r2y, w: cw, h: ch, game: "kpop",  bg: stageKpopImg, border: "rgba(255,80,200,0.95)",  tint: "rgba(70,10,60,0.5)",   i1: "🎤", i2: "👿", best: bestKpop },
   ];
 }
 function drawMenu() {
