@@ -26,17 +26,23 @@ export async function initPoseDetector(numPoses = 1, withMask = true) {
 
   const filesetResolver = await FilesetResolver.forVisionTasks(`${VISION_CDN}/wasm`);
 
-  poseLandmarker = await PoseLandmarker.createFromOptions(filesetResolver, {
-    baseOptions: {
-      // lite 模型：精度稍低但速度快，適合手機 + 小孩大動作
-      modelAssetPath:
-        "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task",
-      delegate: "GPU",
-    },
+  // 模型檔也鎖死版號（原本 latest = Google 更新模型→判定手感默默改變，跟鎖死的舊 runtime 也可能不相容）
+  const MODEL_URL =
+    "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
+
+  // GPU delegate 在部分舊 Android / WebGL 被封鎖的機型會初始化失敗 → 自動退回 CPU（lite 模型 CPU 多數手機仍可玩）
+  const buildOptions = (delegate) => ({
+    baseOptions: { modelAssetPath: MODEL_URL, delegate },
     runningMode: "VIDEO",
     numPoses: numPoses,
     outputSegmentationMasks: withMask, // 輸出人體遮罩（背景替換用）；往前衝 runner 不需要、關掉省效能
   });
+  try {
+    poseLandmarker = await PoseLandmarker.createFromOptions(filesetResolver, buildOptions("GPU"));
+  } catch (e) {
+    console.warn("GPU delegate 初始化失敗，改用 CPU：", e);
+    poseLandmarker = await PoseLandmarker.createFromOptions(filesetResolver, buildOptions("CPU"));
+  }
 }
 
 /**
@@ -60,17 +66,26 @@ function filterNaN(landmarks) {
  * @param {number} timestamp - requestAnimationFrame 的時間戳（毫秒、遞增）
  * @returns {Array<Array<{x:number, y:number, z:number, visibility:number}>>} 各玩家的 33 個關鍵點（座標為 0~1 比例）
  */
-export function detect(video, timestamp) {
+export function detect(video, timestamp, needMask = true) {
   if (!poseLandmarker) return { landmarks: [], mask: null };
   if (!video || video.readyState < 2) return { landmarks: [], mask: null };
-  const result = poseLandmarker.detectForVideo(video, timestamp);
+  let result;
+  try {
+    result = poseLandmarker.detectForVideo(video, timestamp); // WebGL context lost 等情況可能丟例外
+  } catch (e) {
+    console.warn("detectForVideo 失敗（單幀略過）：", e);
+    return { landmarks: [], mask: null };
+  }
   const landmarks = filterNaN(result.landmarks || []);
   let mask = null;
   const masks = result.segmentationMasks;
-  if (masks && masks[0]) {
-    const m = masks[0];
-    try { mask = { data: m.getAsFloat32Array(), width: m.width, height: m.height }; } catch (e) { mask = null; }
-    try { m.close(); } catch (e) {} // 釋放 WASM 記憶體，避免洩漏
+  if (masks && masks.length) {
+    // needMask 為 false（往前衝 runner）時跳過昂貴的 Float32Array 複製，但遮罩照樣全部 close
+    if (needMask && masks[0]) {
+      const m = masks[0];
+      try { mask = { data: m.getAsFloat32Array(), width: m.width, height: m.height }; } catch (e) { mask = null; }
+    }
+    for (const mm of masks) { try { mm.close(); } catch (e) {} } // close 全部遮罩（雙人 masks[1] 之前漏掉=記憶體洩漏）
   }
   return { landmarks, mask };
 }

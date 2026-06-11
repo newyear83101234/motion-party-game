@@ -30,9 +30,11 @@ export async function startCamera(videoEl, width = 640, height = 480) {
   const stream = await navigator.mediaDevices.getUserMedia(constraints);
   videoEl.srcObject = stream;
 
-  // 等待 video 真正可播放
-  return new Promise((resolve) => {
+  // 等待 video 真正可播放（加逾時：某些 Android 不觸發 loadeddata 會永遠卡 loading）
+  return new Promise((resolve, reject) => {
+    const to = setTimeout(() => reject(new Error("camera timeout")), 10000);
     videoEl.onloadeddata = () => {
+      clearTimeout(to);
       videoEl.play();
       resolve(videoEl);
     };
