@@ -1,8 +1,6 @@
-node_modules/
-.DS_Store
-Thumbs.db
-*.log
-.env
-.claude/
-.agent-backup/
-TASK*-IMPLEMENTATION-GUIDE.md
+# 原始音檔（版權：加密後才上傳，原檔永不進 git）
+tools/_src_song/
+*.rawmp3
+# 測試暫存
+.playwright-mcp/
+*-check.png
