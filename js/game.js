@@ -147,6 +147,37 @@ let kpStars = 0, kpStolen = 0, kpPerfect = 0, kpGood = 0;
 let kpStage = "intro", kpBossCharge = 0; // intro|verse|chorus|bridge|boss|done
 let kpPwOK = false, kpPwBuf = "";          // 密碼門：是否通過 / 已輸入緩衝
 const KP_SONG_BPM = 123, KP_SONG_OFFSET = 0; // GOLDEN 實測 123BPM、offset 之後填
+// 第一版用現有已驗證、互斥乾淨的姿勢（排除叉腰handshead易遮擋；保留好判的）
+const KP_POSES = ["handsup", "star", "tpose", "armscross", "onehand"];
+function kpBeatTime(beat) { return KP_SONG_OFFSET + beat * 60 / KP_SONG_BPM; } // 第幾拍 → 秒
+// 測試用：每 2 拍一隻惡魔、姿勢輪換、左右交替（真歌 beatmap 之後手工標）
+function buildTestBeatmap() {
+  const notes = [];
+  for (let i = 0; i < 40; i++) {
+    notes.push({ beat: 8 + i * 2, pose: KP_POSES[i % KP_POSES.length], side: i % 2 ? 1 : -1, spawned: false });
+  }
+  return { bpm: KP_SONG_BPM, offset: KP_SONG_OFFSET, notes };
+}
+const KP_APPROACH = 2.0;          // 惡魔提前 2 秒出現開始走
+const KP_RING_Y = () => H * 0.62; // 光圈判定區 Y（玩家腳前）
+function kpSpawnDemon(note) {
+  const hitTime = kpBeatTime(note.beat);
+  kpDemons.push({ note, hitTime, side: note.side, pose: note.pose, dead: false, judged: false, stolen: false, wob: Math.random() * 6 });
+}
+function kpDemonPos(d) {
+  const prog = Math.min(1.2, (kpSongTime - (d.hitTime - KP_APPROACH)) / KP_APPROACH); // 0=剛出現 1=到光圈
+  const ex = d.side < 0 ? W * 0.04 : W * 0.96;     // 起點（畫面邊）
+  const cx = d.side < 0 ? W * 0.4 : W * 0.6;        // 終點（光圈兩側）
+  const x = ex + (cx - ex) * prog;
+  const y = H * 0.3 + (KP_RING_Y() - H * 0.3) * prog;
+  const scale = 0.4 + 0.6 * prog;
+  return { x, y, scale, prog };
+}
+const KP_POSE_ICON = { handsup: "🙌", star: "🤩", tpose: "🧎", armscross: "🙅", onehand: "🙋", handshead: "🙆" };
+function kpDrawPoseIcon(pose, x, y, s) {
+  ctx.font = `${s}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(KP_POSE_ICON[pose] || "❓", x, y);
+}
 let allPose = [], superHead = null; // 雙人：所有偵測到的人 / 大招充能者的頭
 let playerMode = "solo";            // 玩家模式："solo"（單人）| "duo"（雙人）
 let starCount = 0, dodgeCores = []; // 接到的星星數 / 躲避護盾核心位置
@@ -338,6 +369,7 @@ function resetKpop() {
   particles = []; floatTexts = []; shake = 0; bombFx = 0; gameOverPending = false;
   kpDemons = []; kpNoteIdx = 0; kpStars = 0; kpStolen = 0; kpPerfect = 0; kpGood = 0;
   kpStage = "intro"; kpBossCharge = 0; kpSongTime = 0; elapsed = 0;
+  kpBeatmap = buildTestBeatmap(); kpNoteIdx = 0;
   prevHands = []; punchSpeed = 0; poseFrame = 0; lastSenseTs = 0; noPersonT = 0; pvzTarget = null;
 }
 function startKpop() {
@@ -1505,6 +1537,11 @@ function updateKpop(dt) {
     punchSpeed = computePunchSpeed() / sdt;
   }
   kpSongTime = audioCtx ? (audioCtx.currentTime - kpT0) : 0; // 歌曲時間＝唯一真時鐘
+  while (kpBeatmap && kpNoteIdx < kpBeatmap.notes.length) {
+    const n = kpBeatmap.notes[kpNoteIdx];
+    if (kpSongTime >= kpBeatTime(n.beat) - KP_APPROACH) { kpSpawnDemon(n); kpNoteIdx++; }
+    else break;
+  }
   if (allPose.length === 0) noPersonT += dt; else noPersonT = 0;
   for (const p of particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 600 * dt; p.life -= dt * 1.6; }
   particles = particles.filter((p) => p.life > 0);
@@ -1518,6 +1555,19 @@ function drawKpopPlaying() {
   if (latestMask) drawPersonMasked(latestMask);     // 本人入鏡
   ctx.save();
   if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+  // 光圈判定區
+  ctx.strokeStyle = "rgba(255,127,220,0.6)"; ctx.lineWidth = shortSide() * 0.012;
+  ctx.beginPath(); ctx.ellipse(W / 2, KP_RING_Y(), W * 0.16, H * 0.04, 0, 0, Math.PI * 2); ctx.stroke();
+  // 惡魔（用現成 zombieImg 當佔位）
+  for (const d of kpDemons) {
+    if (d.dead) continue;
+    const p = kpDemonPos(d);
+    const w = shortSide() * 0.22 * p.scale;
+    const asp = imgReady(zombieImg) ? zombieImg.naturalHeight / zombieImg.naturalWidth : 1.2;
+    if (imgReady(zombieImg)) ctx.drawImage(zombieImg, p.x - w / 2, p.y - w * asp * 0.9, w, w * asp);
+    else { ctx.fillStyle = "#a05"; ctx.beginPath(); ctx.arc(p.x, p.y - w * 0.4, w * 0.5, 0, Math.PI * 2); ctx.fill(); }
+    kpDrawPoseIcon(d.pose, p.x, p.y - w * asp * 0.9 - shortSide() * 0.06, shortSide() * 0.07);
+  }
   drawParticles(); drawFloatTexts();
   ctx.restore();
   if (noPersonT > 0.7) drawNoPersonHint();
