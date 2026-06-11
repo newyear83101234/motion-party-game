@@ -145,6 +145,7 @@ let kpDemons = [], kpBeatmap = null, kpAudioBuf = null, kpSource = null;
 let kpT0 = 0, kpSongTime = 0, kpNoteIdx = 0;
 let kpStars = 0, kpStolen = 0, kpPerfect = 0, kpGood = 0;
 let kpStage = "intro", kpBossCharge = 0; // intro|verse|chorus|bridge|boss|done
+let kpTutorIdx = 0; // 教學前奏目前示範到第幾式
 let kpPwOK = false, kpPwBuf = "";          // 密碼門：是否通過 / 已輸入緩衝
 const KP_SONG_BPM = 123, KP_SONG_OFFSET = 0; // GOLDEN 實測 123BPM、offset 之後填
 // 第一版用現有已驗證、互斥乾淨的姿勢（排除叉腰handshead易遮擋；保留好判的）
@@ -160,6 +161,15 @@ function buildTestBeatmap() {
 }
 const KP_APPROACH = 2.0;          // 惡魔提前 2 秒出現開始走
 const KP_PERFECT_W = 0.45, KP_GOOD_W = 0.75, KP_SENSE_LAG = 0.12; // 判定窗(秒)、感測延遲補償
+// 段落邊界（秒）；真歌 beatmap 完成後校準。GOLDEN 全長約 194s
+const KP_SECTIONS = [
+  { stage: "intro",  until: 10 },   // 教學前奏（跟著擺、零失敗）
+  { stage: "verse",  until: 60 },
+  { stage: "chorus", until: 120 },
+  { stage: "bridge", until: 140 },  // 呼吸點：無惡魔
+  { stage: "boss",   until: 999 },  // 尾段 Boss
+];
+function kpStageAt(t) { for (const s of KP_SECTIONS) if (t < s.until) return s.stage; return "boss"; }
 const KP_RING_Y = () => H * 0.62; // 光圈判定區 Y（玩家腳前）
 function kpSpawnDemon(note) {
   const hitTime = kpBeatTime(note.beat);
@@ -369,7 +379,7 @@ function resetKpop() {
   score = 0; combo = 0; bestCombo = 0;
   particles = []; floatTexts = []; shake = 0; bombFx = 0; gameOverPending = false;
   kpDemons = []; kpNoteIdx = 0; kpStars = 0; kpStolen = 0; kpPerfect = 0; kpGood = 0;
-  kpStage = "intro"; kpBossCharge = 0; kpSongTime = 0; elapsed = 0;
+  kpStage = "intro"; kpBossCharge = 0; kpSongTime = 0; elapsed = 0; kpTutorIdx = 0;
   kpBeatmap = buildTestBeatmap(); kpNoteIdx = 0;
   prevHands = []; punchSpeed = 0; poseFrame = 0; lastSenseTs = 0; noPersonT = 0; pvzTarget = null;
 }
@@ -1537,67 +1547,110 @@ function updateKpop(dt) {
     lastSenseTs = now;
     punchSpeed = computePunchSpeed() / sdt;
   }
-  kpSongTime = audioCtx ? (audioCtx.currentTime - kpT0) : 0; // 歌曲時間＝唯一真時鐘
-  while (kpBeatmap && kpNoteIdx < kpBeatmap.notes.length) {
-    const n = kpBeatmap.notes[kpNoteIdx];
-    if (kpSongTime >= kpBeatTime(n.beat) - KP_APPROACH) { kpSpawnDemon(n); kpNoteIdx++; }
-    else break;
-  }
-  for (const d of kpDemons) {
-    if (d.dead || d.judged) continue;
-    const rel = kpSongTime - d.hitTime + KP_SENSE_LAG; // <0=還沒到拍、>0=過了
-    if (rel >= -KP_GOOD_W && rel <= KP_GOOD_W) {        // 在判定窗內、且已擺對該姿勢
-      if (anyPoseMatch(d.pose)) {
-        d.judged = true; d.dead = true;
-        const perfect = Math.abs(rel) <= KP_PERFECT_W;
-        const pts = perfect ? 2 : 1; score += pts;
-        if (perfect) kpPerfect++; else kpGood++;
-        combo++; bestCombo = Math.max(bestCombo, combo);
-        const p = kpDemonPos(d);
-        addFloat(p.x, p.y, perfect ? "PERFECT" : "GOOD", perfect ? "#ffe96b" : "#aef36b", shortSide() * (perfect ? 0.08 : 0.07));
-        burst(W / 2, KP_RING_Y(), "#ff7fdc", 22);        // 唱歌光波
-        if (!playSfxFile(sfxCorrect)) beep(880, 0.1, "triangle", 0.3);
-      }
-    } else if (rel > KP_GOOD_W) {                        // 過了窗還沒打掉 → 惡魔偷一顆星搞笑跑掉
-      d.judged = true; d.stolen = true;
-      kpStolen++; combo = 0;
-      const p = kpDemonPos(d);
-      addFloat(p.x, p.y, "⭐➖", "#ff6b6b", shortSide() * 0.07);
-      if (!playSfxFile(sfxZombie)) beep(200, 0.12, "sawtooth", 0.25);
-    }
-  }
-  kpDemons = kpDemons.filter((d) => !d.dead && !(d.stolen && kpSongTime - d.hitTime > 1.2)); // 偷星跑掉的延遲移除做動畫
+  kpSongTime = audioCtx ? (audioCtx.currentTime - kpT0) : 0;
   if (allPose.length === 0) noPersonT += dt; else noPersonT = 0;
+  if (kpStage !== "done") kpStage = kpStageAt(kpSongTime); // done(歌結束/Boss擊倒)後不再被覆寫
+
+  if (kpStage === "intro") {
+    // 教學前奏：依序示範 3 式、擺對放煙火、零失敗、不生惡魔
+    if (kpTutorIdx < 3 && anyPoseMatch(KP_POSES[kpTutorIdx])) {
+      burst(W / 2, H * 0.4, "#ffe96b", 24);
+      if (!playSfxFile(sfxCorrect)) beep(990, 0.1, "triangle", 0.3);
+      kpTutorIdx++;
+    }
+  } else if (kpStage === "boss") {
+    // Boss：擺住大字 star 約 2 秒(4拍)充能 → 全螢幕金光波轟飛
+    if (anyPoseMatch("star")) kpBossCharge = Math.min(1, kpBossCharge + dt / 2.0);
+    else kpBossCharge = Math.max(0, kpBossCharge - dt * 0.4);
+    if (kpBossCharge >= 1) {
+      kpStars += 1; score += 10; bombFx = 1.0; shake = 22;
+      burst(W / 2, H / 2, "#ffe96b", 60);
+      if (!playSfxFile(pvzWinSfx)) sndVictory();
+      kpStage = "done";
+    }
+  } else {
+    // verse / chorus / bridge：生成(bridge不生)+判定
+    if (kpStage !== "bridge") {
+      while (kpBeatmap && kpNoteIdx < kpBeatmap.notes.length) {
+        const n = kpBeatmap.notes[kpNoteIdx];
+        if (kpSongTime >= kpBeatTime(n.beat) - KP_APPROACH) { kpSpawnDemon(n); kpNoteIdx++; }
+        else break;
+      }
+    }
+    for (const d of kpDemons) {
+      if (d.dead || d.judged) continue;
+      const rel = kpSongTime - d.hitTime + KP_SENSE_LAG;
+      if (rel >= -KP_GOOD_W && rel <= KP_GOOD_W) {
+        if (anyPoseMatch(d.pose)) {
+          d.judged = true; d.dead = true;
+          const perfect = Math.abs(rel) <= KP_PERFECT_W;
+          const pts = perfect ? 2 : 1; score += pts;
+          if (perfect) kpPerfect++; else kpGood++;
+          combo++; bestCombo = Math.max(bestCombo, combo);
+          const p = kpDemonPos(d);
+          addFloat(p.x, p.y, perfect ? "PERFECT" : "GOOD", perfect ? "#ffe96b" : "#aef36b", shortSide() * (perfect ? 0.08 : 0.07));
+          burst(W / 2, KP_RING_Y(), "#ff7fdc", 22);
+          if (!playSfxFile(sfxCorrect)) beep(880, 0.1, "triangle", 0.3);
+        }
+      } else if (rel > KP_GOOD_W) {
+        d.judged = true; d.stolen = true; kpStolen++; combo = 0;
+        const p = kpDemonPos(d);
+        addFloat(p.x, p.y, "⭐➖", "#ff6b6b", shortSide() * 0.07);
+        if (!playSfxFile(sfxZombie)) beep(200, 0.12, "sawtooth", 0.25);
+      }
+    }
+    kpDemons = kpDemons.filter((d) => !d.dead && !(d.stolen && kpSongTime - d.hitTime > 1.2));
+  }
+  // 共用特效
   for (const p of particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 600 * dt; p.life -= dt * 1.6; }
   particles = particles.filter((p) => p.life > 0);
   updateFloats(dt);
   if (shake > 0) shake = Math.max(0, shake - dt * 60);
+  if (bombFx > 0) bombFx = Math.max(0, bombFx - dt * 1.6);
   if (kpStage === "done") { commitBest(); state = "win"; }
 }
 function drawKpopPlaying() {
   ctx.fillStyle = "#2a0a2e"; ctx.fillRect(0, 0, W, H);
   if (imgReady(stageKpopImg)) drawBgCover(stageKpopImg);
-  if (latestMask) drawPersonMasked(latestMask);     // 本人入鏡
+  if (latestMask) drawPersonMasked(latestMask);
   ctx.save();
   if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
-  // 光圈判定區
-  ctx.strokeStyle = "rgba(255,127,220,0.6)"; ctx.lineWidth = shortSide() * 0.012;
-  ctx.beginPath(); ctx.ellipse(W / 2, KP_RING_Y(), W * 0.16, H * 0.04, 0, 0, Math.PI * 2); ctx.stroke();
-  // 惡魔（用現成 zombieImg 當佔位）
-  for (const d of kpDemons) {
-    if (d.dead) continue;
-    const p = kpDemonPos(d);
-    const w = shortSide() * 0.22 * p.scale;
-    const asp = imgReady(zombieImg) ? zombieImg.naturalHeight / zombieImg.naturalWidth : 1.2;
-    if (d.stolen) {                                      // 偷星後往上翻滾淡出跑掉（不撲玩家、不嚇人）
-      const t = kpSongTime - d.hitTime;
-      ctx.save(); ctx.globalAlpha = Math.max(0, 1 - t); ctx.translate(p.x, p.y - t * H * 0.3); ctx.rotate(t * 6);
-      if (imgReady(zombieImg)) ctx.drawImage(zombieImg, -w / 2, -w * asp * 0.9, w, w * asp);
-      ctx.restore(); continue;
+  if (kpStage === "intro") {
+    // 教學：中央大姿勢圖示 + 進度
+    if (kpTutorIdx < 3) {
+      kpDrawPoseIcon(KP_POSES[kpTutorIdx], W / 2, H * 0.4, shortSide() * 0.2);
+      ctx.fillStyle = "#fff"; ctx.font = `${shortSide() * 0.05}px sans-serif`;
+      ctx.textAlign = "center"; ctx.fillText("👆" + (kpTutorIdx + 1) + "/3", W / 2, H * 0.56);
     }
-    if (imgReady(zombieImg)) ctx.drawImage(zombieImg, p.x - w / 2, p.y - w * asp * 0.9, w, w * asp);
-    else { ctx.fillStyle = "#a05"; ctx.beginPath(); ctx.arc(p.x, p.y - w * 0.4, w * 0.5, 0, Math.PI * 2); ctx.fill(); }
-    kpDrawPoseIcon(d.pose, p.x, p.y - w * asp * 0.9 - shortSide() * 0.06, shortSide() * 0.07);
+  } else if (kpStage === "boss") {
+    // Boss：5 隻並排(hue變色) + 大字提示 + 充能條
+    for (let i = 0; i < 5; i++) {
+      const x = W * (0.2 + i * 0.15), w = shortSide() * 0.18;
+      const asp = imgReady(zombieImg) ? zombieImg.naturalHeight / zombieImg.naturalWidth : 1.2;
+      if (imgReady(zombieImg)) { ctx.save(); ctx.filter = `hue-rotate(${i * 40}deg)`; ctx.drawImage(zombieImg, x - w / 2, H * 0.4, w, w * asp); ctx.restore(); }
+    }
+    kpDrawPoseIcon("star", W / 2, H * 0.25, shortSide() * 0.14);
+    ctx.fillStyle = "rgba(255,255,255,0.2)"; roundRectFill(W * 0.2, H * 0.7, W * 0.6, H * 0.03, H * 0.015);
+    ctx.fillStyle = "#ffe96b"; roundRectFill(W * 0.2, H * 0.7, W * 0.6 * kpBossCharge, H * 0.03, H * 0.015);
+  } else {
+    // verse/chorus/bridge：光圈 + 惡魔
+    ctx.strokeStyle = "rgba(255,127,220,0.6)"; ctx.lineWidth = shortSide() * 0.012;
+    ctx.beginPath(); ctx.ellipse(W / 2, KP_RING_Y(), W * 0.16, H * 0.04, 0, 0, Math.PI * 2); ctx.stroke();
+    for (const d of kpDemons) {
+      if (d.dead) continue;
+      const p = kpDemonPos(d);
+      const w = shortSide() * 0.22 * p.scale;
+      const asp = imgReady(zombieImg) ? zombieImg.naturalHeight / zombieImg.naturalWidth : 1.2;
+      if (d.stolen) {
+        const t = kpSongTime - d.hitTime;
+        ctx.save(); ctx.globalAlpha = Math.max(0, 1 - t); ctx.translate(p.x, p.y - t * H * 0.3); ctx.rotate(t * 6);
+        if (imgReady(zombieImg)) ctx.drawImage(zombieImg, -w / 2, -w * asp * 0.9, w, w * asp);
+        ctx.restore(); continue;
+      }
+      if (imgReady(zombieImg)) ctx.drawImage(zombieImg, p.x - w / 2, p.y - w * asp * 0.9, w, w * asp);
+      else { ctx.fillStyle = "#a05"; ctx.beginPath(); ctx.arc(p.x, p.y - w * 0.4, w * 0.5, 0, Math.PI * 2); ctx.fill(); }
+      kpDrawPoseIcon(d.pose, p.x, p.y - w * asp * 0.9 - shortSide() * 0.06, shortSide() * 0.07);
+    }
   }
   drawParticles(); drawFloatTexts();
   ctx.restore();
