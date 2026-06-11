@@ -5,6 +5,7 @@
  */
 const ITER = 200000;
 export async function decryptSong(encBytes, password) {
+  if (typeof password !== "string") throw new TypeError("password 必須是字串");
   const buf = new Uint8Array(encBytes);
   const salt = buf.slice(0, 16);
   const iv = buf.slice(16, 28);

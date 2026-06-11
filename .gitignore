@@ -1,6 +1,7 @@
 # 原始音檔（版權：加密後才上傳，原檔永不進 git）
 tools/_src_song/
 *.rawmp3
+MUSIC/kpop*.mp3
 # 測試暫存
 .playwright-mcp/
 *-check.png
