@@ -139,6 +139,13 @@ let runnerObjs = [], runnerSpeed = 0.5, runnerDist = 0, runnerSpawnT = 0, runner
 let prevHands = [], punchSpeed = 0, poseFrame = 0, runnerStripe = 0;
 let lastSenseTs = 0, noPersonT = 0, runnerPaused = false; // 揮拳速度時間正規化用 / 偵測不到人累計秒數 / runner 是否因沒人而暫停
 const PVZ_POSES = ["handsup", "star", "tpose", "handshead", "armscross", "onehand"]; // 6 個姿勢（key 對應 pose 圖檔名）
+// 獵魔女團 K-pop 節奏狀態（kp 前綴）
+let kpDemons = [], kpBeatmap = null, kpAudioBuf = null, kpSource = null;
+let kpT0 = 0, kpSongTime = 0, kpNoteIdx = 0;
+let kpStars = 0, kpStolen = 0, kpPerfect = 0, kpGood = 0;
+let kpStage = "intro", kpBossCharge = 0; // intro|verse|chorus|bridge|boss|done
+let kpPwOK = false, kpPwBuf = "";          // 密碼門：是否通過 / 已輸入緩衝
+const KP_SONG_BPM = 123, KP_SONG_OFFSET = 0; // GOLDEN 實測 123BPM、offset 之後填
 let allPose = [], superHead = null; // 雙人：所有偵測到的人 / 大招充能者的頭
 let playerMode = "solo";            // 玩家模式："solo"（單人）| "duo"（雙人）
 let starCount = 0, dodgeCores = []; // 接到的星星數 / 躲避護盾核心位置
@@ -324,7 +331,23 @@ function resetPvz() { // 往前衝 runner 的重設
   elapsed = 0;
 }
 function startPvz() { currentGame = "pvz"; resetPvz(); playBgmTrack(bgmPvz); _fpsLow = 0; runnerBgDegraded = false; runnerWantBg = true; try { bgVideo.playbackRate = 0.65; } catch (e) {} bgVideo.play().catch(() => {}); state = "playing"; } // 影片放慢=前進更慢
-function pickGame(g) { if (g === "dodge") startDodge(); else if (g === "pvz") startPvz(); else startWhack(); }
+function resetKpop() {
+  score = 0; combo = 0; bestCombo = 0;
+  particles = []; floatTexts = []; shake = 0; bombFx = 0; gameOverPending = false;
+  kpDemons = []; kpNoteIdx = 0; kpStars = 0; kpStolen = 0; kpPerfect = 0; kpGood = 0;
+  kpStage = "intro"; kpBossCharge = 0; kpSongTime = 0; elapsed = 0;
+  prevHands = []; punchSpeed = 0; poseFrame = 0; lastSenseTs = 0; noPersonT = 0; pvzTarget = null;
+}
+function startKpop() {
+  currentGame = "kpop"; resetKpop();
+  if (!kpPwOK) { state = "kppassword"; return; }   // 沒解過密碼 → 先進密碼門
+  startKpopSong();
+}
+function startKpopSong() {
+  state = "playing";
+  kpT0 = (audioCtx ? audioCtx.currentTime : performance.now() / 1000); // 暫用，Task 1.3 接真音訊
+}
+function pickGame(g) { if (g === "dodge") startDodge(); else if (g === "pvz") startPvz(); else if (g === "kpop") startKpop(); else startWhack(); }
 function togglePlayerMode() {
   playerMode = playerMode === "duo" ? "solo" : "duo";
   lsSet("player_mode", playerMode === "duo" ? 1 : 0);
@@ -1433,6 +1456,23 @@ function drawRunnerFists() {                // 雙手畫拳擊手套（取代光
   }
 }
 
+// ===================== 獵魔女團 K-pop 節奏遊戲（佔位） =====================
+function updateKpop(dt) {
+  poseFrame++;
+  if (poseFrame % 2 === 0) { senseBody(); }
+  elapsed += dt;
+  if (kpStage === "done") { commitBest(); state = "win"; }
+}
+function drawKpopPlaying() {
+  ctx.fillStyle = "#2a0a2e"; ctx.fillRect(0, 0, W, H); // 佔位舞台底色
+  drawHUD();
+}
+function drawKpPassword() {
+  ctx.fillStyle = "#1a0820"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font = `${shortSide() * 0.12}px sans-serif`; ctx.fillText("🔒", W / 2, H * 0.3);
+}
+
 // ===================== 主迴圈 =====================
 function loop(ts) {
   try {
@@ -1445,11 +1485,13 @@ function loop(ts) {
     if (state === "boot") drawBoot();
     else if (state === "loading") drawLoading();
     else if (state === "error") drawError();
+    else if (state === "kppassword") drawKpPassword();
     else if (state === "menu") drawMenu();
     else if (state === "transform") drawTransform(dt);
     else if (state === "playing") {
       if (currentGame === "dodge") { updateDodge(dt); drawDodgePlaying(); }
       else if (currentGame === "pvz") { updateRunner(dt); drawRunnerPlaying(); }
+      else if (currentGame === "kpop") { updateKpop(dt); drawKpopPlaying(); }
       else { update(dt); drawWhackPlaying(); }
     } else if (state === "gameover") drawGameOver();
     else if (state === "win") drawWin();
