@@ -166,7 +166,7 @@ function commitBest() {
   else if (currentGame === "kpop") { if (score > bestKpop) { bestKpop = score; lsSet("best_kpop", score); } }
   else { if (score > bestDodge) { bestDodge = score; lsSet("best_dodge", score); } }
 }
-function currentBest() { return currentGame === "whack" ? bestWhack : currentGame === "pvz" ? bestPvz : bestDodge; }
+function currentBest() { return currentGame === "whack" ? bestWhack : currentGame === "pvz" ? bestPvz : currentGame === "kpop" ? bestKpop : bestDodge; }
 // 飄分數文字
 function addFloat(x, y, text, color, size) { floatTexts.push({ x, y, text, color, size, life: 1 }); }
 function updateFloats(dt) {
