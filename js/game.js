@@ -13,6 +13,7 @@
 
 import { startCamera } from "./camera.js";
 import { initPoseDetector, detect } from "./pose-detector.js";
+import { decryptSong } from "./song-crypto.js";
 
 // ===================== 基本元素 =====================
 const video = document.getElementById("camera");
@@ -162,6 +163,7 @@ superUsedEver = lsGet("super_used") === 1;
 function commitBest() {
   if (currentGame === "whack") { if (score > bestWhack) { bestWhack = score; lsSet("best_whack", score); } }
   else if (currentGame === "pvz") { if (score > bestPvz) { bestPvz = score; lsSet("best_pvz", score); } }
+  else if (currentGame === "kpop") { if (score > bestKpop) { bestKpop = score; lsSet("best_kpop", score); } }
   else { if (score > bestDodge) { bestDodge = score; lsSet("best_dodge", score); } }
 }
 function currentBest() { return currentGame === "whack" ? bestWhack : currentGame === "pvz" ? bestPvz : bestDodge; }
@@ -340,12 +342,35 @@ function resetKpop() {
 }
 function startKpop() {
   currentGame = "kpop"; resetKpop();
-  if (!kpPwOK) { state = "kppassword"; return; }   // 沒解過密碼 → 先進密碼門
-  startKpopSong();
+  if (kpAudioBuf) { startKpopSong(); }          // 本次 session 已解碼 → 直接玩
+  else { kpPwBuf = ""; state = "kppassword"; }   // 否則進密碼門（重開 app 要再輸一次、可接受）
+}
+async function tryKpUnlock() {
+  state = "loading";
+  try {
+    const resp = await fetch("MUSIC/track4.bin");
+    if (!resp.ok) throw new Error("enc not found");
+    const enc = await resp.arrayBuffer();
+    const mp3 = await decryptSong(enc, kpPwBuf);    // 密碼錯會 throw
+    if (!audioCtx) initAudio();
+    kpAudioBuf = await audioCtx.decodeAudioData(mp3); // 解碼成 AudioBuffer
+    startKpopSong();
+  } catch (e) {
+    console.warn("密碼錯或解密/解碼失敗：", e);
+    kpPwBuf = ""; shake = 18; state = "kppassword"; // 抖一下、清空重試
+  }
 }
 function startKpopSong() {
   state = "playing";
-  kpT0 = (audioCtx ? audioCtx.currentTime : performance.now() / 1000); // 暫用，Task 1.3 接真音訊
+  if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+  for (const t of ALL_BGM) { try { t.pause(); } catch (e) {} } activeBgm = null; // 停掉選單 BGM
+  try { if (kpSource) kpSource.stop(); } catch (e) {}
+  kpSource = audioCtx.createBufferSource();
+  kpSource.buffer = kpAudioBuf;
+  kpSource.connect(audioCtx.destination);
+  kpT0 = audioCtx.currentTime + 0.1;       // 0.1s 後開始、給排程餘裕
+  kpSource.start(kpT0);
+  kpSource.onended = () => { if (state === "playing" && currentGame === "kpop") kpStage = "done"; };
 }
 function pickGame(g) { if (g === "dodge") startDodge(); else if (g === "pvz") startPvz(); else if (g === "kpop") startKpop(); else startWhack(); }
 function togglePlayerMode() {
@@ -359,6 +384,19 @@ canvas.addEventListener("pointerdown", (e) => {
   const px = (e.clientX - rect.left) * (W / rect.width);   // 校正：CSS 座標 → canvas 座標
   const py = (e.clientY - rect.top) * (H / rect.height);
   if (state === "boot" || state === "error") { startGame(); return; } // error 畫面點一下重試
+  if (state === "kppassword") {
+    const rr = shortSide() * 0.07, hx = shortSide() * 0.04 + rr, hy = shortSide() * 0.04 + rr;
+    if ((px - hx) ** 2 + (py - hy) ** 2 < rr * rr) { playBgmTrack(bgmMenu); state = "menu"; return; }
+    for (const g of kpPadKeys()) {
+      if (px >= g.x && px <= g.x + g.w && py >= g.y && py <= g.y + g.h) {
+        if (g.k === "⌫") kpPwBuf = kpPwBuf.slice(0, -1);
+        else if (g.k === "✓") tryKpUnlock();
+        else if (kpPwBuf.length < 8) kpPwBuf += g.k;
+        return;
+      }
+    }
+    return;
+  }
   if (state === "menu") {
     const r = shortSide() * 0.085, mx = W / 2, my = H * 0.9; // 模式切換鈕（底部中央）
     if ((px - mx) ** 2 + (py - my) ** 2 < r * r) { togglePlayerMode(); return; }
@@ -1456,21 +1494,59 @@ function drawRunnerFists() {                // 雙手畫拳擊手套（取代光
   }
 }
 
-// ===================== 獵魔女團 K-pop 節奏遊戲（佔位） =====================
+// ===================== 獵魔女團 K-pop 節奏遊戲 =====================
 function updateKpop(dt) {
   poseFrame++;
-  if (poseFrame % 2 === 0) { senseBody(); }
-  elapsed += dt;
+  if (poseFrame % 2 === 0) {
+    senseBody();
+    const now = performance.now();
+    const sdt = lastSenseTs ? Math.max(0.001, (now - lastSenseTs) / 1000) : 1 / 30;
+    lastSenseTs = now;
+    punchSpeed = computePunchSpeed() / sdt;
+  }
+  kpSongTime = audioCtx ? (audioCtx.currentTime - kpT0) : 0; // 歌曲時間＝唯一真時鐘
+  if (allPose.length === 0) noPersonT += dt; else noPersonT = 0;
+  for (const p of particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 600 * dt; p.life -= dt * 1.6; }
+  particles = particles.filter((p) => p.life > 0);
+  updateFloats(dt);
+  if (shake > 0) shake = Math.max(0, shake - dt * 60);
   if (kpStage === "done") { commitBest(); state = "win"; }
 }
 function drawKpopPlaying() {
-  ctx.fillStyle = "#2a0a2e"; ctx.fillRect(0, 0, W, H); // 佔位舞台底色
+  ctx.fillStyle = "#2a0a2e"; ctx.fillRect(0, 0, W, H);
+  if (imgReady(stageKpopImg)) drawBgCover(stageKpopImg);
+  if (latestMask) drawPersonMasked(latestMask);     // 本人入鏡
+  ctx.save();
+  if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+  drawParticles(); drawFloatTexts();
+  ctx.restore();
+  if (noPersonT > 0.7) drawNoPersonHint();
   drawHUD();
+}
+function kpPadKeys() {            // 3x4 數字鍵盤格子座標
+  const keys = ["1","2","3","4","5","6","7","8","9","⌫","0","✓"];
+  const cols = 3, gw = shortSide() * 0.2, gh = gw * 0.72, gap = shortSide() * 0.03;
+  const totalW = cols * gw + (cols - 1) * gap, x0 = (W - totalW) / 2, y0 = H * 0.4;
+  return keys.map((k, i) => {
+    const c = i % cols, r = (i / cols) | 0;
+    return { k, x: x0 + c * (gw + gap), y: y0 + r * (gh + gap), w: gw, h: gh };
+  });
 }
 function drawKpPassword() {
   ctx.fillStyle = "#1a0820"; ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.font = `${shortSide() * 0.12}px sans-serif`; ctx.fillText("🔒", W / 2, H * 0.3);
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillStyle = "#fff"; ctx.font = `${shortSide() * 0.12}px sans-serif`;
+  ctx.fillText("🔒🎵", W / 2, H * 0.18);
+  ctx.fillStyle = "#ff7fdc"; ctx.font = `${shortSide() * 0.08}px sans-serif`;
+  ctx.fillText("•".repeat(kpPwBuf.length) || "▢▢▢▢", W / 2, H * 0.3);
+  for (const g of kpPadKeys()) {
+    ctx.fillStyle = "rgba(255,255,255,0.12)"; roundRectFill(g.x, g.y, g.w, g.h, g.w * 0.12);
+    ctx.fillStyle = g.k === "✓" ? "#7fffa0" : g.k === "⌫" ? "#ffb86b" : "#fff";
+    ctx.font = `${g.h * 0.5}px sans-serif`; ctx.fillText(g.k, g.x + g.w / 2, g.y + g.h / 2);
+  }
+  const rr = shortSide() * 0.07, hx = shortSide() * 0.04 + rr, hy = shortSide() * 0.04 + rr;
+  ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.beginPath(); ctx.arc(hx, hy, rr, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.font = `${rr}px sans-serif`; ctx.fillText("🏠", hx, hy);
 }
 
 // ===================== 主迴圈 =====================
