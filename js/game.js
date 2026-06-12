@@ -387,9 +387,10 @@ function resetKpop() {
   particles = []; floatTexts = []; shake = 0; bombFx = 0; gameOverPending = false;
   kpDemons = []; kpNoteIdx = 0; kpStars = 0; kpStolen = 0; kpPerfect = 0; kpGood = 0;
   kpStage = "intro"; kpBossCharge = 0; kpSongTime = 0; elapsed = 0; kpTutorIdx = 0;
-  kpEnergy = 0; kpMatch = 0; kpSpawnT = 1.0; kpFlash = 0;
+  kpEnergy = 0; kpMatch = 0; kpSpawnT = 2.0; kpFlash = 0;
   kpBeatmap = buildTestBeatmap(); kpNoteIdx = 0;
   prevHands = []; punchSpeed = 0; poseFrame = 0; lastSenseTs = 0; noPersonT = 0; pvzTarget = null;
+  kpChoreo = buildChoreo(); kpNodeIdx = 0; kpNodeBest = 0; kpNodeFx = 0;
 }
 function startKpop() {
   currentGame = "kpop"; resetKpop();
@@ -424,7 +425,7 @@ async function startKpopSong() {
   kpSource.start(kpT0);
   kpSource.onended = () => { if (state === "playing" && currentGame === "kpop") kpStage = "done"; };
   runnerWantBg = false;
-  try { kpDanceVid.currentTime = 0; kpDanceVid.style.display = "block"; kpDanceVid.play().catch(() => {}); } catch (e) {}
+  // kpDanceVid 本版由火柴人教練示範、不顯示影片
 }
 function pickGame(g) { if (g === "dodge") startDodge(); else if (g === "pvz") startPvz(); else if (g === "kpop") startKpop(); else startWhack(); }
 function togglePlayerMode() {
@@ -1566,6 +1567,48 @@ function drawRunnerFists() {                // 雙手畫拳擊手套（取代光
 // ===== 跟跳評分：比對玩家姿勢與示範舞者該時刻姿勢（骨頭方向向量、含鏡像、對小孩寬鬆）=====
 const KP_BONES = [[11,13],[13,15],[12,14],[14,16],[23,25],[25,27],[24,26],[26,28]];
 const KP_LR = {11:12,12:11,13:14,14:13,15:16,16:15,23:24,24:23,25:26,26:25,27:28,28:27};
+// 姿勢模板：正面火柴人各動作的關節 normalized 座標（給火柴人示範 + 節點評分共用）
+const KP_TPL = {
+  ready:    {0:[.5,.12],11:[.42,.26],12:[.58,.26],13:[.38,.40],14:[.62,.40],15:[.38,.52],16:[.62,.52],23:[.45,.55],24:[.55,.55],25:[.44,.75],26:[.56,.75],27:[.44,.92],28:[.56,.92]},
+  handsup:  {0:[.5,.12],11:[.42,.26],12:[.58,.26],13:[.40,.14],14:[.60,.14],15:[.40,.03],16:[.60,.03],23:[.45,.55],24:[.55,.55],25:[.44,.75],26:[.56,.75],27:[.44,.92],28:[.56,.92]},
+  tpose:    {0:[.5,.12],11:[.42,.26],12:[.58,.26],13:[.30,.26],14:[.70,.26],15:[.18,.26],16:[.82,.26],23:[.45,.55],24:[.55,.55],25:[.44,.75],26:[.56,.75],27:[.44,.92],28:[.56,.92]},
+  star:     {0:[.5,.12],11:[.42,.26],12:[.58,.26],13:[.30,.16],14:[.70,.16],15:[.22,.08],16:[.78,.08],23:[.45,.55],24:[.55,.55],25:[.38,.75],26:[.62,.75],27:[.34,.93],28:[.66,.93]},
+  armscross:{0:[.5,.12],11:[.42,.26],12:[.58,.26],13:[.44,.40],14:[.56,.40],15:[.57,.40],16:[.43,.40],23:[.45,.55],24:[.55,.55],25:[.44,.75],26:[.56,.75],27:[.44,.92],28:[.56,.92]},
+  rhand:    {0:[.5,.12],11:[.42,.26],12:[.58,.26],13:[.40,.40],14:[.60,.14],15:[.40,.52],16:[.60,.03],23:[.45,.55],24:[.55,.55],25:[.44,.75],26:[.56,.75],27:[.44,.92],28:[.56,.92]},
+  lhand:    {0:[.5,.12],11:[.42,.26],12:[.58,.26],13:[.40,.14],14:[.60,.40],15:[.40,.03],16:[.60,.52],23:[.45,.55],24:[.55,.55],25:[.44,.75],26:[.56,.75],27:[.44,.92],28:[.56,.92]},
+};
+const KP_SEQ = ["handsup","tpose","star","rhand","lhand","armscross"]; // 輪替動作
+let kpChoreo = [], kpNodeIdx = 0, kpNodeBest = 0, kpNodeFx = 0, kpNodeFxGold = false; // 編舞/目前節點/窗內最佳/結算閃光
+function buildChoreo() {                       // 每4拍一個節點(123bpm≈2秒)、第8個為Gold金動作
+  const notes = []; let i = 0;
+  for (let beat = 16; beat < 398; beat += 4) { notes.push({ beat, pose: KP_SEQ[i % KP_SEQ.length], gold: (i % 8 === 7) }); i++; }
+  return notes;
+}
+// 取模板某索引的點（{x,y,v:1} 或 null）
+function kpTplPt(tpl, i) { const a = tpl[i]; return a ? { x: a[0], y: a[1], v: 1 } : null; }
+// 編舞在時間 t 的「補間姿勢」：目前節點→下一節點平滑過渡（火柴人流暢示範用）
+function kpChoreoPose(t) {
+  if (!kpChoreo.length) return KP_TPL.ready;
+  let idx = 0; for (let k = 0; k < kpChoreo.length; k++) { if (kpBeatTime(kpChoreo[k].beat) <= t) idx = k; else break; }
+  const cur = KP_TPL[kpChoreo[idx].pose] || KP_TPL.ready;
+  const nxt = KP_TPL[(kpChoreo[idx + 1] || kpChoreo[idx]).pose] || cur;
+  const t0 = kpBeatTime(kpChoreo[idx].beat), t1 = kpBeatTime((kpChoreo[idx + 1] || kpChoreo[idx]).beat);
+  let r = t1 > t0 ? (t - t0) / (t1 - t0) : 0; r = Math.max(0, Math.min(1, r));
+  const e = r < 0.5 ? 0 : (r - 0.5) / 0.5; // 前半停在當前動作、後半才過渡到下一個(像 Just Dance 擺好再換)
+  const out = {};
+  for (const i of [0,11,12,13,14,15,16,23,24,25,26,27,28]) { const a = cur[i], b = nxt[i] || a; out[i] = [a[0] + (b[0]-a[0])*e, a[1] + (b[1]-a[1])*e]; }
+  return out;
+}
+// 比對玩家現在的姿勢 vs 某模板（骨頭方向、含鏡像、0~1、寬鬆）
+function kpMatchPose(poseKey) {
+  if (!poseLandmarks) return 0;
+  const tpl = KP_TPL[poseKey]; if (!tpl) return 0;
+  const player = kpBoneVecs(i => { const p = poseLandmarks[i]; return p ? { x: p.x, y: p.y, v: p.visibility || 0 } : null; });
+  const refD = kpBoneVecs(i => kpTplPt(tpl, i));
+  const refM = kpBoneVecs(i => { const j = (KP_LR[i] != null ? KP_LR[i] : i); const a = tpl[j]; return a ? { x: 1 - a[0], y: a[1], v: 1 } : null; });
+  const cos = Math.max(kpCos(player, refD), kpCos(player, refM));
+  return Math.max(0, Math.min(1, (cos - 0.4) / 0.6));
+}
 function kpBoneVecs(getPt) {
   return KP_BONES.map(([a,b]) => {
     const pa = getPt(a), pb = getPt(b);
@@ -1604,26 +1647,45 @@ function kpDanceDemonPos(d) {
 }
 function updateKpop(dt) {
   poseFrame++;
-  if (poseFrame % 2 === 0) { senseBody(); }
+  if (poseFrame % 2 === 0) senseBody();
   kpSongTime = audioCtx ? (audioCtx.currentTime - kpT0) : 0;
   if (allPose.length === 0) noPersonT += dt; else noPersonT = 0;
-  kpMatch = kpQuality();                                              // 當下跟得像不像 0~1
-  kpEnergy = Math.max(0, Math.min(1, kpEnergy + (kpMatch - 0.35) * dt * 0.7)); // 跳得好累積、不好衰退
-  if (kpMatch > 0.7 && kpFlash <= 0) kpFlash = 0.3;
-  if (kpFlash > 0) kpFlash -= dt;
+  if (kpNodeFx > 0) kpNodeFx -= dt;
+  // 生成惡魔(走來、走到底沒清就偷星)
   kpSpawnT -= dt;
-  if (kpSpawnT <= 0) { kpSpawnDanceDemon(); kpSpawnT = Math.max(1.4, 2.6 - kpSongTime * 0.01); }
-  if (kpEnergy >= 1) {                                                // 能量滿 → 唱歌光波清全場惡魔
-    let n = 0;
-    for (const d of kpDemons) { if (!d.dead && !d.stolen) { d.dead = true; n++; } }
-    if (n) { score += n * 2; kpPerfect += n; combo += n; bestCombo = Math.max(bestCombo, combo); addFloat(W/2, H*0.4, "✨"+n, "#ffe96b", shortSide()*0.1); }
-    burst(W/2, H*0.5, "#ff7fdc", 50); shake = 16; bombFx = 0.7;
-    if (!playSfxFile(sfxCorrect)) beep(880, 0.12, "triangle", 0.3);
-    kpEnergy = 0;
+  if (kpSpawnT <= 0) { kpSpawnDanceDemon(); kpSpawnT = Math.max(1.6, 2.8 - kpSongTime * 0.008); }
+  // 節點判定：窗內持續取樣最佳、窗結束結算
+  const node = kpChoreo[kpNodeIdx];
+  if (node) {
+    const nt = kpBeatTime(node.beat);
+    if (kpSongTime >= nt - 0.6 && kpSongTime <= nt + 0.4) { const q = kpMatchPose(node.pose); if (q > kpNodeBest) kpNodeBest = q; }
+    if (kpSongTime > nt + 0.4) {
+      const q = kpNodeBest;
+      if (q > 0.45) {                                   // 命中(GOOD以上)
+        const perfect = q > 0.72;
+        if (node.gold) {                                // 金動作：清全場+大分+大絕
+          let n = 0; for (const d of kpDemons) if (!d.dead && !d.stolen) { d.dead = true; n++; }
+          score += 10 + n * 2; kpPerfect++; combo++; bestCombo = Math.max(bestCombo, combo);
+          burst(W/2, H*0.5, "#ffe96b", 60); shake = 18; bombFx = 0.8; kpNodeFx = 0.5; kpNodeFxGold = true;
+          addFloat(W/2, H*0.32, "✨GOLD!", "#ffe96b", shortSide()*0.11);
+          if (!playSfxFile(pvzWinSfx)) sndVictory();
+        } else {                                        // 一般命中：清一隻最近的惡魔
+          let best = null; for (const d of kpDemons) if (!d.dead && !d.stolen) { const p = (kpSongTime - d.born)/d.dur; if (!best || p > best._p) { best = d; best._p = p; } }
+          if (best) best.dead = true;
+          score += perfect ? 2 : 1; if (perfect) kpPerfect++; else kpGood++;
+          combo++; bestCombo = Math.max(bestCombo, combo);
+          burst(W/2, H*0.45, "#ff7fdc", 20); kpNodeFx = 0.4; kpNodeFxGold = false;
+          addFloat(W/2, H*0.34, perfect ? "PERFECT" : "GOOD", perfect ? "#ffe96b" : "#aef36b", shortSide()*(perfect?0.09:0.08));
+          if (!playSfxFile(sfxCorrect)) beep(880, 0.1, "triangle", 0.3);
+        }
+      } else { combo = 0; }                              // MISS：斷連擊(不扣命)
+      kpNodeIdx++; kpNodeBest = 0;
+    }
   }
-  for (const d of kpDemons) {                                         // 走到底沒清 → 偷星跑掉(無命制)
+  // 惡魔走到底沒清 → 偷星跑掉(無命制)
+  for (const d of kpDemons) {
     if (d.dead || d.stolen) continue;
-    if ((kpSongTime - d.born) / d.dur >= 1) { d.stolen = true; d.stoleAt = kpSongTime; kpStolen++; combo = 0; const p = kpDanceDemonPos(d); addFloat(p.x, p.y, "⭐➖", "#ff6b6b", shortSide()*0.07); if (!playSfxFile(sfxZombie)) beep(200, 0.12, "sawtooth", 0.25); }
+    if ((kpSongTime - d.born) / d.dur >= 1) { d.stolen = true; d.stoleAt = kpSongTime; kpStolen++; const p = kpDanceDemonPos(d); addFloat(p.x, p.y, "⭐➖", "#ff6b6b", shortSide()*0.07); if (!playSfxFile(sfxZombie)) beep(200, 0.12, "sawtooth", 0.25); }
   }
   kpDemons = kpDemons.filter(d => !d.dead && !(d.stolen && kpSongTime - d.stoleAt > 1.2));
   for (const p of particles) { p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 600*dt; p.life -= dt*1.6; }
@@ -1633,24 +1695,24 @@ function updateKpop(dt) {
   if (bombFx > 0) bombFx = Math.max(0, bombFx - dt*1.6);
   if (kpStage === "done") { commitBest(); state = "win"; }
 }
-function kpDrawRefFigure() {                 // 示範動作畫成清楚火柴人教練(鏡像、給小孩照跳)
-  const ref = kpRefFrame(kpSongTime); if (!ref) return;
-  const lm = ref.lm, bw = shortSide() * 0.46, bh = bw * 1.5, cx = W / 2, cy = H * 0.4;
-  const P = (i) => { const a = lm[i]; if (!a || a[2] < 0.3) return null; return { x: cx + ((1 - a[0]) - 0.5) * bw, y: cy + (a[1] - 0.5) * bh }; }; // normalized→框內、鏡像
+function kpDrawRefFigure() {                 // 火柴人教練：跟著編舞流暢示範(鏡像)、結算時閃光
+  const pose = kpChoreoPose(kpSongTime); if (!pose) return;
+  const bw = shortSide() * 0.46, bh = bw * 1.5, cx = W / 2, cy = H * 0.4;
+  const P = (i) => { const a = pose[i]; if (!a) return null; return { x: cx + ((1 - a[0]) - 0.5) * bw, y: cy + (a[1] - 0.5) * bh }; }; // 鏡像
   const bones = [[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28]];
   const drawBones = () => { for (const [a, b] of bones) { const p = P(a), q = P(b); if (!p || !q) continue; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); } };
   const nose = P(0);
+  const lit = kpNodeFx > 0;                                       // 剛結算→閃光
+  const col = lit ? (kpNodeFxGold ? "#ffe96b" : "#9CFFC0") : "#7CFFB0";
   ctx.save(); ctx.lineCap = "round"; ctx.lineJoin = "round";
-  ctx.strokeStyle = "rgba(0,0,0,0.55)"; ctx.lineWidth = Math.max(6, shortSide() * 0.02); drawBones();   // 黑描邊(影片上看得清)
-  if (nose) { ctx.fillStyle = "rgba(0,0,0,0.55)"; ctx.beginPath(); ctx.arc(nose.x, nose.y, shortSide() * 0.038, 0, Math.PI * 2); ctx.fill(); }
-  ctx.strokeStyle = "#7CFFB0"; ctx.lineWidth = Math.max(3, shortSide() * 0.013); drawBones();            // 亮綠主體
-  if (nose) { ctx.fillStyle = "#7CFFB0"; ctx.beginPath(); ctx.arc(nose.x, nose.y, shortSide() * 0.03, 0, Math.PI * 2); ctx.fill(); }
+  ctx.strokeStyle = "rgba(0,0,0,0.55)"; ctx.lineWidth = Math.max(6, shortSide() * 0.022); drawBones();
+  if (nose) { ctx.fillStyle = "rgba(0,0,0,0.55)"; ctx.beginPath(); ctx.arc(nose.x, nose.y, shortSide()*0.04, 0, Math.PI*2); ctx.fill(); }
+  ctx.strokeStyle = col; ctx.lineWidth = Math.max(3, shortSide() * (lit ? 0.018 : 0.013)); drawBones();
+  if (nose) { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(nose.x, nose.y, shortSide()*0.032, 0, Math.PI*2); ctx.fill(); }
   ctx.restore();
 }
 function drawKpopPlaying() {
-  const vidOK = kpDanceVid.readyState >= 2 && !kpDanceVid.paused;
-  if (vidOK) ctx.clearRect(0, 0, W, H);                  // 透出後方示範舞者影片
-  else { ctx.fillStyle = "#2a0a2e"; ctx.fillRect(0, 0, W, H); }
+  ctx.fillStyle = "#1a0a24"; ctx.fillRect(0, 0, W, H);            // 深色舞台(本版用火柴人示範、先不放影片)
   ctx.save();
   if (shake > 0) ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake);
   for (const d of kpDemons) {
@@ -1662,12 +1724,11 @@ function drawKpopPlaying() {
     if (imgReady(zombieImg)) ctx.drawImage(zombieImg, p.x-w/2, p.y-w*asp*0.9, w, w*asp);
     else { ctx.fillStyle = "#a05"; ctx.beginPath(); ctx.arc(p.x, p.y-w*0.4, w*0.5, 0, Math.PI*2); ctx.fill(); }
   }
-  if (kpFlash > 0) { ctx.save(); ctx.globalAlpha = kpFlash; ctx.fillStyle = "#ffe96b"; ctx.font = `bold ${shortSide()*0.1}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("GOOD!", W/2, H*0.3); ctx.restore(); }
   drawParticles(); drawFloatTexts();
   ctx.restore();
-  kpDrawRefFigure();                                                                                       // 火柴人教練(不跟著震動、穩定示範)
-  ctx.fillStyle = "rgba(255,255,255,0.2)"; roundRectFill(W*0.15, H*0.92, W*0.7, H*0.025, H*0.012);          // 能量條底
-  ctx.fillStyle = kpEnergy >= 1 ? "#fff" : "#ff7fdc"; roundRectFill(W*0.15, H*0.92, W*0.7*kpEnergy, H*0.025, H*0.012);
+  kpDrawRefFigure();                                              // 火柴人教練(穩定、不跟震動)
+  // 連擊顯示
+  if (combo >= 2) { ctx.fillStyle = "#fff"; ctx.font = `bold ${shortSide()*0.07}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("✕" + combo, W*0.5, H*0.12); }
   if (noPersonT > 0.7) drawNoPersonHint();
   drawHUD();
 }
