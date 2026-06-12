@@ -1724,9 +1724,19 @@ function updateKpop(dt) {
 }
 function kpDrawRefFigure(vidMode) {          // 示範火柴人:影片模式縮角落當pictogram(描影片骨架)、否則居中當教練主體
   const pose = vidMode ? (kpRefFrame(kpSongTime) || {}).lm : kpChoreoPose(kpSongTime); if (!pose) return;
-  const bw = shortSide() * (vidMode ? 0.22 : 0.5), bh = bw * 1.55,
+  const bw = shortSide() * (vidMode ? 0.24 : 0.5), bh = bw * 1.55,
         cx = vidMode ? W * 0.82 : W / 2, cy = vidMode ? H * 0.17 : H * 0.46;
-  const P = (i) => { const a = pose[i]; if (!a) return null; return { x: cx + ((1 - a[0]) - 0.5) * bw, y: cy + (a[1] - 0.5) * bh }; }; // 鏡像
+  let P;
+  if (vidMode && pose[11] && pose[12] && pose[23] && pose[24]) {
+    // 影片骨架以「軀幹長」為基準放大塞滿小框(舞者只佔影片中央一小塊、直接映射動作會小到像靜止圖)
+    const nkx = (pose[11][0] + pose[12][0]) / 2, nky = (pose[11][1] + pose[12][1]) / 2;
+    const hpx = (pose[23][0] + pose[24][0]) / 2, hpy = (pose[23][1] + pose[24][1]) / 2;
+    const torso = Math.hypot(nkx - hpx, nky - hpy) || 0.2;
+    const s = bh * 0.27 / torso;                                  // 軀幹占盒高27%→手腳動作大而清楚
+    P = (i) => { const a = pose[i]; if (!a) return null; return { x: cx + (hpx - a[0]) * s, y: cy + bh * 0.07 + (a[1] - hpy) * s }; }; // 鏡像、髖中錨定
+  } else {
+    P = (i) => { const a = pose[i]; if (!a) return null; return { x: cx + ((1 - a[0]) - 0.5) * bw, y: cy + (a[1] - 0.5) * bh }; }; // 鏡像
+  }
   const M = (a, b) => { const p = P(a), q = P(b); return (p && q) ? { x: (p.x+q.x)/2, y: (p.y+q.y)/2 } : null; };
   const seg = (p, q) => { if (!p || !q) return; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); };
   const neck = M(11,12), hipc = M(23,24), nose = P(0);
