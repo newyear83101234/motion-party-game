@@ -1711,8 +1711,8 @@ function kpDrawRefFigure() {                 // 示範火柴人(居中當教練�
   const seg = (p, q) => { if (!p || !q) return; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); };
   const neck = M(11,12), hipc = M(23,24), nose = P(0);
   const lit = kpNodeFx > 0;
-  const good = kpMatch > 0.6;                                    // 跟得像→變綠亮、否則偏暗
-  const col = lit ? (kpNodeFxGold ? "#ffe96b" : "#aef36b") : (good ? "#7CFFB0" : "#5a7a8a");
+  const good = kpMatch > 0.6;                                    // 跟得像→額外發亮綠(教練永遠清楚可見、不會暗到看不到)
+  const col = lit ? (kpNodeFxGold ? "#ffe96b" : "#aef36b") : (good ? "#7CFFB0" : "#bfe6d8");
   ctx.save(); ctx.lineCap = "round"; ctx.lineJoin = "round";
   // 黑描邊
   ctx.strokeStyle = "rgba(0,0,0,0.5)"; ctx.lineWidth = Math.max(7, shortSide()*0.022);
@@ -1745,7 +1745,7 @@ function drawKpopPlaying() {
   // 節點倒數圈(接近拍→縮小)
   const node = kpChoreo[kpNodeIdx];
   if (node) { const nt = kpBeatTime(node.beat), lead = 0.8, pr = (kpSongTime - (nt - lead)) / lead;
-    if (pr > 0 && pr < 1.2) { const rr = shortSide() * (0.42 * (1 - Math.min(1, pr)) + 0.32); ctx.save(); ctx.globalAlpha = 0.7; ctx.strokeStyle = node.gold ? "#ffe96b" : "#ff7fdc"; ctx.lineWidth = Math.max(3, shortSide()*0.01); ctx.beginPath(); ctx.arc(W/2, H*0.46, rr, 0, Math.PI*2); ctx.stroke(); ctx.restore(); } }
+    if (pr > 0 && pr < 1.2) { const rr = shortSide() * (0.26 * (1 - Math.min(1, pr)) + 0.18); ctx.save(); ctx.globalAlpha = 0.75; ctx.strokeStyle = node.gold ? "#ffe96b" : "#ff7fdc"; ctx.lineWidth = Math.max(3, shortSide()*0.012); ctx.beginPath(); ctx.arc(W/2, H*0.46, rr, 0, Math.PI*2); ctx.stroke(); ctx.restore(); } }
   if (combo >= 2) { ctx.fillStyle = "#fff"; ctx.font = `bold ${shortSide()*0.07}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("✕" + combo, W*0.5, H*0.1); }
   if (noPersonT > 0.7) drawNoPersonHint();
   drawHUD();
