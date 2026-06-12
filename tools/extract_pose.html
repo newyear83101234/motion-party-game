@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-TW"><head><meta charset="UTF-8">
+<title>舞蹈骨架抽取/驗證</title>
+<style>body{margin:0;background:#111}canvas{display:block}</style>
+</head><body>
+<canvas id="c" width="640" height="360"></canvas>
+<video id="v" muted playsinline crossorigin="anonymous"></video>
+<script>document.getElementById("v").src = new URLSearchParams(location.search).get("v") || "_src_song/dance_test.mp4";</script>
+<script type="module">
+import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+const CDN = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+const cv = document.getElementById("c"), ctx = cv.getContext("2d");
+const v = document.getElementById("v");
+let detector = null;
+// 主要骨架連線（畫給人看）
+const CONN = [[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28],[27,31],[28,32]];
+window.extractedFrames = [];   // 抽到的關鍵幀 {t, landmarks}
+window.ready = false;
+
+async function init() {
+  const fs = await FilesetResolver.forVisionTasks(`${CDN}/wasm`);
+  detector = await PoseLandmarker.createFromOptions(fs, {
+    baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task", delegate: "GPU" },
+    runningMode: "IMAGE", numPoses: 1,
+  });
+  await new Promise(r => { if (v.readyState >= 1) r(); else v.onloadedmetadata = r; });
+  cv.width = 640; cv.height = Math.round(640 * v.videoHeight / v.videoWidth);
+  window.ready = true;
+}
+// 跳到指定秒數、偵測、畫骨架疊在影格上
+window.processAt = async (t) => {
+  await new Promise(r => { v.onseeked = r; v.currentTime = t; });
+  ctx.drawImage(v, 0, 0, cv.width, cv.height);
+  let res; try { res = detector.detect(v); } catch (e) { return { t, ok:false, err:String(e) }; }
+  const lm = (res.landmarks && res.landmarks[0]) || null;
+  if (lm) {
+    ctx.strokeStyle = "#00ff88"; ctx.lineWidth = 4;
+    for (const [a,b] of CONN) { ctx.beginPath(); ctx.moveTo(lm[a].x*cv.width, lm[a].y*cv.height); ctx.lineTo(lm[b].x*cv.width, lm[b].y*cv.height); ctx.stroke(); }
+    ctx.fillStyle = "#ff3366";
+    for (const p of lm) { ctx.beginPath(); ctx.arc(p.x*cv.width, p.y*cv.height, 4, 0, 7); ctx.fill(); }
+    // 平均 visibility 當追蹤品質指標
+    const vis = lm.reduce((s,p)=>s+(p.visibility||0),0)/lm.length;
+    window.extractedFrames.push({ t, landmarks: lm.map(p=>({x:+p.x.toFixed(4),y:+p.y.toFixed(4),v:+(p.visibility||0).toFixed(2)})) });
+    return { t, ok:true, vis:+vis.toFixed(2) };
+  }
+  return { t, ok:false };
+};
+// 抽全片：每 1/fps 秒取一個姿勢、輸出整支序列
+window.extractAll = async (fps = 12) => {
+  const dur = v.duration, step = 1 / fps, seq = [];
+  for (let t = 0; t < dur - 0.02; t += step) {
+    await new Promise(r => { v.onseeked = r; v.currentTime = t; });
+    let res; try { res = detector.detect(v); } catch (e) { continue; }
+    const lm = (res.landmarks && res.landmarks[0]); if (!lm) continue;
+    seq.push({ t: +t.toFixed(3), lm: lm.map(p => [+p.x.toFixed(4), +p.y.toFixed(4), +(p.visibility || 0).toFixed(2)]) });
+  }
+  return { fps, dur: +dur.toFixed(2), frames: seq.length, seq };
+};
+init();
+</script>
+</body></html>
