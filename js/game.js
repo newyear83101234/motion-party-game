@@ -91,6 +91,13 @@ bgVideo.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object
 document.body.appendChild(bgVideo);
 canvas.style.zIndex = "1"; // canvas 疊在背景影片之上（runner clearRect 透明處才露出影片）
 let runnerWantBg = false, runnerBgDegraded = false; // 此局想用影片背景 / 是否因效能降級
+// 獵魔女團「跟著舞者跳」示範影片（CSS背景、鏡像顯示給小孩照跳）
+const kpDanceVid = document.createElement("video");
+kpDanceVid.src = "VIDEO/kpop_dance.mp4"; kpDanceVid.loop = true; kpDanceVid.muted = true; kpDanceVid.preload = "auto";
+kpDanceVid.playsInline = true; kpDanceVid.setAttribute("playsinline", ""); kpDanceVid.setAttribute("webkit-playsinline", "");
+kpDanceVid.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:none;transform:scaleX(-1)";
+document.body.appendChild(kpDanceVid);
+let kpRef = null, kpEnergy = 0, kpMatch = 0, kpSpawnT = 0, kpFlash = 0; // 示範動作序列/能量/當下相似度/惡魔生成計時/打擊閃光
 // 每幀重評估：影片晚點才載好也會自動接上（解決「進場時影片還沒下載完→永遠 fallback」的 bug）。回傳是否真的在用影片
 function syncBgVideo() {
   const want = runnerWantBg && !runnerBgDegraded && bgVideo.readyState >= 2;
@@ -380,6 +387,7 @@ function resetKpop() {
   particles = []; floatTexts = []; shake = 0; bombFx = 0; gameOverPending = false;
   kpDemons = []; kpNoteIdx = 0; kpStars = 0; kpStolen = 0; kpPerfect = 0; kpGood = 0;
   kpStage = "intro"; kpBossCharge = 0; kpSongTime = 0; elapsed = 0; kpTutorIdx = 0;
+  kpEnergy = 0; kpMatch = 0; kpSpawnT = 1.0; kpFlash = 0;
   kpBeatmap = buildTestBeatmap(); kpNoteIdx = 0;
   prevHands = []; punchSpeed = 0; poseFrame = 0; lastSenseTs = 0; noPersonT = 0; pvzTarget = null;
 }
@@ -403,17 +411,20 @@ async function tryKpUnlock() {
     kpPwBuf = ""; shake = 18; state = "kppassword"; // 抖一下、清空重試
   }
 }
-function startKpopSong() {
+async function startKpopSong() {
+  if (!kpRef) { try { kpRef = await (await fetch("VIDEO/kpop_dance.json")).json(); } catch (e) { console.warn("舞步資料載入失敗", e); } }
   state = "playing";
   if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
-  for (const t of ALL_BGM) { try { t.pause(); } catch (e) {} } activeBgm = null; // 停掉選單 BGM
+  for (const t of ALL_BGM) { try { t.pause(); } catch (e) {} } activeBgm = null;
   try { if (kpSource) kpSource.stop(); } catch (e) {}
   kpSource = audioCtx.createBufferSource();
   kpSource.buffer = kpAudioBuf;
   kpSource.connect(audioCtx.destination);
-  kpT0 = audioCtx.currentTime + 0.1;       // 0.1s 後開始、給排程餘裕
+  kpT0 = audioCtx.currentTime + 0.1;
   kpSource.start(kpT0);
   kpSource.onended = () => { if (state === "playing" && currentGame === "kpop") kpStage = "done"; };
+  runnerWantBg = false;
+  try { kpDanceVid.currentTime = 0; kpDanceVid.style.display = "block"; kpDanceVid.play().catch(() => {}); } catch (e) {}
 }
 function pickGame(g) { if (g === "dodge") startDodge(); else if (g === "pvz") startPvz(); else if (g === "kpop") startKpop(); else startWhack(); }
 function togglePlayerMode() {
@@ -1552,122 +1563,96 @@ function drawRunnerFists() {                // 雙手畫拳擊手套（取代光
 }
 
 // ===================== 獵魔女團 K-pop 節奏遊戲 =====================
+// ===== 跟跳評分：比對玩家姿勢與示範舞者該時刻姿勢（骨頭方向向量、含鏡像、對小孩寬鬆）=====
+const KP_BONES = [[11,13],[13,15],[12,14],[14,16],[23,25],[25,27],[24,26],[26,28]];
+const KP_LR = {11:12,12:11,13:14,14:13,15:16,16:15,23:24,24:23,25:26,26:25,27:28,28:27};
+function kpBoneVecs(getPt) {
+  return KP_BONES.map(([a,b]) => {
+    const pa = getPt(a), pb = getPt(b);
+    if (!pa || !pb || pa.v < 0.3 || pb.v < 0.3) return null;
+    let dx = pb.x - pa.x, dy = pb.y - pa.y; const L = Math.hypot(dx, dy) || 1;
+    return [dx / L, dy / L];
+  });
+}
+function kpCos(va, vb) {
+  let s = 0, n = 0;
+  for (let i = 0; i < va.length; i++) { if (va[i] && vb[i]) { s += va[i][0]*vb[i][0] + va[i][1]*vb[i][1]; n++; } }
+  return n ? s / n : 0;
+}
+function kpRefFrame(t) {
+  if (!kpRef || !kpRef.seq.length) return null;
+  const tt = ((t % kpRef.dur) + kpRef.dur) % kpRef.dur, idx = Math.min(kpRef.seq.length - 1, Math.round(tt * kpRef.fps));
+  return kpRef.seq[idx];
+}
+function kpQuality() {
+  if (!poseLandmarks) return 0;
+  const ref = kpRefFrame(kpSongTime); if (!ref) return 0;
+  const player = kpBoneVecs(i => { const p = poseLandmarks[i]; return p ? { x: p.x, y: p.y, v: p.visibility || 0 } : null; });
+  const refDirect = kpBoneVecs(i => { const a = ref.lm[i]; return a ? { x: a[0], y: a[1], v: a[2] } : null; });
+  const refMirror = kpBoneVecs(i => { const j = (KP_LR[i] != null ? KP_LR[i] : i); const a = ref.lm[j]; return a ? { x: 1 - a[0], y: a[1], v: a[2] } : null; });
+  const cos = Math.max(kpCos(player, refDirect), kpCos(player, refMirror));
+  return Math.max(0, Math.min(1, (cos - 0.4) / 0.6));
+}
+function kpSpawnDanceDemon() {
+  const side = Math.random() < 0.5 ? -1 : 1;
+  kpDemons.push({ side, born: kpSongTime, dur: 3.2, dead: false, stolen: false, stoleAt: 0 });
+}
+function kpDanceDemonPos(d) {
+  const prog = Math.min(1.2, (kpSongTime - d.born) / d.dur);
+  const ex = d.side < 0 ? W * 0.04 : W * 0.96, cx = d.side < 0 ? W * 0.38 : W * 0.62;
+  return { x: ex + (cx - ex) * prog, y: H * 0.32 + (H * 0.62 - H * 0.32) * prog, scale: 0.4 + 0.6 * prog, prog };
+}
 function updateKpop(dt) {
   poseFrame++;
-  if (poseFrame % 2 === 0) {
-    senseBody();
-    const now = performance.now();
-    const sdt = lastSenseTs ? Math.max(0.001, (now - lastSenseTs) / 1000) : 1 / 30;
-    lastSenseTs = now;
-    punchSpeed = computePunchSpeed() / sdt;
-  }
+  if (poseFrame % 2 === 0) { senseBody(); }
   kpSongTime = audioCtx ? (audioCtx.currentTime - kpT0) : 0;
   if (allPose.length === 0) noPersonT += dt; else noPersonT = 0;
-  if (kpStage !== "done") kpStage = kpStageAt(kpSongTime); // done(歌結束/Boss擊倒)後不再被覆寫
-
-  if (kpStage === "intro") {
-    // 教學前奏：依序示範 3 式、擺對放煙火、零失敗、不生惡魔
-    if (kpTutorIdx < 3 && anyPoseMatch(KP_POSES[kpTutorIdx])) {
-      burst(W / 2, H * 0.4, "#ffe96b", 24);
-      if (!playSfxFile(sfxCorrect)) beep(990, 0.1, "triangle", 0.3);
-      kpTutorIdx++;
-    }
-  } else if (kpStage === "boss") {
-    // Boss：擺住大字 star 約 2 秒(4拍)充能 → 全螢幕金光波轟飛
-    if (anyPoseMatch("star")) kpBossCharge = Math.min(1, kpBossCharge + dt / 2.0);
-    else kpBossCharge = Math.max(0, kpBossCharge - dt * 0.4);
-    if (kpBossCharge >= 1) {
-      kpStars += 1; score += 10; bombFx = 1.0; shake = 22;
-      burst(W / 2, H / 2, "#ffe96b", 60);
-      if (!playSfxFile(pvzWinSfx)) sndVictory();
-      kpStage = "done";
-    }
-  } else {
-    // verse / chorus / bridge：生成(bridge不生)+判定
-    if (kpStage !== "bridge") {
-      while (kpBeatmap && kpNoteIdx < kpBeatmap.notes.length) {
-        const n = kpBeatmap.notes[kpNoteIdx];
-        if (kpSongTime >= kpBeatTime(n.beat) - KP_APPROACH) { kpSpawnDemon(n); kpNoteIdx++; }
-        else break;
-      }
-    }
-    for (const d of kpDemons) {
-      if (d.dead || d.judged) continue;
-      const rel = kpSongTime - d.hitTime + KP_SENSE_LAG;
-      if (rel >= -KP_GOOD_W && rel <= KP_GOOD_W) {
-        if (anyPoseMatch(d.pose)) {
-          d.judged = true; d.dead = true;
-          const perfect = Math.abs(rel) <= KP_PERFECT_W;
-          const pts = perfect ? 2 : 1; score += pts;
-          if (perfect) kpPerfect++; else kpGood++;
-          combo++; bestCombo = Math.max(bestCombo, combo);
-          const p = kpDemonPos(d);
-          addFloat(p.x, p.y, perfect ? "PERFECT" : "GOOD", perfect ? "#ffe96b" : "#aef36b", shortSide() * (perfect ? 0.08 : 0.07));
-          burst(W / 2, KP_RING_Y(), "#ff7fdc", 22);
-          if (!playSfxFile(sfxCorrect)) beep(880, 0.1, "triangle", 0.3);
-        }
-      } else if (rel > KP_GOOD_W) {
-        d.judged = true; d.stolen = true; kpStolen++; combo = 0;
-        const p = kpDemonPos(d);
-        addFloat(p.x, p.y, "⭐➖", "#ff6b6b", shortSide() * 0.07);
-        if (!playSfxFile(sfxZombie)) beep(200, 0.12, "sawtooth", 0.25);
-      }
-    }
-    kpDemons = kpDemons.filter((d) => !d.dead && !(d.stolen && kpSongTime - d.hitTime > 1.2));
+  kpMatch = kpQuality();                                              // 當下跟得像不像 0~1
+  kpEnergy = Math.max(0, Math.min(1, kpEnergy + (kpMatch - 0.35) * dt * 0.7)); // 跳得好累積、不好衰退
+  if (kpMatch > 0.7 && kpFlash <= 0) kpFlash = 0.3;
+  if (kpFlash > 0) kpFlash -= dt;
+  kpSpawnT -= dt;
+  if (kpSpawnT <= 0) { kpSpawnDanceDemon(); kpSpawnT = Math.max(1.4, 2.6 - kpSongTime * 0.01); }
+  if (kpEnergy >= 1) {                                                // 能量滿 → 唱歌光波清全場惡魔
+    let n = 0;
+    for (const d of kpDemons) { if (!d.dead && !d.stolen) { d.dead = true; n++; } }
+    if (n) { score += n * 2; kpPerfect += n; combo += n; bestCombo = Math.max(bestCombo, combo); addFloat(W/2, H*0.4, "✨"+n, "#ffe96b", shortSide()*0.1); }
+    burst(W/2, H*0.5, "#ff7fdc", 50); shake = 16; bombFx = 0.7;
+    if (!playSfxFile(sfxCorrect)) beep(880, 0.12, "triangle", 0.3);
+    kpEnergy = 0;
   }
-  // 共用特效
-  for (const p of particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 600 * dt; p.life -= dt * 1.6; }
-  particles = particles.filter((p) => p.life > 0);
+  for (const d of kpDemons) {                                         // 走到底沒清 → 偷星跑掉(無命制)
+    if (d.dead || d.stolen) continue;
+    if ((kpSongTime - d.born) / d.dur >= 1) { d.stolen = true; d.stoleAt = kpSongTime; kpStolen++; combo = 0; const p = kpDanceDemonPos(d); addFloat(p.x, p.y, "⭐➖", "#ff6b6b", shortSide()*0.07); if (!playSfxFile(sfxZombie)) beep(200, 0.12, "sawtooth", 0.25); }
+  }
+  kpDemons = kpDemons.filter(d => !d.dead && !(d.stolen && kpSongTime - d.stoleAt > 1.2));
+  for (const p of particles) { p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 600*dt; p.life -= dt*1.6; }
+  particles = particles.filter(p => p.life > 0);
   updateFloats(dt);
-  if (shake > 0) shake = Math.max(0, shake - dt * 60);
-  if (bombFx > 0) bombFx = Math.max(0, bombFx - dt * 1.6);
+  if (shake > 0) shake = Math.max(0, shake - dt*60);
+  if (bombFx > 0) bombFx = Math.max(0, bombFx - dt*1.6);
   if (kpStage === "done") { commitBest(); state = "win"; }
 }
 function drawKpopPlaying() {
-  ctx.fillStyle = "#2a0a2e"; ctx.fillRect(0, 0, W, H);
-  if (imgReady(stageKpopImg)) drawBgCover(stageKpopImg);
-  if (latestMask) drawPersonMasked(latestMask);
+  const vidOK = kpDanceVid.readyState >= 2 && !kpDanceVid.paused;
+  if (vidOK) ctx.clearRect(0, 0, W, H);                  // 透出後方示範舞者影片
+  else { ctx.fillStyle = "#2a0a2e"; ctx.fillRect(0, 0, W, H); }
   ctx.save();
-  if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
-  if (kpStage === "intro") {
-    // 教學：中央大姿勢圖示 + 進度
-    if (kpTutorIdx < 3) {
-      kpDrawPoseIcon(KP_POSES[kpTutorIdx], W / 2, H * 0.4, shortSide() * 0.2);
-      ctx.fillStyle = "#fff"; ctx.font = `${shortSide() * 0.05}px sans-serif`;
-      ctx.textAlign = "center"; ctx.fillText("👆" + (kpTutorIdx + 1) + "/3", W / 2, H * 0.56);
-    }
-  } else if (kpStage === "boss") {
-    // Boss：5 隻並排(hue變色) + 大字提示 + 充能條
-    for (let i = 0; i < 5; i++) {
-      const x = W * (0.2 + i * 0.15), w = shortSide() * 0.18;
-      const asp = imgReady(zombieImg) ? zombieImg.naturalHeight / zombieImg.naturalWidth : 1.2;
-      if (imgReady(zombieImg)) { ctx.save(); ctx.filter = `hue-rotate(${i * 40}deg)`; ctx.drawImage(zombieImg, x - w / 2, H * 0.4, w, w * asp); ctx.restore(); }
-    }
-    kpDrawPoseIcon("star", W / 2, H * 0.25, shortSide() * 0.14);
-    ctx.fillStyle = "rgba(255,255,255,0.2)"; roundRectFill(W * 0.2, H * 0.7, W * 0.6, H * 0.03, H * 0.015);
-    ctx.fillStyle = "#ffe96b"; roundRectFill(W * 0.2, H * 0.7, W * 0.6 * kpBossCharge, H * 0.03, H * 0.015);
-  } else {
-    // verse/chorus/bridge：光圈 + 惡魔
-    ctx.strokeStyle = "rgba(255,127,220,0.6)"; ctx.lineWidth = shortSide() * 0.012;
-    ctx.beginPath(); ctx.ellipse(W / 2, KP_RING_Y(), W * 0.16, H * 0.04, 0, 0, Math.PI * 2); ctx.stroke();
-    for (const d of kpDemons) {
-      if (d.dead) continue;
-      const p = kpDemonPos(d);
-      const w = shortSide() * 0.22 * p.scale;
-      const asp = imgReady(zombieImg) ? zombieImg.naturalHeight / zombieImg.naturalWidth : 1.2;
-      if (d.stolen) {
-        const t = kpSongTime - d.hitTime;
-        ctx.save(); ctx.globalAlpha = Math.max(0, 1 - t); ctx.translate(p.x, p.y - t * H * 0.3); ctx.rotate(t * 6);
-        if (imgReady(zombieImg)) ctx.drawImage(zombieImg, -w / 2, -w * asp * 0.9, w, w * asp);
-        ctx.restore(); continue;
-      }
-      if (imgReady(zombieImg)) ctx.drawImage(zombieImg, p.x - w / 2, p.y - w * asp * 0.9, w, w * asp);
-      else { ctx.fillStyle = "#a05"; ctx.beginPath(); ctx.arc(p.x, p.y - w * 0.4, w * 0.5, 0, Math.PI * 2); ctx.fill(); }
-      kpDrawPoseIcon(d.pose, p.x, p.y - w * asp * 0.9 - shortSide() * 0.06, shortSide() * 0.07);
-    }
+  if (shake > 0) ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake);
+  for (const d of kpDemons) {
+    if (d.dead) continue;
+    const p = kpDanceDemonPos(d);
+    const w = shortSide() * 0.2 * p.scale;
+    const asp = imgReady(zombieImg) ? zombieImg.naturalHeight/zombieImg.naturalWidth : 1.2;
+    if (d.stolen) { const t = kpSongTime - d.stoleAt; ctx.save(); ctx.globalAlpha = Math.max(0,1-t); ctx.translate(p.x, p.y - t*H*0.3); ctx.rotate(t*6); if (imgReady(zombieImg)) ctx.drawImage(zombieImg, -w/2, -w*asp*0.9, w, w*asp); ctx.restore(); continue; }
+    if (imgReady(zombieImg)) ctx.drawImage(zombieImg, p.x-w/2, p.y-w*asp*0.9, w, w*asp);
+    else { ctx.fillStyle = "#a05"; ctx.beginPath(); ctx.arc(p.x, p.y-w*0.4, w*0.5, 0, Math.PI*2); ctx.fill(); }
   }
+  if (kpFlash > 0) { ctx.save(); ctx.globalAlpha = kpFlash; ctx.fillStyle = "#ffe96b"; ctx.font = `bold ${shortSide()*0.1}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("GOOD!", W/2, H*0.3); ctx.restore(); }
   drawParticles(); drawFloatTexts();
   ctx.restore();
+  ctx.fillStyle = "rgba(255,255,255,0.2)"; roundRectFill(W*0.15, H*0.92, W*0.7, H*0.025, H*0.012);          // 能量條底
+  ctx.fillStyle = kpEnergy >= 1 ? "#fff" : "#ff7fdc"; roundRectFill(W*0.15, H*0.92, W*0.7*kpEnergy, H*0.025, H*0.012);
   if (noPersonT > 0.7) drawNoPersonHint();
   drawHUD();
 }
@@ -1704,6 +1689,7 @@ function loop(ts) {
     lastTs = ts;
     fpsTick(ts);
     if (!(state === "playing" && currentGame === "pvz")) { runnerWantBg = false; if (bgVideo.style.display === "block") { bgVideo.style.display = "none"; try { bgVideo.pause(); } catch (e) {} } } // 離開往前衝就關背景影片
+    if (!(state === "playing" && currentGame === "kpop")) { if (kpDanceVid.style.display === "block") { kpDanceVid.style.display = "none"; try { kpDanceVid.pause(); } catch (e) {} } } // 離開kpop關示範影片
     if ((state === "win" || state === "gameover") && activeBgm) { for (const t of ALL_BGM) { try { t.pause(); } catch (e) {} } activeBgm = null; } // 結算畫面停掉所有 BGM：victory 音效不被遊戲 BGM 疊著重複播
     if (audioCtx && audioCtx.state === "suspended") audioCtx.resume(); // iOS 切背景回來後恢復音效
     if (state === "boot") drawBoot();
