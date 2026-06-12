@@ -150,7 +150,9 @@ const PVZ_POSES = ["handsup", "star", "tpose", "handshead", "armscross", "onehan
 // 獵魔女團 K-pop 節奏狀態（kp 前綴）
 let kpDemons = [], kpBeatmap = null, kpAudioBuf = null, kpSource = null;
 let kpT0 = 0, kpSongTime = 0, kpNoteIdx = 0;
-let kpStars = 0, kpStolen = 0, kpPerfect = 0, kpGood = 0;
+let kpStars = 0, kpStolen = 0, kpPerfect = 0, kpGood = 0, kpMiss = 0;
+let kpWaveT = -9, kpWaveGold = false; // 命中節點放出的光波特效（轟飛惡魔用）
+let kpNextSpawn = 2.0; // 下一隻惡魔的歌曲時間（用音訊時鐘驅動、低fps也不掉密度）
 let kpStage = "intro", kpBossCharge = 0; // intro|verse|chorus|bridge|boss|done
 let kpTutorIdx = 0; // 教學前奏目前示範到第幾式
 let kpPwOK = false, kpPwBuf = "";          // 密碼門：是否通過 / 已輸入緩衝
@@ -385,13 +387,13 @@ function startPvz() { currentGame = "pvz"; resetPvz(); playBgmTrack(bgmPvz); _fp
 function resetKpop() {
   score = 0; combo = 0; bestCombo = 0;
   particles = []; floatTexts = []; shake = 0; bombFx = 0; gameOverPending = false;
-  kpDemons = []; kpNoteIdx = 0; kpStars = 0; kpStolen = 0; kpPerfect = 0; kpGood = 0;
+  kpDemons = []; kpNoteIdx = 0; kpStars = 0; kpStolen = 0; kpPerfect = 0; kpGood = 0; kpMiss = 0; kpWaveT = -9;
   kpStage = "intro"; kpBossCharge = 0; kpSongTime = 0; elapsed = 0; kpTutorIdx = 0;
   kpEnergy = 0; kpMatch = 0; kpSpawnT = 2.0; kpFlash = 0;
   kpBeatmap = buildTestBeatmap(); kpNoteIdx = 0;
   prevHands = []; punchSpeed = 0; poseFrame = 0; lastSenseTs = 0; noPersonT = 0; pvzTarget = null;
   kpChoreo = buildChoreo();
-  kpNodeIdx = 0; kpNodeBest = 0; kpNodeFx = 0; kpSpawnT = 2.0; kpDemons = [];
+  kpNodeIdx = 0; kpNodeBest = 0; kpNodeFx = 0; kpSpawnT = 2.0; kpDemons = []; kpNextSpawn = 2.0;
 }
 function startKpop() {
   currentGame = "kpop"; resetKpop();
@@ -906,7 +908,7 @@ function drawGameOver() {
   ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("🏠", hx, hy + rr * 0.05);
 }
 function kpRating() {
-  const total = kpPerfect + kpGood + kpStolen;
+  const total = kpPerfect + kpGood + kpMiss;   // 方向A：純跳舞準度（惡魔是特效、不參與評分）
   if (total === 0) return 1;
   const acc = (kpPerfect + kpGood * 0.5) / total;
   return acc >= 0.85 ? 3 : acc >= 0.5 ? 2 : 1;
@@ -1646,14 +1648,19 @@ function kpQuality() {
   const cos = Math.max(kpCos(player, refDirect), kpCos(player, refMirror));
   return Math.max(0, Math.min(1, (cos - 0.4) / 0.6));
 }
-function kpSpawnDanceDemon() {
+function kpSpawnDanceDemon() {                 // 方向A：惡魔=純背景氛圍、沿兩側走、玩家不用看它
   const side = Math.random() < 0.5 ? -1 : 1;
-  kpDemons.push({ side, born: kpSongTime, dur: 3.2, dead: false, stolen: false, stoleAt: 0 });
+  kpDemons.push({ side, born: kpSongTime, dur: 4.5, dead: false, deadAt: 0, dx: 0, dy: 0, dscale: 1 });
 }
 function kpDanceDemonPos(d) {
-  const prog = Math.min(1.2, (kpSongTime - d.born) / d.dur);
-  const ex = d.side < 0 ? W * 0.04 : W * 0.96, cx = d.side < 0 ? W * 0.38 : W * 0.62;
-  return { x: ex + (cx - ex) * prog, y: H * 0.32 + (H * 0.62 - H * 0.32) * prog, scale: 0.4 + 0.6 * prog, prog };
+  const prog = Math.min(1.25, (kpSongTime - d.born) / d.dur);
+  const ex = d.side < 0 ? -W * 0.04 : W * 1.04, cx = d.side < 0 ? W * 0.18 : W * 0.82; // 貼邊走、不擠中間搶注意力
+  return { x: ex + (cx - ex) * prog, y: H * 0.34 + (H * 0.72 - H * 0.34) * prog, scale: 0.35 + 0.5 * prog, prog };
+}
+function kpKillDemon(d) {                      // 被光波轟飛：凍結死亡位置、爽快粒子
+  const p = kpDanceDemonPos(d);
+  d.dead = true; d.deadAt = kpSongTime; d.dx = p.x; d.dy = p.y; d.dscale = p.scale;
+  burst(p.x, p.y, "#ff7fdc", 14);
 }
 function updateKpop(dt) {
   poseFrame++;
@@ -1663,8 +1670,7 @@ function updateKpop(dt) {
   if (kpNodeFx > 0) kpNodeFx -= dt;
   const node = kpChoreo[kpNodeIdx];
   kpMatch = node ? kpMatchPose(node.pose) : 0;            // 連續算「現在跟目標像不像」給火柴人變色用
-  kpSpawnT -= dt;
-  if (kpSpawnT <= 0) { kpSpawnDanceDemon(); kpSpawnT = Math.max(1.6, 2.8 - kpSongTime * 0.008); }
+  if (kpSongTime >= kpNextSpawn) { kpSpawnDanceDemon(); kpNextSpawn = kpSongTime + Math.max(1.6, 2.8 - kpSongTime * 0.008); }
   if (node) {
     const nt = kpBeatTime(node.beat);
     if (kpSongTime >= nt - 0.6 && kpSongTime <= nt + 0.4) { if (kpMatch > kpNodeBest) kpNodeBest = kpMatch; }
@@ -1673,29 +1679,30 @@ function updateKpop(dt) {
       if (q > 0.45) {
         const perfect = q > 0.72;
         if (node.gold) {
-          let n = 0; for (const d of kpDemons) if (!d.dead && !d.stolen) { d.dead = true; n++; }
+          let n = 0; for (const d of kpDemons) if (!d.dead) { kpKillDemon(d); n++; }
           score += 10 + n * 2; kpPerfect++; combo++; bestCombo = Math.max(bestCombo, combo);
           burst(W/2, H*0.5, "#ffe96b", 60); shake = 18; bombFx = 0.8; kpNodeFx = 0.5; kpNodeFxGold = true;
+          kpWaveT = kpSongTime; kpWaveGold = true;
           addFloat(W/2, H*0.3, "✨GOLD!", "#ffe96b", shortSide()*0.11);
           if (!playSfxFile(pvzWinSfx)) sndVictory();
         } else {
-          let best = null; for (const d of kpDemons) if (!d.dead && !d.stolen) { const p2 = (kpSongTime - d.born)/d.dur; if (!best || p2 > best._p) { best = d; best._p = p2; } }
-          if (best) best.dead = true;
-          score += perfect ? 2 : 1; if (perfect) kpPerfect++; else kpGood++;
+          // 方向A：跳得好自動放光波清惡魔（PERFECT清2隻、GOOD清1隻）、玩家不用看惡魔
+          const alive = kpDemons.filter(d => !d.dead).sort((a, b) => (kpSongTime - b.born)/b.dur - (kpSongTime - a.born)/a.dur);
+          const killed = alive.slice(0, perfect ? 2 : 1);
+          for (const d of killed) kpKillDemon(d);
+          score += (perfect ? 2 : 1) + killed.length; if (perfect) kpPerfect++; else kpGood++;
           combo++; bestCombo = Math.max(bestCombo, combo);
           burst(W/2, H*0.45, "#ff7fdc", 20); kpNodeFx = 0.4; kpNodeFxGold = false;
+          kpWaveT = kpSongTime; kpWaveGold = false;
           addFloat(W/2, H*0.3, perfect ? "PERFECT" : "GOOD", perfect ? "#ffe96b" : "#aef36b", shortSide()*(perfect?0.09:0.08));
           if (!playSfxFile(sfxCorrect)) beep(880, 0.1, "triangle", 0.3);
         }
-      } else { combo = 0; addFloat(W/2, H*0.3, "再來!", "#ff9bb0", shortSide()*0.07); kpNodeFx = 0.3; kpNodeFxGold = false; }
+      } else { kpMiss++; combo = 0; addFloat(W/2, H*0.3, "再來!", "#ff9bb0", shortSide()*0.07); kpNodeFx = 0.3; kpNodeFxGold = false; }
       kpNodeIdx++; kpNodeBest = 0;
     }
   }
-  for (const d of kpDemons) {
-    if (d.dead || d.stolen) continue;
-    if ((kpSongTime - d.born) / d.dur >= 1) { d.stolen = true; d.stoleAt = kpSongTime; kpStolen++; const p = kpDanceDemonPos(d); addFloat(p.x, p.y, "⭐➖", "#ff6b6b", shortSide()*0.07); if (!playSfxFile(sfxZombie)) beep(200, 0.12, "sawtooth", 0.25); }
-  }
-  kpDemons = kpDemons.filter(d => !d.dead && !(d.stolen && kpSongTime - d.stoleAt > 1.2));
+  // 方向A：沒清到的惡魔走完安靜淡出、零懲罰（不偷星、不出聲、不逼玩家看）
+  kpDemons = kpDemons.filter(d => d.dead ? (kpSongTime - d.deadAt < 0.9) : (kpSongTime - d.born) / d.dur < 1.25);
   for (const p of particles) { p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 600*dt; p.life -= dt*1.6; }
   particles = particles.filter(p => p.life > 0);
   updateFloats(dt);
@@ -1730,15 +1737,27 @@ function drawKpopPlaying() {
   ctx.fillStyle = "#1a0a24"; ctx.fillRect(0, 0, W, H);           // 深色舞台(暫無AI影片、火柴人當主體)
   ctx.save();
   if (shake > 0) ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake);
+  const asp = imgReady(zombieImg) ? zombieImg.naturalHeight/zombieImg.naturalWidth : 1.2;
   for (const d of kpDemons) {
-    if (d.dead) continue;
+    if (d.dead) {                                                // 被光波轟飛：旋轉飛出去淡出（爽快特效）
+      const t = kpSongTime - d.deadAt, w = shortSide() * 0.18 * d.dscale;
+      ctx.save(); ctx.globalAlpha = Math.max(0, 1 - t * 1.2);
+      ctx.translate(d.dx + d.side * t * W * 0.35, d.dy - t * H * 0.45); ctx.rotate(t * 7 * d.side);
+      if (imgReady(zombieImg)) ctx.drawImage(zombieImg, -w/2, -w*asp*0.9, w, w*asp);
+      ctx.restore(); continue;
+    }
     const p = kpDanceDemonPos(d);
-    const w = shortSide() * 0.2 * p.scale;
-    const asp = imgReady(zombieImg) ? zombieImg.naturalHeight/zombieImg.naturalWidth : 1.2;
-    if (d.stolen) { const t = kpSongTime - d.stoleAt; ctx.save(); ctx.globalAlpha = Math.max(0,1-t); ctx.translate(p.x, p.y - t*H*0.3); ctx.rotate(t*6); if (imgReady(zombieImg)) ctx.drawImage(zombieImg, -w/2, -w*asp*0.9, w, w*asp); ctx.restore(); continue; }
+    const w = shortSide() * 0.18 * p.scale;
+    ctx.save(); ctx.globalAlpha = p.prog > 1 ? Math.max(0, 1 - (p.prog - 1) * 4) * 0.8 : 0.8; // 背景氛圍半透明、走完淡出
     if (imgReady(zombieImg)) ctx.drawImage(zombieImg, p.x-w/2, p.y-w*asp*0.9, w, w*asp);
     else { ctx.fillStyle = "#a05"; ctx.beginPath(); ctx.arc(p.x, p.y-w*0.4, w*0.5, 0, Math.PI*2); ctx.fill(); }
+    ctx.restore();
   }
+  // 命中節點放出的光波（從教練位置擴散、視覺上「跳舞掃掉惡魔」）
+  if (kpWaveT >= 0) { const wt = kpSongTime - kpWaveT;
+    if (wt < 0.55) { const r = shortSide() * (0.2 + wt * (kpWaveGold ? 3.4 : 2.2));
+      ctx.save(); ctx.globalAlpha = 0.6 * (1 - wt / 0.55); ctx.strokeStyle = kpWaveGold ? "#ffe96b" : "#7CFFB0";
+      ctx.lineWidth = Math.max(4, shortSide() * 0.02); ctx.beginPath(); ctx.arc(W/2, H*0.46, r, 0, Math.PI*2); ctx.stroke(); ctx.restore(); } }
   drawParticles(); drawFloatTexts();
   ctx.restore();
   kpDrawRefFigure();                                             // 火柴人示範主體
