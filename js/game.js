@@ -1633,6 +1633,20 @@ function updateKpop(dt) {
   if (bombFx > 0) bombFx = Math.max(0, bombFx - dt*1.6);
   if (kpStage === "done") { commitBest(); state = "win"; }
 }
+function kpDrawRefFigure() {                 // 示範動作畫成清楚火柴人教練(鏡像、給小孩照跳)
+  const ref = kpRefFrame(kpSongTime); if (!ref) return;
+  const lm = ref.lm, bw = shortSide() * 0.46, bh = bw * 1.5, cx = W / 2, cy = H * 0.4;
+  const P = (i) => { const a = lm[i]; if (!a || a[2] < 0.3) return null; return { x: cx + ((1 - a[0]) - 0.5) * bw, y: cy + (a[1] - 0.5) * bh }; }; // normalized→框內、鏡像
+  const bones = [[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28]];
+  const drawBones = () => { for (const [a, b] of bones) { const p = P(a), q = P(b); if (!p || !q) continue; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); } };
+  const nose = P(0);
+  ctx.save(); ctx.lineCap = "round"; ctx.lineJoin = "round";
+  ctx.strokeStyle = "rgba(0,0,0,0.55)"; ctx.lineWidth = Math.max(6, shortSide() * 0.02); drawBones();   // 黑描邊(影片上看得清)
+  if (nose) { ctx.fillStyle = "rgba(0,0,0,0.55)"; ctx.beginPath(); ctx.arc(nose.x, nose.y, shortSide() * 0.038, 0, Math.PI * 2); ctx.fill(); }
+  ctx.strokeStyle = "#7CFFB0"; ctx.lineWidth = Math.max(3, shortSide() * 0.013); drawBones();            // 亮綠主體
+  if (nose) { ctx.fillStyle = "#7CFFB0"; ctx.beginPath(); ctx.arc(nose.x, nose.y, shortSide() * 0.03, 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+}
 function drawKpopPlaying() {
   const vidOK = kpDanceVid.readyState >= 2 && !kpDanceVid.paused;
   if (vidOK) ctx.clearRect(0, 0, W, H);                  // 透出後方示範舞者影片
@@ -1651,6 +1665,7 @@ function drawKpopPlaying() {
   if (kpFlash > 0) { ctx.save(); ctx.globalAlpha = kpFlash; ctx.fillStyle = "#ffe96b"; ctx.font = `bold ${shortSide()*0.1}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("GOOD!", W/2, H*0.3); ctx.restore(); }
   drawParticles(); drawFloatTexts();
   ctx.restore();
+  kpDrawRefFigure();                                                                                       // 火柴人教練(不跟著震動、穩定示範)
   ctx.fillStyle = "rgba(255,255,255,0.2)"; roundRectFill(W*0.15, H*0.92, W*0.7, H*0.025, H*0.012);          // 能量條底
   ctx.fillStyle = kpEnergy >= 1 ? "#fff" : "#ff7fdc"; roundRectFill(W*0.15, H*0.92, W*0.7*kpEnergy, H*0.025, H*0.012);
   if (noPersonT > 0.7) drawNoPersonHint();
