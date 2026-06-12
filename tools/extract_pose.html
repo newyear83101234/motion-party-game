@@ -27,11 +27,20 @@ async function init() {
   cv.width = 640; cv.height = Math.round(640 * v.videoHeight / v.videoWidth);
   window.ready = true;
 }
+// seek後等「新幀真的呈現」再用(headless下只靠onseeked會一直吃到同一幀→抽出120幀全同姿勢、2026-06-12踩坑)
+function seekTo(t) {
+  return new Promise(r => {
+    let done = false; const fin = () => { if (!done) { done = true; r(); } };
+    if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(() => fin());
+    v.onseeked = () => setTimeout(fin, 50); // 沒有rVFC的瀏覽器fallback
+    v.currentTime = t;
+  });
+}
 // 跳到指定秒數、偵測、畫骨架疊在影格上
 window.processAt = async (t) => {
-  await new Promise(r => { v.onseeked = r; v.currentTime = t; });
+  await seekTo(t);
   ctx.drawImage(v, 0, 0, cv.width, cv.height);
-  let res; try { res = detector.detect(v); } catch (e) { return { t, ok:false, err:String(e) }; }
+  let res; try { res = detector.detect(cv); } catch (e) { return { t, ok:false, err:String(e) }; }
   const lm = (res.landmarks && res.landmarks[0]) || null;
   if (lm) {
     ctx.strokeStyle = "#00ff88"; ctx.lineWidth = 4;
@@ -49,13 +58,36 @@ window.processAt = async (t) => {
 window.extractAll = async (fps = 12) => {
   const dur = v.duration, step = 1 / fps, seq = [];
   for (let t = 0; t < dur - 0.02; t += step) {
-    await new Promise(r => { v.onseeked = r; v.currentTime = t; });
-    let res; try { res = detector.detect(v); } catch (e) { continue; }
+    await seekTo(t);
+    ctx.drawImage(v, 0, 0, cv.width, cv.height);                      // 畫到canvas、對canvas偵測(看到什麼測什麼)
+    let res; try { res = detector.detect(cv); } catch (e) { continue; }
     const lm = (res.landmarks && res.landmarks[0]); if (!lm) continue;
     seq.push({ t: +t.toFixed(3), lm: lm.map(p => [+p.x.toFixed(4), +p.y.toFixed(4), +(p.visibility || 0).toFixed(2)]) });
   }
   return { fps, dur: +dur.toFixed(2), frames: seq.length, seq };
 };
+// 即時播放抽取(seek在headless壞掉的環境用):放慢播放、每呈現一幀偵測、記真實mediaTime
+// 幀距可能不均、遊戲端kpRefFrame是二分搜尋所以OK
+window.extractRT = (fps = 12) => new Promise(res => {
+  const dur = v.duration, step = 1 / fps, seq = [];
+  let next = 0, fin = false;
+  const done = () => { if (!fin) { fin = true; res({ fps, dur: +dur.toFixed(2), frames: seq.length, seq }); } };
+  const onFrame = (now, meta) => {
+    const t = meta.mediaTime;
+    if (t >= next - 0.001) {
+      ctx.drawImage(v, 0, 0, cv.width, cv.height);
+      try { const r = detector.detect(cv); const lm = r.landmarks && r.landmarks[0];
+        if (lm) seq.push({ t: +t.toFixed(3), lm: lm.map(p => [+p.x.toFixed(4), +p.y.toFixed(4), +(p.visibility || 0).toFixed(2)]) });
+      } catch (e) {}
+      next += step;
+    }
+    if (!v.ended && !fin) v.requestVideoFrameCallback(onFrame); else done();
+  };
+  v.loop = false; v.currentTime = 0; v.playbackRate = 0.4;   // 放慢讓每幀偵測跟得上
+  v.onended = () => setTimeout(done, 300);
+  v.requestVideoFrameCallback(onFrame);
+  v.play();
+});
 init();
 </script>
 </body></html>

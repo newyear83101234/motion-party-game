@@ -1696,7 +1696,7 @@ function updateKpop(dt) {
           burst(W/2, H*0.5, "#ffe96b", 60); shake = 18; bombFx = 0.8; kpNodeFx = 0.5; kpNodeFxGold = true;
           kpWaveT = kpSongTime; kpWaveGold = true;
           addFloat(W/2, H*0.3, "✨GOLD!", "#ffe96b", shortSide()*0.11);
-          if (!playSfxFile(pvzWinSfx)) sndVictory();
+          sndGold(); // 短促金音效。⚠️別用pvzWinSfx:41秒長、Gold每~16s觸發=永遠有音樂疊著(阿葉回報「音效一直持續」)
         } else {
           // 方向A：跳得好自動放光波清惡魔（PERFECT清2隻、GOOD清1隻）、玩家不用看惡魔
           const alive = kpDemons.filter(d => !d.dead).sort((a, b) => (kpSongTime - b.born)/b.dur - (kpSongTime - a.born)/a.dur);
