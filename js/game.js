@@ -97,7 +97,7 @@ let runnerWantBg = false, runnerBgDegraded = false; // 此局想用影片背景 
 const kpDanceVid = document.createElement("video");
 kpDanceVid.src = "VIDEO/kpop_dance.mp4"; kpDanceVid.loop = true; kpDanceVid.muted = true; kpDanceVid.preload = "auto";
 kpDanceVid.playsInline = true; kpDanceVid.setAttribute("playsinline", ""); kpDanceVid.setAttribute("webkit-playsinline", "");
-kpDanceVid.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#1a0a24;z-index:0;display:none;transform:scaleX(-1)"; // contain:直式影片在橫式視窗不裁爆、留黑邊
+kpDanceVid.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#1a0a24 url('IMAGE/sprites/stage_kpop.png') center/cover no-repeat;z-index:0;display:none;transform:scaleX(-1)"; // contain留邊處透出霓虹舞台背景(不再死黑)
 document.body.appendChild(kpDanceVid);
 let kpRef = null, kpEnergy = 0, kpMatch = 0, kpSpawnT = 0, kpFlash = 0; // 示範動作序列/能量/當下相似度/惡魔生成計時/打擊閃光
 // 每幀重評估：影片晚點才載好也會自動接上（解決「進場時影片還沒下載完→永遠 fallback」的 bug）。回傳是否真的在用影片
@@ -1731,6 +1731,54 @@ function updateKpop(dt) {
   if (bombFx > 0) bombFx = Math.max(0, bombFx - dt*1.6);
   if (kpStage === "done") { commitBest(); state = "win"; }
 }
+// 通用:把一幀骨架(MediaPipe lm)畫成火柴人小圖(軀幹正規化縮放、鏡像、髖中錨定)。pictogram捲軸+居中示範共用
+function kpDrawStickLM(lm, cx, cy, boxH, col, lineK, boxAlpha) {
+  if (!lm || !lm[11] || !lm[12] || !lm[23] || !lm[24]) return;
+  const hpx = (lm[23][0]+lm[24][0])/2, hpy = (lm[23][1]+lm[24][1])/2;
+  const nkx = (lm[11][0]+lm[12][0])/2, nky = (lm[11][1]+lm[12][1])/2;
+  const torso = Math.hypot(nkx-hpx, nky-hpy) || 0.2;
+  const s = boxH * 0.27 / torso, bw = boxH * 0.66;
+  const P = (i) => { const a = lm[i]; if (!a) return null; return { x: cx + (hpx - a[0]) * s, y: cy + (a[1] - hpy) * s }; }; // 鏡像、髖中當原點
+  const M = (a,b) => { const p=P(a),q=P(b); return (p&&q)?{x:(p.x+q.x)/2,y:(p.y+q.y)/2}:null; };
+  const seg = (p,q) => { if(!p||!q) return; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke(); };
+  const neck=M(11,12), hipc=M(23,24), nose=P(0);
+  const limbs = [[11,13],[13,15],[12,14],[14,16],[23,25],[25,27],[24,26],[26,28]];
+  ctx.save(); ctx.lineCap="round"; ctx.lineJoin="round";
+  if (boxAlpha > 0) { ctx.fillStyle = `rgba(10,5,20,${boxAlpha})`; const pad = bw*0.16;
+    ctx.beginPath(); ctx.roundRect(cx-bw/2-pad, cy-boxH/2-pad, bw+pad*2, boxH+pad*2, bw*0.16); ctx.fill(); }
+  ctx.strokeStyle="rgba(0,0,0,0.5)"; ctx.lineWidth=Math.max(2, shortSide()*0.022*lineK);
+  seg(nose,neck); seg(neck,hipc); seg(P(11),P(12)); seg(P(23),P(24));
+  for (const [a,b] of limbs) seg(P(a),P(b));
+  if (nose){ ctx.fillStyle="rgba(0,0,0,0.5)"; ctx.beginPath(); ctx.arc(nose.x,nose.y,shortSide()*0.045*lineK,0,Math.PI*2); ctx.fill(); }
+  ctx.strokeStyle=col; ctx.lineWidth=Math.max(1.5, shortSide()*0.015*lineK);
+  seg(nose,neck); seg(neck,hipc); seg(P(11),P(12)); seg(P(23),P(24));
+  for (const [a,b] of limbs) seg(P(a),P(b));
+  if (nose){ ctx.fillStyle=col; ctx.beginPath(); ctx.arc(nose.x,nose.y,shortSide()*0.038*lineK,0,Math.PI*2); ctx.fill(); }
+  ctx.restore();
+}
+// Just Dance 式底部動作預告捲軸:接下來N個節點由右往左滑、判定線那格放大=當下目標
+function kpDrawPictogramTrack() {
+  if (!kpRef) return;
+  const trackY = H * 0.83, box = shortSide() * 0.16, hitX = W * 0.13, lead = 6.0, N = 4;
+  ctx.save(); ctx.globalAlpha = 0.45 + 0.15*Math.sin(kpSongTime*6); ctx.strokeStyle = "#ff7fdc"; // 判定線脈動圈
+  ctx.lineWidth = Math.max(2, shortSide()*0.007); ctx.beginPath(); ctx.arc(hitX, trackY, box*0.66, 0, Math.PI*2); ctx.stroke(); ctx.restore();
+  for (let i = Math.min(kpChoreo.length-1, kpNodeIdx + N - 1); i >= kpNodeIdx; i--) {  // 遠→近畫(近的蓋上面)
+    const node = kpChoreo[i]; if (!node) continue;
+    const nt = kpBeatTime(node.beat), dt = nt - kpSongTime;
+    if (dt > lead || dt < -0.6) continue;
+    const frac = Math.max(0, dt) / lead;                         // 0(到判定線)..1(最遠)
+    const x = hitX + frac * (W - hitX - box*0.8);
+    const isCur = (i === kpNodeIdx);
+    const sz = isCur ? box * 1.3 : box * (0.78 + 0.18*(1-frac));
+    const lm = (kpRefFrame(nt) || {}).lm; if (!lm) continue;
+    const lit = isCur && kpNodeFx > 0;
+    const col = node.gold ? "#ffe96b" : (lit ? "#aef36b" : "#ffffff");
+    ctx.save(); ctx.globalAlpha = isCur ? 1 : 0.5;
+    kpDrawStickLM(lm, x, trackY, sz, col, isCur ? 0.62 : 0.42, isCur ? 0.5 : 0.32);
+    if (node.gold) { ctx.globalAlpha = isCur ? 0.95 : 0.5; ctx.fillStyle="#ffe96b"; ctx.font=`${sz*0.32}px sans-serif`; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText("★", x, trackY - sz*0.78); }
+    ctx.restore();
+  }
+}
 function kpDrawRefFigure(vidMode) {          // 示範火柴人:影片模式縮角落當pictogram(描影片骨架)、否則居中當教練主體
   const pose = vidMode ? (kpRefFrame(kpSongTime) || {}).lm : kpChoreoPose(kpSongTime); if (!pose) return;
   const bw = shortSide() * (vidMode ? 0.24 : 0.5), bh = bw * 1.55,
@@ -1801,11 +1849,23 @@ function drawKpopPlaying() {
       ctx.lineWidth = Math.max(4, shortSide() * 0.02); ctx.beginPath(); ctx.arc(W/2, H*0.46, r, 0, Math.PI*2); ctx.stroke(); ctx.restore(); } }
   drawParticles(); drawFloatTexts();
   ctx.restore();
-  kpDrawRefFigure(vidOK);                                        // 影片模式=角落pictogram、否則居中主體
-  // 節點倒數圈(接近拍→縮小)
-  const node = kpChoreo[kpNodeIdx];
-  if (node) { const nt = kpBeatTime(node.beat), lead = 0.8, pr = (kpSongTime - (nt - lead)) / lead;
-    if (pr > 0 && pr < 1.2) { const rr = shortSide() * (0.26 * (1 - Math.min(1, pr)) + 0.18); ctx.save(); ctx.globalAlpha = 0.75; ctx.strokeStyle = node.gold ? "#ffe96b" : "#ff7fdc"; ctx.lineWidth = Math.max(3, shortSide()*0.012); ctx.beginPath(); ctx.arc(W/2, H*0.46, rr, 0, Math.PI*2); ctx.stroke(); ctx.restore(); } }
+  if (vidOK) {
+    kpDrawPictogramTrack();                                      // Just Dance式底部動作預告捲軸(取代右上角單一火柴人)
+  } else {
+    kpDrawRefFigure(false);                                      // 無影片fallback:居中大火柴人示範
+    const node = kpChoreo[kpNodeIdx];                            // + 中央節點倒數圈
+    if (node) { const nt = kpBeatTime(node.beat), lead = 0.8, pr = (kpSongTime - (nt - lead)) / lead;
+      if (pr > 0 && pr < 1.2) { const rr = shortSide() * (0.26 * (1 - Math.min(1, pr)) + 0.18); ctx.save(); ctx.globalAlpha = 0.75; ctx.strokeStyle = node.gold ? "#ffe96b" : "#ff7fdc"; ctx.lineWidth = Math.max(3, shortSide()*0.012); ctx.beginPath(); ctx.arc(W/2, H*0.46, rr, 0, Math.PI*2); ctx.stroke(); ctx.restore(); } }
+  }
+  // 開場「預備～5-4-3-2-1」(第一個動作前的暖身期)
+  const firstNt = kpChoreo.length ? kpBeatTime(kpChoreo[0].beat) : 0;
+  if (kpSongTime < firstNt && kpSongTime > 0) {
+    const left = firstNt - kpSongTime; ctx.save(); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = `bold ${shortSide()*0.085}px sans-serif`; ctx.fillStyle = "#ffe96b"; ctx.fillText("預備～跟著跳!", W/2, H*0.28);
+    if (left <= 5.2) { const n = Math.ceil(left); ctx.font = `bold ${shortSide()*0.32}px sans-serif`; ctx.fillStyle = "#fff";
+      ctx.globalAlpha = Math.min(1, (left % 1) + 0.25); ctx.fillText(n, W/2, H*0.5); }
+    ctx.restore();
+  }
   if (combo >= 2) { ctx.fillStyle = "#fff"; ctx.font = `bold ${shortSide()*0.07}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("✕" + combo, W*0.5, H*0.1); }
   if (noPersonT > 0.7) drawNoPersonHint();
   drawHUD();
