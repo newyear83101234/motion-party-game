@@ -1777,10 +1777,14 @@ function drawKpopPlaying() {
       ctx.restore(); continue;
     }
     const p = kpDanceDemonPos(d);
-    const w = shortSide() * 0.2 * p.scale;
+    const bob = Math.sin(kpSongTime * 4.5 + d.born * 4) * shortSide() * 0.025;   // 上下飄(有翅膀的懸浮感)
+    const rot = Math.sin(kpSongTime * 3.2 + d.born * 6) * 0.14;                  // 左右搖擺(像走路擺動)
+    const br = 1 + Math.sin(kpSongTime * 6 + d.born * 2) * 0.06;                 // 呼吸縮放
+    const w = shortSide() * 0.2 * p.scale * br;
     ctx.save(); ctx.globalAlpha = p.prog > 1 ? Math.max(0, 1 - (p.prog - 1) * 4) * 0.85 : 0.85; // 背景氛圍半透明、走完淡出
-    if (imgReady(dImg)) ctx.drawImage(dImg, p.x-w/2, p.y-w*asp*0.9, w, w*asp);
-    else { ctx.fillStyle = "#a05"; ctx.beginPath(); ctx.arc(p.x, p.y-w*0.4, w*0.5, 0, Math.PI*2); ctx.fill(); }
+    ctx.translate(p.x, p.y + bob); ctx.rotate(rot);
+    if (imgReady(dImg)) ctx.drawImage(dImg, -w/2, -w*asp*0.9, w, w*asp);
+    else { ctx.fillStyle = "#a05"; ctx.beginPath(); ctx.arc(0, -w*0.4, w*0.5, 0, Math.PI*2); ctx.fill(); }
     ctx.restore();
   }
   // 命中節點放出的光波（從教練位置擴散、視覺上「跳舞掃掉惡魔」）
