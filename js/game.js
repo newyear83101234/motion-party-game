@@ -57,6 +57,7 @@ const gameoverImg = new Image(); gameoverImg.src = "IMAGE/gameover_bg.png";    /
 const lawnImg = new Image(); lawnImg.src = "IMAGE/lawn.png";                  // 草坪背景（植物大戰殭屍）
 const stageKpopImg = new Image(); stageKpopImg.src = "IMAGE/sprites/stage_kpop.png"; // K-pop 舞台背景（阿葉後製、缺圖時卡片用程式底色）
 const runnerFirstImg = new Image(); runnerFirstImg.src = "IMAGE/runner_bg_first.png"; // 影片第一幀（影片還沒播時當墊檔、街景一致）
+const kpDemonImg = new Image(); kpDemonImg.src = "IMAGE/sprites/demo.png"; // 獵魔女團小紫惡魔（阿葉生、Q版透明PNG、取代借用的殭屍）
 const zombieImg = new Image(); zombieImg.src = "IMAGE/sprites/zombie.png";    // 殭屍（走路第1格）
 const zombieImgB = new Image(); zombieImgB.src = "IMAGE/sprites/zombie_b.png"; // 殭屍走路第2格（有放才會走動、沒放自動沿用第1格）
 const zombie2Img = new Image(); zombie2Img.src = "IMAGE/sprites/zombie2.png"; // 鐵桶殭屍（耐打、高分）
@@ -1765,19 +1766,20 @@ function drawKpopPlaying() {
   else { ctx.fillStyle = "#1a0a24"; ctx.fillRect(0, 0, W, H); }  // fallback深色舞台(火柴人居中當主體)
   ctx.save();
   if (shake > 0) ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake);
-  const asp = imgReady(zombieImg) ? zombieImg.naturalHeight/zombieImg.naturalWidth : 1.2;
+  const dImg = imgReady(kpDemonImg) ? kpDemonImg : zombieImg;     // 優先用小惡魔、還沒載到先用殭屍墊
+  const asp = imgReady(dImg) ? dImg.naturalHeight/dImg.naturalWidth : 1.2;
   for (const d of kpDemons) {
     if (d.dead) {                                                // 被光波轟飛：旋轉飛出去淡出（爽快特效）
-      const t = kpSongTime - d.deadAt, w = shortSide() * 0.18 * d.dscale;
+      const t = kpSongTime - d.deadAt, w = shortSide() * 0.2 * d.dscale;
       ctx.save(); ctx.globalAlpha = Math.max(0, 1 - t * 1.2);
       ctx.translate(d.dx + d.side * t * W * 0.35, d.dy - t * H * 0.45); ctx.rotate(t * 7 * d.side);
-      if (imgReady(zombieImg)) ctx.drawImage(zombieImg, -w/2, -w*asp*0.9, w, w*asp);
+      if (imgReady(dImg)) ctx.drawImage(dImg, -w/2, -w*asp*0.9, w, w*asp);
       ctx.restore(); continue;
     }
     const p = kpDanceDemonPos(d);
-    const w = shortSide() * 0.18 * p.scale;
-    ctx.save(); ctx.globalAlpha = p.prog > 1 ? Math.max(0, 1 - (p.prog - 1) * 4) * 0.8 : 0.8; // 背景氛圍半透明、走完淡出
-    if (imgReady(zombieImg)) ctx.drawImage(zombieImg, p.x-w/2, p.y-w*asp*0.9, w, w*asp);
+    const w = shortSide() * 0.2 * p.scale;
+    ctx.save(); ctx.globalAlpha = p.prog > 1 ? Math.max(0, 1 - (p.prog - 1) * 4) * 0.85 : 0.85; // 背景氛圍半透明、走完淡出
+    if (imgReady(dImg)) ctx.drawImage(dImg, p.x-w/2, p.y-w*asp*0.9, w, w*asp);
     else { ctx.fillStyle = "#a05"; ctx.beginPath(); ctx.arc(p.x, p.y-w*0.4, w*0.5, 0, Math.PI*2); ctx.fill(); }
     ctx.restore();
   }
