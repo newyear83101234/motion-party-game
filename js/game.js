@@ -57,7 +57,8 @@ const gameoverImg = new Image(); gameoverImg.src = "IMAGE/gameover_bg.png";    /
 const lawnImg = new Image(); lawnImg.src = "IMAGE/lawn.png";                  // 草坪背景（植物大戰殭屍）
 const stageKpopImg = new Image(); stageKpopImg.src = "IMAGE/sprites/stage_kpop.png"; // K-pop 舞台背景（阿葉後製、缺圖時卡片用程式底色）
 const runnerFirstImg = new Image(); runnerFirstImg.src = "IMAGE/runner_bg_first.png"; // 影片第一幀（影片還沒播時當墊檔、街景一致）
-const kpDemonImg = new Image(); kpDemonImg.src = "IMAGE/sprites/demo.png"; // 獵魔女團小紫惡魔（阿葉生、Q版透明PNG、取代借用的殭屍）
+const kpDemonImg = new Image(); kpDemonImg.src = "IMAGE/sprites/demo.png"; // 獵魔女團小紫惡魔（阿葉生、Q版透明PNG、靜態 fallback）
+const kpDemonFrames = []; for (let i = 0; i < 8; i++) { const im = new Image(); im.src = `IMAGE/sprites/demon_frames/d${i}.png`; kpDemonFrames.push(im); } // 拍翅動畫8幀(阿葉綠幕影片抽幀去背、ping-pong輪播)
 const zombieImg = new Image(); zombieImg.src = "IMAGE/sprites/zombie.png";    // 殭屍（走路第1格）
 const zombieImgB = new Image(); zombieImgB.src = "IMAGE/sprites/zombie_b.png"; // 殭屍走路第2格（有放才會走動、沒放自動沿用第1格）
 const zombie2Img = new Image(); zombie2Img.src = "IMAGE/sprites/zombie2.png"; // 鐵桶殭屍（耐打、高分）
@@ -1663,6 +1664,13 @@ function kpDanceDemonPos(d) {
   const ex = d.side < 0 ? -W * 0.04 : W * 1.04, cx = d.side < 0 ? W * 0.18 : W * 0.82; // 貼邊走、不擠中間搶注意力
   return { x: ex + (cx - ex) * prog, y: H * 0.34 + (H * 0.72 - H * 0.34) * prog, scale: 0.35 + 0.5 * prog, prog };
 }
+function kpDemonFrame(d) {                     // 拍翅動畫:ping-pong來回播(0..7..1無縫)、每隻依born錯開相位
+  if (!kpDemonFrames.length || !imgReady(kpDemonFrames[0])) return imgReady(kpDemonImg) ? kpDemonImg : zombieImg;
+  const n = kpDemonFrames.length, period = (n - 1) * 2, fps = 9;
+  let k = Math.floor(kpSongTime * fps + d.born * 7) % period;
+  if (k >= n) k = period - k;                 // 反彈
+  return kpDemonFrames[k] || kpDemonImg;
+}
 function kpKillDemon(d) {                      // 被光波轟飛：凍結死亡位置、爽快粒子
   const p = kpDanceDemonPos(d);
   d.dead = true; d.deadAt = kpSongTime; d.dx = p.x; d.dy = p.y; d.dscale = p.scale;
@@ -1766,9 +1774,9 @@ function drawKpopPlaying() {
   else { ctx.fillStyle = "#1a0a24"; ctx.fillRect(0, 0, W, H); }  // fallback深色舞台(火柴人居中當主體)
   ctx.save();
   if (shake > 0) ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake);
-  const dImg = imgReady(kpDemonImg) ? kpDemonImg : zombieImg;     // 優先用小惡魔、還沒載到先用殭屍墊
-  const asp = imgReady(dImg) ? dImg.naturalHeight/dImg.naturalWidth : 1.2;
   for (const d of kpDemons) {
+    const dImg = kpDemonFrame(d);                                // 每隻取當下拍翅動畫幀
+    const asp = imgReady(dImg) ? dImg.naturalHeight/dImg.naturalWidth : 1.2;
     if (d.dead) {                                                // 被光波轟飛：旋轉飛出去淡出（爽快特效）
       const t = kpSongTime - d.deadAt, w = shortSide() * 0.2 * d.dscale;
       ctx.save(); ctx.globalAlpha = Math.max(0, 1 - t * 1.2);
@@ -1777,11 +1785,10 @@ function drawKpopPlaying() {
       ctx.restore(); continue;
     }
     const p = kpDanceDemonPos(d);
-    const bob = Math.sin(kpSongTime * 4.5 + d.born * 4) * shortSide() * 0.025;   // 上下飄(有翅膀的懸浮感)
-    const rot = Math.sin(kpSongTime * 3.2 + d.born * 6) * 0.14;                  // 左右搖擺(像走路擺動)
-    const br = 1 + Math.sin(kpSongTime * 6 + d.born * 2) * 0.06;                 // 呼吸縮放
-    const w = shortSide() * 0.2 * p.scale * br;
-    ctx.save(); ctx.globalAlpha = p.prog > 1 ? Math.max(0, 1 - (p.prog - 1) * 4) * 0.85 : 0.85; // 背景氛圍半透明、走完淡出
+    const bob = Math.sin(kpSongTime * 4.5 + d.born * 4) * shortSide() * 0.025;   // 上下飄(懸浮感、疊在拍翅上)
+    const rot = Math.sin(kpSongTime * 3.2 + d.born * 6) * 0.1;                   // 輕微左右搖擺
+    const w = shortSide() * 0.2 * p.scale;
+    ctx.save(); ctx.globalAlpha = p.prog > 1 ? Math.max(0, 1 - (p.prog - 1) * 4) * 0.9 : 0.9; // 背景氛圍半透明、走完淡出
     ctx.translate(p.x, p.y + bob); ctx.rotate(rot);
     if (imgReady(dImg)) ctx.drawImage(dImg, -w/2, -w*asp*0.9, w, w*asp);
     else { ctx.fillStyle = "#a05"; ctx.beginPath(); ctx.arc(0, -w*0.4, w*0.5, 0, Math.PI*2); ctx.fill(); }
