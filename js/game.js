@@ -59,7 +59,7 @@ const stageKpopImg = new Image(); stageKpopImg.src = "IMAGE/sprites/stage_kpop.p
 const runnerFirstImg = new Image(); runnerFirstImg.src = "IMAGE/runner_bg_first.png"; // 影片第一幀（影片還沒播時當墊檔、街景一致）
 const kpDemonImg = new Image(); kpDemonImg.src = "IMAGE/sprites/demo.png"; // 獵魔女團小紫惡魔（阿葉生、Q版透明PNG、靜態 fallback）
 const kpDemonFrames = []; for (let i = 0; i < 8; i++) { const im = new Image(); im.src = `IMAGE/sprites/demon_frames/d${i}.png`; kpDemonFrames.push(im); } // 拍翅動畫8幀(阿葉綠幕影片抽幀去背、ping-pong輪播)
-const kpBossFrames = []; for (let i = 0; i < 8; i++) { const im = new Image(); im.src = `IMAGE/sprites/boss_frames/b${i}.png`; kpBossFrames.push(im); } // Boss邪派男團3人動畫8幀
+const kpDemon2Frames = []; for (let i = 0; i < 8; i++) { const im = new Image(); im.src = `IMAGE/sprites/demon2_frames/d${i}.png`; kpDemon2Frames.push(im); } // 第二種小惡魔(從Boss男團裁出單隻男團惡魔、穿插飛出畫面不單調)
 const zombieImg = new Image(); zombieImg.src = "IMAGE/sprites/zombie.png";    // 殭屍（走路第1格）
 const zombieImgB = new Image(); zombieImgB.src = "IMAGE/sprites/zombie_b.png"; // 殭屍走路第2格（有放才會走動、沒放自動沿用第1格）
 const zombie2Img = new Image(); zombie2Img.src = "IMAGE/sprites/zombie2.png"; // 鐵桶殭屍（耐打、高分）
@@ -156,7 +156,7 @@ let kpT0 = 0, kpSongTime = 0, kpNoteIdx = 0;
 let kpStars = 0, kpStolen = 0, kpPerfect = 0, kpGood = 0, kpMiss = 0;
 let kpWaveT = -9, kpWaveGold = false; // 命中節點放出的光波特效（轟飛惡魔用）
 let kpNextSpawn = 2.0; // 下一隻惡魔的歌曲時間（用音訊時鐘驅動、低fps也不掉密度）
-let kpBossActive = false, kpBossEnergy = 0, kpBossNextT = 22, kpBossDefeatT = -9; // Boss:在場/能量/下次登場時間/被轟飛時刻(每~1分鐘來一次、跟跳充能放大絕轟飛)
+let kpDemonSpawnN = 0; // 惡魔生成計數(交替兩種惡魔、畫面不單調)
 let kpStage = "intro", kpBossCharge = 0; // intro|verse|chorus|bridge|boss|done
 let kpTutorIdx = 0; // 教學前奏目前示範到第幾式
 let kpPwOK = false, kpPwBuf = "";          // 密碼門：是否通過 / 已輸入緩衝
@@ -429,7 +429,7 @@ function resetKpop() {
   prevHands = []; punchSpeed = 0; poseFrame = 0; lastSenseTs = 0; noPersonT = 0; pvzTarget = null;
   kpChoreo = buildChoreo();
   kpNodeIdx = 0; kpNodeBest = 0; kpNodeFx = 0; kpSpawnT = 2.0; kpDemons = []; kpNextSpawn = 2.0;
-  kpBossActive = false; kpBossEnergy = 0; kpBossNextT = 22; kpBossDefeatT = -9;
+  kpDemonSpawnN = 0;
 }
 function startKpop() {
   currentGame = "kpop"; resetKpop();
@@ -1727,19 +1727,21 @@ function kpQuality() {
 }
 function kpSpawnDanceDemon() {                 // 方向A：惡魔=純背景氛圍、沿兩側走、玩家不用看它
   const side = Math.random() < 0.5 ? -1 : 1;
-  kpDemons.push({ side, born: kpSongTime, dur: 4.5, dead: false, deadAt: 0, dx: 0, dy: 0, dscale: 1 });
+  const type = (kpDemonSpawnN++) % 2;          // 交替兩種惡魔(0=紫翅小惡魔、1=Boss裁出的男團惡魔)、畫面不單調
+  kpDemons.push({ side, type, born: kpSongTime, dur: 4.5, dead: false, deadAt: 0, dx: 0, dy: 0, dscale: 1 });
 }
 function kpDanceDemonPos(d) {
   const prog = Math.min(1.25, (kpSongTime - d.born) / d.dur);
   const ex = d.side < 0 ? -W * 0.04 : W * 1.04, cx = d.side < 0 ? W * 0.18 : W * 0.82; // 貼邊走、不擠中間搶注意力
   return { x: ex + (cx - ex) * prog, y: H * 0.34 + (H * 0.72 - H * 0.34) * prog, scale: 0.35 + 0.5 * prog, prog };
 }
-function kpDemonFrame(d) {                     // 拍翅動畫:ping-pong來回播(0..7..1無縫)、每隻依born錯開相位
-  if (!kpDemonFrames.length || !imgReady(kpDemonFrames[0])) return imgReady(kpDemonImg) ? kpDemonImg : zombieImg;
-  const n = kpDemonFrames.length, period = (n - 1) * 2, fps = 9;
+function kpDemonFrame(d) {                     // 拍翅動畫:ping-pong來回播(0..7..1無縫)、每隻依born錯開相位、依type選兩種惡魔
+  const set = (d.type === 1 && kpDemon2Frames.length && imgReady(kpDemon2Frames[0])) ? kpDemon2Frames : kpDemonFrames;
+  if (!set.length || !imgReady(set[0])) return imgReady(kpDemonImg) ? kpDemonImg : zombieImg;
+  const n = set.length, period = (n - 1) * 2, fps = 9;
   let k = Math.floor(kpSongTime * fps + d.born * 7) % period;
   if (k >= n) k = period - k;                 // 反彈
-  return kpDemonFrames[k] || kpDemonImg;
+  return set[k] || kpDemonImg;
 }
 function kpKillDemon(d) {                      // 被光波轟飛：凍結死亡位置、爽快粒子
   const p = kpDanceDemonPos(d);
@@ -1762,14 +1764,6 @@ function updateKpop(dt) {
     if (dft > 0.3) { try { kpDanceVid.currentTime = vt; } catch (e) {} }
   }
   if (kpSongTime >= kpNextSpawn) { kpSpawnDanceDemon(); kpNextSpawn = kpSongTime + Math.max(1.6, 2.8 - kpSongTime * 0.008); }
-  // Boss邪派男團:每~1分鐘登場一次、玩家跟跳命中充能、滿了放大絕金光波轟飛(小孩反覆打Boss爽感、無壓力)
-  if (!kpBossActive && kpSongTime - kpBossDefeatT > 1 && kpSongTime >= kpBossNextT) { kpBossActive = true; kpBossEnergy = 0; }
-  if (kpBossActive && kpBossEnergy >= 1) {
-    kpBossActive = false; kpBossDefeatT = kpSongTime; kpBossNextT = kpSongTime + 50; // 打倒→約50秒後再來
-    kpWaveT = kpSongTime; kpWaveGold = true; shake = 26; bombFx = 1.2;
-    score += 30; burst(W/2, H*0.22, "#ffe96b", 90); addFloat(W/2, H*0.34, "💥👿💥", "#ffe96b", shortSide()*0.15, 0.5);
-    sndKpGold(); sndKpWave();
-  }
   if (node) {
     const nt = kpNodeTime(node);
     const inWin = kpSongTime >= nt - 0.7 && kpSongTime <= nt + 0.7;     // 放寬窗:容許小孩跟著大舞者跳的反應延遲(慢半拍也算)
@@ -1779,7 +1773,6 @@ function updateKpop(dt) {
       const q = kpNodeBest;
       if (q > 0.45) {
         const perfect = q > 0.72;
-        if (kpBossActive) kpBossEnergy = Math.min(1, kpBossEnergy + (perfect ? 0.17 : 0.12) + (node.gold ? 0.1 : 0)); // 跟跳命中替Boss大絕充能(~7命中滿)
         if (node.gold) {
           let n = 0; for (const d of kpDemons) if (!d.dead) { kpKillDemon(d); n++; }
           score += 10 + n * 2; kpPerfect++; combo++; bestCombo = Math.max(bestCombo, combo);
@@ -1844,25 +1837,6 @@ function kpDrawStickLM(lm, cx, cy, boxH, col, lineK, boxAlpha, markLeft) {
   ctx.restore();
 }
 // Boss邪派男團:登場時上方顯示(ping-pong動畫)+大絕能量條;被轟飛時旋轉飛走
-function kpDrawBoss() {
-  if (!kpBossActive && kpSongTime - kpBossDefeatT >= 1.2) return;
-  const bf = kpBossFrames; if (!bf.length || !imgReady(bf[0])) return;
-  const n = bf.length, period = (n-1)*2; let k = Math.floor(kpSongTime*6) % period; if (k >= n) k = period - k;
-  const img = bf[k], bw = W * 0.46, bh = bw * img.naturalHeight / img.naturalWidth; // 小一點、不擋舞者跟跳
-  ctx.save();
-  if (!kpBossActive) {                              // 被大絕轟飛:旋轉飛上去淡出(搞笑、不嚇人)
-    const t = kpSongTime - kpBossDefeatT; ctx.globalAlpha = Math.max(0, 1 - t/1.2);
-    ctx.translate(W/2, H*0.13 - t*H*0.45); ctx.rotate(t*4); ctx.drawImage(img, -bw/2, -bh/2, bw, bh);
-  } else {                                          // 登場:最上方半透明壓迫感(舞者中下跟跳清楚)
-    ctx.globalAlpha = 0.8; ctx.drawImage(img, W/2 - bw/2, H*0.01, bw, bh);
-    const ey = H*0.01 + bh + shortSide()*0.01, ew = W*0.5, ex = (W-ew)/2, eh = shortSide()*0.035; // 大絕能量條(Boss下方)
-    ctx.fillStyle = "rgba(0,0,0,0.45)"; roundRectFill(ex, ey, ew, eh, eh*0.5);
-    ctx.fillStyle = "#ffe96b"; roundRectFill(ex, ey, Math.max(0.001, ew*kpBossEnergy), eh, eh*0.5);
-    ctx.fillStyle = "#fff"; ctx.font = `bold ${shortSide()*0.04}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText("⚡ " + Math.round(kpBossEnergy*100) + "%", W/2, ey + eh*0.5);
-  }
-  ctx.restore();
-}
 // Just Dance 式底部動作預告捲軸:接下來N個節點由右往左滑、判定線那格放大=當下目標
 function kpDrawPictogramTrack() {
   if (!kpRef) return;
@@ -1937,7 +1911,7 @@ function drawKpopPlaying() {
     const dImg = kpDemonFrame(d);                                // 每隻取當下拍翅動畫幀
     const asp = imgReady(dImg) ? dImg.naturalHeight/dImg.naturalWidth : 1.2;
     if (d.dead) {                                                // 被光波轟飛：旋轉飛出去淡出（爽快特效）
-      const t = kpSongTime - d.deadAt, w = shortSide() * 0.27 * d.dscale;
+      const t = kpSongTime - d.deadAt, w = shortSide() * 0.27 * d.dscale * (d.type === 1 ? 0.82 : 1);
       ctx.save(); ctx.globalAlpha = Math.max(0, 1 - t * 1.2);
       ctx.translate(d.dx + d.side * t * W * 0.35, d.dy - t * H * 0.45); ctx.rotate(t * 7 * d.side);
       if (imgReady(dImg)) ctx.drawImage(dImg, -w/2, -w*asp*0.9, w, w*asp);
@@ -1946,7 +1920,7 @@ function drawKpopPlaying() {
     const p = kpDanceDemonPos(d);
     const bob = Math.sin(kpSongTime * 4.5 + d.born * 4) * shortSide() * 0.025;   // 上下飄(懸浮感、疊在拍翅上)
     const rot = Math.sin(kpSongTime * 3.2 + d.born * 6) * 0.1;                   // 輕微左右搖擺
-    const w = shortSide() * 0.27 * p.scale;                                       // 阿葉要惡魔放大~1.35倍
+    const w = shortSide() * 0.27 * p.scale * (d.type === 1 ? 0.82 : 1);           // 阿葉要惡魔放大~1.35倍(第二種人形瘦高、寬度縮0.82視覺份量相當)
     ctx.save(); ctx.globalAlpha = p.prog > 1 ? Math.max(0, 1 - (p.prog - 1) * 4) : 1; // 走完才淡出、平時不透明
     ctx.translate(p.x, p.y + bob); ctx.rotate(rot);
     ctx.shadowColor = "#7CFFB0"; ctx.shadowBlur = shortSide() * 0.04;            // 青綠發光描邊(紫背景互補色、惡魔一眼跳出不再融背景)
@@ -1978,7 +1952,6 @@ function drawKpopPlaying() {
       ctx.globalAlpha = Math.min(1, (left % 1) + 0.3); ctx.lineWidth = shortSide()*0.02; ctx.strokeStyle = "rgba(0,0,0,0.5)"; ctx.strokeText(n, W/2, H*0.5); ctx.fillText(n, W/2, H*0.5); }
     ctx.restore();
   }
-  kpDrawBoss();                                                 // Boss邪派男團(每~1分鐘登場、上方+能量條)
   if (combo >= 2) { ctx.font = `bold ${shortSide()*0.075}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineWidth = shortSide()*0.012; ctx.strokeStyle = "rgba(0,0,0,0.5)"; ctx.fillStyle = "#ffd54a"; const ct = "🔥" + combo; ctx.strokeText(ct, W*0.5, H*0.1); ctx.fillText(ct, W*0.5, H*0.1); } // 連擊=火焰+數字
   if (noPersonT > 0.7) drawNoPersonHint();
   drawHUD();
