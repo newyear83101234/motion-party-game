@@ -843,10 +843,17 @@ function drawHUD() {
   const sTxt = "⭐ " + score, sw = ctx.measureText(sTxt).width;
   ctx.fillStyle = "rgba(0,0,0,0.4)"; roundRectFill(pad - fs * 0.2, pad, sw + fs * 0.5, fs * 1.25, fs * 0.3);
   ctx.fillStyle = "#fff"; ctx.fillText(sTxt, pad + fs * 0.08, pad + fs * 0.65);
-  // 命（右上，逐顆固定間距）
-  const gap = fs * 0.52;
-  ctx.textAlign = "center"; ctx.font = `${fs}px sans-serif`;
-  for (let i = 0; i < lives; i++) ctx.fillText("❤️", W - pad - fs * 0.5 - i * gap, pad + fs * 0.65);
+  // 右上：kpop無命制→顯示完美數(取代誤導的愛心、小孩邊跳邊看自己跳對幾個);其他遊戲→命
+  if (currentGame === "kpop") {
+    ctx.textAlign = "right"; ctx.font = `bold ${fs}px sans-serif`;
+    const t = "✨ " + kpPerfect, tw = ctx.measureText(t).width;
+    ctx.fillStyle = "rgba(0,0,0,0.4)"; roundRectFill(W - pad - tw - fs * 0.35, pad, tw + fs * 0.5, fs * 1.25, fs * 0.3);
+    ctx.fillStyle = "#ffe96b"; ctx.fillText(t, W - pad, pad + fs * 0.65);
+  } else {
+    const gap = fs * 0.52;
+    ctx.textAlign = "center"; ctx.font = `${fs}px sans-serif`;
+    for (let i = 0; i < lives; i++) ctx.fillText("❤️", W - pad - fs * 0.5 - i * gap, pad + fs * 0.65);
+  }
   // Combo（描邊，移高避開怪物路徑；runner 模式下移避開頂部中央的姿勢提示圖）
   if (combo >= 2) {
     const comboY = currentGame === "pvz" ? H * 0.21 : H * 0.09;
@@ -1723,8 +1730,10 @@ function updateKpop(dt) {
   if (kpSongTime >= kpNextSpawn) { kpSpawnDanceDemon(); kpNextSpawn = kpSongTime + Math.max(1.6, 2.8 - kpSongTime * 0.008); }
   if (node) {
     const nt = kpNodeTime(node);
-    if (kpSongTime >= nt - 0.6 && kpSongTime <= nt + 0.4) { if (kpMatch > kpNodeBest) kpNodeBest = kpMatch; }
-    if (kpSongTime > nt + 0.4) {
+    const inWin = kpSongTime >= nt - 0.7 && kpSongTime <= nt + 0.7;     // 放寬窗:容許小孩跟著大舞者跳的反應延遲(慢半拍也算)
+    if (inWin && kpMatch > kpNodeBest) kpNodeBest = kpMatch;
+    const hitNow = inWin && kpSongTime >= nt - 0.3 && kpMatch > 0.72;   // 擺到PERFECT就即時結算(做對馬上給星、因果不斷線、不等窗關)
+    if (hitNow || kpSongTime > nt + 0.7) {
       const q = kpNodeBest;
       if (q > 0.45) {
         const perfect = q > 0.72;
