@@ -1,24 +1,33 @@
 # -*- coding: utf-8 -*-
 """綠幕舞者影片→去背→合成到直式霓虹舞台→輸出普通mp4(全平台可播、舞者站在舞台上)。"""
 import os, subprocess, tempfile, numpy as np
-from PIL import Image
+from PIL import Image, ImageEnhance
 from scipy import ndimage
 import imageio_ffmpeg
 
-VID = r"d:\Claude\Projects\GAME DIY\VIDEO\demo2.mp4"
-STAGE = r"d:\Claude\Projects\GAME DIY\IMAGE\sprites\stage_kpop.png"
+VIDS = [r"d:\Claude\Projects\GAME DIY\VIDEO\demo2.mp4",     # 多支綠幕影片依序拼接(動作不重複)
+        r"d:\Claude\Projects\GAME DIY\VIDEO\demo3.mp4"]
+STAGE = r"d:\Claude\Projects\GAME DIY\IMAGE\sprites\stage_kpop2.png"  # 魔法森林夜空背景
+BG_BRIGHT = 1.22                                            # 背景提亮(夜景偏暗、舞者有打光、提亮對比剛好)
 OUT = r"d:\Claude\Projects\GAME DIY\VIDEO\kpop_dance.mp4"
 OUTW, OUTH, FPS = 720, 1280, 24
 ff = imageio_ffmpeg.get_ffmpeg_exe()
 tmp_in, tmp_out = tempfile.mkdtemp(), tempfile.mkdtemp()
 
-# 直式舞台背景(cover:填滿720x1280再置中裁)
+# 直式背景(cover填滿720x1280置中裁)+提亮
 st = Image.open(STAGE).convert("RGB"); sc = max(OUTW/st.width, OUTH/st.height)
 st = st.resize((int(st.width*sc), int(st.height*sc)), Image.LANCZOS)
 stage = st.crop(((st.width-OUTW)//2, (st.height-OUTH)//2, (st.width-OUTW)//2+OUTW, (st.height-OUTH)//2+OUTH))
+stage = ImageEnhance.Brightness(stage).enhance(BG_BRIGHT)
 
-subprocess.run([ff, "-y", "-v", "error", "-i", VID, os.path.join(tmp_in, "f%04d.png")], check=True)
-frames = sorted(os.listdir(tmp_in))
+# 多支影片拼接(同編碼直接concat)再抽幀
+listf = os.path.join(tmp_in, "list.txt")
+with open(listf, "w", encoding="utf-8") as f:
+    for v in VIDS: f.write(f"file '{v}'\n")
+combined = os.path.join(tmp_in, "combined.mp4")
+subprocess.run([ff, "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", listf, "-c", "copy", combined], check=True)
+subprocess.run([ff, "-y", "-v", "error", "-i", combined, os.path.join(tmp_in, "f%04d.png")], check=True)
+frames = sorted([x for x in os.listdir(tmp_in) if x.startswith("f") and x.endswith(".png")])
 
 def keyframe(arr):                                  # 綠幕去背→回傳(rgb, alpha)
     R, G, B = arr[..., 0], arr[..., 1], arr[..., 2]
@@ -28,6 +37,11 @@ def keyframe(arr):                                  # 綠幕去背→回傳(rgb,
     inner = ndimage.binary_erosion(alpha > 0, iterations=1); alpha = np.where(inner | (alpha == 0), alpha, 0).astype(np.uint8)  # 1px羽化消綠邊
     rgb = arr.copy(); mxRB = np.maximum(rgb[..., 0], rgb[..., 2])
     spill = (alpha > 0) & (rgb[..., 1] > mxRB); rgb[..., 1] = np.where(spill, mxRB, rgb[..., 1])  # despill去綠溢色
+    lbl, n = ndimage.label(alpha > 0)                  # 清孤立殘留塊(黃綠偽影非綠、只保留角色主體連通域)
+    if n > 1:
+        sizes = ndimage.sum(np.ones(lbl.shape), lbl, range(1, n + 1))
+        keep = np.where(sizes > sizes.max() * 0.08)[0] + 1
+        alpha = np.where(np.isin(lbl, keep), alpha, 0).astype(np.uint8)
     return rgb.astype(np.uint8), alpha
 
 # pass1:去背存透明PNG + 累積聯集bbox(固定裁切=舞者大小位置不跳)

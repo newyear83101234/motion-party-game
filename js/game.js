@@ -95,9 +95,9 @@ canvas.style.zIndex = "1"; // canvas 疊在背景影片之上（runner clearRect
 let runnerWantBg = false, runnerBgDegraded = false; // 此局想用影片背景 / 是否因效能降級
 // 獵魔女團「跟著舞者跳」示範影片（CSS背景、鏡像顯示給小孩照跳）
 const kpDanceVid = document.createElement("video");
-kpDanceVid.src = "VIDEO/kpop_dance.mp4?v=q2"; kpDanceVid.loop = true; kpDanceVid.muted = true; kpDanceVid.preload = "auto"; // ?v=換影片時改版號、破瀏覽器快取
+kpDanceVid.src = "VIDEO/kpop_dance.mp4?v=q3"; kpDanceVid.loop = true; kpDanceVid.muted = true; kpDanceVid.preload = "auto"; // ?v=換影片時改版號、破瀏覽器快取
 kpDanceVid.playsInline = true; kpDanceVid.setAttribute("playsinline", ""); kpDanceVid.setAttribute("webkit-playsinline", "");
-kpDanceVid.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#1a0a24 url('IMAGE/sprites/stage_kpop.png') center/cover no-repeat;z-index:0;display:none;transform:scaleX(-1)"; // contain留邊處透出霓虹舞台背景(不再死黑)
+kpDanceVid.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0c0820 url('IMAGE/sprites/stage_kpop2.png') center/cover no-repeat;z-index:0;display:none;transform:scaleX(-1)"; // contain留邊處透出魔法森林夜空背景
 document.body.appendChild(kpDanceVid);
 let kpRef = null, kpEnergy = 0, kpMatch = 0, kpSpawnT = 0, kpFlash = 0; // 示範動作序列/能量/當下相似度/惡魔生成計時/打擊閃光
 // 每幀重評估：影片晚點才載好也會自動接上（解決「進場時影片還沒下載完→永遠 fallback」的 bug）。回傳是否真的在用影片
@@ -418,7 +418,7 @@ async function tryKpUnlock() {
   }
 }
 async function startKpopSong() {
-  if (!kpRef) { try { kpRef = await (await fetch("VIDEO/kpop_dance.json?v=q2")).json(); } catch (e) { console.warn("舞步資料載入失敗", e); } } // ?v=與影片同步換版號
+  if (!kpRef) { try { kpRef = await (await fetch("VIDEO/kpop_dance.json?v=q3")).json(); } catch (e) { console.warn("舞步資料載入失敗", e); } } // ?v=與影片同步換版號
   if (kpRef) kpChoreo = buildChoreoFromRef();   // 骨架載到→節點改「動作峰值對齊」(招牌pose、非過渡幀)
   state = "playing";
   if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
@@ -1855,7 +1855,7 @@ function kpDrawRefFigure(vidMode) {          // 示範火柴人:影片模式縮�
 }
 function drawKpopPlaying() {
   const vidOK = kpRef && kpDanceVid.readyState >= 2;             // 影片+骨架都到位→Just Dance版面
-  if (vidOK) { ctx.clearRect(0, 0, W, H); ctx.fillStyle = "rgba(10,5,24,0.3)"; ctx.fillRect(0, 0, W, H); } // 透出影片+半透明暗罩(背景沉穩、不那麼花、主體與UI浮出)
+  if (vidOK) { ctx.clearRect(0, 0, W, H); ctx.fillStyle = "rgba(8,5,20,0.1)"; ctx.fillRect(0, 0, W, H); } // 透出影片+極輕暗罩(森林夜空背景已安靜、只壓一點點讓UI浮出、不再悶暗)
   else { ctx.fillStyle = "#1a0a24"; ctx.fillRect(0, 0, W, H); }  // fallback深色舞台(火柴人居中當主體)
   ctx.save();
   if (shake > 0) ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake);
