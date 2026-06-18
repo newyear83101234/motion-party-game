@@ -57,11 +57,11 @@ const gameoverImg = new Image(); gameoverImg.src = "IMAGE/gameover_bg.png";    /
 const lawnImg = new Image(); lawnImg.src = "IMAGE/lawn.png";                  // 草坪背景（植物大戰殭屍）
 const stageKpopImg = new Image(); stageKpopImg.src = "IMAGE/sprites/stage_kpop.png"; // K-pop 舞台背景（阿葉後製、缺圖時卡片用程式底色）
 // 首頁選單卡片完整插畫(阿葉GPT生盲盒3D風、各遊戲場景+角色都畫進去、取代原本背景+emoji疊圖)
-const cardWhackImg = new Image(); cardWhackImg.src = "IMAGE/sprites/card_whack.png";
-const cardDodgeImg = new Image(); cardDodgeImg.src = "IMAGE/sprites/card_dodge.png";
-const cardPvzImg = new Image(); cardPvzImg.src = "IMAGE/sprites/card_pvz.png";
-const cardKpopImg = new Image(); cardKpopImg.src = "IMAGE/sprites/card_kpop.png";
-const menuBgImg = new Image(); menuBgImg.src = "IMAGE/menu_bg.png"; // 首頁明亮夢幻背景(疊在卡片下層)
+const cardWhackImg = new Image(); cardWhackImg.src = "IMAGE/sprites/card_whack.jpg";
+const cardDodgeImg = new Image(); cardDodgeImg.src = "IMAGE/sprites/card_dodge.jpg";
+const cardPvzImg = new Image(); cardPvzImg.src = "IMAGE/sprites/card_pvz.jpg";
+const cardKpopImg = new Image(); cardKpopImg.src = "IMAGE/sprites/card_kpop.jpg";
+const menuBgImg = new Image(); menuBgImg.src = "IMAGE/menu_bg.jpg"; // 首頁明亮夢幻背景(疊在卡片下層、JPEG壓縮)
 const runnerFirstImg = new Image(); runnerFirstImg.src = "IMAGE/runner_bg_first.png"; // 影片第一幀（影片還沒播時當墊檔、街景一致）
 const kpDemonImg = new Image(); kpDemonImg.src = "IMAGE/sprites/demo.png"; // 獵魔女團小紫惡魔（阿葉生、Q版透明PNG、靜態 fallback）
 const kpDemonFrames = []; for (let i = 0; i < 8; i++) { const im = new Image(); im.src = `IMAGE/sprites/demon_frames/d${i}.png`; kpDemonFrames.push(im); } // 拍翅動畫8幀(阿葉綠幕影片抽幀去背、ping-pong輪播)
@@ -1035,7 +1035,7 @@ function drawMenu() {
     const iw = menuBgImg.naturalWidth, ih = menuBgImg.naturalHeight, s = Math.max(W / iw, H / ih), dw = iw * s, dh = ih * s;
     ctx.drawImage(menuBgImg, (W - dw) / 2, (H - dh) / 2, dw, dh);
   } else { ctx.fillStyle = "#0b1020"; ctx.fillRect(0, 0, W, H); }
-  if (imgReady(logoImg)) { const sz = shortSide() * 0.28; ctx.drawImage(logoImg, W / 2 - sz / 2, H * 0.03, sz, sz); } // 標題徽章
+  if (imgReady(logoImg)) { const sz = shortSide() * 0.17; ctx.drawImage(logoImg, W / 2 - sz / 2, H * 0.008, sz, sz); } // 標題徽章(縮小+上移塞進卡片上方空檔、不被擋)
   const rad = shortSide() * 0.035;
   for (const c of menuCards()) drawCard(c.x, c.y, c.w, c.h, rad, c.bg, c.border, c.best);
   // 單人/雙人 模式切換鈕（底部中央）
