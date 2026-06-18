@@ -1761,7 +1761,7 @@ function updateKpop(dt) {
   if (kpStage === "done") { commitBest(); state = "win"; }
 }
 // 通用:把一幀骨架(MediaPipe lm)畫成火柴人小圖(軀幹正規化縮放、鏡像、髖中錨定)。pictogram捲軸+居中示範共用
-function kpDrawStickLM(lm, cx, cy, boxH, col, lineK, boxAlpha) {
+function kpDrawStickLM(lm, cx, cy, boxH, col, lineK, boxAlpha, markLeft) {
   if (!lm || !lm[11] || !lm[12] || !lm[23] || !lm[24]) return;
   const hpx = (lm[23][0]+lm[24][0])/2, hpy = (lm[23][1]+lm[24][1])/2;
   const nkx = (lm[11][0]+lm[12][0])/2, nky = (lm[11][1]+lm[12][1])/2;
@@ -1773,26 +1773,26 @@ function kpDrawStickLM(lm, cx, cy, boxH, col, lineK, boxAlpha) {
   const M = (a,b) => { const p=P(a),q=P(b); return (p&&q)?{x:(p.x+q.x)/2,y:(p.y+q.y)/2}:null; };
   const seg = (p,q) => { if(!p||!q) return; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke(); };
   const neck=M(11,12), hipc=M(23,24), nose=P(0);
+  const head = nose ? { x: nose.x, y: nose.y - boxH*0.03 } : neck;   // 頭圓中心(略高於鼻)
   const limbs = [[11,13],[13,15],[12,14],[14,16],[23,25],[25,27],[24,26],[26,28]];
+  const hr = boxH * 0.16, lw = boxH * (0.1 + 0.035*lineK);           // 大圓頭(0.45軀幹比)+粗膠囊肢=Just Dance Kids式實心人形
   ctx.save(); ctx.lineCap="round"; ctx.lineJoin="round";
-  if (boxAlpha > 0) { ctx.fillStyle = `rgba(10,5,20,${boxAlpha})`; const pad = bw*0.16;
-    ctx.beginPath(); ctx.roundRect(cx-bw/2-pad, cy-boxH/2-pad, bw+pad*2, boxH+pad*2, bw*0.16); ctx.fill(); }
-  ctx.strokeStyle="rgba(0,0,0,0.5)"; ctx.lineWidth=Math.max(2, shortSide()*0.022*lineK);
-  seg(nose,neck); seg(neck,hipc); seg(P(11),P(12)); seg(P(23),P(24));
-  for (const [a,b] of limbs) seg(P(a),P(b));
-  if (nose){ ctx.fillStyle="rgba(0,0,0,0.5)"; ctx.beginPath(); ctx.arc(nose.x,nose.y,shortSide()*0.045*lineK,0,Math.PI*2); ctx.fill(); }
-  ctx.strokeStyle=col; ctx.lineWidth=Math.max(1.5, shortSide()*0.015*lineK);
-  seg(nose,neck); seg(neck,hipc); seg(P(11),P(12)); seg(P(23),P(24));
-  for (const [a,b] of limbs) seg(P(a),P(b));
-  if (nose){ ctx.fillStyle=col; ctx.beginPath(); ctx.arc(nose.x,nose.y,shortSide()*0.038*lineK,0,Math.PI*2); ctx.fill(); }
+  const body = (color, extra) => {                                   // 畫一遍人形(描邊→主體疊兩層)
+    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = lw + extra;
+    if (head && neck) seg(head, neck);
+    seg(neck, hipc); seg(P(11), P(12)); seg(P(23), P(24));
+    for (const [a,b] of limbs) seg(P(a), P(b));
+    if (head) { ctx.beginPath(); ctx.arc(head.x, head.y, hr + extra*0.5, 0, Math.PI*2); ctx.fill(); }
+  };
+  body("rgba(20,12,30,0.85)", boxH*0.07);                            // 黑描邊(讓人形從任何背景跳出)
+  body(col, 0);                                                      // 實心主體(橙/命中綠/gold金)
+  if (markLeft) { const lh = P(15); if (lh) { ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(lh.x, lh.y, boxH*0.05, 0, Math.PI*2); ctx.fill(); } } // 一手點白點=鏡像跟跳不擺反左右
   ctx.restore();
 }
 // Just Dance 式底部動作預告捲軸:接下來N個節點由右往左滑、判定線那格放大=當下目標
 function kpDrawPictogramTrack() {
   if (!kpRef) return;
-  const trackY = H * 0.83, box = shortSide() * 0.16, hitX = W * 0.13, lead = 6.0, N = 4;
-  ctx.save(); ctx.globalAlpha = 0.45 + 0.15*Math.sin(kpSongTime*6); ctx.strokeStyle = "#ff7fdc"; // 判定線脈動圈
-  ctx.lineWidth = Math.max(2, shortSide()*0.007); ctx.beginPath(); ctx.arc(hitX, trackY, box*0.66, 0, Math.PI*2); ctx.stroke(); ctx.restore();
+  const trackY = H * 0.88, box = shortSide() * 0.16, hitX = W * 0.30, lead = 4.0, N = 3; // 判定點中間偏前、路徑短、預告3個(審查官數值)
   for (let i = Math.min(kpChoreo.length-1, kpNodeIdx + N - 1); i >= kpNodeIdx; i--) {  // 遠→近畫(近的蓋上面)
     const node = kpChoreo[i]; if (!node) continue;
     const nt = kpNodeTime(node), dt = nt - kpSongTime;
@@ -1800,13 +1800,19 @@ function kpDrawPictogramTrack() {
     const frac = Math.max(0, dt) / lead;                         // 0(到判定線)..1(最遠)
     const x = hitX + frac * (W - hitX - box*0.8);
     const isCur = (i === kpNodeIdx);
-    const sz = isCur ? box * 1.3 : box * (0.78 + 0.18*(1-frac));
+    const sz = isCur ? box * 1.4 : box * (0.8 + 0.15*(1-frac));
     const lm = (kpRefFrame(nt) || {}).lm; if (!lm) continue;
     const lit = isCur && kpNodeFx > 0;
-    const col = node.gold ? "#ffe96b" : (lit ? "#aef36b" : "#ffffff");
-    ctx.save(); ctx.globalAlpha = isCur ? 1 : 0.5;
-    kpDrawStickLM(lm, x, trackY, sz, col, isCur ? 0.62 : 0.42, isCur ? 0.5 : 0.32);
-    if (node.gold) { ctx.globalAlpha = isCur ? 0.95 : 0.5; ctx.fillStyle="#ffe96b"; ctx.font=`${sz*0.32}px sans-serif`; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText("★", x, trackY - sz*0.78); }
+    const col = node.gold ? "#FFE96B" : (lit ? "#AEF36B" : (isCur ? "#FFB12E" : "rgba(255,255,255,0.72)")); // 當下橙黃/命中綠/Gold金/預告白
+    ctx.save(); ctx.globalAlpha = isCur ? 1 : 0.7;
+    if (isCur) {                                                 // 當下格腳下發光圓盤(取代脈動圈、站亮圈上那個=現在做)
+      const ds = sz * 0.6, dy = trackY + sz * 0.52;
+      ctx.save(); ctx.globalAlpha = 0.45 + 0.22*Math.sin(kpSongTime*6); ctx.fillStyle = node.gold ? "#FFE96B" : "#ff9be0";
+      ctx.shadowColor = node.gold ? "#FFE96B" : "#ff7fdc"; ctx.shadowBlur = sz * 0.45;
+      ctx.beginPath(); ctx.ellipse(x, dy, ds, ds*0.34, 0, 0, Math.PI*2); ctx.fill(); ctx.restore();
+    }
+    kpDrawStickLM(lm, x, trackY, sz, col, isCur ? 1 : 0.6, 0, isCur);  // isCur畫左手白點區分左右
+    if (node.gold) { ctx.globalAlpha = isCur ? 0.95 : 0.6; ctx.fillStyle="#FFE96B"; ctx.font=`${sz*0.32}px sans-serif`; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText("★", x, trackY - sz*0.88); }
     ctx.restore();
   }
 }
@@ -1857,7 +1863,7 @@ function drawKpopPlaying() {
     const dImg = kpDemonFrame(d);                                // 每隻取當下拍翅動畫幀
     const asp = imgReady(dImg) ? dImg.naturalHeight/dImg.naturalWidth : 1.2;
     if (d.dead) {                                                // 被光波轟飛：旋轉飛出去淡出（爽快特效）
-      const t = kpSongTime - d.deadAt, w = shortSide() * 0.2 * d.dscale;
+      const t = kpSongTime - d.deadAt, w = shortSide() * 0.27 * d.dscale;
       ctx.save(); ctx.globalAlpha = Math.max(0, 1 - t * 1.2);
       ctx.translate(d.dx + d.side * t * W * 0.35, d.dy - t * H * 0.45); ctx.rotate(t * 7 * d.side);
       if (imgReady(dImg)) ctx.drawImage(dImg, -w/2, -w*asp*0.9, w, w*asp);
@@ -1866,7 +1872,7 @@ function drawKpopPlaying() {
     const p = kpDanceDemonPos(d);
     const bob = Math.sin(kpSongTime * 4.5 + d.born * 4) * shortSide() * 0.025;   // 上下飄(懸浮感、疊在拍翅上)
     const rot = Math.sin(kpSongTime * 3.2 + d.born * 6) * 0.1;                   // 輕微左右搖擺
-    const w = shortSide() * 0.2 * p.scale;
+    const w = shortSide() * 0.27 * p.scale;                                       // 阿葉要惡魔放大~1.35倍
     ctx.save(); ctx.globalAlpha = p.prog > 1 ? Math.max(0, 1 - (p.prog - 1) * 4) : 1; // 走完才淡出、平時不透明
     ctx.translate(p.x, p.y + bob); ctx.rotate(rot);
     ctx.shadowColor = "#7CFFB0"; ctx.shadowBlur = shortSide() * 0.04;            // 青綠發光描邊(紫背景互補色、惡魔一眼跳出不再融背景)
