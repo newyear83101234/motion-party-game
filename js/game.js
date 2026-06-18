@@ -48,7 +48,7 @@ const chestImg = new Image(); chestImg.src = "IMAGE/sprites/chest.png";    // �
 const cityImg = new Image(); cityImg.src = "IMAGE/city.png";               // 城市背景（打怪）
 const spaceImg = new Image(); spaceImg.src = "IMAGE/space.png";            // 太空背景（躲避）
 const meteorImg = new Image(); meteorImg.src = "IMAGE/sprites/meteor.png"; // 隕石
-const logoImg = new Image(); logoImg.src = "IMAGE/sprites/logo.png";        // 選單標題徽章
+const logoImg = new Image(); logoImg.src = "IMAGE/sprites/logo2.png";        // 選單標題徽章(阿葉重生金星徽章、透明底)
 const warnImg = new Image(); warnImg.src = "IMAGE/sprites/boss_warning.png"; // Boss 預警
 const starImg = new Image(); starImg.src = "IMAGE/sprites/star.png";        // 星星（躲避收集）
 const bossBigImg = new Image(); bossBigImg.src = "IMAGE/sprites/boss_big.png"; // 大魔王
@@ -56,6 +56,12 @@ const comboBgImg = new Image(); comboBgImg.src = "IMAGE/sprites/combo_bg.png"; /
 const gameoverImg = new Image(); gameoverImg.src = "IMAGE/gameover_bg.png";    // 結束畫面背景
 const lawnImg = new Image(); lawnImg.src = "IMAGE/lawn.png";                  // 草坪背景（植物大戰殭屍）
 const stageKpopImg = new Image(); stageKpopImg.src = "IMAGE/sprites/stage_kpop.png"; // K-pop 舞台背景（阿葉後製、缺圖時卡片用程式底色）
+// 首頁選單卡片完整插畫(阿葉GPT生盲盒3D風、各遊戲場景+角色都畫進去、取代原本背景+emoji疊圖)
+const cardWhackImg = new Image(); cardWhackImg.src = "IMAGE/sprites/card_whack.png";
+const cardDodgeImg = new Image(); cardDodgeImg.src = "IMAGE/sprites/card_dodge.png";
+const cardPvzImg = new Image(); cardPvzImg.src = "IMAGE/sprites/card_pvz.png";
+const cardKpopImg = new Image(); cardKpopImg.src = "IMAGE/sprites/card_kpop.png";
+const menuBgImg = new Image(); menuBgImg.src = "IMAGE/menu_bg.png"; // 首頁明亮夢幻背景(疊在卡片下層)
 const runnerFirstImg = new Image(); runnerFirstImg.src = "IMAGE/runner_bg_first.png"; // 影片第一幀（影片還沒播時當墊檔、街景一致）
 const kpDemonImg = new Image(); kpDemonImg.src = "IMAGE/sprites/demo.png"; // 獵魔女團小紫惡魔（阿葉生、Q版透明PNG、靜態 fallback）
 const kpDemonFrames = []; for (let i = 0; i < 8; i++) { const im = new Image(); im.src = `IMAGE/sprites/demon_frames/d${i}.png`; kpDemonFrames.push(im); } // 拍翅動畫8幀(阿葉綠幕影片抽幀去背、ping-pong輪播)
@@ -995,21 +1001,22 @@ function roundRectPath(x, y, w, h, r) {
   ctx.closePath();
 }
 function roundRectFill(x, y, w, h, r) { roundRectPath(x, y, w, h, r); ctx.fill(); }
-function drawCard(x, y, w, h, r, bgImg, border, tint, icon1, icon2, best) {
+function drawCard(x, y, w, h, r, bgImg, border, best) {
   ctx.save();
   roundRectPath(x, y, w, h, r); ctx.clip();
-  if (imgReady(bgImg)) {
+  if (imgReady(bgImg)) {                                       // 完整插畫cover鋪滿(主角已畫進去、不再疊emoji)
     const iw = bgImg.naturalWidth, ih = bgImg.naturalHeight, s = Math.max(w / iw, h / ih), dw = iw * s, dh = ih * s;
     ctx.drawImage(bgImg, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
   } else { ctx.fillStyle = "#1a2238"; ctx.fillRect(x, y, w, h); }
-  ctx.fillStyle = tint; ctx.fillRect(x, y, w, h);
+  const g = ctx.createLinearGradient(0, y + h * 0.55, 0, y + h);   // 只壓底部漸層暗罩→分數讀得清、上方插畫保持明亮
+  g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(1, "rgba(0,0,0,0.55)");
+  ctx.fillStyle = g; ctx.fillRect(x, y + h * 0.55, w, h * 0.45);
   ctx.restore();
   ctx.strokeStyle = border; ctx.lineWidth = shortSide() * 0.007; roundRectPath(x, y, w, h, r); ctx.stroke();
-  ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.font = `${w * 0.5}px sans-serif`; ctx.fillText(icon1, x + w / 2, y + h * 0.36);
-  ctx.font = `${w * 0.32}px sans-serif`; ctx.fillText(icon2, x + w / 2, y + h * 0.64);
-  ctx.font = `bold ${w * 0.18}px sans-serif`; ctx.fillStyle = "#ffd54a";
-  ctx.fillText("🏅" + best, x + w / 2, y + h * 0.88);
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";          // 最佳分數(黃字+黑描邊、疊在底部暗罩上)
+  ctx.font = `bold ${w * 0.16}px sans-serif`; ctx.lineWidth = Math.max(2, w * 0.012); ctx.lineJoin = "round";
+  ctx.strokeStyle = "rgba(0,0,0,0.6)"; ctx.fillStyle = "#ffd54a";
+  const t = "🏅" + best; ctx.strokeText(t, x + w / 2, y + h * 0.88); ctx.fillText(t, x + w / 2, y + h * 0.88);
 }
 // 選單 3 張遊戲卡（畫面與點擊命中共用同一份座標，避免不一致）
 function menuCards() {
@@ -1017,17 +1024,20 @@ function menuCards() {
   const x0 = (W - cw * 2 - gapX) / 2, y0 = H * 0.20;
   const r1y = y0, r2y = y0 + ch + gapY;
   return [
-    { x: x0,              y: r1y, w: cw, h: ch, game: "whack", bg: cityImg,      border: "rgba(90,170,255,0.95)",  tint: "rgba(20,40,90,0.45)",  i1: "👊", i2: "🦖", best: bestWhack },
-    { x: x0 + cw + gapX,  y: r1y, w: cw, h: ch, game: "dodge", bg: spaceImg,     border: "rgba(190,110,255,0.95)", tint: "rgba(40,20,80,0.45)",  i1: "🏃", i2: "☄️", best: bestDodge },
-    { x: x0,              y: r2y, w: cw, h: ch, game: "pvz",   bg: lawnImg,      border: "rgba(120,210,90,0.95)",  tint: "rgba(20,70,20,0.45)",  i1: "🏃", i2: "🧟", best: bestPvz },
-    { x: x0 + cw + gapX,  y: r2y, w: cw, h: ch, game: "kpop",  bg: stageKpopImg, border: "rgba(255,80,200,0.95)",  tint: "rgba(70,10,60,0.5)",   i1: "🎤", i2: "👿", best: bestKpop },
+    { x: x0,              y: r1y, w: cw, h: ch, game: "whack", bg: cardWhackImg, border: "rgba(90,170,255,0.95)",  best: bestWhack },
+    { x: x0 + cw + gapX,  y: r1y, w: cw, h: ch, game: "dodge", bg: cardDodgeImg, border: "rgba(190,110,255,0.95)", best: bestDodge },
+    { x: x0,              y: r2y, w: cw, h: ch, game: "pvz",   bg: cardPvzImg,   border: "rgba(120,210,90,0.95)",  best: bestPvz },
+    { x: x0 + cw + gapX,  y: r2y, w: cw, h: ch, game: "kpop",  bg: cardKpopImg,  border: "rgba(255,80,200,0.95)",  best: bestKpop },
   ];
 }
 function drawMenu() {
-  ctx.fillStyle = "#0b1020"; ctx.fillRect(0, 0, W, H);
+  if (imgReady(menuBgImg)) {                                   // 明亮夢幻背景(cover鋪滿)、缺圖時退回深底色
+    const iw = menuBgImg.naturalWidth, ih = menuBgImg.naturalHeight, s = Math.max(W / iw, H / ih), dw = iw * s, dh = ih * s;
+    ctx.drawImage(menuBgImg, (W - dw) / 2, (H - dh) / 2, dw, dh);
+  } else { ctx.fillStyle = "#0b1020"; ctx.fillRect(0, 0, W, H); }
   if (imgReady(logoImg)) { const sz = shortSide() * 0.28; ctx.drawImage(logoImg, W / 2 - sz / 2, H * 0.03, sz, sz); } // 標題徽章
   const rad = shortSide() * 0.035;
-  for (const c of menuCards()) drawCard(c.x, c.y, c.w, c.h, rad, c.bg, c.border, c.tint, c.i1, c.i2, c.best);
+  for (const c of menuCards()) drawCard(c.x, c.y, c.w, c.h, rad, c.bg, c.border, c.best);
   // 單人/雙人 模式切換鈕（底部中央）
   const mr = shortSide() * 0.085, mx = W / 2, my = H * 0.9;
   ctx.fillStyle = "rgba(255,255,255,0.16)"; ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.fill();
