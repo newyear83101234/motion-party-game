@@ -95,7 +95,7 @@ canvas.style.zIndex = "1"; // canvas 疊在背景影片之上（runner clearRect
 let runnerWantBg = false, runnerBgDegraded = false; // 此局想用影片背景 / 是否因效能降級
 // 獵魔女團「跟著舞者跳」示範影片（CSS背景、鏡像顯示給小孩照跳）
 const kpDanceVid = document.createElement("video");
-kpDanceVid.src = "VIDEO/kpop_dance.mp4?v=q4"; kpDanceVid.loop = true; kpDanceVid.muted = true; kpDanceVid.preload = "auto"; // ?v=換影片時改版號、破瀏覽器快取
+kpDanceVid.src = "VIDEO/kpop_dance.mp4?v=q5"; kpDanceVid.loop = true; kpDanceVid.muted = true; kpDanceVid.preload = "auto"; // ?v=換影片時改版號、破瀏覽器快取
 kpDanceVid.playsInline = true; kpDanceVid.setAttribute("playsinline", ""); kpDanceVid.setAttribute("webkit-playsinline", "");
 kpDanceVid.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0c0820 url('IMAGE/sprites/stage_kpop2.png') center/cover no-repeat;z-index:0;display:none;transform:scaleX(-1)"; // contain留邊處透出魔法森林夜空背景
 document.body.appendChild(kpDanceVid);
@@ -418,7 +418,7 @@ async function tryKpUnlock() {
   }
 }
 async function startKpopSong() {
-  if (!kpRef) { try { kpRef = await (await fetch("VIDEO/kpop_dance.json?v=q4")).json(); } catch (e) { console.warn("舞步資料載入失敗", e); } } // ?v=與影片同步換版號
+  if (!kpRef) { try { kpRef = await (await fetch("VIDEO/kpop_dance.json?v=q5")).json(); } catch (e) { console.warn("舞步資料載入失敗", e); } } // ?v=與影片同步換版號
   if (kpRef) kpChoreo = buildChoreoFromRef();   // 骨架載到→節點改「動作峰值對齊」(招牌pose、非過渡幀)
   state = "playing";
   if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();

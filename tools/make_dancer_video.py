@@ -6,7 +6,9 @@ from scipy import ndimage
 import imageio_ffmpeg
 
 VIDS = [r"d:\Claude\Projects\GAME DIY\VIDEO\demo2.mp4",     # 多支綠幕影片依序拼接(動作不重複)
-        r"d:\Claude\Projects\GAME DIY\VIDEO\demo3.mp4"]
+        r"d:\Claude\Projects\GAME DIY\VIDEO\demo3.mp4",
+        r"d:\Claude\Projects\GAME DIY\VIDEO\demo4.mp4",
+        r"d:\Claude\Projects\GAME DIY\VIDEO\demo5.mp4"]
 STAGE = r"d:\Claude\Projects\GAME DIY\IMAGE\sprites\stage_kpop2.png"  # 魔法森林夜空背景
 BG_BRIGHT = 1.22                                            # 背景提亮(夜景偏暗、舞者有打光、提亮對比剛好)
 OUT = r"d:\Claude\Projects\GAME DIY\VIDEO\kpop_dance.mp4"
