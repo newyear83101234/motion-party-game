@@ -22,14 +22,12 @@ frames = sorted(os.listdir(tmp_in))
 
 def keyframe(arr):                                  # 綠幕去背→回傳(rgb, alpha)
     R, G, B = arr[..., 0], arr[..., 1], arr[..., 2]
-    green = (G - np.maximum(R, B)) > 18
-    labeled, _ = ndimage.label(green)
-    border = set(labeled[0, :]) | set(labeled[-1, :]) | set(labeled[:, 0]) | set(labeled[:, -1]); border.discard(0)
-    bg = np.isin(labeled, list(border))
-    alpha = np.where(bg, 0, 255).astype(np.uint8)
-    inner = ndimage.binary_erosion(alpha > 0, iterations=1); alpha = np.where(inner | (alpha == 0), alpha, 0).astype(np.uint8)
+    green = (G - np.maximum(R, B)) > 14             # 全圖去綠(角色無純綠)、清腳下殘留陰影綠
+    alpha = np.where(green, 0, 255).astype(np.uint8)
+    alpha = (ndimage.binary_closing(alpha > 0, iterations=1) * 255).astype(np.uint8)  # 補角色內小洞
+    inner = ndimage.binary_erosion(alpha > 0, iterations=1); alpha = np.where(inner | (alpha == 0), alpha, 0).astype(np.uint8)  # 1px羽化消綠邊
     rgb = arr.copy(); mxRB = np.maximum(rgb[..., 0], rgb[..., 2])
-    spill = (alpha > 0) & (rgb[..., 1] > mxRB); rgb[..., 1] = np.where(spill, mxRB, rgb[..., 1])
+    spill = (alpha > 0) & (rgb[..., 1] > mxRB); rgb[..., 1] = np.where(spill, mxRB, rgb[..., 1])  # despill去綠溢色
     return rgb.astype(np.uint8), alpha
 
 # pass1:去背存透明PNG + 累積聯集bbox(固定裁切=舞者大小位置不跳)
@@ -43,7 +41,7 @@ for fn in frames:
 bw, bh = ux1 - ux0, uy1 - uy0
 scale = min(OUTH * 0.84 / bh, OUTW * 0.96 / bw)     # 舞者佔直式高84%、寬不超96%
 sw, sh = int(bw * scale), int(bh * scale)
-px, py = (OUTW - sw) // 2, int(OUTH * 0.20)             # 水平置中、垂直偏上(下方留給pictogram捲軸)
+px, py = (OUTW - sw) // 2, (OUTH - sh) // 2 - int(OUTH * 0.04)  # 水平置中、垂直置中(略偏上一點點給捲軸)
 
 # pass2:固定bbox裁→scale→貼舞台→輸出
 for fn in frames:
