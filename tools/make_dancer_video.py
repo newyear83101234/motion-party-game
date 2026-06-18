@@ -58,7 +58,7 @@ for fn in frames:
         ux0, uy0, ux1, uy1 = min(ux0, xs.min()), min(uy0, ys.min()), max(ux1, xs.max()), max(uy1, ys.max())
         cxsum += xs.mean(); cxn += 1
 bw, bh = ux1 - ux0, uy1 - uy0
-scale = min(OUTH * 0.92 / bh, OUTW * 1.03 / bw)     # 放大一點點(阿葉要)、寬可微超
+scale = min(OUTH * 0.92 / bh, OUTW * 1.03 / bw) * 1.35  # 再放大1.35倍(阿葉要、大字/T字手尖會微裁出畫面、可接受)
 sw, sh = int(bw * scale), int(bh * scale)
 bodyCx = cxsum / cxn                                # 身體質心x(原圖)→真正置中(不被手伸遠拉歪)
 px = int(OUTW / 2 - (bodyCx - ux0) * scale)

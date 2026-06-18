@@ -95,7 +95,7 @@ canvas.style.zIndex = "1"; // canvas 疊在背景影片之上（runner clearRect
 let runnerWantBg = false, runnerBgDegraded = false; // 此局想用影片背景 / 是否因效能降級
 // 獵魔女團「跟著舞者跳」示範影片（CSS背景、鏡像顯示給小孩照跳）
 const kpDanceVid = document.createElement("video");
-kpDanceVid.src = "VIDEO/kpop_dance.mp4?v=q5"; kpDanceVid.loop = true; kpDanceVid.muted = true; kpDanceVid.preload = "auto"; // ?v=換影片時改版號、破瀏覽器快取
+kpDanceVid.src = "VIDEO/kpop_dance.mp4?v=q6"; kpDanceVid.loop = true; kpDanceVid.muted = true; kpDanceVid.preload = "auto"; // ?v=換影片時改版號、破瀏覽器快取
 kpDanceVid.playsInline = true; kpDanceVid.setAttribute("playsinline", ""); kpDanceVid.setAttribute("webkit-playsinline", "");
 kpDanceVid.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0c0820 url('IMAGE/sprites/stage_kpop2.png') center/cover no-repeat;z-index:0;display:none;transform:scaleX(-1)"; // contain留邊處透出魔法森林夜空背景
 document.body.appendChild(kpDanceVid);
@@ -295,6 +295,37 @@ function sndVictory() { // 合成勝利號角（Suno 音檔的備援）
     o.connect(g).connect(audioCtx.destination); o.start(t + i * 0.12); o.stop(t + 0.7 + i * 0.12);
   });
 }
+// ===== 獵魔女團 kpop 專屬合成音效(悅耳、無外部檔) =====
+function sndKpHit(perfect, c) {                  // 命中:PERFECT三音琶音/GOOD兩音、隨combo升調
+  if (!audioCtx || muted) return; const t = audioCtx.currentTime;
+  const base = perfect ? 784 : 587, cs = 1 + Math.min(c || 0, 12) * 0.025;
+  const notes = perfect ? [base, base*1.26, base*1.5] : [base, base*1.33];
+  notes.forEach((f, i) => { const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = "triangle"; o.frequency.setValueAtTime(f*cs, t+i*0.05);
+    g.gain.setValueAtTime(0.0001, t+i*0.05); g.gain.exponentialRampToValueAtTime(0.2, t+i*0.05+0.01); g.gain.exponentialRampToValueAtTime(0.0001, t+i*0.05+0.17);
+    o.connect(g).connect(audioCtx.destination); o.start(t+i*0.05); o.stop(t+i*0.05+0.2); });
+}
+function sndKpGold() {                            // Gold:華麗上升琶音
+  if (!audioCtx || muted) return; const t = audioCtx.currentTime;
+  [523, 659, 784, 1047, 1319].forEach((f, i) => { const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = "triangle"; o.frequency.setValueAtTime(f, t+i*0.06);
+    g.gain.setValueAtTime(0.0001, t+i*0.06); g.gain.exponentialRampToValueAtTime(0.24, t+i*0.06+0.01); g.gain.exponentialRampToValueAtTime(0.0001, t+i*0.06+0.3);
+    o.connect(g).connect(audioCtx.destination); o.start(t+i*0.06); o.stop(t+i*0.06+0.35); });
+}
+function sndKpWave() {                            // 清惡魔光波:上升掃頻咻
+  if (!audioCtx || muted) return; const t = audioCtx.currentTime;
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = "sine"; o.frequency.setValueAtTime(240, t); o.frequency.exponentialRampToValueAtTime(1100, t+0.22);
+  g.gain.setValueAtTime(0.16, t); g.gain.exponentialRampToValueAtTime(0.0001, t+0.28);
+  o.connect(g).connect(audioCtx.destination); o.start(t); o.stop(t+0.3);
+}
+function sndKpMiss() {                            // 沒跟上:輕柔下降(不刺耳不嚇人)
+  if (!audioCtx || muted) return; const t = audioCtx.currentTime;
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = "sine"; o.frequency.setValueAtTime(440, t); o.frequency.exponentialRampToValueAtTime(290, t+0.18);
+  g.gain.setValueAtTime(0.1, t); g.gain.exponentialRampToValueAtTime(0.0001, t+0.22);
+  o.connect(g).connect(audioCtx.destination); o.start(t); o.stop(t+0.24);
+}
 function startBoss() { // 出現大魔王
   bossActive = true;
   for (const t of targets) burst(t.x, t.y, "#7fe0ff", 6);
@@ -418,7 +449,7 @@ async function tryKpUnlock() {
   }
 }
 async function startKpopSong() {
-  if (!kpRef) { try { kpRef = await (await fetch("VIDEO/kpop_dance.json?v=q5")).json(); } catch (e) { console.warn("舞步資料載入失敗", e); } } // ?v=與影片同步換版號
+  if (!kpRef) { try { kpRef = await (await fetch("VIDEO/kpop_dance.json?v=q6")).json(); } catch (e) { console.warn("舞步資料載入失敗", e); } } // ?v=與影片同步換版號
   if (kpRef) kpChoreo = buildChoreoFromRef();   // 骨架載到→節點改「動作峰值對齊」(招牌pose、非過渡幀)
   state = "playing";
   if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
@@ -1743,7 +1774,7 @@ function updateKpop(dt) {
           burst(W/2, H*0.5, "#ffe96b", 60); shake = 18; bombFx = 0.8; kpNodeFx = 0.5; kpNodeFxGold = true;
           kpWaveT = kpSongTime; kpWaveGold = true;
           addFloat(W/2, H*0.28, "🌟⭐🌟", "#ffe96b", shortSide()*0.13, 0.6);   // 無中文、符號化、慢消(decay0.6=飄久看得清)
-          sndGold(); // 短促金音效。⚠️別用pvzWinSfx:41秒長、Gold每~16s觸發=永遠有音樂疊著(阿葉回報「音效一直持續」)
+          sndKpGold(); sndKpWave(); // 升級:華麗琶音+光波咻(別用pvzWinSfx:41秒長會一直疊)
         } else {
           // 方向A：跳得好自動放光波清惡魔（PERFECT清2隻、GOOD清1隻）、玩家不用看惡魔
           const alive = kpDemons.filter(d => !d.dead).sort((a, b) => (kpSongTime - b.born)/b.dur - (kpSongTime - a.born)/a.dur);
@@ -1754,9 +1785,9 @@ function updateKpop(dt) {
           burst(W/2, H*0.45, "#ff7fdc", 20); kpNodeFx = 0.4; kpNodeFxGold = false;
           kpWaveT = kpSongTime; kpWaveGold = false;
           addFloat(W/2, H*0.28, perfect ? "⭐⭐⭐" : "⭐⭐", perfect ? "#ffe96b" : "#aef36b", shortSide()*(perfect?0.12:0.1), 0.6); // 無中文、星數=好壞、慢消看得清
-          if (!playSfxFile(sfxCorrect)) beep(880, 0.1, "triangle", 0.3);
+          sndKpHit(perfect, combo); if (killed.length) sndKpWave(); // 升級:悅耳琶音(隨combo升調)+清惡魔光波咻
         }
-      } else { kpMiss++; combo = 0; addFloat(W/2, H*0.28, "💨", "#ff9bb0", shortSide()*0.11, 0.6); kpNodeFx = 0.3; kpNodeFxGold = false; } // 沒跟上=一陣風(不嚇人、無中文)
+      } else { kpMiss++; combo = 0; addFloat(W/2, H*0.28, "💨", "#ff9bb0", shortSide()*0.11, 0.6); sndKpMiss(); kpNodeFx = 0.3; kpNodeFxGold = false; } // 沒跟上=柔和下降音+一陣風(不嚇人、無中文)
       kpNodeIdx++; kpNodeBest = 0;
     }
   }
