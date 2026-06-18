@@ -44,18 +44,23 @@ def keyframe(arr):                                  # 綠幕去背→回傳(rgb,
         alpha = np.where(np.isin(lbl, keep), alpha, 0).astype(np.uint8)
     return rgb.astype(np.uint8), alpha
 
-# pass1:去背存透明PNG + 累積聯集bbox(固定裁切=舞者大小位置不跳)
+# pass1:去背存透明PNG + 累積聯集bbox(固定裁切) + 身體質心x(置中基準、手伸遠不影響)
 ux0, uy0, ux1, uy1 = 1e9, 1e9, 0, 0
+cxsum, cxn = 0.0, 0
 for fn in frames:
     arr = np.array(Image.open(os.path.join(tmp_in, fn)).convert("RGB")).astype(int)
     rgb, alpha = keyframe(arr)
     Image.fromarray(np.dstack([rgb, alpha]), "RGBA").save(os.path.join(tmp_in, "a_" + fn))
     ys, xs = np.where(alpha > 0)
-    if len(ys): ux0, uy0, ux1, uy1 = min(ux0, xs.min()), min(uy0, ys.min()), max(ux1, xs.max()), max(uy1, ys.max())
+    if len(ys):
+        ux0, uy0, ux1, uy1 = min(ux0, xs.min()), min(uy0, ys.min()), max(ux1, xs.max()), max(uy1, ys.max())
+        cxsum += xs.mean(); cxn += 1
 bw, bh = ux1 - ux0, uy1 - uy0
-scale = min(OUTH * 0.84 / bh, OUTW * 0.96 / bw)     # 舞者佔直式高84%、寬不超96%
+scale = min(OUTH * 0.92 / bh, OUTW * 1.03 / bw)     # 放大一點點(阿葉要)、寬可微超
 sw, sh = int(bw * scale), int(bh * scale)
-px, py = (OUTW - sw) // 2, (OUTH - sh) // 2 - int(OUTH * 0.04)  # 水平置中、垂直置中(略偏上一點點給捲軸)
+bodyCx = cxsum / cxn                                # 身體質心x(原圖)→真正置中(不被手伸遠拉歪)
+px = int(OUTW / 2 - (bodyCx - ux0) * scale)
+py = (OUTH - sh) // 2 - int(OUTH * 0.04)            # 垂直置中略偏上(給捲軸)
 
 # pass2:固定bbox裁→scale→貼舞台→輸出
 for fn in frames:

@@ -95,7 +95,7 @@ canvas.style.zIndex = "1"; // canvas 疊在背景影片之上（runner clearRect
 let runnerWantBg = false, runnerBgDegraded = false; // 此局想用影片背景 / 是否因效能降級
 // 獵魔女團「跟著舞者跳」示範影片（CSS背景、鏡像顯示給小孩照跳）
 const kpDanceVid = document.createElement("video");
-kpDanceVid.src = "VIDEO/kpop_dance.mp4?v=q3"; kpDanceVid.loop = true; kpDanceVid.muted = true; kpDanceVid.preload = "auto"; // ?v=換影片時改版號、破瀏覽器快取
+kpDanceVid.src = "VIDEO/kpop_dance.mp4?v=q4"; kpDanceVid.loop = true; kpDanceVid.muted = true; kpDanceVid.preload = "auto"; // ?v=換影片時改版號、破瀏覽器快取
 kpDanceVid.playsInline = true; kpDanceVid.setAttribute("playsinline", ""); kpDanceVid.setAttribute("webkit-playsinline", "");
 kpDanceVid.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0c0820 url('IMAGE/sprites/stage_kpop2.png') center/cover no-repeat;z-index:0;display:none;transform:scaleX(-1)"; // contain留邊處透出魔法森林夜空背景
 document.body.appendChild(kpDanceVid);
@@ -418,7 +418,7 @@ async function tryKpUnlock() {
   }
 }
 async function startKpopSong() {
-  if (!kpRef) { try { kpRef = await (await fetch("VIDEO/kpop_dance.json?v=q3")).json(); } catch (e) { console.warn("舞步資料載入失敗", e); } } // ?v=與影片同步換版號
+  if (!kpRef) { try { kpRef = await (await fetch("VIDEO/kpop_dance.json?v=q4")).json(); } catch (e) { console.warn("舞步資料載入失敗", e); } } // ?v=與影片同步換版號
   if (kpRef) kpChoreo = buildChoreoFromRef();   // 骨架載到→節點改「動作峰值對齊」(招牌pose、非過渡幀)
   state = "playing";
   if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
@@ -1763,36 +1763,38 @@ function updateKpop(dt) {
 // 通用:把一幀骨架(MediaPipe lm)畫成火柴人小圖(軀幹正規化縮放、鏡像、髖中錨定)。pictogram捲軸+居中示範共用
 function kpDrawStickLM(lm, cx, cy, boxH, col, lineK, boxAlpha, markLeft) {
   if (!lm || !lm[11] || !lm[12] || !lm[23] || !lm[24]) return;
-  const hpx = (lm[23][0]+lm[24][0])/2, hpy = (lm[23][1]+lm[24][1])/2;
-  const nkx = (lm[11][0]+lm[12][0])/2, nky = (lm[11][1]+lm[12][1])/2;
-  const torso = Math.hypot(nkx-hpx, nky-hpy) || 0.2;
-  const shoulderW = Math.abs(lm[11][0]-lm[12][0]);
-  const base = Math.max(torso, shoulderW * 0.9);                 // 軀幹被壓短時用肩寬撐、避免四肢爆長像蜘蛛人
-  const s = Math.min(boxH * 0.27 / base, boxH * 1.3), bw = boxH * 0.66; // 縮放上限、比例不失真
-  const P = (i) => { const a = lm[i]; if (!a) return null; return { x: cx + (hpx - a[0]) * s, y: cy + (a[1] - hpy) * s }; }; // 鏡像、髖中當原點
-  const M = (a,b) => { const p=P(a),q=P(b); return (p&&q)?{x:(p.x+q.x)/2,y:(p.y+q.y)/2}:null; };
-  const seg = (p,q) => { if(!p||!q) return; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke(); };
-  const neck=M(11,12), hipc=M(23,24), nose=P(0);
-  const head = nose ? { x: nose.x, y: nose.y - boxH*0.03 } : neck;   // 頭圓中心(略高於鼻)
-  const limbs = [[11,13],[13,15],[12,14],[14,16],[23,25],[25,27],[24,26],[26,28]];
-  const hr = boxH * 0.16, lw = boxH * (0.1 + 0.035*lineK);           // 大圓頭(0.45軀幹比)+粗膠囊肢=Just Dance Kids式實心人形
+  // 用「骨架方向 + 典型固定肢長」重建:動作(關節角度)來自舞者、但比例標準化=正常火柴人(不被Q版頭大腿短影響)
+  const L = i => (lm[i] && (lm[i][2] === undefined || lm[i][2] > 0.12)) ? [lm[i][0], lm[i][1]] : null;
+  const mid = (a,b) => { const p=L(a),q=L(b); return (p&&q)?[(p[0]+q[0])/2,(p[1]+q[1])/2]:null; };
+  const udir = (from, to, def) => { if(!from||!to) return def; const dx=-(to[0]-from[0]), dy=to[1]-from[1], d=Math.hypot(dx,dy); return d<1e-4?def:[dx/d,dy/d]; }; // 鏡像x負
+  const step = (p,dir,len) => [p[0]+dir[0]*len, p[1]+dir[1]*len];
+  const SP=boxH*0.27, HD=boxH*0.17, SHh=boxH*0.12, UA=boxH*0.17, FA=boxH*0.16, HPh=boxH*0.08, TH=boxH*0.21, SN=boxH*0.2; // 典型人體比例(頭/軀幹/上臂/前臂/大腿/小腿)
+  const hipC=mid(23,24), shC=mid(11,12);
+  const hip=[cx, cy + boxH*0.13];                                  // 髖中錨點
+  const spineD=udir(hipC, shC, [0,-1]), neck=step(hip,spineD,SP), head=step(neck,spineD,HD);
+  const shD=udir(L(12),L(11),[1,0]), lsh=step(neck,shD,SHh), rsh=step(neck,[-shD[0],-shD[1]],SHh);
+  const lelb=step(lsh,udir(L(11),L(13),[0,1]),UA), lwr=step(lelb,udir(L(13),L(15),[0,1]),FA);
+  const relb=step(rsh,udir(L(12),L(14),[0,1]),UA), rwr=step(relb,udir(L(14),L(16),[0,1]),FA);
+  const lhip=step(hip,shD,HPh), rhip=step(hip,[-shD[0],-shD[1]],HPh);
+  const lkne=step(lhip,udir(L(23),L(25),[0,1]),TH), lank=step(lkne,udir(L(25),L(27),[0,1]),SN);
+  const rkne=step(rhip,udir(L(24),L(26),[0,1]),TH), rank=step(rkne,udir(L(26),L(28),[0,1]),SN);
+  const segs=[[hip,neck],[lsh,rsh],[lhip,rhip],[lsh,lelb],[lelb,lwr],[rsh,relb],[relb,rwr],[lhip,lkne],[lkne,lank],[rhip,rkne],[rkne,rank]];
+  const lw=boxH*(0.1+0.035*lineK), hr=boxH*0.14;
   ctx.save(); ctx.lineCap="round"; ctx.lineJoin="round";
-  const body = (color, extra) => {                                   // 畫一遍人形(描邊→主體疊兩層)
-    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = lw + extra;
-    if (head && neck) seg(head, neck);
-    seg(neck, hipc); seg(P(11), P(12)); seg(P(23), P(24));
-    for (const [a,b] of limbs) seg(P(a), P(b));
-    if (head) { ctx.beginPath(); ctx.arc(head.x, head.y, hr + extra*0.5, 0, Math.PI*2); ctx.fill(); }
+  const body=(color,extra) => {
+    ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=lw+extra;
+    for (const [a,b] of segs) { ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke(); }
+    ctx.beginPath(); ctx.arc(head[0],head[1],hr+extra*0.5,0,Math.PI*2); ctx.fill();
   };
-  body("rgba(20,12,30,0.85)", boxH*0.07);                            // 黑描邊(讓人形從任何背景跳出)
-  body(col, 0);                                                      // 實心主體(橙/命中綠/gold金)
-  if (markLeft) { const lh = P(15); if (lh) { ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(lh.x, lh.y, boxH*0.05, 0, Math.PI*2); ctx.fill(); } } // 一手點白點=鏡像跟跳不擺反左右
+  body("rgba(20,12,30,0.85)", boxH*0.07);                         // 黑描邊
+  body(col, 0);                                                   // 實心主體
+  if (markLeft) { ctx.fillStyle="#fff"; ctx.beginPath(); ctx.arc(lwr[0],lwr[1],boxH*0.05,0,Math.PI*2); ctx.fill(); } // 一手白點=鏡像跟跳不擺反
   ctx.restore();
 }
 // Just Dance 式底部動作預告捲軸:接下來N個節點由右往左滑、判定線那格放大=當下目標
 function kpDrawPictogramTrack() {
   if (!kpRef) return;
-  const trackY = H * 0.88, box = shortSide() * 0.16, hitX = W * 0.30, lead = 4.0, N = 3; // 判定點中間偏前、路徑短、預告3個(審查官數值)
+  const trackY = H * 0.88, box = shortSide() * 0.16, hitX = W * 0.58, lead = 4.0, N = 3; // 判定點中間偏右下方(阿葉要)、預告3個
   for (let i = Math.min(kpChoreo.length-1, kpNodeIdx + N - 1); i >= kpNodeIdx; i--) {  // 遠→近畫(近的蓋上面)
     const node = kpChoreo[i]; if (!node) continue;
     const nt = kpNodeTime(node), dt = nt - kpSongTime;
