@@ -483,6 +483,13 @@ function togglePlayerMode() {
   initPoseDetector(playerMode === "duo" ? 2 : 1).catch(() => {}); // 重建模型（單人省效能 + 不被路人干擾）
 }
 
+function goHome() {                              // 任何遊戲中途返回首頁:存最高分+停kpop歌曲音訊+暫停影片+切回選單樂
+  commitBest();
+  try { if (kpSource) { kpSource.onended = null; kpSource.stop(0); kpSource = null; } } catch (e) {}
+  try { kpDanceVid.pause(); } catch (e) {}
+  try { bgVideo.pause(); } catch (e) {}
+  playBgmTrack(bgmMenu); state = "menu";
+}
 canvas.addEventListener("pointerdown", (e) => {
   const rect = canvas.getBoundingClientRect();
   const px = (e.clientX - rect.left) * (W / rect.width);   // 校正：CSS 座標 → canvas 座標
@@ -515,7 +522,9 @@ canvas.addEventListener("pointerdown", (e) => {
   }
   if (state === "playing") {
     const r = shortSide() * 0.06, pad = shortSide() * 0.04, cx = pad + r, cy = H - pad - r;
-    if ((px - cx) ** 2 + (py - cy) ** 2 < r * r) setMuted(!muted);
+    if ((px - cx) ** 2 + (py - cy) ** 2 < r * r) { setMuted(!muted); return; }
+    const hx = cx + r * 2 + shortSide() * 0.03;                    // 🏠返回首頁鈕(靜音鈕右邊)
+    if ((px - hx) ** 2 + (py - cy) ** 2 < r * r) { goHome(); return; }
   }
 });
 
@@ -911,6 +920,10 @@ function drawHUD() {
   ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
   ctx.font = `${r * 1.05}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
   ctx.fillText(muted ? "🔇" : "🔊", cx, cy);
+  // 返回首頁鈕（🏠、靜音鈕右邊、所有遊戲中途都能回選單、不用等輸贏）
+  const hx = cx + r * 2 + shortSide() * 0.03;
+  ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.beginPath(); ctx.arc(hx, cy, r, 0, Math.PI * 2); ctx.fill();
+  ctx.font = `${r * 1.0}px sans-serif`; ctx.fillText("🏠", hx, cy);
   if (allPose.length >= 2) { ctx.font = `${fs * 0.85}px sans-serif`; ctx.fillStyle = "#fff"; ctx.fillText("👥", W / 2, pad + fs * 0.55); } // 雙人指示
 }
 function drawOverlayCircleButton(symbol) {
