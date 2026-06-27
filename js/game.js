@@ -156,12 +156,13 @@ let pvzTarget = null; // runner 用：目前要擺的姿勢（舊守家版其餘
 let runnerObjs = [], runnerSpeed = 0.5, runnerDist = 0, runnerSpawnT = 0, runnerBuildT = 0;
 let prevHands = [], punchSpeed = 0, poseFrame = 0, runnerStripe = 0;
 let lastSenseTs = 0, noPersonT = 0, runnerPaused = false; // 揮拳速度時間正規化用 / 偵測不到人累計秒數 / runner 是否因沒人而暫停
-const PVZ_POSES = ["handsup", "star", "tpose", "handshead", "armscross", "onehand"]; // 6 個姿勢（key 對應 pose 圖檔名）
+const PVZ_POSES = ["handsup", "star", "tpose", "armscross", "onehand"]; // 姿勢池(櫻木:移除handshead叉腰=手腕易遮擋判不準、與kpop一致)
+const PVZ_POSES_EASY = ["handsup", "tpose", "star"]; // 前30秒新手只出這3個最好擺、判定規則互斥最乾淨、不挫折
 // 獵魔女團 K-pop 節奏狀態（kp 前綴）
 let kpDemons = [], kpBeatmap = null, kpAudioBuf = null, kpSource = null;
 let kpT0 = 0, kpSongTime = 0, kpNoteIdx = 0;
 let kpStars = 0, kpStolen = 0, kpPerfect = 0, kpGood = 0, kpMiss = 0;
-let kpWaveT = -9, kpWaveGold = false; // 命中節點放出的光波特效（轟飛惡魔用）
+let kpWaveT = -9, kpWaveGold = false, kpWaveX = 0, kpWaveY = 0; // 命中節點放出的光波特效（從被轟飛的惡魔身上發出=因果直接、櫻木B）
 let kpNextSpawn = 2.0; // 下一隻惡魔的歌曲時間（用音訊時鐘驅動、低fps也不掉密度）
 let kpDemonSpawnN = 0; // 惡魔生成計數(交替兩種惡魔、畫面不單調)
 let kpStage = "intro", kpBossCharge = 0; // intro|verse|chorus|bridge|boss|done
@@ -1230,13 +1231,14 @@ function updateDodge(dt) {
   // 星星：用護盾接到 → +5，每 5 顆回 1 命
   starTimer -= dt;
   if (starTimer <= 0) { spawnStar(); starTimer = 2.5 + Math.random() * 2.5; }
+  const hr = HAND_R();
   for (const s of stars) {
     if (s.dead) continue;
     s.y += s.vy * dt; s.spin += dt * 2;
     if (s.y - s.r > H) { s.dead = true; }
     else {
-      for (const c of dodgeCores) {
-        if ((c.x - s.x) ** 2 + (c.y - s.y) ** 2 < (s.r + c.r) ** 2) {
+      for (const h of hands) {                                  // 櫻木A:星星改用「手」接(身體閃隕石、手接星星=兩個清楚分工的動作)
+        if ((h.x - s.x) ** 2 + (h.y - s.y) ** 2 < (s.r + hr) ** 2) {
           s.dead = true; score += 5; starCount++;
           addFloat(s.x, s.y, "+5", "#ffd54a", shortSide() * 0.08); burst(s.x, s.y, "#ffd54a", 16); sndStar();
           if (starCount % 5 === 0 && lives < 5) { lives++; addFloat(s.x, s.y - shortSide() * 0.08, "❤️+1", "#ff6b6b", shortSide() * 0.09); beep(1318, 0.15, "triangle", 0.3); }
@@ -1282,10 +1284,11 @@ function drawDodgePlaying() {
   ctx.save();
   if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
   drawSceneWith(spaceImg); // 太空背景 + 把你摳出來
-  drawCores();             // 護盾（要保護的東西）
+  drawCores();             // 護盾（胸口、要保護別被隕石砸到）
   for (const s of stars) drawStar(s);
   for (const m of meteors) drawMeteor(m);
   drawDodgeWarnings();      // 危險預警 ▼
+  drawHands();             // 櫻木A:畫出雙手(接星星的點、小孩看得到手在哪)
   drawParticles();
   drawFloatTexts();
   ctx.restore();
@@ -1329,8 +1332,9 @@ function drawSuperHint() {
 // ===================== 植物大戰殭屍（pvz：比動作擋殭屍） =====================
 const pvzGroundY = () => H * 0.82;   // 殭屍走的地面線
 function pickPose() {
-  let k = PVZ_POSES[(Math.random() * PVZ_POSES.length) | 0];
-  if (k === pvzTarget) k = PVZ_POSES[(PVZ_POSES.indexOf(k) + 1) % PVZ_POSES.length]; // 避免連續同姿勢
+  const pool = elapsed < 30 ? PVZ_POSES_EASY : PVZ_POSES; // 櫻木:前30秒只出最好擺的3個、新手看懂+擺出來來得及、之後再解鎖其餘
+  let k = pool[(Math.random() * pool.length) | 0];
+  if (k === pvzTarget) k = pool[(pool.indexOf(k) + 1) % pool.length]; // 避免連續同姿勢
   return k;
 }
 // 用 normalized 關節判斷某人是否擺出某姿勢（判定放寬給小孩）
@@ -1655,7 +1659,7 @@ function drawRunnerHint() {                // 看板還遠時、上方先提示�
   for (const o of runnerObjs) if (o.type === "wall" && (o.st === "approach" || o.st === "judge") && (!nextWall || o.z < nextWall.z)) nextWall = o;
   if (!nextWall) return;
   const pimg = poseImgs[nextWall.pose];
-  const s = shortSide() * 0.16, x = W / 2 - s / 2, y = H * 0.04;
+  const s = shortSide() * 0.22, x = W / 2 - s / 2, y = H * 0.04;   // 櫻木:提示圖0.16→0.22放大、小孩看得清等下要擺什麼
   ctx.save(); ctx.globalAlpha = 0.9;
   ctx.fillStyle = "rgba(0,0,0,0.4)"; roundRectFill(x - s * 0.1, y - s * 0.05, s * 1.2, s * 1.15, s * 0.12);
   if (imgReady(pimg)) { const asp = pimg.naturalHeight / pimg.naturalWidth; ctx.drawImage(pimg, x, y, s, s * asp > s * 1 ? s : s * asp); }
@@ -1866,18 +1870,19 @@ function updateKpop(dt) {
           let n = 0; for (const d of kpDemons) if (!d.dead) { kpKillDemon(d); n++; }
           score += 10 + n * 2; kpPerfect++; combo++; bestCombo = Math.max(bestCombo, combo);
           burst(W/2, H*0.5, "#ffe96b", 60); shake = 18; bombFx = 0.8; kpNodeFx = 0.5; kpNodeFxGold = true;
-          kpWaveT = kpSongTime; kpWaveGold = true;
+          kpWaveT = kpSongTime; kpWaveGold = true; kpWaveX = W/2; kpWaveY = H*0.4;   // Gold清全場:大光波從中央炸開
           addFloat(W/2, H*0.28, "🌟⭐🌟", "#ffe96b", shortSide()*0.13, 0.6);   // 無中文、符號化、慢消(decay0.6=飄久看得清)
           sndKpGold(); sndKpWave(); // 升級:華麗琶音+光波咻(別用pvzWinSfx:41秒長會一直疊)
         } else {
           // 方向A：跳得好自動放光波清惡魔（PERFECT清2隻、GOOD清1隻）、玩家不用看惡魔
           const alive = kpDemons.filter(d => !d.dead).sort((a, b) => (kpSongTime - b.born)/b.dur - (kpSongTime - a.born)/a.dur);
           const killed = alive.slice(0, perfect ? 2 : 1);
+          const fp = killed.length ? kpDanceDemonPos(killed[0]) : { x: W/2, y: H*0.45 }; // 因果:光波從最顯眼(走最遠最大)那隻惡魔身上發出、小孩看得出「我擺對→那隻飛走」
           for (const d of killed) kpKillDemon(d);
           score += (perfect ? 2 : 1) + killed.length; if (perfect) kpPerfect++; else kpGood++;
           combo++; bestCombo = Math.max(bestCombo, combo);
-          burst(W/2, H*0.45, "#ff7fdc", 20); kpNodeFx = 0.4; kpNodeFxGold = false;
-          kpWaveT = kpSongTime; kpWaveGold = false;
+          burst(fp.x, fp.y, "#ff7fdc", 22); kpNodeFx = 0.4; kpNodeFxGold = false;
+          kpWaveT = kpSongTime; kpWaveGold = false; kpWaveX = fp.x; kpWaveY = fp.y;
           addFloat(W/2, H*0.28, perfect ? "⭐⭐⭐" : "⭐⭐", perfect ? "#ffe96b" : "#aef36b", shortSide()*(perfect?0.12:0.1), 0.6); // 無中文、星數=好壞、慢消看得清
           sndKpHit(perfect, combo); if (killed.length) sndKpWave(); // 升級:悅耳琶音(隨combo升調)+清惡魔光波咻
         }
@@ -2012,7 +2017,7 @@ function drawKpopPlaying() {
     const w = shortSide() * 0.27 * p.scale * (d.type === 1 ? 0.82 : 1);           // 阿葉要惡魔放大~1.35倍(第二種人形瘦高、寬度縮0.82視覺份量相當)
     ctx.save(); ctx.globalAlpha = p.prog > 1 ? Math.max(0, 1 - (p.prog - 1) * 4) : 1; // 走完才淡出、平時不透明
     ctx.translate(p.x, p.y + bob); ctx.rotate(rot);
-    ctx.shadowColor = "#7CFFB0"; ctx.shadowBlur = shortSide() * 0.04;            // 青綠發光描邊(紫背景互補色、惡魔一眼跳出不再融背景)
+    // (里維:移除每幀每惡魔的shadowBlur發光、低階Android每隻跑GPU陰影會掉幀;惡魔圖本身亮紫粉、紫森林背景已夠跳出)
     if (imgReady(dImg)) ctx.drawImage(dImg, -w/2, -w*asp*0.9, w, w*asp);
     else { ctx.fillStyle = "#a05"; ctx.beginPath(); ctx.arc(0, -w*0.4, w*0.5, 0, Math.PI*2); ctx.fill(); }
     ctx.restore();
@@ -2021,7 +2026,7 @@ function drawKpopPlaying() {
   if (kpWaveT >= 0) { const wt = kpSongTime - kpWaveT;
     if (wt < 0.55) { const r = shortSide() * (0.2 + wt * (kpWaveGold ? 3.4 : 2.2));
       ctx.save(); ctx.globalAlpha = 0.6 * (1 - wt / 0.55); ctx.strokeStyle = kpWaveGold ? "#ffe96b" : "#7CFFB0";
-      ctx.lineWidth = Math.max(4, shortSide() * 0.02); ctx.beginPath(); ctx.arc(W/2, H*0.46, r, 0, Math.PI*2); ctx.stroke(); ctx.restore(); } }
+      ctx.lineWidth = Math.max(4, shortSide() * 0.02); ctx.beginPath(); ctx.arc(kpWaveX, kpWaveY, r, 0, Math.PI*2); ctx.stroke(); ctx.restore(); } }
   drawParticles(); drawFloatTexts();
   ctx.restore();
   if (vidOK) {
