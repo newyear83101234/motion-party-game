@@ -62,6 +62,7 @@ const cardDodgeImg = new Image(); cardDodgeImg.src = "IMAGE/sprites/card_dodge.j
 const cardPvzImg = new Image(); cardPvzImg.src = "IMAGE/sprites/card_pvz.jpg";
 const cardKpopImg = new Image(); cardKpopImg.src = "IMAGE/sprites/card_kpop.jpg";
 const menuBgImg = new Image(); menuBgImg.src = "IMAGE/menu_bg.jpg"; // 首頁明亮夢幻背景(疊在卡片下層、JPEG壓縮)
+const cardRedlightImg = new Image(); cardRedlightImg.src = "IMAGE/sprites/card_redlight.jpg"; // 一二三木頭人卡(待生美術、沒生前用程式漸層佔位卡)
 const runnerFirstImg = new Image(); runnerFirstImg.src = "IMAGE/runner_bg_first.png"; // 影片第一幀（影片還沒播時當墊檔、街景一致）
 const kpDemonImg = new Image(); kpDemonImg.src = "IMAGE/sprites/demo.png"; // 獵魔女團小紫惡魔（阿葉生、Q版透明PNG、靜態 fallback）
 const kpDemonFrames = []; for (let i = 0; i < 8; i++) { const im = new Image(); im.src = `IMAGE/sprites/demon_frames/d${i}.png`; kpDemonFrames.push(im); } // 拍翅動畫8幀(阿葉綠幕影片抽幀去背、ping-pong輪播)
@@ -148,7 +149,7 @@ let stage = 1, killCount = 0, bossActive = false, boss = null, bossHitCd = 0, bo
 let currentGame = "whack";          // 目前遊戲："whack"（打怪）| "dodge"（躲避）
 let meteors = [], dodgeInvuln = 0, stars = [], starTimer = 0; // 躲避：隕石 / 無敵 / 星星 / 星星計時
 let floatTexts = [];                // 飄分數文字（+1 / +5 往上飄）
-let bestWhack = 0, bestDodge = 0, bestPvz = 0, bestKpop = 0;   // 最高分（localStorage）
+let bestWhack = 0, bestDodge = 0, bestPvz = 0, bestKpop = 0, bestRedlight = 0;   // 最高分（localStorage）
 // 植物大戰殭屍（pvz：比動作擋殭屍）狀態
 let pvzTarget = null; // runner 用：目前要擺的姿勢（舊守家版其餘狀態已隨死碼移除）
 // 往前衝 runner 狀態（第三遊戲現用）
@@ -199,16 +200,17 @@ const TRANSFORM_DUR = 2.0;
 // 最高分（存在手機裡，給「破紀錄」動機）
 function lsGet(k) { try { return +(localStorage.getItem(k) || 0); } catch (e) { return 0; } }
 function lsSet(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
-bestWhack = lsGet("best_whack"); bestDodge = lsGet("best_dodge"); bestPvz = lsGet("best_pvz"); bestKpop = lsGet("best_kpop");
+bestWhack = lsGet("best_whack"); bestDodge = lsGet("best_dodge"); bestPvz = lsGet("best_pvz"); bestKpop = lsGet("best_kpop"); bestRedlight = lsGet("best_redlight");
 playerMode = lsGet("player_mode") === 1 ? "duo" : "solo";
 superUsedEver = lsGet("super_used") === 1;
 function commitBest() {
   if (currentGame === "whack") { if (score > bestWhack) { bestWhack = score; lsSet("best_whack", score); } }
   else if (currentGame === "pvz") { if (score > bestPvz) { bestPvz = score; lsSet("best_pvz", score); } }
   else if (currentGame === "kpop") { if (score > bestKpop) { bestKpop = score; lsSet("best_kpop", score); } }
+  else if (currentGame === "redlight") { if (score > bestRedlight) { bestRedlight = score; lsSet("best_redlight", score); } }
   else { if (score > bestDodge) { bestDodge = score; lsSet("best_dodge", score); } }
 }
-function currentBest() { return currentGame === "whack" ? bestWhack : currentGame === "pvz" ? bestPvz : currentGame === "kpop" ? bestKpop : bestDodge; }
+function currentBest() { return currentGame === "whack" ? bestWhack : currentGame === "pvz" ? bestPvz : currentGame === "kpop" ? bestKpop : currentGame === "redlight" ? bestRedlight : bestDodge; }
 // 飄分數文字
 function addFloat(x, y, text, color, size, decay = 1.3) { floatTexts.push({ x, y, text, color, size, life: 1, decay }); }
 function updateFloats(dt) {
@@ -377,7 +379,7 @@ async function startGame() {
 
 // 共用：偵測身體 → 填 poseLandmarks / hands / latestMask（兩個遊戲都用）
 function senseBody() {
-  const res = detect(video, performance.now(), currentGame !== "pvz"); // runner 不需要人像遮罩、跳過省效能
+  const res = detect(video, performance.now(), currentGame !== "pvz" && currentGame !== "redlight"); // runner/木頭人不需要人像遮罩、跳過省效能
   allPose = res.landmarks;                          // 所有偵測到的人（最多 2）
   poseLandmarks = allPose.length > 0 ? allPose[0] : null;
   latestMask = res.mask;
@@ -458,7 +460,7 @@ async function startKpopSong() {
   kpDanceVid.style.display = "block";
   kpDanceVid.play().catch(() => {});
 }
-function pickGame(g) { if (g === "dodge") startDodge(); else if (g === "pvz") startPvz(); else if (g === "kpop") startKpop(); else startWhack(); }
+function pickGame(g) { if (g === "dodge") startDodge(); else if (g === "pvz") startPvz(); else if (g === "kpop") startKpop(); else if (g === "redlight") startRedlight(); else startWhack(); }
 function togglePlayerMode() {
   playerMode = playerMode === "duo" ? "solo" : "duo";
   lsSet("player_mode", playerMode === "duo" ? 1 : 0);
@@ -499,7 +501,7 @@ canvas.addEventListener("pointerdown", (e) => {
   if (state === "gameover" || state === "win") {
     const rr = shortSide() * 0.07, hx = shortSide() * 0.04 + rr, hy = shortSide() * 0.04 + rr;
     if ((px - hx) ** 2 + (py - hy) ** 2 < rr * rr) { playBgmTrack(bgmMenu); state = "menu"; return; } // 🏠 回選單
-    if (currentGame === "dodge") startDodge(); else if (currentGame === "pvz") startPvz(); else if (currentGame === "kpop") startKpop(); else startWhack(); // 🔁 重玩(kpop要回kpop、別掉到打怪超人)
+    if (currentGame === "dodge") startDodge(); else if (currentGame === "pvz") startPvz(); else if (currentGame === "kpop") startKpop(); else if (currentGame === "redlight") startRedlight(); else startWhack(); // 🔁 重玩(回原本那個遊戲、別掉到打怪超人)
     return;
   }
   if (state === "playing") {
@@ -880,7 +882,7 @@ function drawHUD() {
     const t = "✨ " + kpPerfect, tw = ctx.measureText(t).width;
     ctx.fillStyle = "rgba(0,0,0,0.4)"; roundRectFill(W - pad - tw - fs * 0.35, pad, tw + fs * 0.5, fs * 1.25, fs * 0.3);
     ctx.fillStyle = "#ffe96b"; ctx.fillText(t, W - pad, pad + fs * 0.65);
-  } else {
+  } else if (currentGame !== "redlight") {                     // 木頭人無命制(進度條已顯示狀態)→不畫愛心避免誤導
     const gap = fs * 0.52;
     ctx.textAlign = "center"; ctx.font = `${fs}px sans-serif`;
     for (let i = 0; i < lives; i++) ctx.fillText("❤️", W - pad - fs * 0.5 - i * gap, pad + fs * 0.65);
@@ -996,12 +998,17 @@ function roundRectPath(x, y, w, h, r) {
   ctx.closePath();
 }
 function roundRectFill(x, y, w, h, r) { roundRectPath(x, y, w, h, r); ctx.fill(); }
-function drawCard(x, y, w, h, r, bgImg, border, best) {
+function drawCard(x, y, w, h, r, bgImg, border, best, ph) {
   ctx.save();
   roundRectPath(x, y, w, h, r); ctx.clip();
   if (imgReady(bgImg)) {                                       // 完整插畫cover鋪滿(主角已畫進去、不再疊emoji)
     const iw = bgImg.naturalWidth, ih = bgImg.naturalHeight, s = Math.max(w / iw, h / ih), dw = iw * s, dh = ih * s;
     ctx.drawImage(bgImg, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+  } else if (ph) {                                             // 美術還沒生→主題漸層+emoji佔位卡(不會醜醜的純色塊)
+    const g0 = ctx.createLinearGradient(x, y, x, y + h); g0.addColorStop(0, ph.c0); g0.addColorStop(1, ph.c1);
+    ctx.fillStyle = g0; ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = "rgba(255,255,255,0.95)"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = `${w * 0.32}px sans-serif`; ctx.fillText(ph.icon, x + w / 2, y + h * 0.42);
   } else { ctx.fillStyle = "#1a2238"; ctx.fillRect(x, y, w, h); }
   const g = ctx.createLinearGradient(0, y + h * 0.55, 0, y + h);   // 只壓底部漸層暗罩→分數讀得清、上方插畫保持明亮
   g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(1, "rgba(0,0,0,0.55)");
@@ -1014,15 +1021,106 @@ function drawCard(x, y, w, h, r, bgImg, border, best) {
   const t = "🏅" + best; ctx.strokeText(t, x + w / 2, y + h * 0.88); ctx.fillText(t, x + w / 2, y + h * 0.88);
 }
 // 選單 3 張遊戲卡（畫面與點擊命中共用同一份座標，避免不一致）
+// ===================== 一二三木頭人（redlight）=====================
+// 綠燈=鬼背對→玩家動起來前進(progress漲);紅燈=鬼轉身→必須靜止(偵測身體位移、動了被抓退回)。無命制、低挫折。
+const RL_KEYS = [0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26]; // 鼻/肩/肘/腕/髖/膝(算移動量用)
+let rlPhase = "green", rlTimer = 0, rlProgress = 0, rlPrevLm = null, rlMoveAccum = 0, rlCaughtT = 0, rlCycle = 0;
+function resetRedlight() {
+  score = 0; combo = 0; bestCombo = 0;
+  particles = []; floatTexts = []; shake = 0; bombFx = 0; gameOverPending = false;
+  rlPhase = "green"; rlTimer = 3.2; rlProgress = 0; rlPrevLm = null; rlMoveAccum = 0; rlCaughtT = 0; rlCycle = 0;
+  elapsed = 0; noPersonT = 0; prevHands = []; poseFrame = 0;
+}
+function startRedlight() { currentGame = "redlight"; resetRedlight(); playBgmTrack(bgmTheme); state = "playing"; }
+function rlSnapshot() {                          // 取當前關鍵關節正規化座標(0~1)
+  if (!poseLandmarks) return null;
+  const s = {};
+  for (const i of RL_KEYS) { const p = poseLandmarks[i]; if (p && (p.visibility == null || p.visibility > 0.4)) s[i] = { x: p.x, y: p.y }; }
+  return s;
+}
+function rlMovement(cur) {                        // 這幀平均位移量(vs 上一幀、正規化、自動忽略沒偵測到的點)
+  if (!rlPrevLm || !cur) return 0;
+  let sum = 0, n = 0;
+  for (const i in cur) if (rlPrevLm[i]) { sum += Math.hypot(cur[i].x - rlPrevLm[i].x, cur[i].y - rlPrevLm[i].y); n++; }
+  return n ? sum / n : 0;
+}
+function rlCaught() {                             // 紅燈動到被抓:退回一段(不歸零)、搞笑紅閃、零gameover
+  rlCaughtT = 1.0; rlProgress = Math.max(0, rlProgress - 15); combo = 0; shake = 20; bombFx = 0.8;
+  addFloat(W / 2, H * 0.32, "👀!", "#ff7676", shortSide() * 0.15, 0.5); sndKpMiss();
+  burst(W / 2, H * 0.3, "#ff7676", 18);
+}
+function updateRedlight(dt) {
+  poseFrame++; if (poseFrame % 2 === 0) senseBody();
+  if (allPose.length === 0) noPersonT += dt; else noPersonT = 0;
+  const cur = rlSnapshot();
+  const mv = rlMovement(cur);
+  rlPrevLm = cur || rlPrevLm;
+  elapsed += dt;
+  const diff = Math.min(1, rlProgress / 100);    // 越接近終點越難(綠燈短/紅燈長/容忍嚴)
+  // 粒子+特效衰減
+  for (const p of particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 600 * dt; p.life -= dt * 1.6; }
+  particles = particles.filter(p => p.life > 0);
+  if (shake > 0) shake = Math.max(0, shake - dt * 60);
+  if (bombFx > 0) bombFx = Math.max(0, bombFx - dt * 1.6);
+  updateFloats(dt);
+  if (rlCaughtT > 0) { rlCaughtT -= dt; score = Math.floor(rlProgress); return; } // 被抓定格演出中
+  if (rlPhase === "green") {
+    if (mv > 0.012 && allPose.length > 0) rlProgress = Math.min(100, rlProgress + Math.min(mv, 0.08) * 70 * dt + 5 * dt); // 動起來=前進(也給底速避免完全卡住)
+    rlTimer -= dt;
+    if (rlProgress >= 100) { score = 100; commitBest(); state = "win"; return; }
+    if (rlTimer <= 0) { rlPhase = "warn"; rlTimer = 0.7; beep(660, 0.12, "square", 0.3); }
+  } else if (rlPhase === "warn") {               // 黃燈預告:鬼要轉身、準備停
+    rlTimer -= dt;
+    if (rlTimer <= 0) { rlPhase = "red"; rlTimer = 2.0 + diff * 1.2; rlMoveAccum = 0; rlPrevLm = cur; beep(440, 0.18, "square", 0.32); }
+  } else if (rlPhase === "red") {                // 紅燈:必須靜止
+    rlMoveAccum += mv;
+    const budget = 0.11 - diff * 0.045;          // 容忍隨難度變嚴(微抖沒事、真的動才抓)
+    if (rlMoveAccum > budget && allPose.length > 0) { rlCaught(); rlPhase = "green"; rlTimer = Math.max(1.8, 3.4 - diff * 1.3); }
+    else { rlTimer -= dt; if (rlTimer <= 0) { addFloat(W / 2, H * 0.32, "✓", "#aef36b", shortSide() * 0.13, 0.6); sndKpHit(true, 1); combo++; bestCombo = Math.max(bestCombo, combo); rlPhase = "green"; rlTimer = Math.max(1.8, 3.4 - diff * 1.3); rlCycle++; } } // 撐過紅燈
+  }
+  score = Math.floor(rlProgress);
+}
+function drawRedlightPlaying() {
+  const red = rlPhase === "red" || rlCaughtT > 0, warn = rlPhase === "warn";
+  ctx.save();
+  if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+  drawCameraMirrored();                          // 看到自己(有沒有動)
+  ctx.restore();
+  // 邊框氛圍燈:綠=可動 黃=預告 紅=不准動(脈動)
+  ctx.lineWidth = shortSide() * (red ? 0.05 : 0.025);
+  ctx.strokeStyle = red ? `rgba(255,40,40,${0.5 + 0.4 * Math.sin(performance.now() / 120)})` : warn ? "rgba(255,200,40,0.75)" : "rgba(90,230,120,0.55)";
+  ctx.strokeRect(ctx.lineWidth / 2, ctx.lineWidth / 2, W - ctx.lineWidth, H - ctx.lineWidth);
+  // 鬼(上方中央):綠燈背對🙈/黃燈🫣/紅燈瞪你👀
+  const gy = H * 0.17, gs = shortSide() * 0.15;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillStyle = red ? "rgba(120,0,0,0.55)" : warn ? "rgba(120,90,0,0.5)" : "rgba(0,80,30,0.5)";
+  ctx.beginPath(); ctx.arc(W / 2, gy, gs * 0.82, 0, Math.PI * 2); ctx.fill();
+  ctx.font = `${gs}px sans-serif`; ctx.fillText(red ? "👀" : warn ? "🫣" : "🙈", W / 2, gy);
+  // 指示符號(無中文):紅🛑 黃⚠️ 綠🏃💨
+  ctx.font = `bold ${shortSide() * 0.085}px sans-serif`; ctx.lineWidth = shortSide() * 0.012; ctx.strokeStyle = "rgba(0,0,0,0.55)";
+  const tip = red ? "🛑" : warn ? "⚠️" : "🏃💨";
+  ctx.strokeText(tip, W / 2, gy + gs * 1.0); ctx.fillStyle = "#fff"; ctx.fillText(tip, W / 2, gy + gs * 1.0);
+  // 進度條(底部、🏃往🏁前進)
+  const bw = W * 0.7, bx = (W - bw) / 2, by = H * 0.82, bh = shortSide() * 0.045;
+  ctx.fillStyle = "rgba(0,0,0,0.45)"; roundRectFill(bx, by, bw, bh, bh * 0.5);
+  ctx.fillStyle = red ? "#ff8a8a" : "#7CFFB0"; roundRectFill(bx, by, bw * rlProgress / 100, bh, bh * 0.5);
+  ctx.textAlign = "left"; ctx.font = `${bh * 1.2}px sans-serif`; ctx.fillText("🏁", bx + bw, by + bh * 0.5);
+  ctx.fillText("🏃", bx + bw * rlProgress / 100 - bh * 0.4, by + bh * 0.5);
+  drawParticles(); drawFloatTexts();
+  if (rlCaughtT > 0) { ctx.fillStyle = `rgba(255,0,0,${0.3 * Math.min(1, rlCaughtT)})`; ctx.fillRect(0, 0, W, H); }
+  if (noPersonT > 0.7) drawNoPersonHint();
+  drawHUD();
+}
 function menuCards() {
-  const cw = W * 0.4, ch = H * 0.28, gapX = W * 0.04, gapY = H * 0.035;
-  const x0 = (W - cw * 2 - gapX) / 2, y0 = H * 0.20;
-  const r1y = y0, r2y = y0 + ch + gapY;
+  const cw = W * 0.28, ch = H * 0.26, gapX = W * 0.03, gapY = H * 0.03;   // 5卡:上排3+下排2置中
+  const x1 = (W - cw * 3 - gapX * 2) / 2, x2 = (W - cw * 2 - gapX) / 2;
+  const y0 = H * 0.18, r2y = y0 + ch + gapY;
   return [
-    { x: x0,              y: r1y, w: cw, h: ch, game: "whack", bg: cardWhackImg, border: "rgba(90,170,255,0.95)",  best: bestWhack },
-    { x: x0 + cw + gapX,  y: r1y, w: cw, h: ch, game: "dodge", bg: cardDodgeImg, border: "rgba(190,110,255,0.95)", best: bestDodge },
-    { x: x0,              y: r2y, w: cw, h: ch, game: "pvz",   bg: cardPvzImg,   border: "rgba(120,210,90,0.95)",  best: bestPvz },
-    { x: x0 + cw + gapX,  y: r2y, w: cw, h: ch, game: "kpop",  bg: cardKpopImg,  border: "rgba(255,80,200,0.95)",  best: bestKpop },
+    { x: x1,                  y: y0,  w: cw, h: ch, game: "whack",    bg: cardWhackImg,    border: "rgba(90,170,255,0.95)",  best: bestWhack },
+    { x: x1 + cw + gapX,      y: y0,  w: cw, h: ch, game: "dodge",    bg: cardDodgeImg,    border: "rgba(190,110,255,0.95)", best: bestDodge },
+    { x: x1 + 2 * (cw + gapX),y: y0,  w: cw, h: ch, game: "pvz",      bg: cardPvzImg,      border: "rgba(120,210,90,0.95)",  best: bestPvz },
+    { x: x2,                  y: r2y, w: cw, h: ch, game: "kpop",     bg: cardKpopImg,     border: "rgba(255,80,200,0.95)",  best: bestKpop },
+    { x: x2 + cw + gapX,      y: r2y, w: cw, h: ch, game: "redlight", bg: cardRedlightImg, border: "rgba(120,230,120,0.95)", best: bestRedlight, ph: { c0: "#14361f", c1: "#2f9e54", icon: "🚦" } },
   ];
 }
 function drawMenu() {
@@ -1032,7 +1130,7 @@ function drawMenu() {
   } else { ctx.fillStyle = "#0b1020"; ctx.fillRect(0, 0, W, H); }
   if (imgReady(logoImg)) { const sz = shortSide() * 0.17; ctx.drawImage(logoImg, W / 2 - sz / 2, H * 0.008, sz, sz); } // 標題徽章(縮小+上移塞進卡片上方空檔、不被擋)
   const rad = shortSide() * 0.035;
-  for (const c of menuCards()) drawCard(c.x, c.y, c.w, c.h, rad, c.bg, c.border, c.best);
+  for (const c of menuCards()) drawCard(c.x, c.y, c.w, c.h, rad, c.bg, c.border, c.best, c.ph);
   // 單人/雙人 模式切換鈕（底部中央）
   const mr = shortSide() * 0.085, mx = W / 2, my = H * 0.9;
   ctx.fillStyle = "rgba(255,255,255,0.16)"; ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.fill();
@@ -1993,6 +2091,7 @@ function loop(ts) {
       if (currentGame === "dodge") { updateDodge(dt); drawDodgePlaying(); }
       else if (currentGame === "pvz") { updateRunner(dt); drawRunnerPlaying(); }
       else if (currentGame === "kpop") { updateKpop(dt); drawKpopPlaying(); }
+      else if (currentGame === "redlight") { updateRedlight(dt); drawRedlightPlaying(); }
       else { update(dt); drawWhackPlaying(); }
     } else if (state === "gameover") drawGameOver();
     else if (state === "win") drawWin();
