@@ -188,26 +188,7 @@ const KP_SECTIONS = [
   { stage: "bridge", until: 140 },  // 呼吸點：無惡魔
   { stage: "boss",   until: 999 },  // 尾段 Boss
 ];
-function kpStageAt(t) { for (const s of KP_SECTIONS) if (t < s.until) return s.stage; return "boss"; }
-const KP_RING_Y = () => H * 0.62; // 光圈判定區 Y（玩家腳前）
-function kpSpawnDemon(note) {
-  const hitTime = kpBeatTime(note.beat);
-  kpDemons.push({ note, hitTime, side: note.side, pose: note.pose, dead: false, judged: false, stolen: false, wob: Math.random() * 6 });
-}
-function kpDemonPos(d) {
-  const prog = Math.min(1.2, (kpSongTime - (d.hitTime - KP_APPROACH)) / KP_APPROACH); // 0=剛出現 1=到光圈
-  const ex = d.side < 0 ? W * 0.04 : W * 0.96;     // 起點（畫面邊）
-  const cx = d.side < 0 ? W * 0.4 : W * 0.6;        // 終點（光圈兩側）
-  const x = ex + (cx - ex) * prog;
-  const y = H * 0.3 + (KP_RING_Y() - H * 0.3) * prog;
-  const scale = 0.4 + 0.6 * prog;
-  return { x, y, scale, prog };
-}
-const KP_POSE_ICON = { handsup: "🙌", star: "🤩", tpose: "🧎", armscross: "🙅", onehand: "🙋", handshead: "🙆" };
-function kpDrawPoseIcon(pose, x, y, s) {
-  ctx.font = `${s}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillText(KP_POSE_ICON[pose] || "❓", x, y);
-}
+// (已清除kpop舊「比動作/beatmap」死碼:kpStageAt/KP_SECTIONS/kpSpawnDemon/kpDemonPos/kpDrawPoseIcon、現用節點式跟跳kpChoreo)
 let allPose = [], superHead = null; // 雙人：所有偵測到的人 / 大招充能者的頭
 let playerMode = "solo";            // 玩家模式："solo"（單人）| "duo"（雙人）
 let starCount = 0, dodgeCores = []; // 接到的星星數 / 躲避護盾核心位置
@@ -1181,11 +1162,6 @@ function drawDodgeWarnings() {
   ctx.textAlign = "center"; ctx.textBaseline = "top";
   for (const m of meteors) { if (!m.dead && m.y < H * 0.2) ctx.fillText("▼", m.x, H * 0.015); }
 }
-function drawSpaceTint() {
-  const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, "rgba(5,6,30,0.5)"); g.addColorStop(0.5, "rgba(5,6,30,0.12)"); g.addColorStop(1, "rgba(5,6,30,0)");
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-}
 function drawMeteor(m) {
   ctx.save(); ctx.translate(m.x, m.y);
   const tg = ctx.createLinearGradient(0, -m.r * 2.6, 0, 0);
@@ -1739,15 +1715,6 @@ function kpRefFrame(t) {
   const s = kpRef.seq; let lo = 0, hi = s.length - 1;          // 二分搜尋最接近的幀(抽取跳幀也不會錯位)
   while (lo < hi) { const m = (lo + hi + 1) >> 1; if (s[m].t <= tt) lo = m; else hi = m - 1; }
   return s[lo];
-}
-function kpQuality() {
-  if (!poseLandmarks) return 0;
-  const ref = kpRefFrame(kpSongTime); if (!ref) return 0;
-  const player = kpBoneVecs(i => { const p = poseLandmarks[i]; return p ? { x: p.x, y: p.y, v: p.visibility || 0 } : null; });
-  const refDirect = kpBoneVecs(i => { const a = ref.lm[i]; return a ? { x: a[0], y: a[1], v: a[2] } : null; });
-  const refMirror = kpBoneVecs(i => { const j = (KP_LR[i] != null ? KP_LR[i] : i); const a = ref.lm[j]; return a ? { x: 1 - a[0], y: a[1], v: a[2] } : null; });
-  const cos = Math.max(kpCos(player, refDirect), kpCos(player, refMirror));
-  return Math.max(0, Math.min(1, (cos - 0.4) / 0.6));
 }
 function kpSpawnDanceDemon() {                 // 方向A：惡魔=純背景氛圍、沿兩側走、玩家不用看它
   const side = Math.random() < 0.5 ? -1 : 1;
