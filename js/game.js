@@ -338,7 +338,7 @@ function startBoss() { // 出現大魔王
   bossActive = true;
   for (const t of targets) burst(t.x, t.y, "#7fe0ff", 6);
   targets = [];
-  const hp = 8 + stage * 3;
+  const hp = 6 + stage * 2;   // 櫻木:Boss血11/14/17→8/10/12(小孩揮手體力撐得到通關)
   boss = { x: W / 2, y: H * 0.26, hp, maxHp: hp, t: 0, r: shortSide() * 0.17 };
 }
 function defeatBoss() { // 打贏 Boss
@@ -426,6 +426,7 @@ function resetPvz() { // 往前衝 runner 的重設
 }
 function startPvz() { currentGame = "pvz"; resetPvz(); playBgmTrack(bgmPvz); _fpsLow = 0; runnerBgDegraded = false; runnerWantBg = true; try { bgVideo.playbackRate = 0.65; } catch (e) {} bgVideo.play().catch(() => {}); state = "playing"; } // 影片放慢=前進更慢
 function resetKpop() {
+  try { if (kpSource) { kpSource.onended = null; kpSource.stop(0); kpSource = null; } } catch (e) {} // 防護:重置時停掉還在播的歌(避免快速切回疊兩個音源)
   score = 0; combo = 0; bestCombo = 0;
   particles = []; floatTexts = []; shake = 0; bombFx = 0; gameOverPending = false;
   kpDemons = []; kpNoteIdx = 0; kpStars = 0; kpStolen = 0; kpPerfect = 0; kpGood = 0; kpMiss = 0; kpWaveT = -9;
@@ -517,7 +518,7 @@ canvas.addEventListener("pointerdown", (e) => {
   if (state === "gameover" || state === "win") {
     const rr = shortSide() * 0.07, hx = shortSide() * 0.04 + rr, hy = shortSide() * 0.04 + rr;
     if ((px - hx) ** 2 + (py - hy) ** 2 < rr * rr) { playBgmTrack(bgmMenu); state = "menu"; return; } // 🏠 回選單
-    if (currentGame === "dodge") startDodge(); else if (currentGame === "pvz") startPvz(); else startWhack(); // 🔁 重玩
+    if (currentGame === "dodge") startDodge(); else if (currentGame === "pvz") startPvz(); else if (currentGame === "kpop") startKpop(); else startWhack(); // 🔁 重玩(kpop要回kpop、別掉到打怪超人)
     return;
   }
   if (state === "playing") {
@@ -532,7 +533,7 @@ canvas.addEventListener("pointerdown", (e) => {
 function spawnTarget() {
   const r = Math.random();
   let type = "normal", sprite = Math.random() < 0.5 ? "monster1" : "monster2", scale = 1;
-  if (r < 0.12) { type = "bomb"; sprite = "bomb"; scale = 1.3; }
+  if (r < 0.08) { type = "bomb"; sprite = "bomb"; scale = 1.3; }   // 櫻木:炸彈率0.12→0.08(小孩揮手範圍大易誤掃想關)
   else if (r < 0.27) { type = "gold"; sprite = "boss"; scale = 1.1; }
   const margin = TARGET_R() * scale + 10;
   targets.push({
@@ -544,7 +545,7 @@ function spawnTarget() {
 
 // ===================== 粒子 =====================
 function burst(x, y, color, n = 14) {
-  if (particles.length > 90) return; // 上限保護：避免特效爆量讓手機掉幀
+  const _pAvail = 90 - particles.length; if (_pAvail <= 0) return; if (n > _pAvail) n = _pAvail; // 上限保護(含本次n、避免一次推爆>90讓手機掉幀)
   for (let i = 0; i < n; i++) {
     const a = Math.random() * Math.PI * 2, sp = 120 + Math.random() * 320;
     particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, color, r: 3 + Math.random() * 5 });
@@ -566,7 +567,7 @@ function checkHits() {
 function hitTarget(t) {
   t.dead = true;
   if (t.type === "bomb") {
-    lives--; combo = 0; shake = 28; bombFx = 1;
+    lives--; combo = Math.floor(combo / 2); shake = 18; bombFx = 1;   // 櫻木:combo折半不全歸零(留成就感)、震動28→18
     burst(t.x, t.y, "#ff5252", 26); sndBomb();
     if (lives <= 0) { bombFx = 1.5; gameOverPending = true; }
     return;
@@ -615,7 +616,7 @@ function update(dt) {
   }
   if (superCool > 0) superCool = Math.max(0, superCool - dt);
   else if (superHead) { superCharge += dt; if (superCharge >= 1) fireSuper(); }
-  else superCharge = Math.max(0, superCharge - dt * 1.5);
+  else superCharge = Math.max(0, superCharge - dt * 0.8);   // 櫻木:衰減1.5→0.8(小孩斷續舉手也能慢慢充滿大招、不會以為壞了)
 
   // Boss 移動 + 受擊
   if (bossActive && boss) {
@@ -1399,7 +1400,7 @@ function updateRunner(dt) {
       }
       if (!o.dead && o.z <= 0.02) { o.dead = true; o.deadAlpha = 1; o.deadScale = 1; lives--; combo = 0; shake = 22; bombFx = 0.9; if (!playSfxFile(sfxHurt)) sndBomb(); if (lives <= 0) { gameOverPending = true; bombFx = 1.3; } } // 撞到玩家
     } else if (o.type === "wall") {
-      if (o.st === "approach" && o.z < 0.6) { o.st = "judge"; o.judgeT = 2.4; } // 提早開判定窗(補償靠近加速)、給足反應時間
+      if (o.st === "approach" && o.z < 0.6) { o.st = "judge"; o.judgeT = 3.0; } // 提早開判定窗+給足反應時間(櫻木:2.4→3.0、小孩看懂提示圖+擺姿勢來得及)
       if (o.st === "judge") {
         o.judgeT -= dt;
         if (anyPoseMatch(o.pose)) { o.st = "pass"; score += 3; const pr = projRun(0, o.z); addFloat(W / 2, pr.y, "+3", "#aef36b", shortSide() * 0.1); burst(W / 2, pr.y, "#aef36b", 20); if (!playSfxFile(sfxCorrect)) beep(880, 0.1, "triangle", 0.3); }
@@ -1786,16 +1787,16 @@ function updateKpop(dt) {
     let dft = Math.abs(kpDanceVid.currentTime - vt); dft = Math.min(dft, kpRef.dur - dft);
     if (dft > 0.3) { try { kpDanceVid.currentTime = vt; } catch (e) {} }
   }
-  if (kpSongTime >= kpNextSpawn) { kpSpawnDanceDemon(); kpNextSpawn = kpSongTime + Math.max(1.6, 2.8 - kpSongTime * 0.008); }
+  if (kpSongTime >= kpNextSpawn) { kpSpawnDanceDemon(); kpNextSpawn = kpSongTime + Math.max(2.4, 3.6 - kpSongTime * 0.006); }   // 櫻木:spawn拉慢≈玩家清除速率(惡魔不塞滿兩側搶注意力)
   if (node) {
     const nt = kpNodeTime(node);
     const inWin = kpSongTime >= nt - 0.7 && kpSongTime <= nt + 0.7;     // 放寬窗:容許小孩跟著大舞者跳的反應延遲(慢半拍也算)
     if (inWin && kpMatch > kpNodeBest) kpNodeBest = kpMatch;
-    const hitNow = inWin && kpSongTime >= nt - 0.3 && kpMatch > 0.72;   // 擺到PERFECT就即時結算(做對馬上給星、因果不斷線、不等窗關)
+    const hitNow = inWin && kpSongTime >= nt - 0.3 && kpMatch > 0.62;   // 擺到就即時給星(因果不斷線);櫻木:門檻0.72→0.62(小孩跟大舞者跳手腳誤差大、搆得到才不會一直💨)
     if (hitNow || kpSongTime > nt + 0.7) {
       const q = kpNodeBest;
-      if (q > 0.45) {
-        const perfect = q > 0.72;
+      if (q > 0.35) {                                              // 櫻木:過關門檻0.45→0.35(小孩跟跳誤差大、隨便站著cos仍<0.35不會無腦過)
+        const perfect = q > 0.6;
         if (node.gold) {
           let n = 0; for (const d of kpDemons) if (!d.dead) { kpKillDemon(d); n++; }
           score += 10 + n * 2; kpPerfect++; combo++; bestCombo = Math.max(bestCombo, combo);
