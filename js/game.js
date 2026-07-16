@@ -62,7 +62,7 @@ const cardDodgeImg = new Image(); cardDodgeImg.src = "IMAGE/sprites/card_dodge.j
 const cardPvzImg = new Image(); cardPvzImg.src = "IMAGE/sprites/card_pvz.jpg";
 const cardKpopImg = new Image(); cardKpopImg.src = "IMAGE/sprites/card_kpop.jpg";
 const menuBgImg = new Image(); menuBgImg.src = "IMAGE/menu_bg.jpg"; // 首頁明亮夢幻背景(疊在卡片下層、JPEG壓縮)
-const cardRedlightImg = new Image(); cardRedlightImg.src = "IMAGE/sprites/card_redlight.jpg"; // 一二三木頭人卡(待生美術、沒生前用程式漸層佔位卡)
+const cardRedlightImg = new Image(); cardRedlightImg.src = "IMAGE/sprites/card_redlight.jpg"; // 一二三木頭人卡(盲盒3D插畫、載入失敗時退程式漸層佔位卡)
 const runnerFirstImg = new Image(); runnerFirstImg.src = "IMAGE/runner_bg_first.png"; // 影片第一幀（影片還沒播時當墊檔、街景一致）
 const kpDemonImg = new Image(); kpDemonImg.src = "IMAGE/sprites/demo.png"; // 獵魔女團小紫惡魔（阿葉生、Q版透明PNG、靜態 fallback）
 const kpDemonFrames = []; for (let i = 0; i < 8; i++) { const im = new Image(); im.src = `IMAGE/sprites/demon_frames/d${i}.png`; kpDemonFrames.push(im); } // 拍翅動畫8幀(阿葉綠幕影片抽幀去背、ping-pong輪播)
