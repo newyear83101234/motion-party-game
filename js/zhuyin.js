@@ -44,7 +44,7 @@ const WORDS = [
   { h: "電話", z: "ㄉㄧㄢˋ ㄏㄨㄚˋ", e: "📞", c: "thing" }, { h: "時鐘", z: "ㄕˊ ㄓㄨㄥ", e: "⏰", c: "thing" },
 ];
 const TONES = ["", "ˊ", "ˇ", "ˋ", "˙"];
-const TONE_TILE = ["ˉ", "ˊ", "ˇ", "ˋ", "˙"];   // 積木盤上的聲調（一聲畫 ˉ 讓小孩知道要選）
+const TONE_TILE = ["", "ˊ", "ˇ", "ˋ", "˙"];   // 積木盤上的聲調：一聲=空白積木（阿葉要求），放進格子後格子變實心但沒字
 const ROUNDS = 10;
 const CUSTOMERS = ["cust_bear", "cust_rabbit", "cust_cat", "cust_fox"];   // IMAGE/zhuyin/*.png（GPT 生、去背）
 
@@ -224,7 +224,7 @@ function buildBuild(q) {
   const syls = parseZ(q.word.z), need = syls.flatMap(s => [...s.sym]), tones = syls.map(s => s.tone).filter(Boolean);
   // 干擾積木：level 1 多 2 個、2 多 3 個、3 多 4 個；聲調另加 1 個沒用到的
   const extra = 1 + q.level, pool = shuffle([...ALL_SYMS].filter(c => !need.includes(c))).slice(0, extra);
-  // 聲調積木固定五個全列（阿葉要求）：一聲用「ˉ」表示、每個音節都要放一個聲調
+  // 聲調積木固定五個全列（阿葉要求）：一聲是空白積木、每個音節都要放一個聲調
   const toneTiles = [0, 1, 2, 3, 4].map(t => ({ t: "t", v: t }));
   const tiles = [...shuffle([...need.map(c => ({ t: "s", v: c })), ...pool.map(c => ({ t: "s", v: c }))]), ...toneTiles];
   const slotsEl = $("slots"); slotsEl.innerHTML = "";
