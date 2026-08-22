@@ -62,6 +62,7 @@ const cardDodgeImg = new Image(); cardDodgeImg.src = "IMAGE/sprites/card_dodge.j
 const cardPvzImg = new Image(); cardPvzImg.src = "IMAGE/sprites/card_pvz.jpg";
 const cardKpopImg = new Image(); cardKpopImg.src = "IMAGE/sprites/card_kpop.jpg";
 const menuBgImg = new Image(); menuBgImg.src = "IMAGE/menu_bg.jpg"; // 首頁明亮夢幻背景(疊在卡片下層、JPEG壓縮)
+const cardZhuyinImg = new Image(); cardZhuyinImg.src = "IMAGE/sprites/card_zhuyin.jpg"; // 注音小遊戲卡(獨立頁 zhuyin.html、手指點非體感)
 const cardRedlightImg = new Image(); cardRedlightImg.src = "IMAGE/sprites/card_redlight.jpg"; // 一二三木頭人卡(盲盒3D插畫、載入失敗時退程式漸層佔位卡)
 const runnerFirstImg = new Image(); runnerFirstImg.src = "IMAGE/runner_bg_first.png"; // 影片第一幀（影片還沒播時當墊檔、街景一致）
 const kpDemonImg = new Image(); kpDemonImg.src = "IMAGE/sprites/demo.png"; // 獵魔女團小紫惡魔（阿葉生、Q版透明PNG、靜態 fallback）
@@ -149,7 +150,7 @@ let stage = 1, killCount = 0, bossActive = false, boss = null, bossHitCd = 0, bo
 let currentGame = "whack";          // 目前遊戲："whack"（打怪）| "dodge"（躲避）
 let meteors = [], dodgeInvuln = 0, stars = [], starTimer = 0; // 躲避：隕石 / 無敵 / 星星 / 星星計時
 let floatTexts = [];                // 飄分數文字（+1 / +5 往上飄）
-let bestWhack = 0, bestDodge = 0, bestPvz = 0, bestKpop = 0, bestRedlight = 0;   // 最高分（localStorage）
+let bestWhack = 0, bestDodge = 0, bestPvz = 0, bestKpop = 0, bestRedlight = 0, bestZhuyin = 0;   // 最高分（localStorage）
 // 植物大戰殭屍（pvz：比動作擋殭屍）狀態
 let pvzTarget = null; // runner 用：目前要擺的姿勢（舊守家版其餘狀態已隨死碼移除）
 // 往前衝 runner 狀態（第三遊戲現用）
@@ -201,7 +202,7 @@ const TRANSFORM_DUR = 2.0;
 // 最高分（存在手機裡，給「破紀錄」動機）
 function lsGet(k) { try { return +(localStorage.getItem(k) || 0); } catch (e) { return 0; } }
 function lsSet(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
-bestWhack = lsGet("best_whack"); bestDodge = lsGet("best_dodge"); bestPvz = lsGet("best_pvz"); bestKpop = lsGet("best_kpop"); bestRedlight = lsGet("best_redlight");
+bestWhack = lsGet("best_whack"); bestDodge = lsGet("best_dodge"); bestPvz = lsGet("best_pvz"); bestKpop = lsGet("best_kpop"); bestRedlight = lsGet("best_redlight"); bestZhuyin = lsGet("zy_best_fish") + lsGet("zy_best_order"); // 注音頁自存兩模式最高答對數、首頁卡顯示合計
 playerMode = lsGet("player_mode") === 1 ? "duo" : "solo";
 superUsedEver = lsGet("super_used") === 1;
 function commitBest() {
@@ -461,7 +462,7 @@ async function startKpopSong() {
   kpDanceVid.style.display = "block";
   kpDanceVid.play().catch(() => {});
 }
-function pickGame(g) { if (g === "dodge") startDodge(); else if (g === "pvz") startPvz(); else if (g === "kpop") startKpop(); else if (g === "redlight") startRedlight(); else startWhack(); }
+function pickGame(g) { if (g === "zhuyin") { location.href = "zhuyin.html"; return; } if (g === "dodge") startDodge(); else if (g === "pvz") startPvz(); else if (g === "kpop") startKpop(); else if (g === "redlight") startRedlight(); else startWhack(); }
 function togglePlayerMode() {
   playerMode = playerMode === "duo" ? "solo" : "duo";
   lsSet("player_mode", playerMode === "duo" ? 1 : 0);
@@ -1113,15 +1114,16 @@ function drawRedlightPlaying() {
   drawHUD();
 }
 function menuCards() {
-  const cw = W * 0.28, ch = H * 0.26, gapX = W * 0.03, gapY = H * 0.03;   // 5卡:上排3+下排2置中
-  const x1 = (W - cw * 3 - gapX * 2) / 2, x2 = (W - cw * 2 - gapX) / 2;
+  const cw = W * 0.28, ch = H * 0.26, gapX = W * 0.03, gapY = H * 0.03;   // 6卡:上排3+下排3
+  const x1 = (W - cw * 3 - gapX * 2) / 2;
   const y0 = H * 0.18, r2y = y0 + ch + gapY;
   return [
     { x: x1,                  y: y0,  w: cw, h: ch, game: "whack",    bg: cardWhackImg,    border: "rgba(90,170,255,0.95)",  best: bestWhack },
     { x: x1 + cw + gapX,      y: y0,  w: cw, h: ch, game: "dodge",    bg: cardDodgeImg,    border: "rgba(190,110,255,0.95)", best: bestDodge },
     { x: x1 + 2 * (cw + gapX),y: y0,  w: cw, h: ch, game: "pvz",      bg: cardPvzImg,      border: "rgba(120,210,90,0.95)",  best: bestPvz },
-    { x: x2,                  y: r2y, w: cw, h: ch, game: "kpop",     bg: cardKpopImg,     border: "rgba(255,80,200,0.95)",  best: bestKpop },
-    { x: x2 + cw + gapX,      y: r2y, w: cw, h: ch, game: "redlight", bg: cardRedlightImg, border: "rgba(120,230,120,0.95)", best: bestRedlight, ph: { c0: "#14361f", c1: "#2f9e54", icon: "🚦" } },
+    { x: x1,                  y: r2y, w: cw, h: ch, game: "kpop",     bg: cardKpopImg,     border: "rgba(255,80,200,0.95)",  best: bestKpop },
+    { x: x1 + cw + gapX,      y: r2y, w: cw, h: ch, game: "redlight", bg: cardRedlightImg, border: "rgba(120,230,120,0.95)", best: bestRedlight, ph: { c0: "#14361f", c1: "#2f9e54", icon: "🚦" } },
+    { x: x1 + 2 * (cw + gapX),y: r2y, w: cw, h: ch, game: "zhuyin",   bg: cardZhuyinImg,   border: "rgba(255,200,60,0.95)",  best: bestZhuyin,   ph: { c0: "#1b4fa0", c1: "#8fd3ff", icon: "ㄅㄆㄇ" } },
   ];
 }
 function drawMenu() {

@@ -1,0 +1,127 @@
+/* 注音小遊戲：手指點的 DOM 介面（不走 Canvas）。大按鈕、大字、明亮配色 */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: linear-gradient(180deg, #8fd3ff 0%, #e6f7ff 100%);
+  font-family: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", "Heiti TC", sans-serif;
+  touch-action: manipulation; -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent; overscroll-behavior: none;
+}
+button { font-family: inherit; border: 0; cursor: pointer; }
+.hidden { display: none !important; }
+
+.screen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; }
+
+/* 圓形小按鈕（首頁 / 再聽一次） */
+.round-btn {
+  position: absolute; z-index: 20; width: 12vmin; height: 12vmin; border-radius: 50%;
+  background: rgba(255,255,255,0.85); font-size: 6vmin; box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+}
+#homeBtn { left: 2vmin; top: 2vmin; }
+#speakBtn { right: 2vmin; top: 2vmin; background: #ffd54a; }
+.round-btn:active { transform: scale(0.92); }
+
+/* ===== 模式選單 ===== */
+#menu { justify-content: center; gap: 5vmin; }
+#menu h1 { font-size: 8vmin; color: #1b4fa0; text-shadow: 0 2px 0 #fff; }
+.mode-cards { display: flex; gap: 5vmin; }
+.mode-card {
+  width: 38vmin; height: 44vmin; border-radius: 5vmin; background: #fff;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5vmin;
+  box-shadow: 0 6px 0 #b9d7f0, 0 10px 20px rgba(0,0,0,0.15);
+}
+.mode-card:active { transform: translateY(4px); box-shadow: 0 2px 0 #b9d7f0; }
+.mode-card .big { font-size: 16vmin; }
+.mode-card .label { font-size: 6vmin; font-weight: bold; color: #1b4fa0; }
+.mode-card .sub { font-size: 3.2vmin; color: #667; }
+
+/* ===== 共用：進度條 ===== */
+.topbar { width: 100%; height: 14vmin; display: flex; align-items: center; justify-content: center; }
+.progress { display: flex; gap: 1.2vmin; }
+.progress span { width: 4.5vmin; height: 4.5vmin; border-radius: 50%; background: rgba(255,255,255,0.6); border: 2px solid #fff; }
+.progress span.ok { background: #ffd54a; }
+.progress span.ng { background: #bbb; }
+
+/* ===== 注音直排元件 =====
+   .zy = 一個詞；.syl = 一個音節（直排）；.tone = 聲調（ˊˇˋ放右側、˙放頂上） */
+.zy { display: inline-flex; gap: 0.35em; align-items: flex-start; font-size: 1em; line-height: 1; }
+.syl { position: relative; display: flex; flex-direction: column; align-items: center; padding: 0.1em 0.55em 0.1em 0.1em; }
+.syl b { font-weight: normal; font-size: 1em; line-height: 1.05; }
+.syl .tone { position: absolute; right: 0; top: 50%; transform: translateY(-30%); font-size: 0.8em; }
+.syl .tone.light { right: auto; left: 50%; top: -0.45em; transform: translateX(-50%); }
+.syl.one .tone { top: 50%; transform: translateY(-50%); }
+.zy.hz { gap: 0.6em; }
+.zy.hz .syl { padding-bottom: 0; }
+.zy.hz .han { font-size: 1.25em; margin-top: 0.25em; }
+
+/* ===== 釣魚 ===== */
+#fish .prompt {
+  display: flex; align-items: center; gap: 3vmin; font-size: 12vmin; min-height: 20vmin;
+  background: rgba(255,255,255,0.75); padding: 1vmin 5vmin; border-radius: 6vmin;
+}
+#fish .prompt .han { font-size: 9vmin; color: #1b4fa0; font-weight: bold; }
+.pond { position: relative; flex: 1; width: 100%; background: linear-gradient(180deg, rgba(30,120,220,0.15), rgba(20,90,200,0.55)); margin-top: 2vmin; }
+.fishBtn {
+  position: absolute; width: 26vmin; height: 30vmin; border-radius: 50% 50% 45% 45%;
+  background: #fff; box-shadow: 0 6px 0 #9fc3e8, 0 8px 16px rgba(0,0,0,0.2);
+  display: flex; align-items: center; justify-content: center; font-size: 7vmin; color: #222;
+  animation: bob 2.4s ease-in-out infinite;
+}
+.fishBtn::before { content: "🐟"; position: absolute; left: -4vmin; top: -4vmin; font-size: 7vmin; transform: scaleX(-1); }
+.fishBtn:nth-child(2) { animation-delay: -0.6s; } .fishBtn:nth-child(3) { animation-delay: -1.2s; } .fishBtn:nth-child(4) { animation-delay: -1.8s; }
+.fishBtn.ok { background: #c8f7c5; animation: caught 0.8s ease forwards; }
+.fishBtn.ng { background: #ffd6d6; animation: shake 0.4s; }
+.fishBtn.dim { opacity: 0.35; pointer-events: none; }
+@keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2.5vmin); } }
+@keyframes caught { 0% { transform: scale(1); } 40% { transform: scale(1.25) translateY(-6vmin); } 100% { transform: scale(1.1) translateY(-10vmin); } }
+@keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-2vmin); } 75% { transform: translateX(2vmin); } }
+
+/* ===== 點餐 ===== */
+.counter { display: flex; align-items: center; gap: 4vmin; min-height: 32vmin; }
+.customer { font-size: 22vmin; transition: transform 0.3s; }
+.customer.happy { animation: hop 0.6s; }
+.customer.no { animation: shake 0.4s; }
+@keyframes hop { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5vmin) scale(1.1); } }
+.bubble {
+  position: relative; background: #fff; border-radius: 5vmin; padding: 3vmin 5vmin; font-size: 9vmin;
+  min-width: 30vmin; min-height: 20vmin; display: flex; align-items: center; justify-content: center; gap: 3vmin;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+}
+.bubble::before { content: ""; position: absolute; left: -3vmin; top: 50%; border: 2vmin solid transparent; border-right-color: #fff; transform: translateY(-50%); }
+.bubble .han { font-size: 9vmin; color: #e0521f; font-weight: bold; }
+.shelf {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 3vmin; padding: 3vmin; width: 100%;
+  background: #c98a4b; border-top: 1.5vmin solid #8a5a2b; flex: 1; align-content: flex-start;
+}
+.item {
+  width: 28vmin; height: 30vmin; border-radius: 4vmin; background: #fff7e6;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1vmin;
+  box-shadow: 0 5px 0 #d9b98a; font-size: 13vmin;
+}
+.item .han { font-size: 5.5vmin; font-weight: bold; color: #333; }
+.item:active { transform: translateY(3px); }
+.item.ok { background: #c8f7c5; animation: fly 0.8s ease forwards; }
+.item.ng { background: #ffd6d6; animation: shake 0.4s; }
+.item.dim { opacity: 0.35; pointer-events: none; }
+@keyframes fly { to { transform: translateY(-30vmin) scale(0.6); opacity: 0; } }
+
+/* ===== 結算 ===== */
+#result { justify-content: center; gap: 4vmin; }
+.stars { font-size: 16vmin; letter-spacing: 1vmin; }
+.result-text { font-size: 7vmin; color: #1b4fa0; font-weight: bold; text-align: center; }
+.result-btns { display: flex; gap: 4vmin; }
+.big-btn { font-size: 6vmin; padding: 3vmin 7vmin; border-radius: 4vmin; background: #ffd54a; color: #333; box-shadow: 0 5px 0 #d4a800; }
+.big-btn.alt { background: #fff; box-shadow: 0 5px 0 #b9d7f0; }
+.big-btn:active { transform: translateY(3px); box-shadow: none; }
+
+/* ===== 特效層（星星噴發） ===== */
+.fx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 30; }
+.fx span { position: absolute; font-size: 6vmin; animation: pop 0.9s ease-out forwards; }
+@keyframes pop { 0% { transform: translate(0,0) scale(0.5); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(1.2); opacity: 0; } }
+
+/* 直式平板：卡片縮小、貨架兩欄 */
+@media (orientation: portrait) {
+  .mode-cards { flex-direction: column; }
+  .mode-card { width: 60vmin; height: 34vmin; }
+  .mode-card .big { font-size: 12vmin; }
+}

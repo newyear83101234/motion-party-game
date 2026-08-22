@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1b4fa0">
+  <title>注音小遊戲</title>
+  <link rel="stylesheet" href="css/zhuyin.css">
+</head>
+<body>
+  <!-- 首頁按鈕(任何畫面都在) -->
+  <button id="homeBtn" class="round-btn" title="回首頁">🏠</button>
+  <button id="speakBtn" class="round-btn hidden" title="再聽一次">🔊</button>
+
+  <!-- 模式選單 -->
+  <section id="menu" class="screen">
+    <h1>ㄅㄆㄇ 注音小遊戲</h1>
+    <div class="mode-cards">
+      <button class="mode-card" data-mode="fish">
+        <span class="big">🎣</span><span class="label">注音釣魚</span><span class="sub">聽聲音，釣對的注音</span>
+      </button>
+      <button class="mode-card" data-mode="order">
+        <span class="big">🍔</span><span class="label">注音點餐</span><span class="sub">看注音，把東西拿給客人</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- 釣魚 -->
+  <section id="fish" class="screen hidden">
+    <div class="topbar"><div id="fishProgress" class="progress"></div></div>
+    <div id="fishPrompt" class="prompt"></div>
+    <div id="pond" class="pond"></div>
+  </section>
+
+  <!-- 點餐 -->
+  <section id="order" class="screen hidden">
+    <div class="topbar"><div id="orderProgress" class="progress"></div></div>
+    <div class="counter">
+      <div id="customer" class="customer">🐻</div>
+      <div id="bubble" class="bubble"></div>
+    </div>
+    <div id="shelf" class="shelf"></div>
+  </section>
+
+  <!-- 結算 -->
+  <section id="result" class="screen hidden">
+    <div id="resultStars" class="stars"></div>
+    <div id="resultText" class="result-text"></div>
+    <div class="result-btns">
+      <button id="againBtn" class="big-btn">再玩一次</button>
+      <button id="menuBtn" class="big-btn alt">換遊戲</button>
+    </div>
+  </section>
+
+  <div id="fx" class="fx"></div>
+  <script type="module" src="js/zhuyin.js"></script>
+</body>
+</html>
