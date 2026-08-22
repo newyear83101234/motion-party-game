@@ -1,4 +1,4 @@
-// ===================== 注音小遊戲（釣魚 + 點餐）=====================
+// ===================== 注音小遊戲（釣魚 + 點餐 + 拼注音積木）=====================
 // 目標玩家：5 歲、已會拼讀的小孩。純手指點、無命制、10 題一回合給星星。
 // 詞庫：h=國字、z=注音(音節空白分隔、聲調符號在音節尾、一聲不寫)、e=表情圖、c=類別(food 可當點餐商品)
 
@@ -44,8 +44,9 @@ const WORDS = [
   { h: "電話", z: "ㄉㄧㄢˋ ㄏㄨㄚˋ", e: "📞", c: "thing" }, { h: "時鐘", z: "ㄕˊ ㄓㄨㄥ", e: "⏰", c: "thing" },
 ];
 const TONES = ["", "ˊ", "ˇ", "ˋ", "˙"];
+const TONE_TILE = ["ˉ", "ˊ", "ˇ", "ˋ", "˙"];   // 積木盤上的聲調（一聲畫 ˉ 讓小孩知道要選）
 const ROUNDS = 10;
-const CUSTOMERS = ["🐻", "🐰", "🐱", "🐶", "🐼", "🦊", "🐸", "🐨"];
+const CUSTOMERS = ["cust_bear", "cust_rabbit", "cust_cat", "cust_fox"];   // IMAGE/zhuyin/*.png（GPT 生、去背）
 
 // ---------- 注音解析與繪製 ----------
 // "ㄆㄧㄥˊ ㄍㄨㄛˇ" → [{sym:"ㄆㄧㄥ", tone:2}, {sym:"ㄍㄨㄛ", tone:3}]
@@ -75,9 +76,13 @@ const pick = a => a[rnd(a.length)];
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 const $ = id => document.getElementById(id);
 
-// 音效：沿用現有遊戲的 mp3；TTS 用瀏覽器內建 zh-TW 語音唸國字（iOS 需在使用者點擊後才肯出聲）
-const sfxOk = new Audio("MUSIC/sfx_correct.mp3"), sfxNg = new Audio("MUSIC/sfx_hurt.mp3");
+// 音效：Kenney CC0（interface-sounds / music-jingles 轉 mp3）；BGM：Suno 生成，循環播放、第一次點擊後才起（瀏覽器自動播放限制）
+const sfxOk = new Audio("MUSIC/zy_ok.mp3"), sfxNg = new Audio("MUSIC/zy_ng.mp3"), sfxTap = new Audio("MUSIC/zy_tap.mp3"), sfxSel = new Audio("MUSIC/zy_select.mp3"), sfxWin = new Audio("MUSIC/zy_win.mp3");
+const bgm = new Audio("MUSIC/zy_bgm.mp3"); bgm.loop = true; bgm.volume = 0.35;
+let musicOn = true; try { musicOn = localStorage.getItem("zy_music") !== "0"; } catch (e) {}
 function play(a) { try { a.currentTime = 0; a.play().catch(() => {}); } catch (e) {} }
+function startBgm() { if (musicOn && bgm.paused) bgm.play().catch(() => {}); }
+function toggleMusic() { musicOn = !musicOn; try { localStorage.setItem("zy_music", musicOn ? "1" : "0"); } catch (e) {} if (musicOn) startBgm(); else bgm.pause(); $("musicBtn").classList.toggle("off", !musicOn); }
 let zhVoice = null;
 function loadVoice() {
   const vs = speechSynthesis.getVoices();
@@ -105,7 +110,7 @@ function burst(el, emoji = "⭐") {
 }
 function showScreen(id) {
   for (const s of document.querySelectorAll(".screen")) s.classList.toggle("hidden", s.id !== id);
-  $("speakBtn").classList.toggle("hidden", id !== "fish" && id !== "order");
+  $("speakBtn").classList.toggle("hidden", !["fish", "order", "build"].includes(id));
 }
 function drawProgress(el, results) {
   el.innerHTML = "";
@@ -131,9 +136,9 @@ function makeOptions(target, level, pool) {
   return shuffle(opts);
 }
 // 一回合的題目序列：由短到長、難度隨題號上升
-function makeRound(pool) {
+function makeRound(pool, m) {
   const bySyl = k => shuffle(pool.filter(w => parseZ(w.z).length === k));
-  const seq = [...bySyl(1).slice(0, 3), ...bySyl(2).slice(0, 5), ...bySyl(3).slice(0, 2)];
+  const seq = m === "build" ? [...bySyl(1).slice(0, 4), ...bySyl(2).slice(0, 5), ...bySyl(3).slice(0, 1)] : [...bySyl(1).slice(0, 3), ...bySyl(2).slice(0, 5), ...bySyl(3).slice(0, 2)];
   while (seq.length < ROUNDS) seq.push(pick(pool));
   return seq.slice(0, ROUNDS).map((w, i) => ({ word: w, level: i < 3 ? 1 : i < 7 ? 2 : 3 }));
 }
@@ -142,13 +147,14 @@ function makeRound(pool) {
 let mode = "fish", round = [], idx = 0, results = [], locked = false, wrongThisQ = false;
 function startMode(m) {
   mode = m; idx = 0; results = []; locked = false;
-  round = makeRound(m === "order" ? WORDS.filter(w => w.c === "food") : WORDS);
+  round = makeRound(m === "order" ? WORDS.filter(w => w.c === "food") : WORDS, m);
+  startBgm();
   showScreen(m); nextQ();
 }
 function nextQ() {
   if (idx >= ROUNDS) return showResult();
   wrongThisQ = false; locked = false;
-  if (mode === "fish") buildFish(round[idx]); else buildOrder(round[idx]);
+  if (mode === "fish") buildFish(round[idx]); else if (mode === "order") buildOrder(round[idx]); else buildBuild(round[idx]);
 }
 function answered(ok, el, onDone) {
   if (locked) return;
@@ -169,9 +175,10 @@ function buildFish(q) {
   const pond = $("pond"); pond.innerHTML = "";
   const opts = makeOptions(q.word, q.level, WORDS);
   const W = pond.clientWidth, H = pond.clientHeight, portrait = H > W * 0.9;
-  const vm = Math.min(innerWidth, innerHeight) / 100, bw = 26 * vm, bh = 30 * vm;
+  const vm = Math.min(innerWidth, innerHeight) / 100, bw = 36 * vm, bh = 24 * vm;
   opts.forEach((o, i) => {
-    const b = document.createElement("button"); b.className = "fishBtn"; b.appendChild(renderZ(o.syls));
+    const b = document.createElement("button"); b.className = "fishBtn"; const z = renderZ(o.syls); const maxLen = Math.max(...o.syls.map(x => x.sym.length));
+    z.style.fontSize = (o.syls.length >= 3 ? 3.2 : o.syls.length === 2 ? (maxLen >= 3 ? 3.6 : 4.2) : (maxLen >= 3 ? 4.4 : 5.5)) + "vmin"; b.appendChild(z);
     let x, y;                                                  // 橫式 1 排 4 隻（高低錯開）；直式 2×2
     if (portrait) { x = (i % 2) * (W / 2) + (W / 2 - bw) / 2; y = Math.floor(i / 2) * (H / 2) + (H / 2 - bh) / 2; }
     else { x = i * (W / 4) + (W / 4 - bw) / 2; y = (H - bh) / 2 + (i % 2 ? 0.08 : -0.08) * H; }
@@ -187,7 +194,7 @@ function buildFish(q) {
 // ---------- 點餐：客人說注音（不給字）→ 從貨架拿對的商品 → 揭曉國字 ----------
 function buildOrder(q) {
   drawProgress($("orderProgress"), results);
-  const cust = $("customer"); cust.textContent = pick(CUSTOMERS); cust.className = "customer";
+  const cust = $("customer"); cust.src = "IMAGE/zhuyin/" + pick(CUSTOMERS) + ".png"; cust.className = "customer";
   const bubble = $("bubble"); bubble.innerHTML = ""; bubble.appendChild(renderZ(parseZ(q.word.z)));
   const shelf = $("shelf"); shelf.innerHTML = "";
   const foods = WORDS.filter(w => w.c === "food");
@@ -206,19 +213,89 @@ function buildOrder(q) {
   say("我要" + q.word.h);   // 也唸出來：拼不出來時仍有線索，降低挫折
 }
 
+
+// ---------- 拼注音（積木）：看圖+聽音 → 從積木盤把注音一個一個放進格子 → 按「好了」檢查 ----------
+// 格子：每音節一欄（符號數 = 該音節符號數）+ 右側一個小圓聲調格（一聲留空）。點格子可把積木放回盤子。
+const ALL_SYMS = "ㄅㄆㄇㄈㄉㄊㄋㄌㄍㄎㄏㄐㄑㄒㄓㄔㄕㄖㄗㄘㄙㄧㄨㄩㄚㄛㄜㄝㄞㄟㄠㄡㄢㄣㄤㄥㄦ";
+let bq = null;   // 目前題目的拼裝狀態 { syls, slots:[[el...]], toneSlots:[el], tiles:[el] }
+function buildBuild(q) {
+  drawProgress($("buildProgress"), results);
+  const p = $("buildPrompt"); p.innerHTML = ""; p.textContent = q.word.e;
+  const syls = parseZ(q.word.z), need = syls.flatMap(s => [...s.sym]), tones = syls.map(s => s.tone).filter(Boolean);
+  // 干擾積木：level 1 多 2 個、2 多 3 個、3 多 4 個；聲調另加 1 個沒用到的
+  const extra = 1 + q.level, pool = shuffle([...ALL_SYMS].filter(c => !need.includes(c))).slice(0, extra);
+  // 聲調積木固定五個全列（阿葉要求）：一聲用「ˉ」表示、每個音節都要放一個聲調
+  const toneTiles = [0, 1, 2, 3, 4].map(t => ({ t: "t", v: t }));
+  const tiles = [...shuffle([...need.map(c => ({ t: "s", v: c })), ...pool.map(c => ({ t: "s", v: c }))]), ...toneTiles];
+  const slotsEl = $("slots"); slotsEl.innerHTML = "";
+  bq = { syls, slots: [], toneSlots: [], tiles: [] };
+  syls.forEach(s => {
+    const g = document.createElement("div"); g.className = "sylSlot";
+    const col = document.createElement("div"); col.className = "col"; const arr = [];
+    for (let i = 0; i < s.sym.length; i++) { const d = document.createElement("div"); d.className = "slot"; d.onclick = () => unplace(d); col.appendChild(d); arr.push(d); }
+    const ts = document.createElement("div"); ts.className = "slot toneSlot"; ts.onclick = () => unplace(ts);
+    g.appendChild(col); g.appendChild(ts); slotsEl.appendChild(g); bq.slots.push(arr); bq.toneSlots.push(ts);
+  });
+  const tray = $("tray"); tray.innerHTML = "";
+  for (const t of tiles) {
+    const b = document.createElement("button"); b.className = "tile" + (t.t === "t" ? " toneTile" : ""); b.textContent = t.t === "t" ? TONE_TILE[t.v] : t.v; b.dataset.type = t.t; b.dataset.v = t.v;
+    b.onclick = () => placeTile(b); tray.appendChild(b); bq.tiles.push(b);
+  }
+  $("checkBtn").disabled = false;
+  say(q.word.h);
+}
+function placeTile(b) {
+  if (locked || b.classList.contains("used")) return;
+  let target = null;
+  if (b.dataset.type === "s") { for (const arr of bq.slots) { target = arr.find(d => !d.dataset.v); if (target) break; } }
+  else {  // 聲調：放到「符號已填滿且還沒聲調」的最後一個音節；沒有就放第一個空的聲調格
+    for (let i = bq.syls.length - 1; i >= 0; i--) { const full = bq.slots[i].every(d => d.dataset.v); if (full && !bq.toneSlots[i].dataset.v) { target = bq.toneSlots[i]; break; } }
+    if (!target) target = bq.toneSlots.find(d => !d.dataset.v);
+  }
+  if (!target) return;
+  target.dataset.v = b.dataset.v; target.dataset.type = b.dataset.type; target.textContent = b.textContent; target.classList.add("filled"); target.classList.remove("bad");
+  target._tile = b; if (b.dataset.type === "s") b.classList.add("used"); play(sfxTap);
+}
+function unplace(d) {
+  if (locked || !d.dataset.v) return;
+  if (d._tile) d._tile.classList.remove("used"); d._tile = null; delete d.dataset.v; delete d.dataset.type; d.textContent = ""; d.classList.remove("filled", "bad", "good"); play(sfxTap);
+}
+function checkBuild() {
+  if (locked || !bq) return;
+  let allOk = true, anyEmpty = false;
+  bq.syls.forEach((s, i) => {
+    [...s.sym].forEach((c, j) => { const d = bq.slots[i][j]; if (!d.dataset.v) { anyEmpty = true; allOk = false; } else if (d.dataset.v !== c) { allOk = false; d.classList.add("bad"); setTimeout(() => unplace(d), 500); } else d.classList.add("good"); });
+    const ts = bq.toneSlots[i], want = s.tone, got = ts.dataset.v === undefined ? -1 : +ts.dataset.v;   // -1 = 還沒放聲調
+    if (got !== want) { allOk = false; ts.classList.add("bad"); if (got >= 0) setTimeout(() => unplace(ts), 500); else anyEmpty = true; }
+    else ts.classList.add("good");
+  });
+  const q = round[idx];
+  if (allOk) {
+    locked = true; results[idx] = !wrongThisQ; play(sfxOk); burst($("slots")); $("checkBtn").disabled = true;
+    const h = document.createElement("span"); h.className = "han"; h.textContent = q.word.h; $("buildPrompt").appendChild(h); say(q.word.h);
+    setTimeout(() => { idx++; nextQ(); }, 1700);
+  } else {
+    wrongThisQ = true; play(sfxNg); if (anyEmpty) say("還沒拼完喔");
+    setTimeout(() => { for (const d of [...bq.slots.flat(), ...bq.toneSlots]) d.classList.remove("bad"); }, 600);
+  }
+}
+
 // ---------- 結算 ----------
 function showResult() {
   const n = results.filter(Boolean).length, stars = n >= 9 ? 3 : n >= 6 ? 2 : 1;
   $("resultStars").textContent = "⭐".repeat(stars) + "☆".repeat(3 - stars);
   $("resultText").textContent = `答對 ${n} 題！` + (stars === 3 ? "太厲害了！" : stars === 2 ? "很棒喔！" : "再試一次！");
-  showScreen("result"); play(sfxOk); say(stars === 3 ? "太厲害了" : stars === 2 ? "很棒喔" : "加油，再試一次");
+  showScreen("result"); play(sfxWin); say(stars === 3 ? "太厲害了" : stars === 2 ? "很棒喔" : "加油，再試一次");
   try { const k = "zy_best_" + mode; if (n > (+localStorage.getItem(k) || 0)) localStorage.setItem(k, n); } catch (e) {}
 }
 
 // ---------- 綁定 ----------
-for (const b of document.querySelectorAll(".mode-card")) b.onclick = () => startMode(b.dataset.mode);
+for (const b of document.querySelectorAll(".mode-card")) b.onclick = () => { play(sfxSel); startMode(b.dataset.mode); };
+$("musicBtn").onclick = toggleMusic; $("musicBtn").classList.toggle("off", !musicOn);
+$("checkBtn").onclick = () => checkBuild();
 $("againBtn").onclick = () => startMode(mode);
 $("menuBtn").onclick = () => showScreen("menu");
 $("homeBtn").onclick = () => { if ($("menu").classList.contains("hidden")) showScreen("menu"); else location.href = "index.html"; };
 $("speakBtn").onclick = () => { const w = round[idx]?.word; if (w) say(mode === "order" ? "我要" + w.h : w.h); };
+document.addEventListener("pointerdown", startBgm, { once: true });   // 第一次觸碰就起 BGM（選單也有音樂）
 showScreen("menu");

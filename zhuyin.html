@@ -11,12 +11,13 @@
   <link rel="stylesheet" href="css/zhuyin.css">
 </head>
 <body>
-  <!-- 首頁按鈕(任何畫面都在) -->
+  <!-- 常駐按鈕：首頁 / 再聽一次 / 音樂開關 -->
   <button id="homeBtn" class="round-btn" title="回首頁">🏠</button>
+  <button id="musicBtn" class="round-btn" title="音樂">🎵</button>
   <button id="speakBtn" class="round-btn hidden" title="再聽一次">🔊</button>
 
   <!-- 模式選單 -->
-  <section id="menu" class="screen">
+  <section id="menu" class="screen bg-menu">
     <h1>ㄅㄆㄇ 注音小遊戲</h1>
     <div class="mode-cards">
       <button class="mode-card" data-mode="fish">
@@ -25,28 +26,42 @@
       <button class="mode-card" data-mode="order">
         <span class="big">🍔</span><span class="label">注音點餐</span><span class="sub">看注音，把東西拿給客人</span>
       </button>
+      <button class="mode-card" data-mode="build">
+        <span class="big">🧩</span><span class="label">注音積木</span><span class="sub">自己把注音拼出來</span>
+      </button>
     </div>
   </section>
 
   <!-- 釣魚 -->
-  <section id="fish" class="screen hidden">
+  <section id="fish" class="screen bg-pond hidden">
     <div class="topbar"><div id="fishProgress" class="progress"></div></div>
     <div id="fishPrompt" class="prompt"></div>
     <div id="pond" class="pond"></div>
   </section>
 
   <!-- 點餐 -->
-  <section id="order" class="screen hidden">
+  <section id="order" class="screen bg-shop hidden">
     <div class="topbar"><div id="orderProgress" class="progress"></div></div>
     <div class="counter">
-      <div id="customer" class="customer">🐻</div>
+      <img id="customer" class="customer" alt="">
       <div id="bubble" class="bubble"></div>
     </div>
     <div id="shelf" class="shelf"></div>
   </section>
 
+  <!-- 拼注音（積木） -->
+  <section id="build" class="screen bg-blocks hidden">
+    <div class="topbar"><div id="buildProgress" class="progress"></div></div>
+    <div class="build-top">
+      <div id="buildPrompt" class="prompt small"></div>
+      <div id="slots" class="slots"></div>
+      <button id="checkBtn" class="check-btn">好了！</button>
+    </div>
+    <div id="tray" class="tray"></div>
+  </section>
+
   <!-- 結算 -->
-  <section id="result" class="screen hidden">
+  <section id="result" class="screen bg-menu hidden">
     <div id="resultStars" class="stars"></div>
     <div id="resultText" class="result-text"></div>
     <div class="result-btns">
