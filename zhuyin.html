@@ -7,70 +7,109 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#1b4fa0">
-  <title>注音小遊戲</title>
-  <link rel="stylesheet" href="css/zhuyin.css">
+  <link rel="icon" href="data:,">
+  <title>注音小島</title>
+  <link rel="stylesheet" href="css/zhuyin.css?v=3">
 </head>
 <body>
-  <!-- 常駐按鈕：首頁 / 再聽一次 / 音樂開關 -->
+  <!-- 常駐按鈕：首頁 / 音樂 / 再聽一次 -->
   <button id="homeBtn" class="round-btn" title="回首頁">🏠</button>
   <button id="musicBtn" class="round-btn" title="音樂">🎵</button>
   <button id="speakBtn" class="round-btn hidden" title="再聽一次">🔊</button>
 
-  <!-- 模式選單 -->
-  <section id="menu" class="screen bg-menu">
-    <h1>ㄅㄆㄇ 注音小遊戲</h1>
+  <!-- 嚮導貓頭鷹（只在選單出現） -->
+  <div id="guide" class="guide hidden"><img src="IMAGE/zhuyin/guide_owl.png" alt=""><div id="guideText" class="guideText"></div></div>
+
+  <!-- ===== 選單（注音小島） ===== -->
+  <section id="menu" class="screen bg-map">
+    <h1>注音小島</h1>
     <div class="mode-cards">
-      <button class="mode-card" data-mode="fish">
-        <span class="big">🎣</span><span class="label">注音釣魚</span><span class="sub">聽聲音，釣對的注音</span>
-      </button>
-      <button class="mode-card" data-mode="order">
-        <span class="big">🍔</span><span class="label">注音點餐</span><span class="sub">看注音，把東西拿給客人</span>
-      </button>
-      <button class="mode-card" data-mode="build">
-        <span class="big">🧩</span><span class="label">注音積木</span><span class="sub">自己把注音拼出來</span>
-      </button>
+      <button class="mode-card" data-mode="fish"><span class="big">🎣</span><span class="label">釣魚</span><span class="lock"></span></button>
+      <button class="mode-card" data-mode="order"><span class="big">🍔</span><span class="label">點餐</span><span class="lock"></span></button>
+      <button class="mode-card" data-mode="build"><span class="big">🧩</span><span class="label">積木</span><span class="lock"></span></button>
+      <button class="mode-card" data-mode="hunt"><span class="big">🔍</span><span class="label">尋寶</span><span class="lock"></span></button>
+      <button class="mode-card" data-mode="match"><span class="big">🃏</span><span class="label">翻牌</span><span class="lock"></span></button>
+      <button class="mode-card" data-mode="tone"><span class="big">🎈</span><span class="label">氣球</span><span class="lock"></span></button>
+    </div>
+    <div class="menu-bottom">
+      <button id="albumBtn" class="pill"><span>📒 貼紙</span><b id="menuStickers">0</b></button>
+      <button class="pill jarBtn"><span class="jar"><span class="jarFill"></span></span><span>⭐ <span class="jarText">0/10</span></span><span class="egg">🥚</span></button>
     </div>
   </section>
 
-  <!-- 釣魚 -->
+  <!-- ===== 共用頂列：進度點 ===== -->
+  <div id="progress" class="progress hidden"></div>
+
+  <!-- ===== 釣魚 ===== -->
   <section id="fish" class="screen bg-pond hidden">
-    <div class="topbar"><div id="fishProgress" class="progress"></div></div>
+    <div class="topbar"></div>
     <div id="fishPrompt" class="prompt"></div>
     <div id="pond" class="pond"></div>
   </section>
 
-  <!-- 點餐 -->
+  <!-- ===== 點餐 ===== -->
   <section id="order" class="screen bg-shop hidden">
-    <div class="topbar"><div id="orderProgress" class="progress"></div></div>
-    <div class="counter">
-      <img id="customer" class="customer" alt="">
-      <div id="bubble" class="bubble"></div>
-    </div>
+    <div class="topbar"></div>
+    <div class="counter"><img id="customer" class="customer" alt=""><div id="bubble" class="bubble"></div></div>
     <div id="shelf" class="shelf"></div>
   </section>
 
-  <!-- 拼注音（積木） -->
+  <!-- ===== 積木 ===== -->
   <section id="build" class="screen bg-blocks hidden">
-    <div class="topbar"><div id="buildProgress" class="progress"></div></div>
+    <div class="topbar"></div>
     <div class="build-top">
       <div id="buildPrompt" class="prompt small"></div>
       <div id="slots" class="slots"></div>
-      <button id="checkBtn" class="check-btn">好了！</button>
     </div>
     <div id="tray" class="tray"></div>
+    <div id="toneRow" class="tray toneRow hidden"></div>
   </section>
 
-  <!-- 結算 -->
-  <section id="result" class="screen bg-menu hidden">
-    <div id="resultStars" class="stars"></div>
-    <div id="resultText" class="result-text"></div>
-    <div class="result-btns">
-      <button id="againBtn" class="big-btn">再玩一次</button>
-      <button id="menuBtn" class="big-btn alt">換遊戲</button>
-    </div>
+  <!-- ===== 尋寶 ===== -->
+  <section id="hunt" class="screen bg-park hidden">
+    <div class="topbar"></div>
+    <div class="hunt-top"><div id="huntBubble" class="bubble hunt"></div><div id="bag" class="bag">🎒 0</div></div>
+    <div id="scene" class="scene"></div>
   </section>
+
+  <!-- ===== 翻牌 ===== -->
+  <section id="match" class="screen bg-table hidden">
+    <div class="topbar"></div>
+    <div id="board" class="board"></div>
+  </section>
+
+  <!-- ===== 聲調氣球 ===== -->
+  <section id="tone" class="screen bg-sky hidden">
+    <div class="topbar"></div>
+    <div id="tonePrompt" class="prompt"></div>
+    <div id="sky" class="sky"></div>
+  </section>
+
+  <!-- ===== 結算 ===== -->
+  <section id="result" class="screen bg-map hidden">
+    <div id="resultText" class="result-text"></div>
+    <div id="resultStars" class="stars"></div>
+    <div id="resultStickers" class="result-stickers"></div>
+    <div class="result-btns">
+      <button id="againBtn" class="big-btn">🔁 再玩</button>
+      <button id="resultAlbumBtn" class="big-btn alt">📒 貼紙</button>
+      <button id="menuBtn" class="big-btn alt">🏝️ 回小島</button>
+    </div>
+    <button id="hatchHint" class="pill jarBtn ready hidden"><span class="jar"><span class="jarFill"></span></span><span>⭐ <span class="jarText">0/10</span></span><span class="egg">🥚 孵蛋！</span></button>
+  </section>
+
+  <!-- ===== 貼紙圖鑑 ===== -->
+  <section id="album" class="screen bg-album hidden">
+    <div class="album-head"><button id="albumBack" class="big-btn alt small">⬅️</button><h2>📒 我的貼紙 <span id="albumCount"></span></h2></div>
+    <div id="albumTabs" class="tabs"></div>
+    <div id="albumGrid" class="album-grid"></div>
+  </section>
+
+  <!-- ===== 覆蓋層：回家確認 / 孵蛋 ===== -->
+  <div id="confirm" class="overlay hidden"><div class="dialog"><div class="q">🏠 要回小島嗎？</div><div class="row"><button id="confirmYes" class="big-btn">✅ 好</button><button id="confirmNo" class="big-btn alt">↩️ 繼續玩</button></div></div></div>
+  <div id="hatch" class="overlay hidden"><div class="dialog hatchBox"><div id="hatchEgg" class="hatchEgg"></div><img id="hatchFriend" class="hatchFriend hidden" alt=""><div id="hatchName" class="q"></div><button id="hatchClose" class="big-btn">🎉 太棒了</button></div></div>
 
   <div id="fx" class="fx"></div>
-  <script type="module" src="js/zhuyin.js"></script>
+  <script type="module" src="js/zhuyin.js?v=3"></script>
 </body>
 </html>

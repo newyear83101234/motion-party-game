@@ -202,7 +202,7 @@ const TRANSFORM_DUR = 2.0;
 // 最高分（存在手機裡，給「破紀錄」動機）
 function lsGet(k) { try { return +(localStorage.getItem(k) || 0); } catch (e) { return 0; } }
 function lsSet(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
-bestWhack = lsGet("best_whack"); bestDodge = lsGet("best_dodge"); bestPvz = lsGet("best_pvz"); bestKpop = lsGet("best_kpop"); bestRedlight = lsGet("best_redlight"); bestZhuyin = lsGet("zy_best_fish") + lsGet("zy_best_order"); // 注音頁自存兩模式最高答對數、首頁卡顯示合計
+bestWhack = lsGet("best_whack"); bestDodge = lsGet("best_dodge"); bestPvz = lsGet("best_pvz"); bestKpop = lsGet("best_kpop"); bestRedlight = lsGet("best_redlight"); bestZhuyin = lsGet("zy_stars"); // 注音小島累積星星數（zhuyin.js 存 localStorage zy_stars）
 playerMode = lsGet("player_mode") === 1 ? "duo" : "solo";
 superUsedEver = lsGet("super_used") === 1;
 function commitBest() {
