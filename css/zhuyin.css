@@ -11,22 +11,27 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 :root { --blue: #1b4fa0; --tone: #c2410c; --yellow: #ffd54a; --yellow-dk: #d4a800; }
 
 .screen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; background-size: cover; background-position: center; }
-.bg-map    { background-image: url("../IMAGE/zhuyin/bg_map.jpg"); }
-.bg-pond   { background-image: url("../IMAGE/zhuyin/bg_pond.jpg"); }
-.bg-shop   { background-image: url("../IMAGE/zhuyin/bg_shop.jpg"); }
-.bg-blocks { background-image: url("../IMAGE/zhuyin/bg_blocks.jpg"); }
-.bg-park   { background-image: url("../IMAGE/zhuyin/bg_park.jpg"); }
-.bg-table  { background-image: url("../IMAGE/zhuyin/bg_table.jpg"); }
-.bg-sky    { background-image: url("../IMAGE/zhuyin/bg_sky.jpg"); }
-.bg-album  { background-image: url("../IMAGE/zhuyin/bg_album.jpg"); }
+.bg-map    { background-image: url("../IMAGE/zhuyin/bg_map.webp"); }
+.bg-pond   { background-image: url("../IMAGE/zhuyin/bg_pond.webp"); }
+.bg-shop   { background-image: url("../IMAGE/zhuyin/bg_shop.webp"); }
+.bg-blocks { background-image: url("../IMAGE/zhuyin/bg_blocks.webp"); }
+.bg-park   { background-image: url("../IMAGE/zhuyin/bg_park.webp"); }
+.bg-table  { background-image: url("../IMAGE/zhuyin/bg_table.webp"); }
+.bg-sky    { background-image: url("../IMAGE/zhuyin/bg_sky.webp"); }
+.bg-album  { background-image: url("../IMAGE/zhuyin/bg_album.webp"); }
 
 /* ===== 圓形常駐按鈕 ===== */
 .round-btn { position: absolute; z-index: 20; width: 12vmin; height: 12vmin; border-radius: 50%; background: rgba(255,255,255,0.9); font-size: 6vmin; box-shadow: 0 3px 10px rgba(0,0,0,0.25); }
 #homeBtn { left: 2vmin; top: 2vmin; }
 #musicBtn { left: 16vmin; top: 2vmin; }
 #musicBtn.off { opacity: 0.45; }
-#speakBtn { right: 2vmin; top: 2vmin; background: var(--yellow); }
-#speakBtn.pulse { animation: pulse 0.8s ease-in-out 3; }
+#settingsBtn { right: 2vmin; top: 2vmin; }
+.hint-btn { position: absolute; z-index: 20; right: 2vmin; top: 2vmin; height: 12vmin; padding: 0 3vmin 0 2vmin; border-radius: 6vmin; background: var(--yellow); box-shadow: 0 5px 0 var(--yellow-dk), 0 6px 12px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 1vmin; font-size: 5vmin; font-weight: bold; color: #333; }
+.hint-btn .ic { font-size: 6vmin; }
+.hint-btn:active { transform: translateY(3px); box-shadow: none; }
+.hint-btn.pulse { animation: hintPulse 0.9s ease-in-out infinite; }
+.hint-btn.pulse:active { animation: none; transform: translateY(3px); }
+@keyframes hintPulse { 0%,100% { transform: scale(1); box-shadow: 0 5px 0 var(--yellow-dk), 0 0 0 0 rgba(255,213,74,0.9); } 50% { transform: scale(1.15); box-shadow: 0 5px 0 var(--yellow-dk), 0 0 0 2.5vmin rgba(255,213,74,0); } }
 .round-btn:active { transform: scale(0.92); }
 @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.18); box-shadow: 0 0 0 1.5vmin rgba(255,213,74,0.5); } }
 
@@ -73,7 +78,11 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 .progress span.cur { opacity: 1; transform: scale(1.3); border: 3px solid #fff; animation: pulse 1s infinite; background: rgba(255,255,255,0.5); }
 
 /* ===== 注音直排 ===== */
-.zy { display: inline-flex; gap: 0.35em; align-items: flex-start; font-size: 1em; line-height: 1; }
+.zy { display: inline-flex; gap: 0.35em; align-items: flex-start; font-size: 1em; line-height: 1; position: relative; z-index: 2; }
+.zy b, .zy .tone { text-shadow: 0 0 0.06em #fff, 0 0 0.06em #fff, 0 0 0.12em #fff; }
+.prompt, .bubble, .slots, .zlabel, .sticker { position: relative; z-index: 19; }
+/* 白底圓角注音標籤：魚、氣球的注音都放這裡，跟圖片分開排 */
+.zlabel { background: #fff; border: 0.6vmin solid var(--blue); border-radius: 3vmin; padding: 1.8vmin 1.6vmin 1vmin 2vmin; box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; color: #222; }
 .syl { position: relative; display: flex; flex-direction: column; align-items: center; padding: 0.1em 0.75em 0.1em 0.1em; }
 .syl b { font-weight: 700; font-size: 1em; line-height: 1.05; }
 .syl .tone { position: absolute; right: -0.15em; top: 50%; transform: translateY(-38%); font-size: 1.5em; font-weight: 900; color: var(--tone); line-height: 1; }
@@ -102,19 +111,20 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 
 /* ===== 釣魚 ===== */
 .pond { position: relative; flex: 1; width: 100%; margin-top: 2vmin; }
-.fishBtn { position: absolute; width: 36vmin; height: 24vmin; background: url("../IMAGE/zhuyin/fish.png") center / contain no-repeat; display: flex; align-items: center; justify-content: center; filter: drop-shadow(0 6px 8px rgba(0,0,0,0.25)); animation: bob 2.4s ease-in-out infinite; }
-.fishBtn .zy { position: absolute; left: 47%; top: 50%; transform: translate(-50%, -50%); }
+.fishBtn { position: absolute; width: 30vmin; height: 32vmin; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 0.5vmin; animation: bob 2.4s ease-in-out infinite; }
+.fishImg { width: 100%; height: 15vmin; flex-shrink: 0; background: url("../IMAGE/zhuyin/fish.webp") center / contain no-repeat; filter: drop-shadow(0 6px 8px rgba(0,0,0,0.25)); }
+.fishBtn .zlabel { min-width: 16vmin; }
 .fishBtn:nth-child(2) { animation-delay: -0.6s; } .fishBtn:nth-child(3) { animation-delay: -1.2s; } .fishBtn:nth-child(4) { animation-delay: -1.8s; }
 .fishBtn.ok { animation: caught 0.9s ease forwards; }
 .fishBtn.ng { animation: shake 0.4s; }
 @keyframes caught { 0% { transform: scale(1); } 40% { transform: scale(1.25) translateY(-8vmin) rotate(-12deg); } 100% { transform: scale(1.15) translateY(-14vmin) rotate(-8deg); } }
 
 /* ===== 點餐 ===== */
-.counter { display: flex; align-items: flex-end; gap: 3vmin; height: 38vmin; }
+.counter { display: flex; align-items: flex-end; gap: 3vmin; min-height: 38vmin; }
 .customer { height: 36vmin; width: auto; filter: drop-shadow(0 6px 8px rgba(0,0,0,0.25)); }
 .customer.happy { animation: hop 0.6s; }
 .customer.no { animation: shake 0.4s; }
-.bubble { position: relative; background: #fff; border-radius: 5vmin; padding: 3vmin 5vmin; font-size: 9vmin; margin-bottom: 10vmin; min-width: 30vmin; min-height: 20vmin; display: flex; align-items: center; justify-content: center; gap: 3vmin; box-shadow: 0 6px 16px rgba(0,0,0,0.22); }
+.bubble { background: #fff; border: 0.6vmin solid rgba(27,79,160,0.35); border-radius: 5vmin; padding: 3vmin 5vmin; font-size: 9vmin; margin-bottom: 10vmin; min-width: 30vmin; min-height: 20vmin; display: flex; align-items: center; justify-content: center; gap: 3vmin; box-shadow: 0 6px 16px rgba(0,0,0,0.22); }
 .bubble::before { content: ""; position: absolute; left: -3vmin; bottom: 4vmin; border: 2vmin solid transparent; border-right-color: #fff; }
 .bubble .han { font-size: 9vmin; color: #e0521f; font-weight: bold; }
 .shelf { display: flex; flex-wrap: wrap; justify-content: center; gap: 3vmin; padding: 3vmin; width: 100%; flex: 1; align-content: flex-start; }
@@ -158,27 +168,30 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 @keyframes found { 50% { transform: scale(1.4) rotate(10deg); } 100% { transform: scale(0.2) translateY(-30vmin); opacity: 0; } }
 
 /* ===== 翻牌 ===== */
-.board { display: grid; grid-template-columns: repeat(4, 20vmin); gap: 3vmin; margin-top: 2vmin; }
-.card { width: 20vmin; height: 27vmin; background: transparent; perspective: 800px; }
+.board { display: grid; grid-template-columns: repeat(4, 24vmin); gap: 3vmin; margin-top: 2vmin; }
+.card { width: 24vmin; height: 27vmin; background: transparent; perspective: 800px; }
 .card .inner { position: relative; width: 100%; height: 100%; transition: transform 0.45s; transform-style: preserve-3d; }
 .card.up .inner, .card.done .inner { transform: rotateY(180deg); }
 .card .face { position: absolute; inset: 0; border-radius: 3vmin; backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 5px 10px rgba(0,0,0,0.22); }
-.card .back { background: url("../IMAGE/zhuyin/card_back.png") center / cover no-repeat, #1b4fa0; }
+.card .back { background: url("../IMAGE/zhuyin/card_back.webp") center / cover no-repeat, #1b4fa0; }
 .card .front { background: #fff; transform: rotateY(180deg); font-size: 9vmin; border: 0.6vmin solid var(--blue); }
 .card .front .han { font-size: 4.5vmin; font-weight: bold; color: var(--blue); }
-.card .front .zy { font-size: 5.5vmin; }
+.card .front .zy { font-size: 5vmin; }
+.card .front { padding: 0 1vmin; overflow: hidden; }
 .card.done .front { background: #c8f7c5; border-color: #3cb043; }
 .card.done { animation: hop 0.6s; }
 
 /* ===== 聲調氣球 ===== */
 .sky { position: relative; flex: 1; width: 100%; }
-.balloon { position: absolute; bottom: 8%; width: 22vmin; height: 30vmin; background: transparent; display: flex; align-items: center; justify-content: center; animation: float 3.2s ease-in-out infinite; }
-.balloon::before { content: ""; position: absolute; inset: 0; background: url("../IMAGE/zhuyin/balloon.png") center / contain no-repeat; filter: drop-shadow(0 6px 8px rgba(0,0,0,0.25)); }
-.balloon .zy { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); }
-.balloon.c1::before { filter: hue-rotate(200deg) drop-shadow(0 6px 8px rgba(0,0,0,0.25)); } .balloon.c2::before { filter: hue-rotate(100deg) drop-shadow(0 6px 8px rgba(0,0,0,0.25)); } .balloon.c3::before { filter: hue-rotate(50deg) drop-shadow(0 6px 8px rgba(0,0,0,0.25)); }
+.balloon { position: absolute; bottom: 6%; width: 22vmin; background: transparent; display: flex; flex-direction: column; align-items: center; animation: float 3.2s ease-in-out infinite; }
+.balloonImg { width: 17vmin; height: 21vmin; flex-shrink: 0; background: url("../IMAGE/zhuyin/balloon.webp") center / contain no-repeat; filter: drop-shadow(0 6px 8px rgba(0,0,0,0.25)); }
+.bstring { display: none; }
+.balloon.c1 .balloonImg { background-image: url("../IMAGE/zhuyin/balloon_blue.webp"); } .balloon.c2 .balloonImg { background-image: url("../IMAGE/zhuyin/balloon_green.webp"); } .balloon.c3 .balloonImg { background-image: url("../IMAGE/zhuyin/balloon_yellow.webp"); }
+.balloon .zlabel { margin-top: -0.5vmin; }
 .balloon.ok { animation: popB 0.4s ease forwards; }
 .balloon.ng { animation: shake 0.4s; }
 @keyframes float { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-4vmin) rotate(3deg); } }
+@keyframes floatS { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-1.5vmin) rotate(2deg); } }
 @keyframes popB { 50% { transform: scale(1.3); } 100% { transform: scale(0); opacity: 0; } }
 
 /* ===== 結算 ===== */
@@ -197,7 +210,8 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 
 /* ===== 貼紙 ===== */
 .sticker { width: 18.5vmin; height: 18.5vmin; border-radius: 50%; background: #fff; border: 0.7vmin solid var(--yellow); box-shadow: 0 4px 8px rgba(0,0,0,0.2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; }
-.sticker .em { font-size: 5.6vmin; line-height: 1; }
+.sticker .em { font-size: 4.8vmin; line-height: 1; }
+.sticker.long .em { font-size: 4vmin; } .sticker.long .hz { font-size: 2.8vmin; }   /* 三個字的詞（長頸鹿…）縮小才塞得進圓貼紙 */
 .sticker .hz { font-size: 3.4vmin; font-weight: bold; color: var(--blue); }
 .sticker .zy .tone { font-size: 1em; }
 .sticker.fresh { opacity: 0; animation: slap 0.5s cubic-bezier(.2,1.6,.4,1) forwards; }
@@ -219,7 +233,7 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 .dialog { background: #fff; border-radius: 5vmin; padding: 4vmin 6vmin; display: flex; flex-direction: column; align-items: center; gap: 3vmin; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
 .dialog .q { font-size: 6.5vmin; font-weight: bold; color: var(--blue); }
 .dialog .row { display: flex; gap: 3vmin; }
-.hatchEgg { width: 26vmin; height: 32vmin; background: url("../IMAGE/zhuyin/egg.png") center / contain no-repeat; }
+.hatchEgg { width: 26vmin; height: 32vmin; background: url("../IMAGE/zhuyin/egg.webp") center / contain no-repeat; }
 .hatchEgg.shake { animation: eggShake 0.5s ease-in-out 4; }
 .hatchEgg.gone { display: none; }
 @keyframes eggShake { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); } }
@@ -239,13 +253,36 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
   .progress { top: 15vmin; }
   .topbar { height: 24vmin; }
   .build-top { flex-direction: column; gap: 2vmin; }
-  .counter { height: 34vmin; } .customer { height: 30vmin; }
+  .counter { min-height: 34vmin; } .customer { height: 30vmin; }
+  #bubble { margin-bottom: 4vmin; padding: 2vmin 4vmin; }
+  .fishBtn { width: 40vmin; height: 34vmin; } .fishImg { height: 17vmin; }
   .item { width: 36vmin; height: 34vmin; }
-  .board { grid-template-columns: repeat(3, 26vmin); gap: 2.5vmin; }
-  .card { width: 26vmin; height: 30vmin; } .card .front .zy { font-size: 7vmin; }
-  .balloon { width: 30vmin; height: 40vmin; } .balloon:nth-child(3), .balloon:nth-child(4) { bottom: 54%; }
-  .balloon:nth-child(1) { left: 8% !important; } .balloon:nth-child(2) { left: 55% !important; } .balloon:nth-child(3) { left: 8% !important; } .balloon:nth-child(4) { left: 55% !important; }
+  .board { grid-template-columns: repeat(3, 29vmin); gap: 2.5vmin; }
+  .card { width: 29vmin; height: 30vmin; } .card .front .zy { font-size: 6.2vmin; }
+  /* 直式氣球改 2×2 格：各佔一格，飄動時不會碰到隔壁的注音標籤 */
+  .sky { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; row-gap: 10vmin; justify-items: center; padding: 2vmin 4vmin 4vmin; }
+  .balloon { position: relative; left: auto !important; bottom: auto; width: 34vmin; animation-name: floatS; } .balloonImg { width: 13vmin; height: 16vmin; }
+  .sky .balloon:nth-child(-n+2) { align-self: start; } .sky .balloon:nth-child(n+3) { align-self: end; }   /* 上列貼頂、下列貼底：空間都留在兩列之間，標籤不會像是下一顆的 */
   .obj { width: 18vmin; height: 18vmin; font-size: 11vmin; }
   .guide img { height: 17vmin; } .guideText { max-width: 34vmin; font-size: 3.2vmin; margin-bottom: 9vmin; }
   .album-head { margin-left: 4vmin; width: calc(100% - 8vmin); margin-top: 14vmin; }
 }
+
+/* ===== 讀取畫面 ===== */
+.loading { position: fixed; inset: 0; z-index: 60; background: linear-gradient(180deg, #8fd3ff 0%, #e6f7ff 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4vmin; }
+.ld-blocks { display: flex; gap: 2.5vmin; }
+.ld-blocks span { width: 14vmin; height: 14vmin; border-radius: 3vmin; display: flex; align-items: center; justify-content: center; font-size: 9vmin; font-weight: bold; color: #fff; text-shadow: 0 0 0.12em #1b4fa0, 0 0 0.12em #1b4fa0, 0 0.06em 0 #1b4fa0; box-shadow: 0 6px 0 rgba(0,0,0,0.18); animation: ldHop 0.9s ease-in-out infinite; }
+.ld-blocks span:nth-child(1) { background: #ff7a7a; } .ld-blocks span:nth-child(2) { background: #ffc233; animation-delay: 0.15s; } .ld-blocks span:nth-child(3) { background: #4fb0ff; animation-delay: 0.3s; }
+@keyframes ldHop { 0%,100% { transform: translateY(0) rotate(0); } 40% { transform: translateY(-5vmin) rotate(-8deg); } 60% { transform: translateY(-5vmin) rotate(8deg); } }
+.ld-text { font-size: 6vmin; font-weight: bold; color: var(--blue); }
+.ld-bar { width: 44vmin; height: 2.4vmin; border-radius: 2vmin; background: rgba(255,255,255,0.7); overflow: hidden; }
+.ld-bar i { display: block; width: 30%; height: 100%; border-radius: 2vmin; background: var(--yellow); animation: ldBar 1.1s ease-in-out infinite; }
+@keyframes ldBar { 0% { transform: translateX(-100%); } 100% { transform: translateX(340%); } }
+
+/* ===== 家長設定 ===== */
+.dialog.settings { max-width: 86vmin; }
+.nw { white-space: nowrap; }
+.set-label { font-size: 4.2vmin; font-weight: bold; color: #333; text-align: center; }
+.set-note { font-size: 3.2vmin; color: #556; text-align: center; line-height: 1.5; }
+.opt { white-space: nowrap; min-width: 17vmin; font-size: 4.6vmin; font-weight: bold; padding: 2vmin 3vmin; border-radius: 3vmin; background: #fff; color: var(--blue); border: 0.6vmin solid var(--blue); box-shadow: 0 4px 0 #9bb7d8; }
+.opt.on { background: var(--yellow); border-color: var(--tone); color: #333; }

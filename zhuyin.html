@@ -9,16 +9,24 @@
   <meta name="theme-color" content="#1b4fa0">
   <link rel="icon" href="data:,">
   <title>注音小島</title>
-  <link rel="stylesheet" href="css/zhuyin.css?v=3">
+  <link rel="stylesheet" href="css/zhuyin.css?v=9">
 </head>
 <body>
-  <!-- 常駐按鈕：首頁 / 音樂 / 再聽一次 -->
+  <!-- 讀取畫面：開頁與第一次進某個遊戲時，圖還沒抓好就蓋著（不會看到空白） -->
+  <div id="loading" class="loading">
+    <div class="ld-blocks"><span>ㄅ</span><span>ㄆ</span><span>ㄇ</span></div>
+    <div class="ld-text">準備中…</div>
+    <div class="ld-bar"><i></i></div>
+  </div>
+
+  <!-- 常駐按鈕：首頁 / 音樂 / 提示（右上）/ 家長設定（選單右上） -->
   <button id="homeBtn" class="round-btn" title="回首頁">🏠</button>
   <button id="musicBtn" class="round-btn" title="音樂">🎵</button>
-  <button id="speakBtn" class="round-btn hidden" title="再聽一次">🔊</button>
+  <button id="speakBtn" class="hint-btn hidden" title="提示"><span class="ic">🔊</span><span id="speakLabel">提示</span></button>
+  <button id="settingsBtn" class="round-btn hidden" title="家長設定">⚙️</button>
 
   <!-- 嚮導貓頭鷹（只在選單出現） -->
-  <div id="guide" class="guide hidden"><img src="IMAGE/zhuyin/guide_owl.png" alt=""><div id="guideText" class="guideText"></div></div>
+  <div id="guide" class="guide hidden"><img src="IMAGE/zhuyin/guide_owl.webp" alt=""><div id="guideText" class="guideText"></div></div>
 
   <!-- ===== 選單（注音小島） ===== -->
   <section id="menu" class="screen bg-map">
@@ -107,9 +115,16 @@
 
   <!-- ===== 覆蓋層：回家確認 / 孵蛋 ===== -->
   <div id="confirm" class="overlay hidden"><div class="dialog"><div class="q">🏠 要回小島嗎？</div><div class="row"><button id="confirmYes" class="big-btn">✅ 好</button><button id="confirmNo" class="big-btn alt">↩️ 繼續玩</button></div></div></div>
+  <div id="settings" class="overlay hidden"><div class="dialog settings">
+    <div class="q">⚙️ 家長設定</div>
+    <div class="set-label">🔊 小朋友多久沒動作，<br><span class="nw">「提示」</span>按鈕會閃一閃提醒？</div>
+    <div class="row" id="hintOpts"><button class="opt" data-v="0">關閉</button><button class="opt" data-v="10">10 秒</button><button class="opt" data-v="20">20 秒</button><button class="opt" data-v="30">30 秒</button></div>
+    <div class="set-note">遊戲不會自己唸出答案，<br>小朋友按<span class="nw">「🔊 提示」</span>才會唸。<br>同一題答錯 2 次，提示按鈕也會閃；<br>這時按提示，正確答案會輕輕晃一下。</div>
+    <button id="settingsClose" class="big-btn">✅ 好</button>
+  </div></div>
   <div id="hatch" class="overlay hidden"><div class="dialog hatchBox"><div id="hatchEgg" class="hatchEgg"></div><img id="hatchFriend" class="hatchFriend hidden" alt=""><div id="hatchName" class="q"></div><button id="hatchClose" class="big-btn">🎉 太棒了</button></div></div>
 
   <div id="fx" class="fx"></div>
-  <script type="module" src="js/zhuyin.js?v=3"></script>
+  <script type="module" src="js/zhuyin.js?v=9"></script>
 </body>
 </html>
