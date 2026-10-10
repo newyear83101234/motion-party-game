@@ -899,7 +899,8 @@ $("albumBack").onclick = () => { play("select"); goMenu(); };
 for (const b of document.querySelectorAll(".jarBtn")) b.onclick = () => { play("select"); tryHatch(); };
 $("hatchClose").onclick = () => { hatching = false; $("hatch").classList.add("hidden"); if (mode && !$("result").classList.contains("hidden")) $("hatchHint").classList.add("hidden"); else renderMenu(); };
 $("guide").onclick = () => say($("guideText").textContent);
-document.addEventListener("pointerdown", () => { if (!curBgm) playBgm("island"); }, { once: true });   // 第一次觸碰就起音樂
+// 第一次觸碰就起音樂。goMenu() 開頁時已經設好 curBgm，但那時瀏覽器擋自動播放 → 這裡要補播（原本 !curBgm 判斷讓它永遠不播）
+document.addEventListener("pointerdown", () => { if (!save.music) return; if (!curBgm) playBgm("island"); else if (curBgm.paused) curBgm.play().catch(() => {}); }, { once: true });
 for (const ev of ["touchend", "click"]) document.addEventListener(ev, unlockAudio, { capture: true, once: true });   // iOS：第一次點擊解鎖語音與音效
 window.addEventListener("resize", () => { if (mode === "fish" && !locked) buildFish(round[idx]); if (mode === "match" && mq) layoutBoard(mq.pairs * 2); if (mode === "whack") layoutField(); if (mode === "frog") relayoutFrog(); });
 // 開頁：讀取畫面蓋著，等貓頭鷹＋3D 小島（小島最多等 8 秒）；3D 模式選單背景被小島蓋住 → 退回卡片選單時才等背景圖
@@ -907,6 +908,11 @@ window.addEventListener("resize", () => { if (mode === "fish" && !locked) buildF
   const cap = p => Promise.race([p, new Promise(r => setTimeout(r, 6000))]), h = initHub();
   await Promise.all([h, cap(loadImg("guide_owl"))]);
   if (!hub) await cap(Promise.all(assetsOf("menu").map(loadImg)));
-  goMenu(); showLoading(false);
+  goMenu(); showLoading(false); $("startGate").classList.remove("hidden");
 })();
+$("startBtn").onclick = () => {                         // 開始玩：這一下點擊同時解鎖聲音、開音樂、貓頭鷹打招呼
+  $("startGate").classList.add("hidden"); play("select");
+  if (save.music && curBgm) curBgm.play().catch(() => {});
+  setTimeout(() => say($("guideText").textContent), 300);
+};
 if (location.search.includes("debug")) window.__zy = { renderZ, parseZ, WORDS, stickerNode, zMissing, get wq() { return wq; }, get fq() { return fq; }, get idx() { return idx; }, get results() { return results; }, get wrong() { return wrongThisQ; }, get mode() { return mode; }, get round() { return round; }, get curOpts() { return curOpts; }, toneVariant, pickDistractors, zToStr };   // 測試用（tools/zy-test）

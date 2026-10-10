@@ -124,7 +124,7 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
    符號字形各平台不同，聲調改用向量圖畫，iPad 跟測試看到的一樣；文字留著（透明）給程式與朗讀用 */
 .syl { --n: 1; }
 .syl.n2 { --n: 2; } .syl.n3 { --n: 3; } .syl.n4 { --n: 4; }
-.syl .tone { position: absolute; right: 0.02em; top: calc(0.1em + (var(--n) - 1) * 1.05em); transform: translateY(-50%); width: 0.62em; height: 0.62em; color: transparent; font-size: 1em; line-height: 1; background: center / contain no-repeat; overflow: hidden; }
+.syl .tone { position: absolute; right: 0.02em; top: calc(0.1em + (var(--n) - 1) * 1.05em); transform: translateY(-50%); width: 0.62em; height: 0.62em; font-size: 1em; line-height: 1; text-indent: 200%; white-space: nowrap; overflow: hidden; }
 .syl .tone.light { right: auto; left: 0.43em; top: -0.08em; width: 0.34em; height: 0.34em; }
 .syl .tone.hint { animation: toneHint 0.5s ease-in-out 3; }
 :root {
@@ -133,23 +133,18 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
   --t4: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2.4 1.4 7.6 8.6' stroke='%23c2410c' stroke-width='2.4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
   --t5: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Ccircle cx='5' cy='5' r='3.6' fill='%23c2410c'/%3E%3C/svg%3E");
 }
-/* 黃底按鈕上聲調換深一階（寧次 10-10：#c2410c 在黃底只有 3.67:1，小字要 4.5:1；#9a3412 黃底 5.17:1） */
-.hint-btn, .resume, .opt.on, .big-btn:not(.alt), .tab.on, .pill b {
-  --t2: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2.4 8.6 7.6 1.4' stroke='%239a3412' stroke-width='2.4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
-  --t3: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M1.6 2.2 5 8 8.4 2.2' stroke='%239a3412' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
-  --t4: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2.4 1.4 7.6 8.6' stroke='%239a3412' stroke-width='2.4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
-  --t5: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Ccircle cx='5' cy='5' r='3.6' fill='%239a3412'/%3E%3C/svg%3E");
-}
-.tone.k2, .ac.t2::before { background-image: var(--t2); }
-.tone.k3, .ac.t3::before { background-image: var(--t3); }
-.tone.k4, .ac.t4::before { background-image: var(--t4); }
-.tone.light, .ac.t5::before { background-image: var(--t5); }
+/* 聲調跟注音同色（阿葉 10-10「注音符號幾聲不用特別用紅色標記」）：向量圖當遮罩，底色＝currentColor */
+.syl .tone, .ac.t2::before, .ac.t3::before, .ac.t4::before, .ac.t5::before { background-color: currentColor; -webkit-mask: center / contain no-repeat; mask: center / contain no-repeat; }
+.tone.k2, .ac.t2::before { -webkit-mask-image: var(--t2); mask-image: var(--t2); }
+.tone.k3, .ac.t3::before { -webkit-mask-image: var(--t3); mask-image: var(--t3); }
+.tone.k4, .ac.t4::before { -webkit-mask-image: var(--t4); mask-image: var(--t4); }
+.tone.light, .ac.t5::before { -webkit-mask-image: var(--t5); mask-image: var(--t5); }
 /* 積木的聲調積木／聲調格：同一套向量聲調圖疊在原本底色上 */
 .tile.toneTile.tv2, .tile.toneTile.tv3, .tile.toneTile.tv4, .tile.toneTile.tv5,
 .slot.toneSlot.tv2, .slot.toneSlot.tv3, .slot.toneSlot.tv4, .slot.toneSlot.tv5 { color: transparent; position: relative; }
-.tv2::after, .tv3::after, .tv4::after, .tv5::after { content: ""; position: absolute; inset: 24%; background: center / contain no-repeat; pointer-events: none; }
-.tv2::after { background-image: var(--t2); } .tv3::after { background-image: var(--t3); } .tv4::after { background-image: var(--t4); }
-.tv5::after { background-image: var(--t5); inset: 38%; }
+.tv2::after, .tv3::after, .tv4::after, .tv5::after { content: ""; position: absolute; inset: 24%; background-color: #2b2b2b; -webkit-mask: center / contain no-repeat; mask: center / contain no-repeat; pointer-events: none; }
+.tv2::after { -webkit-mask-image: var(--t2); mask-image: var(--t2); } .tv3::after { -webkit-mask-image: var(--t3); mask-image: var(--t3); } .tv4::after { -webkit-mask-image: var(--t4); mask-image: var(--t4); }
+.tv5::after { -webkit-mask-image: var(--t5); mask-image: var(--t5); inset: 38%; }
 
 /* ===== 國字旁的小注音（zhuyin-ann.js 自動加）=====
    每個國字右邊一條直排注音欄（字的 0.36 倍），聲調畫在欄的右邊、對齊最後一個符號的上緣 */
@@ -480,3 +475,9 @@ body.hub3d #menu .pill { border-color: #fff; color: #24515c; box-shadow: 0 0.6vm
   body.hub3d #menu > .menu-bottom { position: relative; left: auto; bottom: auto; transform: none; margin-top: 2vmin; }
 }
 body.hub3d #menu > .resume { font-size: 3.6vmin; padding: 1.1vmin 3vmin; margin-top: 1.4vmin; }   /* 3D 小島要空間：繼續玩按鈕縮小一點 */
+
+/* ===== 開始畫面（點一下＝開音樂＋打招呼）===== */
+.start-gate { position: fixed; inset: 0; z-index: 55; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3vmin; background: rgba(20,60,90,0.45); }
+.start-gate img { height: 30vmin; filter: drop-shadow(0 6px 10px rgba(0,0,0,0.3)); animation: bob 3s ease-in-out infinite; }
+.sg-title { font-size: 9vmin; font-weight: bold; color: #fff; text-shadow: 0 3px 0 #1b4fa0, 0 6px 16px rgba(0,0,0,0.35); }
+.sg-btn { font-size: 8vmin; padding: 3vmin 8vmin; border-radius: 6vmin; animation: pulse 1.4s ease-in-out infinite; }

@@ -34,7 +34,9 @@ async function openGame(browser, { w = 1180, h = 820, stickers = 20, stars = 0, 
     });
   }, { stickers, stars, eggs });
   await p.reload(); await p.waitForFunction(() => document.getElementById("loading").classList.contains("hidden"), null, { timeout: 15000 });
+  await p.evaluate(() => { const g = document.getElementById("startGate"); if (g && !g.classList.contains("hidden")) document.getElementById("startBtn").click(); });   // 開始畫面
   await p.waitForTimeout(300);
+  if (fakeSpeech) await p.evaluate(() => { window.__spoken = []; });   // 開始畫面的招呼語不算在測試裡
   return { ctx, p, errs };
 }
 // 從選單進某個模式（翻牌會先跳選張數，size 指定）
