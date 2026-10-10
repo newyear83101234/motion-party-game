@@ -1,0 +1,2245 @@
+{
+ "meta": {
+  "generated_by": "tools/voice/build_lines.py",
+  "total_lines": 295,
+  "total_chars": 1334,
+  "by_cat": {
+   "intro": 8,
+   "praise": 5,
+   "guide": 6,
+   "system": 1,
+   "result": 1,
+   "hatch": 1,
+   "dynamic": 54,
+   "friend": 5,
+   "order": 64,
+   "hunt": 1,
+   "word": 136,
+   "phrase": 13
+  },
+  "words": 136,
+  "phrases": 13,
+  "tw_risk_words": [
+   "企鵝（兩岸讀音不同：企：台灣 ㄑㄧˋ ≠ 大陸 ㄑㄧˇ）",
+   "長頸鹿（破音字（TTS 可能挑錯音）：長：台灣 ㄔㄤˊ ≠ 另一讀 ㄓㄤˇ）",
+   "蝸牛（兩岸讀音不同：蝸：台灣 ㄍㄨㄚ ≠ 大陸 ㄨㄛ）",
+   "餅乾（破音字（TTS 可能挑錯音）：乾：台灣 ㄍㄢ ≠ 另一讀 ㄑㄧㄢˊ）",
+   "睡覺（破音字（TTS 可能挑錯音）：覺：台灣 ㄐㄧㄠˋ ≠ 另一讀 ㄐㄩㄝˊ）"
+  ],
+  "note": "total_chars 不含標點；tts_text 是實際要送給 TTS 的字（數字改國字）"
+ },
+ "dynamic": [
+  {
+   "template": "再收集 ${n} 張貼紙就可以玩囉！",
+   "src": "zhuyin.js:295 點還沒解鎖的模式",
+   "range": "n = 1..25（解鎖門檻最高 25 張）",
+   "suggestion": "展開成 25 句完整句子預錄（數字用國字，二→兩）。或改寫成「再收集一些貼紙就可以玩囉！」＋畫面顯示數字，只要 1 句。"
+  },
+  {
+   "template": "拿到 ${n} 張新貼紙！",
+   "src": "zhuyin.js:763 結算畫面",
+   "range": "n = 1..12（一般模式最多 8 題；翻牌 24 張＝12 對）",
+   "suggestion": "展開成 12 句預錄。"
+  },
+  {
+   "template": "再 ${n} 顆星星就可以孵蛋囉！",
+   "src": "zhuyin.js:781 結算後",
+   "range": "n = 1..10",
+   "suggestion": "展開成 10 句預錄。"
+  },
+  {
+   "template": "${存檔位名字}，歡迎回來！",
+   "src": "zhuyin.js:837 換人玩",
+   "range": "小熊 / 小兔 / 小貓",
+   "suggestion": "展開成 3 句預錄。"
+  },
+  {
+   "template": "${朋友}來了，會來店裡買東西喔！",
+   "src": "zhuyin.js:789 孵蛋",
+   "range": "FRIENDS[4..] 依序孵出：熊貓、企鵝、青蛙、小獅子",
+   "suggestion": "展開成 4 句預錄（前 4 隻一開始就在，不會孵）。"
+  },
+  {
+   "template": "${朋友名字}",
+   "src": "zhuyin.js:201 點 3D 小島上的朋友",
+   "range": "小熊、小兔、小貓、小狐狸、熊貓、企鵝、青蛙、小獅子",
+   "suggestion": "名字跟詞庫重複的（熊貓、企鵝、青蛙）直接共用詞庫音檔；其餘 5 個另錄。"
+  },
+  {
+   "template": "我要${食物}",
+   "src": "zhuyin.js:229 點餐模式題目（＋提示鈕重唸）",
+   "range": "32 個 food 類詞",
+   "suggestion": "展開成 32 句整句預錄（拼接「我要」＋詞會有斷音感，整句錄比較自然，量也不大）。"
+  },
+  {
+   "template": "${食物}，謝謝你！",
+   "src": "zhuyin.js:376 點餐答對",
+   "range": "32 個 food 類詞",
+   "suggestion": "展開成 32 句整句預錄。"
+  },
+  {
+   "template": "找到了，${詞或短語}",
+   "src": "zhuyin.js:460 尋寶答對",
+   "range": "全部 136 詞＋13 個短語＝149 種",
+   "suggestion": "不要展開（149 句太多）：改成兩段播放「找到了！」＋該詞音檔（詞本來就要錄），逗號處本來就有停頓，拼起來不突兀。只多錄 1 句。"
+  }
+ ],
+ "lines": [
+  {
+   "id": "intro_fish",
+   "text": "聽聲音，點對的魚！",
+   "cat": "intro",
+   "src": "MODES.intro（zhuyin.js:12-19）"
+  },
+  {
+   "id": "intro_order",
+   "text": "看注音，把東西拿給客人！",
+   "cat": "intro",
+   "src": "MODES.intro（zhuyin.js:12-19）"
+  },
+  {
+   "id": "intro_build",
+   "text": "把注音積木放進格子裡！",
+   "cat": "intro",
+   "src": "MODES.intro（zhuyin.js:12-19）"
+  },
+  {
+   "id": "intro_hunt",
+   "text": "看注音，找找東西在哪裡！",
+   "cat": "intro",
+   "src": "MODES.intro（zhuyin.js:12-19）"
+  },
+  {
+   "id": "intro_match",
+   "text": "翻翻看，找到相同的！",
+   "cat": "intro",
+   "src": "MODES.intro（zhuyin.js:12-19）"
+  },
+  {
+   "id": "intro_tone",
+   "text": "聽聲音，戳對的氣球！",
+   "cat": "intro",
+   "src": "MODES.intro（zhuyin.js:12-19）"
+  },
+  {
+   "id": "intro_whack",
+   "text": "聽聲音，敲對的地鼠！",
+   "cat": "intro",
+   "src": "MODES.intro（zhuyin.js:12-19）"
+  },
+  {
+   "id": "intro_frog",
+   "text": "聽聲音，跳到對的荷葉上！",
+   "cat": "intro",
+   "src": "MODES.intro（zhuyin.js:12-19）"
+  },
+  {
+   "id": "praise_1",
+   "text": "好棒！",
+   "cat": "praise",
+   "src": "PRAISE（zhuyin.js:21）"
+  },
+  {
+   "id": "praise_2",
+   "text": "哇！",
+   "cat": "praise",
+   "src": "PRAISE（zhuyin.js:21）"
+  },
+  {
+   "id": "praise_3",
+   "text": "就是它！",
+   "cat": "praise",
+   "src": "PRAISE（zhuyin.js:21）"
+  },
+  {
+   "id": "praise_4",
+   "text": "太厲害了！",
+   "cat": "praise",
+   "src": "PRAISE（zhuyin.js:21）"
+  },
+  {
+   "id": "praise_5",
+   "text": "你好會拼喔！",
+   "cat": "praise",
+   "src": "PRAISE（zhuyin.js:21）"
+  },
+  {
+   "id": "guide_hello",
+   "text": "你好！快來選遊戲玩吧！",
+   "cat": "guide",
+   "src": "renderMenu / showResult（zhuyin.js:782,817）"
+  },
+  {
+   "id": "guide_more",
+   "text": "再收集幾張貼紙，就能開新遊戲喔！",
+   "cat": "guide",
+   "src": "renderMenu / showResult（zhuyin.js:782,817）"
+  },
+  {
+   "id": "guide_which",
+   "text": "今天要玩哪個呢？",
+   "cat": "guide",
+   "src": "renderMenu / showResult（zhuyin.js:782,817）"
+  },
+  {
+   "id": "guide_growing",
+   "text": "貼紙越來越多了！",
+   "cat": "guide",
+   "src": "renderMenu / showResult（zhuyin.js:782,817）"
+  },
+  {
+   "id": "guide_fishhunt",
+   "text": "來釣魚還是去尋寶？",
+   "cat": "guide",
+   "src": "renderMenu / showResult（zhuyin.js:782,817）"
+  },
+  {
+   "id": "guide_allhatched",
+   "text": "朋友都孵出來了，好厲害！",
+   "cat": "guide",
+   "src": "renderMenu / showResult（zhuyin.js:782,817）"
+  },
+  {
+   "id": "sys_pause",
+   "text": "暫停",
+   "cat": "system",
+   "src": "zhuyin.js:829 確認離開"
+  },
+  {
+   "id": "match_allfound",
+   "text": "全部找到了！",
+   "cat": "result",
+   "src": "zhuyin.js:541 翻牌全部配對完"
+  },
+  {
+   "id": "hatch_coming",
+   "text": "蛋要孵出來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js:788"
+  },
+  {
+   "id": "unlock_need_1",
+   "text": "再收集 1 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集一張貼紙就可以玩囉！",
+   "n": 1
+  },
+  {
+   "id": "unlock_need_2",
+   "text": "再收集 2 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集兩張貼紙就可以玩囉！",
+   "n": 2
+  },
+  {
+   "id": "unlock_need_3",
+   "text": "再收集 3 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集三張貼紙就可以玩囉！",
+   "n": 3
+  },
+  {
+   "id": "unlock_need_4",
+   "text": "再收集 4 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集四張貼紙就可以玩囉！",
+   "n": 4
+  },
+  {
+   "id": "unlock_need_5",
+   "text": "再收集 5 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集五張貼紙就可以玩囉！",
+   "n": 5
+  },
+  {
+   "id": "unlock_need_6",
+   "text": "再收集 6 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集六張貼紙就可以玩囉！",
+   "n": 6
+  },
+  {
+   "id": "unlock_need_7",
+   "text": "再收集 7 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集七張貼紙就可以玩囉！",
+   "n": 7
+  },
+  {
+   "id": "unlock_need_8",
+   "text": "再收集 8 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集八張貼紙就可以玩囉！",
+   "n": 8
+  },
+  {
+   "id": "unlock_need_9",
+   "text": "再收集 9 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集九張貼紙就可以玩囉！",
+   "n": 9
+  },
+  {
+   "id": "unlock_need_10",
+   "text": "再收集 10 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集十張貼紙就可以玩囉！",
+   "n": 10
+  },
+  {
+   "id": "unlock_need_11",
+   "text": "再收集 11 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集十一張貼紙就可以玩囉！",
+   "n": 11
+  },
+  {
+   "id": "unlock_need_12",
+   "text": "再收集 12 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集十二張貼紙就可以玩囉！",
+   "n": 12
+  },
+  {
+   "id": "unlock_need_13",
+   "text": "再收集 13 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集十三張貼紙就可以玩囉！",
+   "n": 13
+  },
+  {
+   "id": "unlock_need_14",
+   "text": "再收集 14 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集十四張貼紙就可以玩囉！",
+   "n": 14
+  },
+  {
+   "id": "unlock_need_15",
+   "text": "再收集 15 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集十五張貼紙就可以玩囉！",
+   "n": 15
+  },
+  {
+   "id": "unlock_need_16",
+   "text": "再收集 16 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集十六張貼紙就可以玩囉！",
+   "n": 16
+  },
+  {
+   "id": "unlock_need_17",
+   "text": "再收集 17 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集十七張貼紙就可以玩囉！",
+   "n": 17
+  },
+  {
+   "id": "unlock_need_18",
+   "text": "再收集 18 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集十八張貼紙就可以玩囉！",
+   "n": 18
+  },
+  {
+   "id": "unlock_need_19",
+   "text": "再收集 19 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集十九張貼紙就可以玩囉！",
+   "n": 19
+  },
+  {
+   "id": "unlock_need_20",
+   "text": "再收集 20 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集二十張貼紙就可以玩囉！",
+   "n": 20
+  },
+  {
+   "id": "unlock_need_21",
+   "text": "再收集 21 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集二十一張貼紙就可以玩囉！",
+   "n": 21
+  },
+  {
+   "id": "unlock_need_22",
+   "text": "再收集 22 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集二十二張貼紙就可以玩囉！",
+   "n": 22
+  },
+  {
+   "id": "unlock_need_23",
+   "text": "再收集 23 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集二十三張貼紙就可以玩囉！",
+   "n": 23
+  },
+  {
+   "id": "unlock_need_24",
+   "text": "再收集 24 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集二十四張貼紙就可以玩囉！",
+   "n": 24
+  },
+  {
+   "id": "unlock_need_25",
+   "text": "再收集 25 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集二十五張貼紙就可以玩囉！",
+   "n": 25
+  },
+  {
+   "id": "result_stickers_1",
+   "text": "拿到 1 張新貼紙！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:763",
+   "tts_text": "拿到一張新貼紙！",
+   "n": 1
+  },
+  {
+   "id": "result_stickers_2",
+   "text": "拿到 2 張新貼紙！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:763",
+   "tts_text": "拿到兩張新貼紙！",
+   "n": 2
+  },
+  {
+   "id": "result_stickers_3",
+   "text": "拿到 3 張新貼紙！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:763",
+   "tts_text": "拿到三張新貼紙！",
+   "n": 3
+  },
+  {
+   "id": "result_stickers_4",
+   "text": "拿到 4 張新貼紙！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:763",
+   "tts_text": "拿到四張新貼紙！",
+   "n": 4
+  },
+  {
+   "id": "result_stickers_5",
+   "text": "拿到 5 張新貼紙！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:763",
+   "tts_text": "拿到五張新貼紙！",
+   "n": 5
+  },
+  {
+   "id": "result_stickers_6",
+   "text": "拿到 6 張新貼紙！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:763",
+   "tts_text": "拿到六張新貼紙！",
+   "n": 6
+  },
+  {
+   "id": "result_stickers_7",
+   "text": "拿到 7 張新貼紙！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:763",
+   "tts_text": "拿到七張新貼紙！",
+   "n": 7
+  },
+  {
+   "id": "result_stickers_8",
+   "text": "拿到 8 張新貼紙！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:763",
+   "tts_text": "拿到八張新貼紙！",
+   "n": 8
+  },
+  {
+   "id": "result_stickers_9",
+   "text": "拿到 9 張新貼紙！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:763",
+   "tts_text": "拿到九張新貼紙！",
+   "n": 9
+  },
+  {
+   "id": "result_stickers_10",
+   "text": "拿到 10 張新貼紙！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:763",
+   "tts_text": "拿到十張新貼紙！",
+   "n": 10
+  },
+  {
+   "id": "result_stickers_11",
+   "text": "拿到 11 張新貼紙！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:763",
+   "tts_text": "拿到十一張新貼紙！",
+   "n": 11
+  },
+  {
+   "id": "result_stickers_12",
+   "text": "拿到 12 張新貼紙！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:763",
+   "tts_text": "拿到十二張新貼紙！",
+   "n": 12
+  },
+  {
+   "id": "egg_need_1",
+   "text": "再 1 顆星星就可以孵蛋囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:781",
+   "tts_text": "再一顆星星就可以孵蛋囉！",
+   "n": 1
+  },
+  {
+   "id": "egg_need_2",
+   "text": "再 2 顆星星就可以孵蛋囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:781",
+   "tts_text": "再兩顆星星就可以孵蛋囉！",
+   "n": 2
+  },
+  {
+   "id": "egg_need_3",
+   "text": "再 3 顆星星就可以孵蛋囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:781",
+   "tts_text": "再三顆星星就可以孵蛋囉！",
+   "n": 3
+  },
+  {
+   "id": "egg_need_4",
+   "text": "再 4 顆星星就可以孵蛋囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:781",
+   "tts_text": "再四顆星星就可以孵蛋囉！",
+   "n": 4
+  },
+  {
+   "id": "egg_need_5",
+   "text": "再 5 顆星星就可以孵蛋囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:781",
+   "tts_text": "再五顆星星就可以孵蛋囉！",
+   "n": 5
+  },
+  {
+   "id": "egg_need_6",
+   "text": "再 6 顆星星就可以孵蛋囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:781",
+   "tts_text": "再六顆星星就可以孵蛋囉！",
+   "n": 6
+  },
+  {
+   "id": "egg_need_7",
+   "text": "再 7 顆星星就可以孵蛋囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:781",
+   "tts_text": "再七顆星星就可以孵蛋囉！",
+   "n": 7
+  },
+  {
+   "id": "egg_need_8",
+   "text": "再 8 顆星星就可以孵蛋囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:781",
+   "tts_text": "再八顆星星就可以孵蛋囉！",
+   "n": 8
+  },
+  {
+   "id": "egg_need_9",
+   "text": "再 9 顆星星就可以孵蛋囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:781",
+   "tts_text": "再九顆星星就可以孵蛋囉！",
+   "n": 9
+  },
+  {
+   "id": "egg_need_10",
+   "text": "再 10 顆星星就可以孵蛋囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:781",
+   "tts_text": "再十顆星星就可以孵蛋囉！",
+   "n": 10
+  },
+  {
+   "id": "welcome_slot1",
+   "text": "小熊，歡迎回來！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:837"
+  },
+  {
+   "id": "welcome_slot2",
+   "text": "小兔，歡迎回來！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:837"
+  },
+  {
+   "id": "welcome_slot3",
+   "text": "小貓，歡迎回來！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:837"
+  },
+  {
+   "id": "hatch_friend_5",
+   "text": "熊貓來了，會來店裡買東西喔！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:789"
+  },
+  {
+   "id": "hatch_friend_6",
+   "text": "企鵝來了，會來店裡買東西喔！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:789"
+  },
+  {
+   "id": "hatch_friend_7",
+   "text": "青蛙來了，會來店裡買東西喔！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:789"
+  },
+  {
+   "id": "hatch_friend_8",
+   "text": "小獅子來了，會來店裡買東西喔！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:789"
+  },
+  {
+   "id": "friend_1",
+   "text": "小熊",
+   "cat": "friend",
+   "src": "zhuyin.js:201"
+  },
+  {
+   "id": "friend_2",
+   "text": "小兔",
+   "cat": "friend",
+   "src": "zhuyin.js:201"
+  },
+  {
+   "id": "friend_3",
+   "text": "小貓",
+   "cat": "friend",
+   "src": "zhuyin.js:201"
+  },
+  {
+   "id": "friend_4",
+   "text": "小狐狸",
+   "cat": "friend",
+   "src": "zhuyin.js:201"
+  },
+  {
+   "id": "friend_8",
+   "text": "小獅子",
+   "cat": "friend",
+   "src": "zhuyin.js:201"
+  },
+  {
+   "id": "order_want_蘋果",
+   "text": "我要蘋果",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_香蕉",
+   "text": "我要香蕉",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_西瓜",
+   "text": "我要西瓜",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_草莓",
+   "text": "我要草莓",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_葡萄",
+   "text": "我要葡萄",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_橘子",
+   "text": "我要橘子",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_蛋糕",
+   "text": "我要蛋糕",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_麵包",
+   "text": "我要麵包",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_牛奶",
+   "text": "我要牛奶",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_餅乾",
+   "text": "我要餅乾",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_糖果",
+   "text": "我要糖果",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_冰淇淋",
+   "text": "我要冰淇淋",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_飯",
+   "text": "我要飯",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_麵",
+   "text": "我要麵",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_蛋",
+   "text": "我要蛋",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_水",
+   "text": "我要水",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_茶",
+   "text": "我要茶",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_披薩",
+   "text": "我要披薩",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_漢堡",
+   "text": "我要漢堡",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_壽司",
+   "text": "我要壽司",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_玉米",
+   "text": "我要玉米",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_紅蘿蔔",
+   "text": "我要紅蘿蔔",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_熱狗",
+   "text": "我要熱狗",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_水餃",
+   "text": "我要水餃",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_果汁",
+   "text": "我要果汁",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_甜甜圈",
+   "text": "我要甜甜圈",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_桃子",
+   "text": "我要桃子",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_櫻桃",
+   "text": "我要櫻桃",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_薯條",
+   "text": "我要薯條",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_布丁",
+   "text": "我要布丁",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_起司",
+   "text": "我要起司",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_want_湯",
+   "text": "我要湯",
+   "cat": "order",
+   "src": "zhuyin.js:229"
+  },
+  {
+   "id": "order_thanks_蘋果",
+   "text": "蘋果，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_香蕉",
+   "text": "香蕉，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_西瓜",
+   "text": "西瓜，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_草莓",
+   "text": "草莓，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_葡萄",
+   "text": "葡萄，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_橘子",
+   "text": "橘子，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_蛋糕",
+   "text": "蛋糕，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_麵包",
+   "text": "麵包，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_牛奶",
+   "text": "牛奶，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_餅乾",
+   "text": "餅乾，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_糖果",
+   "text": "糖果，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_冰淇淋",
+   "text": "冰淇淋，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_飯",
+   "text": "飯，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_麵",
+   "text": "麵，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_蛋",
+   "text": "蛋，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_水",
+   "text": "水，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_茶",
+   "text": "茶，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_披薩",
+   "text": "披薩，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_漢堡",
+   "text": "漢堡，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_壽司",
+   "text": "壽司，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_玉米",
+   "text": "玉米，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_紅蘿蔔",
+   "text": "紅蘿蔔，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_熱狗",
+   "text": "熱狗，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_水餃",
+   "text": "水餃，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_果汁",
+   "text": "果汁，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_甜甜圈",
+   "text": "甜甜圈，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_桃子",
+   "text": "桃子，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_櫻桃",
+   "text": "櫻桃，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_薯條",
+   "text": "薯條，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_布丁",
+   "text": "布丁，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_起司",
+   "text": "起司，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "order_thanks_湯",
+   "text": "湯，謝謝你！",
+   "cat": "order",
+   "src": "zhuyin.js:376"
+  },
+  {
+   "id": "hunt_found",
+   "text": "找到了！",
+   "cat": "hunt",
+   "src": "zhuyin.js:460（改寫：前綴）",
+   "note": "播放時接在詞音檔前面"
+  },
+  {
+   "id": "word_貓",
+   "text": "貓",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄇㄠ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_狗",
+   "text": "狗",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄍㄡˇ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_魚",
+   "text": "魚",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄩˊ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_鳥",
+   "text": "鳥",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄋㄧㄠˇ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_牛",
+   "text": "牛",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄋㄧㄡˊ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_馬",
+   "text": "馬",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄇㄚˇ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_羊",
+   "text": "羊",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄧㄤˊ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_豬",
+   "text": "豬",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄓㄨ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_雞",
+   "text": "雞",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄐㄧ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_鴨",
+   "text": "鴨",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄧㄚ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_兔子",
+   "text": "兔子",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄊㄨˋ ㄗ˙",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_老虎",
+   "text": "老虎",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄌㄠˇ ㄏㄨˇ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_獅子",
+   "text": "獅子",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄕ ㄗ˙",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_大象",
+   "text": "大象",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄉㄚˋ ㄒㄧㄤˋ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_猴子",
+   "text": "猴子",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄏㄡˊ ㄗ˙",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_熊",
+   "text": "熊",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄒㄩㄥˊ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_蛇",
+   "text": "蛇",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄕㄜˊ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_青蛙",
+   "text": "青蛙",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄑㄧㄥ ㄨㄚ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_蝴蝶",
+   "text": "蝴蝶",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄏㄨˊ ㄉㄧㄝˊ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_蜜蜂",
+   "text": "蜜蜂",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄇㄧˋ ㄈㄥ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_企鵝",
+   "text": "企鵝",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄑㄧˋ ㄜˊ",
+   "word_cat": "animal",
+   "tw_risk": "兩岸讀音不同：企：台灣 ㄑㄧˋ ≠ 大陸 ㄑㄧˇ"
+  },
+  {
+   "id": "word_烏龜",
+   "text": "烏龜",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄨ ㄍㄨㄟ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_恐龍",
+   "text": "恐龍",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄎㄨㄥˇ ㄌㄨㄥˊ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_熊貓",
+   "text": "熊貓",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄒㄩㄥˊ ㄇㄠ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_長頸鹿",
+   "text": "長頸鹿",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄔㄤˊ ㄐㄧㄥˇ ㄌㄨˋ",
+   "word_cat": "animal",
+   "tw_risk": "破音字（TTS 可能挑錯音）：長：台灣 ㄔㄤˊ ≠ 另一讀 ㄓㄤˇ"
+  },
+  {
+   "id": "word_斑馬",
+   "text": "斑馬",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄅㄢ ㄇㄚˇ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_螃蟹",
+   "text": "螃蟹",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄆㄤˊ ㄒㄧㄝˋ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_章魚",
+   "text": "章魚",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄓㄤ ㄩˊ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_蝸牛",
+   "text": "蝸牛",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄍㄨㄚ ㄋㄧㄡˊ",
+   "word_cat": "animal",
+   "tts_text_gemini": "瓜牛",
+   "tw_risk": "兩岸讀音不同：蝸：台灣 ㄍㄨㄚ ≠ 大陸 ㄨㄛ"
+  },
+  {
+   "id": "word_鯨魚",
+   "text": "鯨魚",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄐㄧㄥ ㄩˊ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_小雞",
+   "text": "小雞",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄒㄧㄠˇ ㄐㄧ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_瓢蟲",
+   "text": "瓢蟲",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄆㄧㄠˊ ㄔㄨㄥˊ",
+   "word_cat": "animal"
+  },
+  {
+   "id": "word_蘋果",
+   "text": "蘋果",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄆㄧㄥˊ ㄍㄨㄛˇ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_香蕉",
+   "text": "香蕉",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄒㄧㄤ ㄐㄧㄠ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_西瓜",
+   "text": "西瓜",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄒㄧ ㄍㄨㄚ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_草莓",
+   "text": "草莓",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄘㄠˇ ㄇㄟˊ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_葡萄",
+   "text": "葡萄",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄆㄨˊ ㄊㄠˊ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_橘子",
+   "text": "橘子",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄐㄩˊ ㄗ˙",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_蛋糕",
+   "text": "蛋糕",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄉㄢˋ ㄍㄠ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_麵包",
+   "text": "麵包",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄇㄧㄢˋ ㄅㄠ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_牛奶",
+   "text": "牛奶",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄋㄧㄡˊ ㄋㄞˇ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_餅乾",
+   "text": "餅乾",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄅㄧㄥˇ ㄍㄢ",
+   "word_cat": "food",
+   "tw_risk": "破音字（TTS 可能挑錯音）：乾：台灣 ㄍㄢ ≠ 另一讀 ㄑㄧㄢˊ"
+  },
+  {
+   "id": "word_糖果",
+   "text": "糖果",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄊㄤˊ ㄍㄨㄛˇ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_冰淇淋",
+   "text": "冰淇淋",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄅㄧㄥ ㄑㄧˊ ㄌㄧㄣˊ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_飯",
+   "text": "飯",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄈㄢˋ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_麵",
+   "text": "麵",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄇㄧㄢˋ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_蛋",
+   "text": "蛋",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄉㄢˋ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_水",
+   "text": "水",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄕㄨㄟˇ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_茶",
+   "text": "茶",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄔㄚˊ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_披薩",
+   "text": "披薩",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄆㄧ ㄙㄚˋ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_漢堡",
+   "text": "漢堡",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄏㄢˋ ㄅㄠˇ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_壽司",
+   "text": "壽司",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄕㄡˋ ㄙ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_玉米",
+   "text": "玉米",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄩˋ ㄇㄧˇ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_紅蘿蔔",
+   "text": "紅蘿蔔",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄏㄨㄥˊ ㄌㄨㄛˊ ㄅㄛ˙",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_熱狗",
+   "text": "熱狗",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄖㄜˋ ㄍㄡˇ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_水餃",
+   "text": "水餃",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄕㄨㄟˇ ㄐㄧㄠˇ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_果汁",
+   "text": "果汁",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄍㄨㄛˇ ㄓ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_甜甜圈",
+   "text": "甜甜圈",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄊㄧㄢˊ ㄊㄧㄢˊ ㄑㄩㄢ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_桃子",
+   "text": "桃子",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄊㄠˊ ㄗ˙",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_櫻桃",
+   "text": "櫻桃",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄧㄥ ㄊㄠˊ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_薯條",
+   "text": "薯條",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄕㄨˇ ㄊㄧㄠˊ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_布丁",
+   "text": "布丁",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄅㄨˋ ㄉㄧㄥ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_起司",
+   "text": "起司",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄑㄧˇ ㄙ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_湯",
+   "text": "湯",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄊㄤ",
+   "word_cat": "food"
+  },
+  {
+   "id": "word_車子",
+   "text": "車子",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄔㄜ ㄗ˙",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_飛機",
+   "text": "飛機",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄈㄟ ㄐㄧ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_船",
+   "text": "船",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄔㄨㄢˊ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_火車",
+   "text": "火車",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄏㄨㄛˇ ㄔㄜ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_球",
+   "text": "球",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄑㄧㄡˊ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_書",
+   "text": "書",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄕㄨ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_房子",
+   "text": "房子",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄈㄤˊ ㄗ˙",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_帽子",
+   "text": "帽子",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄇㄠˋ ㄗ˙",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_鞋子",
+   "text": "鞋子",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄒㄧㄝˊ ㄗ˙",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_氣球",
+   "text": "氣球",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄑㄧˋ ㄑㄧㄡˊ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_禮物",
+   "text": "禮物",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄌㄧˇ ㄨˋ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_鑰匙",
+   "text": "鑰匙",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄧㄠˋ ㄕ˙",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_雨傘",
+   "text": "雨傘",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄩˇ ㄙㄢˇ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_電話",
+   "text": "電話",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄉㄧㄢˋ ㄏㄨㄚˋ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_時鐘",
+   "text": "時鐘",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄕˊ ㄓㄨㄥ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_腳踏車",
+   "text": "腳踏車",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄐㄧㄠˇ ㄊㄚˋ ㄔㄜ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_公車",
+   "text": "公車",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄍㄨㄥ ㄔㄜ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_消防車",
+   "text": "消防車",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄒㄧㄠ ㄈㄤˊ ㄔㄜ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_救護車",
+   "text": "救護車",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄐㄧㄡˋ ㄏㄨˋ ㄔㄜ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_火箭",
+   "text": "火箭",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄏㄨㄛˇ ㄐㄧㄢˋ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_椅子",
+   "text": "椅子",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄧˇ ㄗ˙",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_床",
+   "text": "床",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄔㄨㄤˊ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_門",
+   "text": "門",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄇㄣˊ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_杯子",
+   "text": "杯子",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄅㄟ ㄗ˙",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_碗",
+   "text": "碗",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄨㄢˇ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_剪刀",
+   "text": "剪刀",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄐㄧㄢˇ ㄉㄠ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_鉛筆",
+   "text": "鉛筆",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄑㄧㄢ ㄅㄧˇ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_蠟筆",
+   "text": "蠟筆",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄌㄚˋ ㄅㄧˇ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_玩具",
+   "text": "玩具",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄨㄢˊ ㄐㄩˋ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_機器人",
+   "text": "機器人",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄐㄧ ㄑㄧˋ ㄖㄣˊ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_積木",
+   "text": "積木",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄐㄧ ㄇㄨˋ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_風箏",
+   "text": "風箏",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄈㄥ ㄓㄥ",
+   "word_cat": "thing"
+  },
+  {
+   "id": "word_爸爸",
+   "text": "爸爸",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄅㄚˋ ㄅㄚ˙",
+   "word_cat": "people"
+  },
+  {
+   "id": "word_媽媽",
+   "text": "媽媽",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄇㄚ ㄇㄚ˙",
+   "word_cat": "people"
+  },
+  {
+   "id": "word_爺爺",
+   "text": "爺爺",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄧㄝˊ ㄧㄝ˙",
+   "word_cat": "people"
+  },
+  {
+   "id": "word_奶奶",
+   "text": "奶奶",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄋㄞˇ ㄋㄞ˙",
+   "word_cat": "people"
+  },
+  {
+   "id": "word_寶寶",
+   "text": "寶寶",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄅㄠˇ ㄅㄠˇ",
+   "word_cat": "people"
+  },
+  {
+   "id": "word_醫生",
+   "text": "醫生",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄧ ㄕㄥ",
+   "word_cat": "people"
+  },
+  {
+   "id": "word_警察",
+   "text": "警察",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄐㄧㄥˇ ㄔㄚˊ",
+   "word_cat": "people"
+  },
+  {
+   "id": "word_老師",
+   "text": "老師",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄌㄠˇ ㄕ",
+   "word_cat": "people"
+  },
+  {
+   "id": "word_手",
+   "text": "手",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄕㄡˇ",
+   "word_cat": "people"
+  },
+  {
+   "id": "word_眼睛",
+   "text": "眼睛",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄧㄢˇ ㄐㄧㄥ",
+   "word_cat": "people"
+  },
+  {
+   "id": "word_腳",
+   "text": "腳",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄐㄧㄠˇ",
+   "word_cat": "people"
+  },
+  {
+   "id": "word_嘴巴",
+   "text": "嘴巴",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄗㄨㄟˇ ㄅㄚ",
+   "word_cat": "people"
+  },
+  {
+   "id": "word_鼻子",
+   "text": "鼻子",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄅㄧˊ ㄗ˙",
+   "word_cat": "people"
+  },
+  {
+   "id": "word_耳朵",
+   "text": "耳朵",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄦˇ ㄉㄨㄛ˙",
+   "word_cat": "people"
+  },
+  {
+   "id": "word_牙齒",
+   "text": "牙齒",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄧㄚˊ ㄔˇ",
+   "word_cat": "people"
+  },
+  {
+   "id": "word_跑步",
+   "text": "跑步",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄆㄠˇ ㄅㄨˋ",
+   "word_cat": "people"
+  },
+  {
+   "id": "word_游泳",
+   "text": "游泳",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄧㄡˊ ㄩㄥˇ",
+   "word_cat": "people"
+  },
+  {
+   "id": "word_睡覺",
+   "text": "睡覺",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄕㄨㄟˋ ㄐㄧㄠˋ",
+   "word_cat": "people",
+   "tw_risk": "破音字（TTS 可能挑錯音）：覺：台灣 ㄐㄧㄠˋ ≠ 另一讀 ㄐㄩㄝˊ"
+  },
+  {
+   "id": "word_唱歌",
+   "text": "唱歌",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄔㄤˋ ㄍㄜ",
+   "word_cat": "people"
+  },
+  {
+   "id": "word_跳舞",
+   "text": "跳舞",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄊㄧㄠˋ ㄨˇ",
+   "word_cat": "people"
+  },
+  {
+   "id": "word_笑",
+   "text": "笑",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄒㄧㄠˋ",
+   "word_cat": "people"
+  },
+  {
+   "id": "word_哭",
+   "text": "哭",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄎㄨ",
+   "word_cat": "people"
+  },
+  {
+   "id": "word_花",
+   "text": "花",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄏㄨㄚ",
+   "word_cat": "nature"
+  },
+  {
+   "id": "word_樹",
+   "text": "樹",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄕㄨˋ",
+   "word_cat": "nature"
+  },
+  {
+   "id": "word_太陽",
+   "text": "太陽",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄊㄞˋ ㄧㄤˊ",
+   "word_cat": "nature"
+  },
+  {
+   "id": "word_月亮",
+   "text": "月亮",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄩㄝˋ ㄌㄧㄤˋ",
+   "word_cat": "nature"
+  },
+  {
+   "id": "word_星星",
+   "text": "星星",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄒㄧㄥ ㄒㄧㄥ",
+   "word_cat": "nature"
+  },
+  {
+   "id": "word_雨",
+   "text": "雨",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄩˇ",
+   "word_cat": "nature"
+  },
+  {
+   "id": "word_雪",
+   "text": "雪",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄒㄩㄝˇ",
+   "word_cat": "nature"
+  },
+  {
+   "id": "word_山",
+   "text": "山",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄕㄢ",
+   "word_cat": "nature"
+  },
+  {
+   "id": "word_海",
+   "text": "海",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄏㄞˇ",
+   "word_cat": "nature"
+  },
+  {
+   "id": "word_雲",
+   "text": "雲",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄩㄣˊ",
+   "word_cat": "nature"
+  },
+  {
+   "id": "word_彩虹",
+   "text": "彩虹",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄘㄞˇ ㄏㄨㄥˊ",
+   "word_cat": "nature"
+  },
+  {
+   "id": "word_火",
+   "text": "火",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄏㄨㄛˇ",
+   "word_cat": "nature"
+  },
+  {
+   "id": "word_葉子",
+   "text": "葉子",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄧㄝˋ ㄗ˙",
+   "word_cat": "nature"
+  },
+  {
+   "id": "word_蘑菇",
+   "text": "蘑菇",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄇㄛˊ ㄍㄨ",
+   "word_cat": "nature"
+  },
+  {
+   "id": "word_紅色",
+   "text": "紅色",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄏㄨㄥˊ ㄙㄜˋ",
+   "word_cat": "nature"
+  },
+  {
+   "id": "word_黃色",
+   "text": "黃色",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄏㄨㄤˊ ㄙㄜˋ",
+   "word_cat": "nature"
+  },
+  {
+   "id": "word_藍色",
+   "text": "藍色",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄌㄢˊ ㄙㄜˋ",
+   "word_cat": "nature"
+  },
+  {
+   "id": "word_綠色",
+   "text": "綠色",
+   "cat": "word",
+   "src": "zhuyin-words.js WORDS",
+   "zhuyin": "ㄌㄩˋ ㄙㄜˋ",
+   "word_cat": "nature"
+  },
+  {
+   "id": "phrase_紅色的蘋果",
+   "text": "紅色的蘋果",
+   "cat": "phrase",
+   "src": "zhuyin-words.js PHRASES",
+   "zhuyin": "ㄏㄨㄥˊ ㄙㄜˋ ㄉㄜ˙ ㄆㄧㄥˊ ㄍㄨㄛˇ"
+  },
+  {
+   "id": "phrase_綠色的蘋果",
+   "text": "綠色的蘋果",
+   "cat": "phrase",
+   "src": "zhuyin-words.js PHRASES",
+   "zhuyin": "ㄌㄩˋ ㄙㄜˋ ㄉㄜ˙ ㄆㄧㄥˊ ㄍㄨㄛˇ"
+  },
+  {
+   "id": "phrase_紅色的車子",
+   "text": "紅色的車子",
+   "cat": "phrase",
+   "src": "zhuyin-words.js PHRASES",
+   "zhuyin": "ㄏㄨㄥˊ ㄙㄜˋ ㄉㄜ˙ ㄔㄜ ㄗ˙"
+  },
+  {
+   "id": "phrase_藍色的車子",
+   "text": "藍色的車子",
+   "cat": "phrase",
+   "src": "zhuyin-words.js PHRASES",
+   "zhuyin": "ㄌㄢˊ ㄙㄜˋ ㄉㄜ˙ ㄔㄜ ㄗ˙"
+  },
+  {
+   "id": "phrase_紅色的花",
+   "text": "紅色的花",
+   "cat": "phrase",
+   "src": "zhuyin-words.js PHRASES",
+   "zhuyin": "ㄏㄨㄥˊ ㄙㄜˋ ㄉㄜ˙ ㄏㄨㄚ"
+  },
+  {
+   "id": "phrase_黃色的花",
+   "text": "黃色的花",
+   "cat": "phrase",
+   "src": "zhuyin-words.js PHRASES",
+   "zhuyin": "ㄏㄨㄤˊ ㄙㄜˋ ㄉㄜ˙ ㄏㄨㄚ"
+  },
+  {
+   "id": "phrase_紅色的心",
+   "text": "紅色的心",
+   "cat": "phrase",
+   "src": "zhuyin-words.js PHRASES",
+   "zhuyin": "ㄏㄨㄥˊ ㄙㄜˋ ㄉㄜ˙ ㄒㄧㄣ"
+  },
+  {
+   "id": "phrase_藍色的心",
+   "text": "藍色的心",
+   "cat": "phrase",
+   "src": "zhuyin-words.js PHRASES",
+   "zhuyin": "ㄌㄢˊ ㄙㄜˋ ㄉㄜ˙ ㄒㄧㄣ"
+  },
+  {
+   "id": "phrase_黃色的心",
+   "text": "黃色的心",
+   "cat": "phrase",
+   "src": "zhuyin-words.js PHRASES",
+   "zhuyin": "ㄏㄨㄤˊ ㄙㄜˋ ㄉㄜ˙ ㄒㄧㄣ"
+  },
+  {
+   "id": "phrase_綠色的心",
+   "text": "綠色的心",
+   "cat": "phrase",
+   "src": "zhuyin-words.js PHRASES",
+   "zhuyin": "ㄌㄩˋ ㄙㄜˋ ㄉㄜ˙ ㄒㄧㄣ"
+  },
+  {
+   "id": "phrase_黃色的書",
+   "text": "黃色的書",
+   "cat": "phrase",
+   "src": "zhuyin-words.js PHRASES",
+   "zhuyin": "ㄏㄨㄤˊ ㄙㄜˋ ㄉㄜ˙ ㄕㄨ"
+  },
+  {
+   "id": "phrase_綠色的書",
+   "text": "綠色的書",
+   "cat": "phrase",
+   "src": "zhuyin-words.js PHRASES",
+   "zhuyin": "ㄌㄩˋ ㄙㄜˋ ㄉㄜ˙ ㄕㄨ"
+  },
+  {
+   "id": "phrase_藍色的書",
+   "text": "藍色的書",
+   "cat": "phrase",
+   "src": "zhuyin-words.js PHRASES",
+   "zhuyin": "ㄌㄢˊ ㄙㄜˋ ㄉㄜ˙ ㄕㄨ"
+  }
+ ]
+}

@@ -1,0 +1,1678 @@
+{
+ "files": {
+  "voice/samples/edge_hsiaochen/s1_intro.mp3": {
+   "duration": 2.008667,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "50266"
+  },
+  "voice/samples/edge_hsiaochen/s2_praise.mp3": {
+   "duration": 0.658417,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "55369"
+  },
+  "voice/samples/edge_hsiaochen/s3_praise.mp3": {
+   "duration": 1.205125,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "52236"
+  },
+  "voice/samples/edge_hsiaochen/s4_word.mp3": {
+   "duration": 0.378333,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "59820"
+  },
+  "voice/samples/edge_hsiaochen/s5_word.mp3": {
+   "duration": 0.588667,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "56058"
+  },
+  "voice/samples/edge_hsiaochen/s6_word.mp3": {
+   "duration": 0.623417,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "54781"
+  },
+  "voice/samples/edge_hsiaochen/s7_word.mp3": {
+   "duration": 0.952167,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "52805"
+  },
+  "voice/samples/edge_hsiaochen/s8_guide.mp3": {
+   "duration": 3.229125,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "49462"
+  },
+  "voice/samples/edge_hsiaochen/s9_result.mp3": {
+   "duration": 1.720417,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "50652"
+  },
+  "voice/samples/edge_hsiaochen/r1_qie.mp3": {
+   "duration": 0.699792,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "55387"
+  },
+  "voice/samples/edge_hsiaochen/r2_guaniu.mp3": {
+   "duration": 0.674792,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "55732"
+  },
+  "voice/samples/edge_hsiaochen/r3_binggan.mp3": {
+   "duration": 0.6675,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "54615"
+  },
+  "voice/samples/edge_hsiaochen/r4_shuijiao.mp3": {
+   "duration": 0.745958,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "55048"
+  },
+  "voice/samples/edge_hsiaoyu/s1_intro.mp3": {
+   "duration": 2.30275,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "49849"
+  },
+  "voice/samples/edge_hsiaoyu/s2_praise.mp3": {
+   "duration": 0.834083,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "53375"
+  },
+  "voice/samples/edge_hsiaoyu/s3_praise.mp3": {
+   "duration": 1.571583,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "51051"
+  },
+  "voice/samples/edge_hsiaoyu/s4_word.mp3": {
+   "duration": 0.472917,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "57599"
+  },
+  "voice/samples/edge_hsiaoyu/s5_word.mp3": {
+   "duration": 0.53425,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "57456"
+  },
+  "voice/samples/edge_hsiaoyu/s6_word.mp3": {
+   "duration": 0.747625,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "54925"
+  },
+  "voice/samples/edge_hsiaoyu/s7_word.mp3": {
+   "duration": 1.092583,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "52345"
+  },
+  "voice/samples/edge_hsiaoyu/s8_guide.mp3": {
+   "duration": 3.8435,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "49348"
+  },
+  "voice/samples/edge_hsiaoyu/s9_result.mp3": {
+   "duration": 2.287,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "50193"
+  },
+  "voice/samples/edge_hsiaoyu/r1_qie.mp3": {
+   "duration": 0.786083,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "53704"
+  },
+  "voice/samples/edge_hsiaoyu/r2_guaniu.mp3": {
+   "duration": 0.787625,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "53599"
+  },
+  "voice/samples/edge_hsiaoyu/r3_binggan.mp3": {
+   "duration": 0.793958,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "54622"
+  },
+  "voice/samples/edge_hsiaoyu/r4_shuijiao.mp3": {
+   "duration": 0.872458,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "53669"
+  },
+  "voice/samples/gemini_teacher/s1_intro.mp3": {
+   "duration": 2.798583,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "49662"
+  },
+  "voice/samples/gemini_teacher/s2_praise.mp3": {
+   "duration": 1.116917,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "52236"
+  },
+  "voice/samples/gemini_teacher/s3_praise.mp3": {
+   "duration": 1.945958,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "50702"
+  },
+  "voice/samples/gemini_teacher/s4_word.mp3": {
+   "duration": 1.077875,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "51991"
+  },
+  "voice/samples/gemini_teacher/s5_word.mp3": {
+   "duration": 1.51675,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "51378"
+  },
+  "voice/samples/gemini_teacher/s6_word.mp3": {
+   "duration": 1.736792,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "50838"
+  },
+  "voice/samples/gemini_teacher/s7_word.mp3": {
+   "duration": 3.142417,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "49360"
+  },
+  "voice/samples/gemini_teacher/s8_guide.mp3": {
+   "duration": 2.890375,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "49679"
+  },
+  "voice/samples/gemini_teacher/s9_result.mp3": {
+   "duration": 2.012875,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "50161"
+  },
+  "voice/samples/gemini_teacher/r1_qie.mp3": {
+   "duration": 1.692083,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "50820"
+  },
+  "voice/samples/gemini_teacher/r2_guaniu.mp3": {
+   "duration": 2.233958,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "50353"
+  },
+  "voice/samples/gemini_teacher/r3_binggan.mp3": {
+   "duration": 1.89275,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "50301"
+  },
+  "voice/samples/gemini_teacher/r4_shuijiao.mp3": {
+   "duration": 1.443958,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "51574"
+  },
+  "voice/samples/gemini_sister/s1_intro.mp3": {
+   "duration": 2.883375,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "49799"
+  },
+  "voice/samples/gemini_sister/s2_praise.mp3": {
+   "duration": 1.27925,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "51911"
+  },
+  "voice/samples/gemini_sister/s3_praise.mp3": {
+   "duration": 2.130083,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "50105"
+  },
+  "voice/samples/gemini_sister/s4_word.mp3": {
+   "duration": 0.912,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "52605"
+  },
+  "voice/samples/gemini_sister/s5_word.mp3": {
+   "duration": 1.340625,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "51253"
+  },
+  "voice/samples/gemini_sister/s6_word.mp3": {
+   "duration": 1.833458,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "50671"
+  },
+  "voice/samples/gemini_sister/s7_word.mp3": {
+   "duration": 2.346583,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "49900"
+  },
+  "voice/samples/gemini_sister/s8_guide.mp3": {
+   "duration": 2.729583,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "49651"
+  },
+  "voice/samples/gemini_sister/s9_result.mp3": {
+   "duration": 2.028083,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "50352"
+  },
+  "voice/samples/gemini_sister/r1_qie.mp3": {
+   "duration": 1.653333,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "50617"
+  },
+  "voice/samples/gemini_sister/r2_guaniu.mp3": {
+   "duration": 2.078667,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "50236"
+  },
+  "voice/samples/gemini_sister/r3_binggan.mp3": {
+   "duration": 2.102042,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "50225"
+  },
+  "voice/samples/gemini_sister/r4_shuijiao.mp3": {
+   "duration": 1.549292,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "51042"
+  },
+  "voice/samples/gemini_prebuilt/s1_intro.mp3": {
+   "duration": 2.935458,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "49701"
+  },
+  "voice/samples/gemini_prebuilt/s2_praise.mp3": {
+   "duration": 1.625292,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "50782"
+  },
+  "voice/samples/gemini_prebuilt/s3_praise.mp3": {
+   "duration": 2.291958,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "50084"
+  },
+  "voice/samples/gemini_prebuilt/s4_word.mp3": {
+   "duration": 0.894583,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "53629"
+  },
+  "voice/samples/gemini_prebuilt/s5_word.mp3": {
+   "duration": 1.213333,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "51883"
+  },
+  "voice/samples/gemini_prebuilt/s6_word.mp3": {
+   "duration": 1.614125,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "51133"
+  },
+  "voice/samples/gemini_prebuilt/s7_word.mp3": {
+   "duration": 2.281958,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "50304"
+  },
+  "voice/samples/gemini_prebuilt/s8_guide.mp3": {
+   "duration": 2.897958,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "49549"
+  },
+  "voice/samples/gemini_prebuilt/s9_result.mp3": {
+   "duration": 2.276,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "49929"
+  },
+  "voice/samples/gemini_prebuilt/r1_qie.mp3": {
+   "duration": 1.310333,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "51559"
+  },
+  "voice/samples/gemini_prebuilt/r2_guaniu.mp3": {
+   "duration": 1.746375,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "50559"
+  },
+  "voice/samples/gemini_prebuilt/r3_binggan.mp3": {
+   "duration": 1.436917,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "51025"
+  },
+  "voice/samples/gemini_prebuilt/r4_shuijiao.mp3": {
+   "duration": 1.537958,
+   "sample_rate": "24000",
+   "channels": 1,
+   "bit_rate": "51418"
+  }
+ },
+ "asr": {
+  "voice/samples/edge_hsiaochen/s1_intro.mp3": {
+   "hanzi": "聽聲音，點對的魚",
+   "pinyin": "ting1 sheng1 yin1 dian3 dui4 de5 yu2",
+   "accent": "台灣國語",
+   "accent_reason": "音調平穩且帶有典型的台灣語音語調特徵",
+   "natural": 3,
+   "issues": "帶有合成語音的機械感"
+  },
+  "voice/samples/edge_hsiaochen/s2_praise.mp3": {
+   "hanzi": "好棒",
+   "pinyin": "hao3 bang4",
+   "accent": "台灣國語",
+   "accent_reason": "語調自然上揚，帶有典型的台灣日常口語讚嘆語氣",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaochen/s3_praise.mp3": {
+   "hanzi": "你好會拼喔",
+   "pinyin": "ni3 hao3 hui4 pin1 o1",
+   "accent": "台灣國語",
+   "accent_reason": "句末語氣詞「喔」的語調與整體輕快抑揚具典型台灣日常口語特徵",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaochen/s4_word.mp3": {
+   "hanzi": "魚",
+   "pinyin": "yu2",
+   "accent": "無法判斷",
+   "accent_reason": "僅單一音節，無法從發音特徵區分地域口音",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaochen/s5_word.mp3": {
+   "hanzi": "雄",
+   "pinyin": "xiong2",
+   "accent": "無法判斷",
+   "accent_reason": "僅單個音節發音，缺乏足夠語境特徵判斷具體地域口音",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaochen/s6_word.mp3": {
+   "hanzi": "老虎",
+   "pinyin": "lao2 hu3",
+   "accent": "無法判斷",
+   "accent_reason": "僅兩字標準發音，缺乏足夠地域性語音特徵以供辨別",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaochen/s7_word.mp3": {
+   "hanzi": "長頸鹿",
+   "pinyin": "chang2 jing3 lu4",
+   "accent": "台灣國語",
+   "accent_reason": "聲調與語音特徵符合台灣國語發音習慣",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaochen/s8_guide.mp3": {
+   "hanzi": "你好，快來選遊戲玩吧",
+   "pinyin": "ni3 hao3 kuai4 lai2 xuan3 you2 xi4 wan2 ba5",
+   "accent": "台灣國語",
+   "accent_reason": "語調輕柔無兒化韻，整體發音帶有台灣國語兒童互動語音特徵",
+   "natural": 3,
+   "issues": "機械感、句間停頓略不自然"
+  },
+  "voice/samples/edge_hsiaochen/s9_result.mp3": {
+   "hanzi": "拿到三張新貼紙",
+   "pinyin": "na2 dao4 san1 zhang1 xin1 tie1 zhi3",
+   "accent": "台灣國語",
+   "accent_reason": "語調輕柔自然，捲舌音偏平，為典型台灣生活口音",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaochen/r1_qie.mp3": {
+   "hanzi": "企鵝",
+   "pinyin": "qi4 e2",
+   "accent": "台灣國語",
+   "accent_reason": "「企」發第四聲且聲調語感符合台灣國語習慣",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaochen/r2_guaniu.mp3": {
+   "hanzi": "蝸牛",
+   "pinyin": "gua1 niu2",
+   "accent": "台灣國語",
+   "accent_reason": "「蝸」字讀作 gua1，符合台灣國語的常見讀音與審音標準",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaochen/r3_binggan.mp3": {
+   "hanzi": "餅乾",
+   "pinyin": "bing3 gan1",
+   "accent": "無法判斷",
+   "accent_reason": "僅有兩音節且發音標準，兩岸讀音與調型無顯著差異",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaochen/r4_shuijiao.mp3": {
+   "hanzi": "睡覺",
+   "pinyin": "shui4 jiao4",
+   "accent": "台灣國語",
+   "accent_reason": "翹舌音自然適度且語調柔和偏台灣腔調",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaoyu/s1_intro.mp3": {
+   "hanzi": "聽聲音，點對的魚",
+   "pinyin": "ting1 shen1 yin1 dian3 dui4 de5 yu2",
+   "accent": "大陸普通話",
+   "accent_reason": "翹舌音清晰標準，具典型幼教應用的普通話發音特色",
+   "natural": 3,
+   "issues": "機械感、句中停頓略生硬"
+  },
+  "voice/samples/edge_hsiaoyu/s2_praise.mp3": {
+   "hanzi": "好棒",
+   "pinyin": "hao3 bang4",
+   "accent": "台灣國語",
+   "accent_reason": "音調清脆自然且帶有台灣常見的日常讚美語氣",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaoyu/s3_praise.mp3": {
+   "hanzi": "你好會拼喔",
+   "pinyin": "ni2 hao3 hui4 pin1 o1",
+   "accent": "台灣國語",
+   "accent_reason": "句尾語助詞「喔」的使用及發音聲調具典型的台灣國語特徵",
+   "natural": 4,
+   "issues": "輕微機械感"
+  },
+  "voice/samples/edge_hsiaoyu/s4_word.mp3": {
+   "hanzi": "魚",
+   "pinyin": "yu2",
+   "accent": "無法判斷",
+   "accent_reason": "僅單一音節且發音標準，資訊不足以判斷特定地域口音",
+   "natural": 3,
+   "issues": "機械感"
+  },
+  "voice/samples/edge_hsiaoyu/s5_word.mp3": {
+   "hanzi": "熊",
+   "pinyin": "xiong2",
+   "accent": "無法判斷",
+   "accent_reason": "單字發音標準清晰，音色自然，特徵不足以區分兩岸口音",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaoyu/s6_word.mp3": {
+   "hanzi": "老虎",
+   "pinyin": "lao2 hu3",
+   "accent": "無法判斷",
+   "accent_reason": "詞彙過短，僅標準雙音節詞發音，無特異口音特徵",
+   "natural": 3,
+   "issues": "帶有輕微語音合成機械感"
+  },
+  "voice/samples/edge_hsiaoyu/s7_word.mp3": {
+   "hanzi": "長頸鹿",
+   "pinyin": "chang2 jing3 lu4",
+   "accent": "台灣國語",
+   "accent_reason": "音調平穩且頸字讀音與語調具台灣國語特點",
+   "natural": 4,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaoyu/s8_guide.mp3": {
+   "hanzi": "你好，快來選遊戲玩吧",
+   "pinyin": "ni2 hao3 kuai4 lai2 xuan3 you2 xi4 wan2 ba5",
+   "accent": "台灣國語",
+   "accent_reason": "發音聲調平柔無兒化，且帶有台灣語音合成器的典型語調特徵",
+   "natural": 3,
+   "issues": "機械感、停頓略生硬"
+  },
+  "voice/samples/edge_hsiaoyu/s9_result.mp3": {
+   "hanzi": "拿到三張新貼紙",
+   "pinyin": "na2 dao4 san1 zhang1 xin1 tie1 zhi3",
+   "accent": "台灣國語",
+   "accent_reason": "語調自然且翹舌音較平，帶有典型台灣國語語音特徵",
+   "natural": 3,
+   "issues": "略帶合成語音的機械感"
+  },
+  "voice/samples/edge_hsiaoyu/r1_qie.mp3": {
+   "hanzi": "企鵝",
+   "pinyin": "qi4 e2",
+   "accent": "大陸普通話",
+   "accent_reason": "企鵝二字發音標準，聲調平穩，符合標準普通話發音",
+   "natural": 4,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaoyu/r2_guaniu.mp3": {
+   "hanzi": "蝸牛",
+   "pinyin": "gua1 niu2",
+   "accent": "台灣國語",
+   "accent_reason": "「蝸」字發音為 gua1，符合台灣國語標準讀音習慣（大陸多作 wo1）。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaoyu/r3_binggan.mp3": {
+   "hanzi": "餅乾",
+   "pinyin": "bing3 gan1",
+   "accent": "台灣國語",
+   "accent_reason": "聲調自然溫和，無捲舌或兒化音，符合台灣國語特徵",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaoyu/r4_shuijiao.mp3": {
+   "hanzi": "睡覺",
+   "pinyin": "shui4 jiao4",
+   "accent": "大陸普通話",
+   "accent_reason": "翹舌音sh發音完整清晰且咬字偏向標準普通話",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_teacher/s1_intro.mp3": {
+   "hanzi": "聽聲音，點對的魚",
+   "pinyin": "ting1 sheng1 yin1 dian3 dui4 de5 yu2",
+   "accent": "台灣國語",
+   "accent_reason": "發音無捲舌兒化，聲調與語氣偏台灣教材配音風格",
+   "natural": 3,
+   "issues": "機械感，字與詞間的停頓稍嫌生硬"
+  },
+  "voice/samples/gemini_teacher/s2_praise.mp3": {
+   "hanzi": "好棒",
+   "pinyin": "hao3 bang4",
+   "accent": "台灣國語",
+   "accent_reason": "音色柔和且帶有台灣常見的幼教親切語調",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_teacher/s3_praise.mp3": {
+   "hanzi": "你好會拼喔",
+   "pinyin": "ni3 hao3 hui4 pin1 o5",
+   "accent": "台灣國語",
+   "accent_reason": "句末使用帶有台灣特色的語氣詞「喔」且語調輕快自然",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_teacher/s4_word.mp3": {
+   "hanzi": "魚",
+   "pinyin": "yu2",
+   "accent": "無法判斷",
+   "accent_reason": "僅單一音節且發音標準，無法判定口音歸屬",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_teacher/s5_word.mp3": {
+   "hanzi": "熊",
+   "pinyin": "xiong2",
+   "accent": "無法判斷",
+   "accent_reason": "單個音節發音標準清晰，特徵不足以明確區分地域口音",
+   "natural": 4,
+   "issues": ""
+  },
+  "voice/samples/gemini_teacher/s6_word.mp3": {
+   "hanzi": "老虎",
+   "pinyin": "lao2 hu3",
+   "accent": "無法判斷",
+   "accent_reason": "僅單詞兩音節且為標準教學發音，特徵不足以區分地域口音",
+   "natural": 3,
+   "issues": "語調帶教學刻意放慢感"
+  },
+  "voice/samples/gemini_teacher/s7_word.mp3": {
+   "hanzi": "長頸鹿",
+   "pinyin": "chang2 jing3 lu4",
+   "accent": "大陸普通話",
+   "accent_reason": "捲舌音發音清晰標準，具典型的教學朗讀腔調",
+   "natural": 3,
+   "issues": "字與字之間停頓明顯，帶有機械拼讀感"
+  },
+  "voice/samples/gemini_teacher/s8_guide.mp3": {
+   "hanzi": "你好，快來選遊戲玩吧",
+   "pinyin": "ni3 hao3 kuai4 lai2 xuan3 you2 xi4 wan2 ba5",
+   "accent": "大陸普通話",
+   "accent_reason": "音節咬字偏向標準大陸TTS合成音風格",
+   "natural": 2,
+   "issues": "機械感"
+  },
+  "voice/samples/gemini_teacher/s9_result.mp3": {
+   "hanzi": "拿到三張新貼紙",
+   "pinyin": "na2 dao4 san1 zhang1 xin1 tie1 zhi3",
+   "accent": "台灣國語",
+   "accent_reason": "語調輕柔且捲舌音較平，帶有典型台灣兒童節目或幼教配音的腔調特徵",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_teacher/r1_qie.mp3": {
+   "hanzi": "企鵝",
+   "pinyin": "qi4 e2",
+   "accent": "台灣國語",
+   "accent_reason": "「企」讀第四聲且咬字具有台灣國語教學音特色",
+   "natural": 3,
+   "issues": "字間停頓刻意放慢，帶有教學錄音的機械感"
+  },
+  "voice/samples/gemini_teacher/r2_guaniu.mp3": {
+   "hanzi": "蝸鳥",
+   "pinyin": "guo1 niao2",
+   "accent": "無法判斷",
+   "accent_reason": "音節過少且為拼讀錯誤的單字發音，無法辨識地域口音",
+   "natural": 2,
+   "issues": "機械感、字間停頓過長、韻母發音偏離正常詞彙（疑似牛發成鳥且聲調為二聲）"
+  },
+  "voice/samples/gemini_teacher/r3_binggan.mp3": {
+   "hanzi": "餅乾",
+   "pinyin": "bing3 gan1",
+   "accent": "台灣國語",
+   "accent_reason": "音色柔和自然，無捲舌音負擔，符合台灣國語字詞朗讀特徵",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_teacher/r4_shuijiao.mp3": {
+   "hanzi": "睡覺",
+   "pinyin": "shui4 jiao4",
+   "accent": "大陸普通話",
+   "accent_reason": "翹舌音sh發音清晰且字正腔圓，符合標準普通話發音特徵",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_sister/s1_intro.mp3": {
+   "hanzi": "聽聲音，點對的魚",
+   "pinyin": "ting1 sheng1 yin1 dian3 dui4 de5 yu2",
+   "accent": "台灣國語",
+   "accent_reason": "語氣具有台灣幼教教材或卡通配音特色，捲舌音輕化且發音柔和",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_sister/s2_praise.mp3": {
+   "hanzi": "好棒",
+   "pinyin": "hao3 bang4",
+   "accent": "台灣國語",
+   "accent_reason": "語調生動親切，帶有典型台灣國語誇讚語氣特徵",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_sister/s3_praise.mp3": {
+   "hanzi": "你好會拼喔",
+   "pinyin": "ni3 hao3 hui4 pin1 o5",
+   "accent": "台灣國語",
+   "accent_reason": "句末使用常見於台灣口語的語氣詞「喔」，整體語調自然具台灣特色",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_sister/s4_word.mp3": {
+   "hanzi": "魚",
+   "pinyin": "yu2",
+   "accent": "無法判斷",
+   "accent_reason": "僅有單一音節且發音標準清晰，特徵不足以判定地域口音",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_sister/s5_word.mp3": {
+   "hanzi": "熊",
+   "pinyin": "xiong2",
+   "accent": "台灣國語",
+   "accent_reason": "單字發音語調柔和自然，具有典型的台灣國語語音特徵",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_sister/s6_word.mp3": {
+   "hanzi": "老虎",
+   "pinyin": "lao2 hu3",
+   "accent": "大陸普通話",
+   "accent_reason": "發音清晰標準，呈現標準三聲變調與完整降升調值。",
+   "natural": 4,
+   "issues": ""
+  },
+  "voice/samples/gemini_sister/s7_word.mp3": {
+   "hanzi": "長頸鹿",
+   "pinyin": "chang2 jing3 lu4",
+   "accent": "台灣國語",
+   "accent_reason": "音色柔和且字正腔圓，帶有典型台灣童書或教材配音的語調特徵",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_sister/s8_guide.mp3": {
+   "hanzi": "你好，快來選遊戲玩吧！",
+   "pinyin": "ni3 hao3 kuai4 lai2 xuan3 you2 xi4 wan2 ba5",
+   "accent": "台灣國語",
+   "accent_reason": "「遊戲」發音為 you2 xi4，且「玩吧」無兒化音，音調特徵符合台灣國語風格",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_sister/s9_result.mp3": {
+   "hanzi": "拿到三張星貼紙",
+   "pinyin": "na2 dao4 san1 zhang1 xing1 tie1 zhi3",
+   "accent": "台灣國語",
+   "accent_reason": "語調輕柔無兒化，且捲舌較平，具台灣童音配音特徵",
+   "natural": 4,
+   "issues": "略帶機械合成感"
+  },
+  "voice/samples/gemini_sister/r1_qie.mp3": {
+   "hanzi": "企鵝",
+   "pinyin": "qi4 e2",
+   "accent": "無法判斷",
+   "accent_reason": "僅單詞朗讀且發音標準字正腔圓，難以明確判定地域腔調",
+   "natural": 4,
+   "issues": "帶有兒童教材式的誇張與刻意拉長語調"
+  },
+  "voice/samples/gemini_sister/r2_guaniu.mp3": {
+   "hanzi": "蝸牛",
+   "pinyin": "guo1 niu2",
+   "accent": "大陸普通話",
+   "accent_reason": "「蝸」讀作 guo1 符合大陸普通話審音規範",
+   "natural": 2,
+   "issues": "字間拉長拖音、語調生硬且有明顯機械感"
+  },
+  "voice/samples/gemini_sister/r3_binggan.mp3": {
+   "hanzi": "餅乾",
+   "pinyin": "bing3 gan1",
+   "accent": "無法判斷",
+   "accent_reason": "僅單詞且發音標準刻意拉長，缺乏足夠地域口音特徵",
+   "natural": 2,
+   "issues": "字音刻意拉長、語調呆板偏機械感"
+  },
+  "voice/samples/gemini_sister/r4_shuijiao.mp3": {
+   "hanzi": "睡覺",
+   "pinyin": "shui4 jiao4",
+   "accent": "大陸普通話",
+   "accent_reason": "翹舌音sh與四聲調值清晰標準",
+   "natural": 4,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/s1_intro.mp3": {
+   "hanzi": "聽聲音，點對的魚",
+   "pinyin": "ting1 sheng1 yin1 dian3 dui4 de5 yu2",
+   "accent": "台灣國語",
+   "accent_reason": "語調柔和親切且捲舌音較平，帶有典型台灣童書或教材配音特點",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/s2_praise.mp3": {
+   "hanzi": "好棒",
+   "pinyin": "hao3 bang4",
+   "accent": "台灣國語",
+   "accent_reason": "語調輕快上揚，帶有典型的台灣幼教配音或日常誇讚語氣特徵",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/s3_praise.mp3": {
+   "hanzi": "你好會拼喔",
+   "pinyin": "ni3 hao3 hui4 pin1 o1",
+   "accent": "台灣國語",
+   "accent_reason": "句尾助詞「喔」的語氣與聲調帶有典型的台灣口語特色",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/s4_word.mp3": {
+   "hanzi": "魚",
+   "pinyin": "yu2",
+   "accent": "無法判斷",
+   "accent_reason": "僅單個音節發音，線索不足以判斷地域口音",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/s5_word.mp3": {
+   "hanzi": "熊",
+   "pinyin": "xiong2",
+   "accent": "無法判斷",
+   "accent_reason": "單個音節發音標準清晰，缺乏足夠語境判斷地域口音",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/s6_word.mp3": {
+   "hanzi": "老虎",
+   "pinyin": "lao2 hu3",
+   "accent": "大陸普通話",
+   "accent_reason": "三聲變調自然且發音圓潤標準，帶有典型大陸普通話教學或示範音特色",
+   "natural": 4,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/s7_word.mp3": {
+   "hanzi": "長頸鹿",
+   "pinyin": "chang2 jing3 lu4",
+   "accent": "大陸普通話",
+   "accent_reason": "頸讀三聲 jing3，發音為標準普通話讀法",
+   "natural": 3,
+   "issues": "字間有不自然的停頓與拉長感，略帶機械感"
+  },
+  "voice/samples/gemini_prebuilt/s8_guide.mp3": {
+   "hanzi": "你好！快來選遊戲玩吧！",
+   "pinyin": "ni2 hao3 kuai4 lai2 xuan3 you2 xi4 wan2 ba5",
+   "accent": "台灣國語",
+   "accent_reason": "語調活潑自然且無兒化音，符合台灣兒童節目或玩具配音風格",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/s9_result.mp3": {
+   "hanzi": "拿到三張新貼紙",
+   "pinyin": "na2 dao4 san1 zhang1 xin1 tie1 zhi3",
+   "accent": "台灣國語",
+   "accent_reason": "貼紙讀三聲且「張」、「紙」帶有台灣國語輕微平舌化的翹舌特徵",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/r1_qie.mp3": {
+   "hanzi": "企鵝",
+   "pinyin": "qi4 e2",
+   "accent": "台灣國語",
+   "accent_reason": "「企」字讀作第四聲（qì），符合台灣習慣讀法。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/r2_guaniu.mp3": {
+   "hanzi": "蝸牛",
+   "pinyin": "wo1 niu2",
+   "accent": "大陸普通話",
+   "accent_reason": "蝸讀第一聲 wo1，符合大陸普通話規範（台灣多讀 gu1）",
+   "natural": 3,
+   "issues": "字間停頓略為生硬，帶有教學或機械朗讀感"
+  },
+  "voice/samples/gemini_prebuilt/r3_binggan.mp3": {
+   "hanzi": "餅乾",
+   "pinyin": "bing3 gan1",
+   "accent": "台灣國語",
+   "accent_reason": "發音溫和且標準，語調自然無捲舌或兒化音特徵",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/r4_shuijiao.mp3": {
+   "hanzi": "睡覺",
+   "pinyin": "shui4 jiao4",
+   "accent": "大陸普通話",
+   "accent_reason": "標準捲舌音sh與字正腔圓的普通話發音方式",
+   "natural": 3,
+   "issues": "字間停頓略長，帶有教學或機械感"
+  }
+ },
+ "asr2": {
+  "voice/samples/edge_hsiaochen/s1_intro.mp3": {
+   "hanzi": "聽聲音點對的魚",
+   "pinyin": "ting1 sheng1 yin1 dian3 dui4 de5 yu2",
+   "accent": "大陸普通話",
+   "accent_reason": "發音清晰，聲調自然，無明顯台灣國語或外國口音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaochen/s2_praise.mp3": {
+   "hanzi": "好棒",
+   "pinyin": "hao3 bang4",
+   "accent": "無法判斷",
+   "accent_reason": "語音清晰標準，無明顯地域性特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaochen/s3_praise.mp3": {
+   "hanzi": "你好會拼喔",
+   "pinyin": "ni3 hao3 hui4 pin1 o1",
+   "accent": "大陸普通話",
+   "accent_reason": "語音語調符合大陸普通話特徵，無明顯台灣國語或外國口音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaochen/s4_word.mp3": {
+   "hanzi": "魚",
+   "pinyin": "yu2",
+   "accent": "無法判斷",
+   "accent_reason": "單一音節，無足夠語音特徵判斷口音",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaochen/s5_word.mp3": {
+   "hanzi": "熊",
+   "pinyin": "xiong2",
+   "accent": "大陸普通話",
+   "accent_reason": "發音標準，聲調清晰。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaochen/s6_word.mp3": {
+   "hanzi": "老虎",
+   "pinyin": "lao3 hu3",
+   "accent": "大陸普通話",
+   "accent_reason": "發音清晰，聲調標準，無明顯台灣國語或外國口音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaochen/s7_word.mp3": {
+   "hanzi": "長頸鹿",
+   "pinyin": "chang2 jing3 lu4",
+   "accent": "無法判斷",
+   "accent_reason": "發音標準，無明顯地域性特徵",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaochen/s8_guide.mp3": {
+   "hanzi": "你好 快來選遊戲玩吧",
+   "pinyin": "ni3 hao3 kuai4 lai2 xuan3 you2 xi4 wan2 ba5",
+   "accent": "台灣國語",
+   "accent_reason": "「你好」的「好」字保留了完整的第三聲，而非變調為第二聲，此為台灣國語常見的發音習慣。整體語調自然流暢，符合台灣國語的特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaochen/s9_result.mp3": {
+   "hanzi": "拿到三張新貼紙",
+   "pinyin": "na2 dao4 san1 zhang1 xin1 tie1 zhi3",
+   "accent": "大陸普通話",
+   "accent_reason": "發音標準，捲舌音清晰，語調自然流暢，無明顯台灣國語或外國口音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaochen/r1_qie.mp3": {
+   "hanzi": "企鵝",
+   "pinyin": "qi3 e2",
+   "accent": "無法判斷",
+   "accent_reason": "發音標準，但語音片段過短，無法判斷具體口音。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaochen/r2_guaniu.mp3": {
+   "hanzi": "蝸牛",
+   "pinyin": "wo1 niu2",
+   "accent": "大陸普通話",
+   "accent_reason": "發音清晰標準，無明顯台灣國語口音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaochen/r3_binggan.mp3": {
+   "hanzi": "餅乾",
+   "pinyin": "bing3 gan1",
+   "accent": "無法判斷",
+   "accent_reason": "發音標準，無明顯地域性特徵",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaochen/r4_shuijiao.mp3": {
+   "hanzi": "睡覺",
+   "pinyin": "shui4 jiao4",
+   "accent": "大陸普通話",
+   "accent_reason": "發音標準，無明顯台灣國語或外國口音特徵",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaoyu/s1_intro.mp3": {
+   "hanzi": "聽聲音點對的魚",
+   "pinyin": "tīng1 shēng1 yīn1 diǎn3 duì4 de5 yú2",
+   "accent": "台灣國語",
+   "accent_reason": "發音清晰，語調自然，整體語感偏向台灣國語。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaoyu/s2_praise.mp3": {
+   "hanzi": "好棒",
+   "pinyin": "hao3 bang4",
+   "accent": "大陸普通話",
+   "accent_reason": "發音標準，無明顯台灣國語或外國口音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaoyu/s3_praise.mp3": {
+   "hanzi": "你很好會拼喔",
+   "pinyin": "ni3 hao3 hui4 pin1 o1",
+   "accent": "台灣國語",
+   "accent_reason": "語氣詞「喔」的使用，以及整體語調和發音習慣偏向台灣國語。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaoyu/s4_word.mp3": {
+   "hanzi": "魚",
+   "pinyin": "yu2",
+   "accent": "無法判斷",
+   "accent_reason": "單音節發音，無足夠語音特徵判斷口音。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaoyu/s5_word.mp3": {
+   "hanzi": "熊",
+   "pinyin": "xiong2",
+   "accent": "無法判斷",
+   "accent_reason": "單詞發音，無法判斷區域口音",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaoyu/s6_word.mp3": {
+   "hanzi": "老虎",
+   "pinyin": "lao3 hu3",
+   "accent": "無法判斷",
+   "accent_reason": "發音標準，無明顯地域性特徵",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaoyu/s7_word.mp3": {
+   "hanzi": "場景路",
+   "pinyin": "chang3 jing3 lu4",
+   "accent": "台灣國語",
+   "accent_reason": "發音清晰，聲調自然，整體語音特徵符合台灣國語。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaoyu/s8_guide.mp3": {
+   "hanzi": "你好 快來選遊戲玩吧",
+   "pinyin": "ni3 hao3 kuai4 lai2 xuan3 you2 xi4 wan2 ba5",
+   "accent": "無法判斷",
+   "accent_reason": "語音清晰標準，無明顯兒化音或台灣國語常見的聲母混淆現象，因此無法判斷具體口音。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaoyu/s9_result.mp3": {
+   "hanzi": "拿到三張新貼紙",
+   "pinyin": "na2 dao4 san1 zhang1 xin1 tie1 zhi3",
+   "accent": "大陸普通話",
+   "accent_reason": "發音標準，捲舌音清晰，無明顯台灣國語特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaoyu/r1_qie.mp3": {
+   "hanzi": "企鵝",
+   "pinyin": "qi4 e2",
+   "accent": "大陸普通話",
+   "accent_reason": "發音標準，尤其是「鵝」的韻母「e」發音為[ɤ]，符合大陸普通話的標準發音。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaoyu/r2_guaniu.mp3": {
+   "hanzi": "蝸牛",
+   "pinyin": "gua1 niu2",
+   "accent": "大陸普通話",
+   "accent_reason": "發音清晰標準，聲調自然，無明顯台灣國語或外國口音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaoyu/r3_binggan.mp3": {
+   "hanzi": "餅乾",
+   "pinyin": "bing3 gan1",
+   "accent": "無法判斷",
+   "accent_reason": "發音標準，無明顯地域性語音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/edge_hsiaoyu/r4_shuijiao.mp3": {
+   "hanzi": "睡覺",
+   "pinyin": "shui4 jiao4",
+   "accent": "無法判斷",
+   "accent_reason": "發音標準，無明顯地域性特徵",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_teacher/s1_intro.mp3": {
+   "hanzi": "聽聲音，點對的魚",
+   "pinyin": "ting1 sheng1 yin1 dian3 dui4 de5 yu2",
+   "accent": "大陸普通話",
+   "accent_reason": "發音標準，捲舌音清晰，無明顯台灣國語或外國口音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_teacher/s2_praise.mp3": {
+   "hanzi": "好棒",
+   "pinyin": "hao3 bang4",
+   "accent": "無法判斷",
+   "accent_reason": "發音標準，無明顯地域性特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_teacher/s3_praise.mp3": {
+   "hanzi": "你好會拼哦",
+   "pinyin": "ni3 hao3 hui4 pin1 o5",
+   "accent": "台灣國語",
+   "accent_reason": "語氣詞「哦」的使用及整體語調符合台灣國語特色。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_teacher/s4_word.mp3": {
+   "hanzi": "一",
+   "pinyin": "yi1",
+   "accent": "無法判斷",
+   "accent_reason": "單一元音，無法判斷口音",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_teacher/s5_word.mp3": {
+   "hanzi": "熊",
+   "pinyin": "xiong2",
+   "accent": "無法判斷",
+   "accent_reason": "單一音節，無明顯地域性發音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_teacher/s6_word.mp3": {
+   "hanzi": "老虎",
+   "pinyin": "lao3 hu3",
+   "accent": "大陸普通話",
+   "accent_reason": "發音標準，無明顯台灣國語或外國口音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_teacher/s7_word.mp3": {
+   "hanzi": "長頸鹿",
+   "pinyin": "chang2 jing3 lu4",
+   "accent": "台灣國語",
+   "accent_reason": "語音語調自然，發音清晰，無明顯大陸普通話或外國口音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_teacher/s8_guide.mp3": {
+   "hanzi": "你好，快來選遊戲玩吧。",
+   "pinyin": "ni3 hao3 kuai4 lai2 xuan3 you2 xi4 wan2 ba5",
+   "accent": "大陸普通話",
+   "accent_reason": "發音標準，無明顯台灣國語或外國口音特徵，聲調自然。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_teacher/s9_result.mp3": {
+   "hanzi": "拿到三張新貼紙",
+   "pinyin": "na2 dao4 san1 zhang1 xin1 tie1 zhi3",
+   "accent": "大陸普通話",
+   "accent_reason": "捲舌音清晰，語調符合大陸普通話特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_teacher/r1_qie.mp3": {
+   "hanzi": "企鵝",
+   "pinyin": "qi4 e2",
+   "accent": "大陸普通話",
+   "accent_reason": "發音標準，聲調清晰，沒有明顯的台灣國語或外國口音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_teacher/r2_guaniu.mp3": {
+   "hanzi": "蝸牛",
+   "pinyin": "guo1 niu2",
+   "accent": "大陸普通話",
+   "accent_reason": "發音標準，無明顯地域特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_teacher/r3_binggan.mp3": {
+   "hanzi": "餅乾",
+   "pinyin": "bing3 gan1",
+   "accent": "無法判斷",
+   "accent_reason": "發音標準，無明顯地域特徵",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_teacher/r4_shuijiao.mp3": {
+   "hanzi": "睡覺",
+   "pinyin": "shui4 jiao4",
+   "accent": "大陸普通話",
+   "accent_reason": "發音標準，聲調清晰，無明顯地域口音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_sister/s1_intro.mp3": {
+   "hanzi": "聽聲音 點對的魚",
+   "pinyin": "tīng1 shēng1 yīn1 diǎn3 duì4 de5 yú2",
+   "accent": "大陸普通話",
+   "accent_reason": "發音清晰標準，捲舌音到位，語調自然，無明顯台灣國語或外國口音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_sister/s2_praise.mp3": {
+   "hanzi": "好棒",
+   "pinyin": "hao3 bang4",
+   "accent": "台灣國語",
+   "accent_reason": "語音清晰，無明顯兒化音，且無大陸普通話特有的語音或語調特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_sister/s3_praise.mp3": {
+   "hanzi": "你好會拼哦",
+   "pinyin": "ni3 hao3 hui4 pin1 o5",
+   "accent": "台灣國語",
+   "accent_reason": "語氣和語調，以及「哦」的發音。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_sister/s4_word.mp3": {
+   "hanzi": "於",
+   "pinyin": "yu2",
+   "accent": "無法判斷",
+   "accent_reason": "單音節，無明顯地域特徵",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_sister/s5_word.mp3": {
+   "hanzi": "熊",
+   "pinyin": "xiong2",
+   "accent": "大陸普通話",
+   "accent_reason": "單詞發音標準，無明顯地域特徵。",
+   "natural": 4,
+   "issues": ""
+  },
+  "voice/samples/gemini_sister/s6_word.mp3": {
+   "hanzi": "老虎",
+   "pinyin": "lao2 hu3",
+   "accent": "大陸普通話",
+   "accent_reason": "發音清晰，聲調標準，無明顯台灣國語或外國口音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_sister/s7_word.mp3": {
+   "hanzi": "長頸鹿",
+   "pinyin": "chang2 jing3 lu4",
+   "accent": "大陸普通話",
+   "accent_reason": "發音清晰標準，捲舌音到位，整體語音符合普通話特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_sister/s8_guide.mp3": {
+   "hanzi": "你好，快來選遊戲玩吧！",
+   "pinyin": "ni3 hao3 kuai4 lai2 xuan3 you2 xi4 wan2 ba5",
+   "accent": "台灣國語",
+   "accent_reason": "語音清晰，語調自然，整體發音偏向台灣國語的語感。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_sister/s9_result.mp3": {
+   "hanzi": "拿到三張新貼紙",
+   "pinyin": "na2 dao4 san1 zhang1 xin1 tie1 zhi3",
+   "accent": "大陸普通話",
+   "accent_reason": "發音清晰，捲舌音與平舌音區分明顯，聲調自然，整體語音特徵符合大陸普通話標準。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_sister/r1_qie.mp3": {
+   "hanzi": "企鵝",
+   "pinyin": "qi4 e2",
+   "accent": "大陸普通話",
+   "accent_reason": "發音清晰標準，無明顯地域性口音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_sister/r2_guaniu.mp3": {
+   "hanzi": "鍋牛",
+   "pinyin": "guo1 niu2",
+   "accent": "無法判斷",
+   "accent_reason": "發音標準，但首字聲母有非標準發音現象，無明顯地域性特徵",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_sister/r3_binggan.mp3": {
+   "hanzi": "餅乾",
+   "pinyin": "bing3 gan1",
+   "accent": "無法判斷",
+   "accent_reason": "發音標準，無明顯地域性語音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_sister/r4_shuijiao.mp3": {
+   "hanzi": "睡覺",
+   "pinyin": "shui4 jiao4",
+   "accent": "大陸普通話",
+   "accent_reason": "發音標準，聲調清晰，無明顯台灣國語或外國口音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/s1_intro.mp3": {
+   "hanzi": "聽聲音點對的魚",
+   "pinyin": "ting1 sheng1 yin1 dian3 dui4 de5 yu2",
+   "accent": "台灣國語",
+   "accent_reason": "發音清晰標準，聲調自然，語速適中，符合台灣國語的語音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/s2_praise.mp3": {
+   "hanzi": "好棒",
+   "pinyin": "hao3 bang4",
+   "accent": "大陸普通話",
+   "accent_reason": "發音清晰，聲調標準，無明顯台灣國語或外國口音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/s3_praise.mp3": {
+   "hanzi": "你好會拼哦",
+   "pinyin": "ni3 hao3 hui4 pin1 o5",
+   "accent": "台灣國語",
+   "accent_reason": "語氣詞「哦」的發音及整體語調符合台灣國語特色。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/s4_word.mp3": {
+   "hanzi": "魚",
+   "pinyin": "yu2",
+   "accent": "無法判斷",
+   "accent_reason": "單一音節，無足夠語音特徵判斷口音",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/s5_word.mp3": {
+   "hanzi": "熊",
+   "pinyin": "xiong2",
+   "accent": "大陸普通話",
+   "accent_reason": "發音清晰，聲調標準，無明顯台灣國語或外國口音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/s6_word.mp3": {
+   "hanzi": "老虎",
+   "pinyin": "lao2 hu3",
+   "accent": "大陸普通話",
+   "accent_reason": "發音標準，語調符合大陸普通話特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/s7_word.mp3": {
+   "hanzi": "長頸鹿",
+   "pinyin": "chang2 jing3 lu4",
+   "accent": "大陸普通話",
+   "accent_reason": "發音清晰，捲舌音（如「長」的ch）標準，整體語音符合大陸普通話的特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/s8_guide.mp3": {
+   "hanzi": "你好，快來選遊戲玩吧。",
+   "pinyin": "ni3 hao3 kuai4 lai2 xuan3 you2 xi4 wan2 ba5",
+   "accent": "大陸普通話",
+   "accent_reason": "發音清晰標準，無明顯台灣國語特徵，語調自然流暢。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/s9_result.mp3": {
+   "hanzi": "拿到三張新貼紙",
+   "pinyin": "na2 dao4 san1 zhang1 xin1 tie1 zhi3",
+   "accent": "大陸普通話",
+   "accent_reason": "捲舌音發音標準，整體語調符合大陸普通話。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/r1_qie.mp3": {
+   "hanzi": "企鵝",
+   "pinyin": "qi4 e2",
+   "accent": "大陸普通話",
+   "accent_reason": "發音標準清晰，聲調和韻母無明顯台灣國語特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/r2_guaniu.mp3": {
+   "hanzi": "蝸牛",
+   "pinyin": "wo1 niu2",
+   "accent": "無法判斷",
+   "accent_reason": "發音標準，無明顯地域性特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/r3_binggan.mp3": {
+   "hanzi": "餅乾",
+   "pinyin": "bing3 gan1",
+   "accent": "大陸普通話",
+   "accent_reason": "發音標準清晰，無明顯地域口音特徵。",
+   "natural": 5,
+   "issues": ""
+  },
+  "voice/samples/gemini_prebuilt/r4_shuijiao.mp3": {
+   "hanzi": "睡覺",
+   "pinyin": "shui4 jiao4",
+   "accent": "大陸普通話",
+   "accent_reason": "發音標準，無明顯台灣國語或外國口音特徵。",
+   "natural": 5,
+   "issues": ""
+  }
+ },
+ "pairs": {
+  "edge_hsiaochen/r1_qie": {
+   "method": "f0",
+   "onset_st": 8.6,
+   "deterministic": true,
+   "ref_tw": "器鵝",
+   "ref_cn": "起鵝",
+   "dist_tw": 0.072,
+   "dist_cn": 0.567,
+   "closer": "台灣",
+   "margin": 0.87
+  },
+  "edge_hsiaochen/r2_guaniu": {
+   "method": "mfcc",
+   "onset_st": null,
+   "deterministic": true,
+   "ref_tw": "瓜牛",
+   "ref_cn": "窩牛",
+   "dist_tw": 0.002,
+   "dist_cn": 1.095,
+   "closer": "台灣",
+   "margin": 1.0
+  },
+  "edge_hsiaoyu/r1_qie": {
+   "method": "f0",
+   "onset_st": 9.3,
+   "deterministic": true,
+   "ref_tw": "器鵝",
+   "ref_cn": "起鵝",
+   "dist_tw": 0.102,
+   "dist_cn": 0.763,
+   "closer": "台灣",
+   "margin": 0.87
+  },
+  "edge_hsiaoyu/r2_guaniu": {
+   "method": "mfcc",
+   "onset_st": null,
+   "deterministic": true,
+   "ref_tw": "瓜牛",
+   "ref_cn": "窩牛",
+   "dist_tw": 0.028,
+   "dist_cn": 1.075,
+   "closer": "台灣",
+   "margin": 0.97
+  },
+  "gemini_teacher/r1_qie": {
+   "method": "f0",
+   "onset_st": 11.7,
+   "deterministic": false,
+   "ref_tw": "器鵝",
+   "ref_cn": "起鵝",
+   "dist_tw": 0.125,
+   "dist_cn": 0.204,
+   "closer": "台灣",
+   "margin": 0.39
+  },
+  "gemini_teacher/r2_guaniu": {
+   "method": "mfcc",
+   "onset_st": null,
+   "deterministic": false,
+   "ref_tw": "瓜牛",
+   "ref_cn": "窩牛",
+   "dist_tw": 1.324,
+   "dist_cn": 1.21,
+   "closer": "大陸",
+   "margin": 0.09
+  },
+  "gemini_sister/r1_qie": {
+   "method": "f0",
+   "onset_st": 5.0,
+   "deterministic": false,
+   "ref_tw": "器鵝",
+   "ref_cn": "起鵝",
+   "dist_tw": 1.522,
+   "dist_cn": 1.235,
+   "closer": "大陸",
+   "margin": 0.19
+  },
+  "gemini_sister/r2_guaniu": {
+   "method": "mfcc",
+   "onset_st": null,
+   "deterministic": false,
+   "ref_tw": "瓜牛",
+   "ref_cn": "窩牛",
+   "dist_tw": 1.294,
+   "dist_cn": 1.084,
+   "closer": "大陸",
+   "margin": 0.16
+  },
+  "gemini_prebuilt/r1_qie": {
+   "method": "f0",
+   "onset_st": 10.6,
+   "deterministic": false,
+   "ref_tw": "器鵝",
+   "ref_cn": "起鵝",
+   "dist_tw": 0.581,
+   "dist_cn": 0.339,
+   "closer": "大陸",
+   "margin": 0.42
+  },
+  "gemini_prebuilt/r2_guaniu": {
+   "method": "mfcc",
+   "onset_st": null,
+   "deterministic": false,
+   "ref_tw": "瓜牛",
+   "ref_cn": "窩牛",
+   "dist_tw": 1.458,
+   "dist_cn": 1.105,
+   "closer": "大陸",
+   "margin": 0.24
+  }
+ },
+ "yu_vs_yi": {
+  "edge_hsiaochen": {
+   "yu_F123": [
+    380,
+    2656,
+    2972
+   ],
+   "yi_ref_F123": [
+    319,
+    3227,
+    4117
+   ],
+   "F3_ratio": 0.72,
+   "verdict": "ㄩ（正確）"
+  },
+  "edge_hsiaoyu": {
+   "yu_F123": [
+    337,
+    2483,
+    2984
+   ],
+   "yi_ref_F123": [
+    347,
+    3166,
+    4241
+   ],
+   "F3_ratio": 0.7,
+   "verdict": "ㄩ（正確）"
+  },
+  "gemini_teacher": {
+   "yu_F123": [
+    276,
+    2555,
+    3036
+   ],
+   "yi_ref_F123": [
+    282,
+    3261,
+    3972
+   ],
+   "F3_ratio": 0.76,
+   "verdict": "ㄩ（正確）"
+  },
+  "gemini_sister": {
+   "yu_F123": [
+    266,
+    2486,
+    2845
+   ],
+   "yi_ref_F123": [
+    348,
+    1169,
+    3445
+   ],
+   "F3_ratio": 0.83,
+   "verdict": "ㄩ（正確）"
+  },
+  "gemini_prebuilt": {
+   "yu_F123": [
+    322,
+    2347,
+    2620
+   ],
+   "yi_ref_F123": [
+    280,
+    3073,
+    3769
+   ],
+   "F3_ratio": 0.7,
+   "verdict": "ㄩ（正確）"
+  }
+ },
+ "homophone": {
+  "gemini_teacher/r1_qie": {
+   "sent_text": "器鵝",
+   "heard": "企鵝",
+   "pinyin": "qi4 e2",
+   "_tokens": {
+    "input": 300,
+    "output": 233
+   }
+  },
+  "gemini_teacher/r2_guaniu": {
+   "sent_text": "瓜牛",
+   "heard": "蝸牛",
+   "pinyin": "gua1 niu2",
+   "_tokens": {
+    "input": 291,
+    "output": 518
+   }
+  },
+  "gemini_sister/r1_qie": {
+   "sent_text": "器鵝",
+   "heard": "企鵝",
+   "pinyin": "qi4 e2",
+   "_tokens": {
+    "input": 293,
+    "output": 247
+   }
+  },
+  "gemini_sister/r2_guaniu": {
+   "sent_text": "瓜牛",
+   "heard": "蝸牛",
+   "pinyin": "gua1 niu2",
+   "_tokens": {
+    "input": 295,
+    "output": 316
+   }
+  },
+  "gemini_prebuilt/r1_qie": {
+   "sent_text": "器鵝",
+   "heard": "企鵝",
+   "pinyin": "qi4 e2",
+   "_tokens": {
+    "input": 295,
+    "output": 438
+   }
+  },
+  "gemini_prebuilt/r2_guaniu": {
+   "sent_text": "瓜牛",
+   "heard": "刮牛",
+   "pinyin": "gua1 niu2",
+   "_tokens": {
+    "input": 287,
+    "output": 525
+   }
+  }
+ }
+}

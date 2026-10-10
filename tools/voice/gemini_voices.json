@@ -1,0 +1,12 @@
+{
+ "tw_sister": {
+  "id": "voice_3r1yhefmv3r2",
+  "display_name": "TW Kids Show Host",
+  "description": "A bright, cheerful young woman in her early twenties from Taiwan who hosts a children's TV show, speaking Taiwan Mandarin (台灣國語) with a natural Taiwanese accent; lively, playful and very clear."
+ },
+ "tw_teacher": {
+  "id": "voice_ri5e353qwswq",
+  "display_name": "TW Kindergarten Teacher",
+  "description": "A gentle, warm female kindergarten teacher in her late twenties from Taipei, speaking Taiwan Mandarin (台灣國語) with a natural Taiwanese accent; soft, smiling and patient, with clear, careful articulation for young children."
+ }
+}

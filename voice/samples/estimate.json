@@ -1,0 +1,89 @@
+{
+ "estimates": {
+  "edge_hsiaochen": {
+   "lines": 295,
+   "audio_sec": 393,
+   "size_mb": 2.58,
+   "size_mb_48k": 2.36,
+   "bytes_per_sec": 6547,
+   "usd": 0,
+   "usd_with_retake": 0,
+   "twd_with_retake": 0,
+   "minutes": 2,
+   "minutes_note": "每句約 0.4 秒，一句一句來"
+  },
+  "edge_hsiaoyu": {
+   "lines": 295,
+   "audio_sec": 484,
+   "size_mb": 3.13,
+   "size_mb_48k": 2.91,
+   "bytes_per_sec": 6460,
+   "usd": 0,
+   "usd_with_retake": 0,
+   "twd_with_retake": 0,
+   "minutes": 2,
+   "minutes_note": "每句約 0.4 秒，一句一句來"
+  },
+  "gemini_teacher": {
+   "lines": 295,
+   "audio_sec": 616,
+   "size_mb": 3.88,
+   "size_mb_48k": 3.7,
+   "bytes_per_sec": 6304,
+   "out_tokens": 19726,
+   "in_tokens": 1491,
+   "usd": 0.178,
+   "usd_with_retake": 0.232,
+   "usd_2027_with_retake": 0.464,
+   "twd_with_retake": 7.4,
+   "minutes": 38,
+   "minutes_note": "受每分鐘 10 次上限限制（含 30% 重錄）"
+  },
+  "gemini_sister": {
+   "lines": 295,
+   "audio_sec": 604,
+   "size_mb": 3.81,
+   "size_mb_48k": 3.62,
+   "bytes_per_sec": 6303,
+   "out_tokens": 18180,
+   "in_tokens": 1491,
+   "usd": 0.164,
+   "usd_with_retake": 0.214,
+   "usd_2027_with_retake": 0.427,
+   "twd_with_retake": 6.8,
+   "minutes": 38,
+   "minutes_note": "受每分鐘 10 次上限限制（含 30% 重錄）"
+  },
+  "gemini_prebuilt": {
+   "lines": 295,
+   "audio_sec": 608,
+   "size_mb": 3.85,
+   "size_mb_48k": 3.65,
+   "bytes_per_sec": 6322,
+   "out_tokens": 18554,
+   "in_tokens": 1491,
+   "usd": 0.168,
+   "usd_with_retake": 0.218,
+   "usd_2027_with_retake": 0.436,
+   "twd_with_retake": 7.0,
+   "minutes": 38,
+   "minutes_note": "受每分鐘 10 次上限限制（含 30% 重錄）"
+  }
+ },
+ "asr_check_usd_per_clip": 0.00164,
+ "asr_check_usd_full_set": 0.48,
+ "samples_total_sec_all": 105.5,
+ "samples_total_sec_gemini": 74.4,
+ "samples_gemini_usd": 0.0213,
+ "prices": {
+  "tts_out": 9.0,
+  "tts_in": 0.5,
+  "tts_out_2027": 18.0,
+  "tts_in_2027": 1.0,
+  "asr_in": 0.75,
+  "asr_out": 3.75
+ },
+ "usd_twd": 32.0,
+ "rpm": 10,
+ "retake": 1.3
+}
