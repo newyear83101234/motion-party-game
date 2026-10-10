@@ -30,21 +30,21 @@ const backToMenu = async p => { await p.evaluate(() => { document.getElementById
     const { ctx, p, errs } = await openGame(browser, { stickers: 20, stars: 25, eggs: 2, query: "debug" });
     await ready(p);
     const st = await p.evaluate(() => { const cards = document.querySelector("#menu > .mode-cards").getBoundingClientRect();
-      return { hub: document.body.classList.contains("hub3d"), canvas: !!document.querySelector("#menu .hub-stage canvas"), cardsW: cards.width, cardsOpacity: getComputedStyle(document.querySelector("#menu > .mode-cards")).opacity, tags: document.querySelectorAll(".hub-tag").length }; });
+      return { hub: document.body.classList.contains("hub3d"), canvas: !!document.querySelector("#menu .hub-stage canvas"), cardsW: cards.width, cardsOpacity: getComputedStyle(document.querySelector("#menu > .mode-cards")).opacity, tags: document.querySelectorAll(".hub-tag:not(.civic)").length }; });
     ok("3D 選單有出現（body.hub3d＋canvas）", st.hub && st.canvas, JSON.stringify(st));
-    ok("卡片 DOM 還在但看不到", st.cardsW <= 1 && st.cardsOpacity === "0" && (await p.evaluate(() => document.querySelectorAll(".mode-card").length)) === 8);
-    ok("9 個浮標（8 個遊戲＋扭蛋機）", st.tags === 9, String(st.tags));
+    ok("卡片 DOM 還在但看不到", st.cardsW <= 1 && st.cardsOpacity === "0" && (await p.evaluate(() => document.querySelectorAll(".mode-card").length)) === 9);
+    ok("10 個浮標（9 個遊戲＋扭蛋機）", st.tags === 10, String(st.tags));
     const g = await p.evaluate(() => window.__hub3d.graph());
-    ok("路網全部連通、9 棟建築＋7 個景點都接到路", g.components === 1 && g.doors.length === 16, JSON.stringify(g));
+    ok("路網全部連通、9 棟建築＋7 個景點＋新市區 4 棟設施都接到路", g.components === 1 && g.doors.length === 20, JSON.stringify(g));
     await p.waitForFunction(() => window.__hub3d.pets().length >= 6, null, { timeout: 15000 }).catch(() => {});   // 寵物模型在建築之後才抓
     ok("島上的寵物照 setPets 來（eggs 2 → 6 位朋友）", (await p.evaluate(() => window.__hub3d.pets().length)) === 6, JSON.stringify(await p.evaluate(() => window.__hub3d.pets())));
-    ok("未解鎖：只有青蛙鎖著", JSON.stringify(await p.evaluate(() => window.__hub3d.locked())) === '["frog"]', JSON.stringify(await p.evaluate(() => window.__hub3d.locked())));
+    ok("未解鎖（20 張）：青蛙、泡泡鎖著", JSON.stringify(await p.evaluate(() => window.__hub3d.locked())) === '["frog","bubble"]', JSON.stringify(await p.evaluate(() => window.__hub3d.locked())));
     ok("鎖著的浮標只留圖示＋🔒 25（字收起來）", await p.evaluate(() => { const t = document.querySelector('.hub-tag[data-mode=frog]'), lk = t.querySelector(".ht-lock").textContent;
       return t.classList.contains("locked") && lk === "🔒 25" && getComputedStyle(t.querySelector(".ht-word")).display === "none" && getComputedStyle(t.querySelector(".ht-lock")).display !== "none"; }), await p.evaluate(() => document.querySelector('.hub-tag[data-mode=frog] .ht-lock').textContent));
     ok("不是新玩家：沒有黃框", await p.evaluate(() => document.querySelectorAll(".hub-tag.first").length === 0));
     // 浮標不能被標題／圓鈕／膠囊／貓頭鷹擋到
     const clash = await p.evaluate(() => { const ob = ["#menu > h1", "#menu > .menu-bottom", "#guide img", "#guideText", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn"].map(s => document.querySelector(s)).filter(Boolean).map(e => e.getBoundingClientRect());
-      const bad = []; for (const t of document.querySelectorAll(".hub-tag")) { const r = t.getBoundingClientRect(); if (r.left < 0 || r.top < 0 || r.right > innerWidth || r.bottom > innerHeight || ob.some(o => r.left < o.right && r.right > o.left && r.top < o.bottom && r.bottom > o.top)) bad.push(t.dataset.mode); } return bad; });
+      const bad = []; for (const t of document.querySelectorAll(".hub-tag:not(.civic)")) { const r = t.getBoundingClientRect(); if (r.left < 0 || r.top < 0 || r.right > innerWidth || r.bottom > innerHeight || ob.some(o => r.left < o.right && r.right > o.left && r.top < o.bottom && r.bottom > o.top)) bad.push(t.dataset.mode); } return bad; });
     ok("浮標沒有被標題／按鈕／膠囊／貓頭鷹擋住", clash.length === 0, clash.join(","));
     // rAF：選單在跑
     const f0 = await frames(p); await sleep(700); const f1 = await frames(p);
@@ -77,12 +77,15 @@ const backToMenu = async p => { await p.evaluate(() => { document.getElementById
     await p.mouse.click((tr.x0 + tr.x1) / 2, (tr.y0 + tr.y1) / 2);
     ok("點浮標（氣球）→ 進氣球", await p.waitForFunction(() => !document.getElementById("tone").classList.contains("hidden"), null, { timeout: 8000 }).then(() => true, () => false));
     await backToMenu(p);
-    // 扭蛋機：點建築、點浮標都會呼叫 onGacha（目前 zhuyin.js 讓嚮導說「扭蛋機快要開張囉」）
-    const sg = await spot(p, "gacha"); if (sg) await p.mouse.click(sg.x, sg.y); await sleep(700);
-    ok("點扭蛋機 → onGacha（嚮導說話、沒有進遊戲）", !!sg && (await p.evaluate(() => document.getElementById("guideText").textContent)).includes("扭蛋") && (await p.evaluate(() => window.__zy.mode)) === null, JSON.stringify(sg));
-    await p.evaluate(() => { document.getElementById("guideText").textContent = ""; }); await sleep(800);
-    const tg = await p.evaluate(() => window.__hub3d.tagRect("gacha")); await p.mouse.click((tg.x0 + tg.x1) / 2, (tg.y0 + tg.y1) / 2); await sleep(700);
-    ok("點扭蛋浮標 → onGacha", (await p.evaluate(() => document.getElementById("guideText").textContent)).includes("扭蛋"));
+    // 扭蛋機：點建築、點浮標都會呼叫 onGacha（10-11 起＝打開扭蛋機畫面）
+    const gachaOpen = () => p.evaluate(() => !document.getElementById("gacha").classList.contains("hidden"));
+    const gachaClose = () => p.evaluate(() => document.getElementById("gachaClose").click());
+    const sg = await spot(p, "gacha"); if (sg) await p.mouse.click(sg.x, sg.y); await sleep(1200);
+    ok("點扭蛋機 → onGacha（打開扭蛋機、沒有進遊戲）", !!sg && await gachaOpen() && (await p.evaluate(() => window.__zy.mode)) === null, JSON.stringify(sg));
+    await gachaClose(); await sleep(900);
+    const tg = await p.evaluate(() => window.__hub3d.tagRect("gacha")); await p.mouse.click((tg.x0 + tg.x1) / 2, (tg.y0 + tg.y1) / 2); await sleep(1200);
+    ok("點扭蛋浮標 → onGacha", await gachaOpen());
+    await gachaClose(); await sleep(500);
     // 翻牌：先開選張數
     const sm = await spot(p, "match"); if (sm) await p.mouse.click(sm.x, sm.y); await sleep(700);
     ok("點翻牌建築 → 先跳出選張數", !!sm && await visible(p, "matchPick"), JSON.stringify(sm));
@@ -130,11 +133,11 @@ const backToMenu = async p => { await p.evaluate(() => { document.getElementById
     ok("新玩家：出現手指提示", fg);
     await ready(p);
     const lk = await p.evaluate(() => window.__hub3d.locked());
-    ok("新玩家：尋寶／翻牌／氣球／地鼠／青蛙都鎖著", JSON.stringify(lk.sort()) === JSON.stringify(["frog", "hunt", "match", "tone", "whack"]), JSON.stringify(lk));
-    ok("新玩家：鎖著的浮標都有 🔒", await p.evaluate(() => [...document.querySelectorAll(".hub-tag.locked")].length === 5 && [...document.querySelectorAll(".hub-tag.locked .ht-lock")].every(e => e.textContent.includes("🔒"))));
+    ok("新玩家：尋寶／翻牌／氣球／地鼠／青蛙／泡泡都鎖著", JSON.stringify(lk.sort()) === JSON.stringify(["bubble", "frog", "hunt", "match", "tone", "whack"]), JSON.stringify(lk));
+    ok("新玩家：鎖著的浮標都有 🔒", await p.evaluate(() => [...document.querySelectorAll(".hub-tag.locked:not(.civic)")].length === 6 && [...document.querySelectorAll(".hub-tag.locked:not(.civic) .ht-lock")].every(e => e.textContent.includes("🔒"))));
     ok("新玩家：只有釣魚浮標有常駐黃框", await p.evaluate(() => { const f = [...document.querySelectorAll(".hub-tag.first")]; return f.length === 1 && f[0].dataset.mode === "fish" && getComputedStyle(f[0]).boxShadow.includes("255, 213, 74"); }));
-    const sl = await spot(p, "tone"); if (sl) { await p.mouse.click(sl.x, sl.y); await sleep(1200); }
-    ok("新玩家：點鎖著的氣球攤不會進遊戲", !!sl && (await p.evaluate(() => window.__zy.mode)) === null, JSON.stringify(sl));
+    const sl = await spot(p, "hunt"); if (sl) { await p.mouse.click(sl.x, sl.y); await sleep(1200); }   // 尋寶在島的上方（新玩家貓頭鷹自我介紹比較長，會蓋到右邊的氣球攤）
+    ok("新玩家：點鎖著的尋寶公園不會進遊戲", !!sl && (await p.evaluate(() => window.__zy.mode)) === null, JSON.stringify(sl));
     const sf = await spot(p, "fish"); if (sf) await p.mouse.click(sf.x, sf.y);
     ok("新玩家：點釣魚 → 進釣魚", !!sf && await inMode(p, "fish"));
     ok("新玩家：沒有錯誤", errs.length === 0, errs.join(" | "));
@@ -188,7 +191,7 @@ const backToMenu = async p => { await p.evaluate(() => { document.getElementById
     const { ctx, p, errs } = await openGame(browser, { w, h, stickers: 20, stars: 25, eggs: 2, query: "debug" });
     await ready(p);
     const r = await p.evaluate(() => { const ob = ["#menu > h1", "#menu > .menu-bottom", "#guide img", "#guideText", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn"].map(s => document.querySelector(s)).filter(Boolean).map(e => e.getBoundingClientRect());
-      const bad = []; for (const t of document.querySelectorAll(".hub-tag")) { const q = t.getBoundingClientRect(); if (q.left < 0 || q.top < 0 || q.right > innerWidth || q.bottom > innerHeight || ob.some(o => q.left < o.right && q.right > o.left && q.top < o.bottom && q.bottom > o.top)) bad.push(t.dataset.mode); }
+      const bad = []; for (const t of document.querySelectorAll(".hub-tag:not(.civic)")) { const q = t.getBoundingClientRect(); if (q.left < 0 || q.top < 0 || q.right > innerWidth || q.bottom > innerHeight || ob.some(o => q.left < o.right && q.right > o.left && q.top < o.bottom && q.bottom > o.top)) bad.push(t.dataset.mode); }
       return { hub: document.body.classList.contains("hub3d"), bad, fit: window.__hub3d.fitOk }; });
     ok(`${w}×${h}：3D 選單出現、浮標沒被擋`, r.hub && r.fit && r.bad.length === 0, JSON.stringify(r));
     let inB = false;   // 朋友會剛好走過去擋到 → 最多試 3 次

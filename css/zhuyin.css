@@ -392,6 +392,8 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 @keyframes raySpin { to { transform: rotate(1turn); } }
 .hatchEgg { position: relative; width: 26vmin; height: 32vmin; background: url("../IMAGE/zhuyin/egg.webp") center / contain no-repeat; transform-origin: 50% 88%; filter: drop-shadow(0 1vmin 1.2vmin rgba(120,90,30,0.25)); }
 .hatchEgg.tappable { cursor: pointer; }
+.hatchEgg.rare { background-image: url("../IMAGE/zhuyin/egg_rare.webp"); }
+.hatchEgg.ssr { background-image: url("../IMAGE/zhuyin/egg_ssr.webp"); filter: drop-shadow(0 0 2vmin rgba(255,210,80,0.9)); }
 .hatchEgg.s1 { animation: eggS1 0.6s ease-in-out 1; }
 .hatchEgg.s2 { animation: eggS2 0.5s ease-in-out 2; }
 .hatchEgg.s3 { animation: eggS3 0.25s ease-in-out 3; }
@@ -435,7 +437,7 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
   .topbar { height: 24vmin; }
   .build-top { flex-direction: column; gap: 2vmin; }
   .counter { min-height: 34vmin; } .customer { height: 30vmin; }
-  #bubble { margin-bottom: 4vmin; padding: 2vmin 4vmin; }
+  #orderBubble { margin-bottom: 4vmin; padding: 2vmin 4vmin; }
   .fishBtn { width: 40vmin; height: 34vmin; } .fishImg { height: 21.5vmin; }
   .item { width: 36vmin; height: 34vmin; }
   /* 直式氣球改 2×2 格：各佔一格，飄動時不會碰到隔壁的注音標籤 */
@@ -774,3 +776,84 @@ body:not(.night) .night-sky { display: none; }
 .tone-tip.bye { opacity: 0; transition: opacity 0.35s; }
 @keyframes tipIn { 0% { opacity: 0; scale: 0.6; } 100% { opacity: 1; scale: 1; } }
 .tile.toneTile.tipped { outline: 1vmin solid var(--yellow); outline-offset: 0.6vmin; }
+
+/* 10-11 新市區（hub3d 的城市設施）：設施浮標換顏色、右邊的「新市區／回小島」按鈕、失火 🔥、寵物不舒服 🤕 */
+.hub-tag.civic { background: #fff7e6; } .hub-tag.civic::after { border-top-color: #fff7e6; }
+.hub-tag.civic.locked { background: #eef1f5; } .hub-tag.civic.locked::after { border-top-color: #eef1f5; }
+#townBtn { left: 30vmin; top: 2vmin; background: #f6c445; }
+#townBtn.back { background: rgba(255,255,255,0.97); }
+#townBtn .nav-ico { display: inline-block; animation: navNudge 2.8s ease-in-out infinite; }
+#townBtn.back .nav-ico { animation: none; }
+@keyframes navNudge { 0%, 72%, 100% { rotate: 0deg; scale: 1; } 80% { rotate: -8deg; scale: 1.12; } 88% { rotate: 5deg; scale: 1.05; } }
+.town-tag { top: 14.8vmin; left: 36vmin; right: auto; translate: -50% 0; cursor: pointer; }
+#townBtn.news::after { content: "NEW"; position: absolute; right: -1.6vmin; top: -1.2vmin; background: #ff5d5d; color: #fff; font-size: 2.6vmin; font-weight: 900; border-radius: 2vmin; padding: 0.4vmin 1.2vmin; border: 0.4vmin solid #fff; animation: tagHop 1.2s ease-in-out infinite; }
+.school-card { position: absolute; left: 50%; top: 18%; translate: -50% 0; z-index: 30; background: #fff; border-radius: 4vmin; padding: 2.4vmin 4vmin 3vmin; box-shadow: 0 1.4vmin 4vmin rgba(20,50,80,0.35);
+  display: flex; flex-direction: column; align-items: center; gap: 1.6vmin; animation: tipIn 0.4s cubic-bezier(.2,1.5,.4,1) both; pointer-events: none; }
+.school-card .sc-t { font-size: 4.2vmin; font-weight: 900; color: #e0703a; }
+.school-card .sticker { transform: none; }
+.school-card.bye { opacity: 0; transition: opacity 0.4s; }
+.town-tag.hidden { display: none; }
+@media (orientation: portrait) { .town-tag { display: none; } }   /* 直式上方沒位子：只留 🌉 圓鈕 */
+.hub-tags.in-town .hub-tag:not(.civic) { visibility: hidden; }   /* 在新市區：主島浮標收起來；在主島：設施浮標收起來 */
+.hub-tags:not(.in-town) .hub-tag.civic { display: none; }
+.hub-fire { position: absolute; left: 0; top: 0; pointer-events: auto; font-size: 5.6vmin; line-height: 1; background: #fff; border-radius: 50%; width: 9vmin; height: 9vmin; display: grid; place-items: center;
+  border: 0.7vmin solid #ff7a2f; box-shadow: 0 0 0 0 rgba(255,122,47,0.6); animation: firePulse 1s ease-out infinite; z-index: 99980; }
+.hub-fire.called { border-color: #4da3ff; animation: none; }
+@keyframes firePulse { 0% { box-shadow: 0 0 0 0 rgba(255,122,47,0.65); } 100% { box-shadow: 0 0 0 3vmin rgba(255,122,47,0); } }
+.hub-sick { position: absolute; left: 0; top: 0; font-size: 6vmin; line-height: 1; pointer-events: none; z-index: 99970; animation: sickBob 1.2s ease-in-out infinite; }
+.hub-sick.ok { animation: sickOk 1.2s ease-out forwards; }
+@keyframes sickBob { 0%, 100% { margin-top: 0; } 50% { margin-top: -1vmin; } }
+@keyframes sickOk { 0% { scale: 0.6; } 30% { scale: 1.4; } 100% { scale: 1; opacity: 0; margin-top: -4vmin; } }
+
+/* 10-11 泡泡救援灣：選關（過過的有星星、下一關黃框、還沒到的鎖著） */
+#bubble { background: #9fdcf5; }
+.bubble-root { position: absolute; inset: 0; }
+.bb-levels { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2.4vmin; margin: 1vmin 0 2vmin; }
+@media (orientation: portrait) { .bb-levels { grid-template-columns: repeat(4, 1fr); } }
+.bb-lv { width: 15vmin; height: 15vmin; border-radius: 4vmin; background: linear-gradient(180deg, #e9f8ff, #bfe9ff); border: 0.6vmin solid #4da3ff; box-shadow: 0 0.8vmin 0 #2f7fd0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4vmin; color: #1b4fa0; }
+.bb-lv .n { font-size: 6.4vmin; font-weight: 900; line-height: 1; }
+.bb-lv .s { font-size: 2.6vmin; line-height: 1; min-height: 2.6vmin; }
+.bb-lv.next { border-color: #f6c445; box-shadow: 0 0 0 0.8vmin #ffe9a8, 0 0.8vmin 0 #c99a1d; animation: tagHop 1.4s ease-in-out infinite; }
+.bb-lv.locked { background: #eef1f5; border-color: #c4ccd8; box-shadow: 0 0.8vmin 0 #a9b3c2; color: #8a94a6; }
+.bb-lv:active:not(.locked) { scale: 0.93; }
+
+/* 10-11 扭蛋機與動物朋友圖鑑 */
+.gacha-box { max-width: 92vw; width: 86vmin; gap: 2vmin; }
+.gacha-stage { position: relative; width: 46vmin; height: 46vmin; flex: none; }
+.gacha-machine { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transform-origin: 50% 90%; filter: drop-shadow(0 1.4vmin 2vmin rgba(20,50,80,0.25)); }
+.gacha-machine.spin { animation: gachaSpin 1.1s ease-in-out; }
+@keyframes gachaSpin { 0%, 100% { rotate: 0deg; } 15% { rotate: -6deg; } 35% { rotate: 6deg; } 55% { rotate: -4deg; } 75% { rotate: 3deg; } }
+.gacha-cap { position: absolute; left: 50%; bottom: 2vmin; width: 18vmin; translate: -50% 0; cursor: pointer; filter: drop-shadow(0 1vmin 1.4vmin rgba(0,0,0,0.25)); }
+.gacha-cap.drop { animation: capDrop 0.7s cubic-bezier(.3,1.6,.5,1) both, capWiggle 1.2s 0.8s ease-in-out infinite; }
+.gacha-cap.ssr { filter: drop-shadow(0 0 2.4vmin rgba(255,206,64,0.95)); }
+.gacha-cap.open { animation: capOpen 0.38s ease-out forwards; }
+@keyframes capDrop { 0% { translate: -50% -30vmin; opacity: 0; } 60% { translate: -50% 0; opacity: 1; } 80% { translate: -50% -2vmin; } 100% { translate: -50% 0; } }
+@keyframes capWiggle { 0%, 100% { rotate: 0deg; } 25% { rotate: -8deg; } 75% { rotate: 8deg; } }
+@keyframes capOpen { 0% { scale: 1; opacity: 1; } 100% { scale: 1.8; opacity: 0; } }
+.gacha-tip { position: absolute; left: 50%; top: 0; translate: -50% -40%; font-size: 4vmin; font-weight: 900; color: #e0703a; white-space: nowrap; background: #fff; border-radius: 4vmin; padding: 0.6vmin 2.4vmin; box-shadow: 0 0.6vmin 1.6vmin rgba(20,50,80,0.2); }
+.gacha-tip:empty { display: none; }
+@media (orientation: landscape) {   /* 橫式：扭蛋機在左、獎品／幣／按鈕在右（不然太高會把按鈕擠出畫面） */
+  .gacha-box { width: min(94vw, 128vmin); display: grid; grid-template-columns: auto 1fr; grid-template-areas: "q q" "stage prize" "stage coins" "stage btns" "stage close"; align-items: center; justify-items: center; column-gap: 4vmin; row-gap: 1.6vmin; }
+  .gacha-box > .q { grid-area: q; } .gacha-box > .gacha-stage { grid-area: stage; width: 52vmin; height: 52vmin; } .gacha-box > .gacha-prize { grid-area: prize; }
+  .gacha-box > .gacha-coins { grid-area: coins; } .gacha-box > .row { grid-area: btns; } .gacha-box > #gachaClose { grid-area: close; }
+}
+@media (orientation: portrait) { .gacha-stage { width: 40vmin; height: 40vmin; } .gacha-prize .gp-img { width: 16vmin; height: 16vmin; } }
+.gacha-prize { display: flex; flex-direction: column; align-items: center; gap: 1vmin; background: #fff8e6; border: 0.6vmin solid #f6c445; border-radius: 3vmin; padding: 2vmin 4vmin; animation: tipIn 0.4s cubic-bezier(.2,1.5,.4,1) both; }
+.gacha-prize .gp-img { width: 22vmin; height: 22vmin; object-fit: contain; }
+.gacha-prize .gp-t { font-size: 5vmin; font-weight: 900; color: #24515c; }
+.gacha-prize .gp-s { font-size: 3.8vmin; font-weight: 700; color: #556; }
+.gacha-coins { display: flex; gap: 2vmin; align-items: center; justify-content: center; flex-wrap: wrap; }
+.gacha-coins .gc { font-size: 5vmin; font-weight: 900; color: #24515c; background: #fff4d6; border-radius: 4vmin; padding: 0.8vmin 2.6vmin; }
+.gacha-coins .gn { font-size: 3.6vmin; color: #667; font-weight: 700; }
+.gacha-coins .gn:empty { display: none; }
+.rw-strip { position: absolute; left: 3vmin; top: 16vmin; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; gap: 1.2vmin; max-width: 40vmin; pointer-events: none; }
+.rw-strip span { background: rgba(255,255,255,0.92); color: #24515c; font-weight: 800; font-size: 3.4vmin; border-radius: 4vmin; padding: 0.8vmin 2vmin; box-shadow: 0 0.4vmin 1vmin rgba(20,50,80,0.18); animation: tipIn 0.4s cubic-bezier(.2,1.5,.4,1) both; }
+.album-grid.pet-grid { grid-template-columns: repeat(auto-fill, minmax(19vmin, 1fr)); }
+.pet-card { display: flex; flex-direction: column; align-items: center; gap: 0.6vmin; background: #fff; border-radius: 3vmin; padding: 1.4vmin 1vmin 1.6vmin; border: 0.6vmin solid #cfd8e3; box-shadow: 0 0.6vmin 0 #b9c6d6; }
+.pet-card.rare { border-color: #b07cff; } .pet-card.ssr { border-color: #f6c445; background: linear-gradient(180deg, #fffaf0, #fff1c9); }
+.pet-card.partner { box-shadow: 0 0 0 0.8vmin #ff8fb1, 0 0.6vmin 0 #b9c6d6; }
+.pet-card .pc-img { width: 15vmin; height: 15vmin; object-fit: contain; }
+.pet-card.none .pc-img { filter: brightness(0) opacity(0.22); }
+.pet-card .pc-n { font-size: 4vmin; font-weight: 900; color: #24515c; }
+.pet-card .pc-s { font-size: 2.8vmin; font-weight: 700; color: #667; }

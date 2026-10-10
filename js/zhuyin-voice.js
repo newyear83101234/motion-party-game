@@ -100,6 +100,8 @@ export function voiceStop() {
 }
 
 export function voiceSpeaking() { return !!cur; }
+// 共用同一個 AudioContext（警笛、鐘聲等程式合成的音效用；還沒解鎖聲音＝null）
+export function voiceCtx() { return ctx && ctx.state === "running" ? ctx : null; }
 
 // 背景預先下載（聲音解鎖後順便解碼）一批句子，例如一回合的題目詞；沒有檔的句子直接略過
 export function voicePreload(texts) {

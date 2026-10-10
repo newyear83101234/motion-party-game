@@ -1,8 +1,1555 @@
 {
  "how": "每句由 Gemini 3.8 Flash 盲聽寫（不給答案），拼音跟正確讀音比對；詞庫詞以遊戲注音為準。AI 聽寫本身也會錯，所以這份是『請人耳確認』清單，不代表一定唸錯。",
- "count": 4,
- "suspicious": 4,
+ "count": 46,
+ "suspicious": 46,
  "items": [
+  {
+   "text": "第一聲不用加符號，按這個空白格就好",
+   "file": "system_8a1ce0dd.mp3",
+   "level": "可疑",
+   "why": [
+    "不 應 bu4 聽到 bu2",
+    "個 應 ge4 唸成輕聲"
+   ],
+   "heard": "第一聲不用加符號，按這個空白格就好",
+   "pinyin": "di4 yi1 sheng1 bu2 yong4 jia1 fu2 hao4 an4 zhe4 ge5 kong1 bai2 ge2 jiu4 hao3",
+   "correct": "di4 yi1 sheng1 bu4 yong4 jia1 fu2 hao4 an4 zhe4 ge4 kong1 bai2 ge2 jiu4 hao3",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "第一聲不用加符號，按這個空白格就好",
+     "pinyin": "di4 yi1 sheng1 bu2 yong4 jia1 fu2 hao4 an4 zhe4 ge5 kong1 bai2 ge2 jiu4 hao3",
+     "why": [
+      "不 應 bu4 聽到 bu2",
+      "個 應 ge4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "第一聲不用加符號，按這個空白格就好",
+     "pinyin": "di4 yi1 sheng1 bu4 yong4 jia1 fu2 hao4 an4 zhe4 ge5 kong4 bai2 ge2 jiu4 hao3",
+     "why": [
+      "空 應 kong1 聽到 kong4",
+      "個 應 ge4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "第一聲不用加符號，按這個空白格就好",
+     "pinyin": "di4 yi1 sheng1 bu2 yong4 jia1 fu2 hao4 an4 zhe4 ge5 kong4 bai2 ge2 jiu4 hao3",
+     "why": [
+      "不 應 bu4 聽到 bu2",
+      "空 應 kong1 聽到 kong4",
+      "個 應 ge4 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "下雨了！滴答滴答！",
+   "file": "guide_3b1d018c.mp3",
+   "level": "可疑",
+   "why": [
+    "答 應 da2 聽到 da1"
+   ],
+   "heard": "下雨了，嘀嗒嘀嗒",
+   "pinyin": "xia4 yu3 le5 di1 da2 di1 da1",
+   "correct": "xia4 yu3 le5 di1 da2 di1 da2",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "下雨了！滴答滴答！",
+     "pinyin": "xia4 yu3 le5 di1 da1 di1 da1",
+     "why": [
+      "答 應 da2 聽到 da1",
+      "答 應 da2 聽到 da1"
+     ]
+    },
+    {
+     "sent": "下雨了！滴答滴答！",
+     "pinyin": "xia4 yu3 le5 di1 da2 di1 da1",
+     "why": [
+      "答 應 da2 聽到 da1"
+     ]
+    },
+    {
+     "sent": "下雨了！滴答滴答！",
+     "pinyin": "xia4 yu3 le5 di1 da1 di1 da1",
+     "why": [
+      "答 應 da2 聽到 da1",
+      "答 應 da2 聽到 da1"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "打雷了！轟隆隆！",
+   "file": "guide_81387799.mp3",
+   "level": "可疑",
+   "why": [
+    "隆 應 long2 聽到 long1"
+   ],
+   "heard": "打雷了，轟隆隆",
+   "pinyin": "da3 lei2 le5 hong1 long2 long1",
+   "correct": "da3 lei2 le5 hong1 long2 long2",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "打雷了！轟隆隆！",
+     "pinyin": "da3 lei2 le5 hong1 long1 long1",
+     "why": [
+      "隆 應 long2 聽到 long1",
+      "隆 應 long2 聽到 long1"
+     ]
+    },
+    {
+     "sent": "打雷了！轟隆隆！",
+     "pinyin": "da3 lei2 le5 hong1 long1 long1",
+     "why": [
+      "隆 應 long2 聽到 long1",
+      "隆 應 long2 聽到 long1"
+     ]
+    },
+    {
+     "sent": "打雷了！轟隆隆！",
+     "pinyin": "da3 lei2 le5 hong1 long2 long1",
+     "why": [
+      "隆 應 long2 聽到 long1"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "颱風來了！大家要待在家裡喔！",
+   "file": "guide_f5ee79b5.mp3",
+   "level": "可疑",
+   "why": [
+    "待 應 dai4 聽到 dai1"
+   ],
+   "heard": "颱風來了，大家要待在家裡喔",
+   "pinyin": "tai2 feng1 lai2 le5 da4 jia1 yao4 dai1 zai4 jia1 li3 o1",
+   "correct": "tai2 feng1 lai2 le5 da4 jia1 yao4 dai4 zai4 jia1 li3 o1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "颱風來了！大家要待在家裡喔！",
+     "pinyin": "tai2 feng1 lai2 le5 da4 jia1 yao4 dai1 zai4 jia1 li3 o1",
+     "why": [
+      "待 應 dai4 聽到 dai1"
+     ]
+    },
+    {
+     "sent": "颱風來了！大家要待在家裡喔！",
+     "pinyin": "tai2 feng1 lai2 le5 da4 jia1 yao4 dai1 zai4 jia1 li3 o1",
+     "why": [
+      "待 應 dai4 聽到 dai1"
+     ]
+    },
+    {
+     "sent": "颱風來了！大家要待在家裡喔！",
+     "pinyin": "tai2 feng1 lai2 le5 da4 jia1 yao4 dai1 zai4 jia1 li3 o1",
+     "why": [
+      "待 應 dai4 聽到 dai1"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "學校！叮噹叮噹，上課囉！",
+   "file": "guide_050a206d.mp3",
+   "level": "可疑",
+   "why": [
+    "噹 應 dang1 聽到 dong1",
+    "噹 應 dang1 聽到 dong1"
+   ],
+   "heard": "學校，叮咚叮咚，上課囉",
+   "pinyin": "xue2 xiao4 ding1 dong1 ding1 dong1 shang4 ke4 lo5",
+   "correct": "xue2 xiao4 ding1 dang1 ding1 dang1 shang4 ke4 luo5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "學校！叮噹叮噹，上課囉！",
+     "pinyin": "xue2 xiao4 ding1 dong1 ding1 dong1 shang4 ke4 lo5",
+     "why": [
+      "噹 應 dang1 聽到 dong1",
+      "噹 應 dang1 聽到 dong1"
+     ]
+    },
+    {
+     "sent": "學校！叮噹叮噹，上課囉！",
+     "pinyin": "xue2 xiao4 ding1 dong1 ding1 dong1 shang4 ke4 luo5",
+     "why": [
+      "噹 應 dang1 聽到 dong1",
+      "噹 應 dang1 聽到 dong1"
+     ]
+    },
+    {
+     "sent": "學校！叮噹叮噹，上課囉！",
+     "pinyin": "xue2 xiao4 ding1 dong1 ding1 dong1 shang4 ke4 luo5",
+     "why": [
+      "噹 應 dang1 聽到 dong1",
+      "噹 應 dang1 聽到 dong1"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "橋蓋好了！新市區開放囉！",
+   "file": "guide_bc86c23e.mp3",
+   "level": "可疑",
+   "why": [
+    "新 應 xin1 聽到 xing2"
+   ],
+   "heard": "橋蓋好了，行駛區開放囉",
+   "pinyin": "qiao2 gai4 hao3 le5 xing2 shi4 qu1 kai1 fang4 luo5",
+   "correct": "qiao2 gai4 hao3 le5 xin1 shi4 qu1 kai1 fang4 luo5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "橋蓋好了！新市區開放囉！",
+     "pinyin": "qiao2 gai4 hao3 le5 xing2 shi4 qu1 kai1 fang4 luo5",
+     "why": [
+      "新 應 xin1 聽到 xing2"
+     ]
+    },
+    {
+     "sent": "橋蓋好了！新市區開放囉！",
+     "pinyin": "qiao2 gai4 hao3 le5 xing2 shi3 qu1 kai1 fang4 luo5",
+     "why": [
+      "新 應 xin1 聽到 xing2",
+      "市 應 shi4 聽到 shi3"
+     ]
+    },
+    {
+     "sent": "橋蓋好了！新市區開放囉！",
+     "pinyin": "qiao2 gai4 hao3 le5 xing2 shi3 qu1 kai1 fang4 lou5",
+     "why": [
+      "新 應 xin1 聽到 xing2",
+      "市 應 shi4 聽到 shi3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "小熊長大了！",
+   "file": "guide_183864ed.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "小熊長大了",
+   "pinyin": "xiao3 xiong2 zhang3 da4 le5",
+   "correct": "xiao3 xiong2 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "小熊長大了！",
+     "pinyin": "xiao3 xiong2 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小熊長大了！",
+     "pinyin": "xiao3 xiong2 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小熊長大了！",
+     "pinyin": "xiao3 xiong2 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "小兔長大了！",
+   "file": "guide_4d6c0f24.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "小兔長大了",
+   "pinyin": "xiao3 tu4 zhang3 da4 le5",
+   "correct": "xiao3 tu4 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "小兔長大了！",
+     "pinyin": "xiao3 tu4 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小兔長大了！",
+     "pinyin": "xiao3 tu4 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小兔長大了！",
+     "pinyin": "xiao3 du1 zhang3 da4 le5",
+     "why": [
+      "兔 應 tu4 聽到 du1",
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "小貓長大了！",
+   "file": "guide_74e4f947.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "小貓長大了",
+   "pinyin": "xiao3 mao1 zhang3 da4 le5",
+   "correct": "xiao3 mao1 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "小貓長大了！",
+     "pinyin": "xiao3 mao1 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小貓長大了！",
+     "pinyin": "xiao3 mao1 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小貓長大了！",
+     "pinyin": "xiao3 mao1 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "小狐狸長大了！",
+   "file": "guide_9776f928.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "小狐狸長大了",
+   "pinyin": "xiao3 hu2 li2 zhang3 da4 le5",
+   "correct": "xiao3 hu2 li2 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "小狐狸長大了！",
+     "pinyin": "xiao3 hu2 li5 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3",
+      "狸 應 li2 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "小狐狸長大了！",
+     "pinyin": "xiao3 hu2 li2 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小狐狸長大了！",
+     "pinyin": "xiao3 hu2 li2 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "熊貓長大了！",
+   "file": "guide_6e721a42.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "熊貓長大了",
+   "pinyin": "xiong2 mao1 zhang3 da4 le5",
+   "correct": "xiong2 mao1 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "熊貓長大了！",
+     "pinyin": "xiao3 mao1 zhang3 da4 le5",
+     "why": [
+      "熊 應 xiong2 聽到 xiao3",
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "熊貓長大了！",
+     "pinyin": "xiong2 mao1 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "熊貓長大了！",
+     "pinyin": "xiong2 mao1 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "企鵝長大了！",
+   "file": "guide_41c834bc.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "企鵝長大了",
+   "pinyin": "qi4 e2 zhang3 da4 le5",
+   "correct": "qi4 e2 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "企鵝長大了！",
+     "pinyin": "qi4 e2 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "企鵝長大了！",
+     "pinyin": "qie3 e2 zhang3 da4 le5",
+     "why": [
+      "企 應 qi4 聽到 qie3",
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "企鵝長大了！",
+     "pinyin": "qi4 e2 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "青蛙長大了！",
+   "file": "guide_53e69bd7.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "青蛙長大了！",
+   "pinyin": "qing1 wa1 zhang3 da4 le5",
+   "correct": "qing1 wa1 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "青蛙長大了！",
+     "pinyin": "qing1 wa1 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "青蛙長大了！",
+     "pinyin": "qing1 wa1 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "青蛙長大了！",
+     "pinyin": "qing1 wa1 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "青蛙變成超級了！",
+   "file": "guide_8596f459.mp3",
+   "level": "可疑",
+   "why": [
+    "了 應 le5 聽到 la5"
+   ],
+   "heard": "青蛙變成超級辣",
+   "pinyin": "qing1 wa1 bian4 cheng2 chao1 ji2 la5",
+   "correct": "qing1 wa1 bian4 cheng2 chao1 ji2 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "青蛙變成超級了！",
+     "pinyin": "qing1 wa1 bian4 cheng2 chao1 ji2 la5",
+     "why": [
+      "了 應 le5 聽到 la5"
+     ]
+    },
+    {
+     "sent": "青蛙變成超級了！",
+     "pinyin": "qing1 wa1 bian4 cheng2 chao1 ji2 la5",
+     "why": [
+      "了 應 le5 聽到 la5"
+     ]
+    },
+    {
+     "sent": "青蛙變成超級了！",
+     "pinyin": "qing1 wa1 bian4 cheng2 chao1 ji2 la4",
+     "why": [
+      "了 應 le5 聽到 la4"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "小獅子長大了！",
+   "file": "guide_5d339b83.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "小獅子長大了！",
+   "pinyin": "xiao3 shi1 zi5 zhang3 da4 le5",
+   "correct": "xiao3 shi1 zi5 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "小獅子長大了！",
+     "pinyin": "xiao3 shi1 zi5 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小獅子長大了！",
+     "pinyin": "xiao3 shi1 zi5 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小獅子長大了！",
+     "pinyin": "xiao3 shi1 zi5 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "小狗長大了！",
+   "file": "guide_f5bae338.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "小狗長大了！",
+   "pinyin": "xiao3 gou3 zhang3 da4 le5",
+   "correct": "xiao3 gou3 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "小狗長大了！",
+     "pinyin": "xiao3 gou3 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小狗長大了！",
+     "pinyin": "xiao3 gou3 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小狗長大了！",
+     "pinyin": "xiao3 gou3 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "小雞長大了！",
+   "file": "guide_eccc5b53.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "小雞長大了",
+   "pinyin": "xiao3 ji1 zhang3 da4 le5",
+   "correct": "xiao3 ji1 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "小雞長大了！",
+     "pinyin": "xiao3 ji1 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小雞長大了！",
+     "pinyin": "xiao3 ji1 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小雞長大了！",
+     "pinyin": "xiao3 ji1 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "小豬長大了！",
+   "file": "guide_280642c0.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "小豬長大了！",
+   "pinyin": "xiao3 zhu1 zhang3 da4 le5",
+   "correct": "xiao3 zhu1 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "小豬長大了！",
+     "pinyin": "xiao3 zhu1 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小豬長大了！",
+     "pinyin": "xiao3 zhu1 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小豬長大了！",
+     "pinyin": "xiao3 zhu1 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "乳牛長大了！",
+   "file": "guide_81606660.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "乳牛長大了",
+   "pinyin": "ru3 niu2 zhang3 da4 le5",
+   "correct": "ru3 niu2 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "乳牛長大了！",
+     "pinyin": "ru3 niu2 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "乳牛長大了！",
+     "pinyin": "niao3 niao2 zhang3 da4 le5",
+     "why": [
+      "乳 應 ru3 聽到 niao3",
+      "牛 應 niu2 聽到 niao2",
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "乳牛長大了！",
+     "pinyin": "niao3 zhang3 da4 le5",
+     "why": [
+      "音節數不同：應 5（ru3 niu2 chang2 da4 le5），聽到 4（niao3 zhang3 da4 le5）"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "乳牛變成超級了！",
+   "file": "guide_aa5018d6.mp3",
+   "level": "可疑",
+   "why": [
+    "乳 應 ru3 聽到 niu1"
+   ],
+   "heard": "妞妞變成超級了",
+   "pinyin": "niu1 niu2 bian4 cheng2 chao1 ji2 le5",
+   "correct": "ru3 niu2 bian4 cheng2 chao1 ji2 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "乳牛變成超級了！",
+     "pinyin": "niu1 niu2 bian4 cheng2 chao1 ji2 le5",
+     "why": [
+      "乳 應 ru3 聽到 niu1"
+     ]
+    },
+    {
+     "sent": "乳牛變成超級了！",
+     "pinyin": "ru3 niu2 bian4 cheng2 chao1 ji2 ju4 le5",
+     "why": [
+      "音節數不同：應 7（ru3 niu2 bian4 cheng2 chao1 ji2 le5），聽到 8（ru3 niu2 bian4 cheng2 chao1 ji2 ju4 le5）"
+     ]
+    },
+    {
+     "sent": "乳牛變成超級了！",
+     "pinyin": "niao3 niao3 bian4 cheng2 chao1 ji2 le5",
+     "why": [
+      "乳 應 ru3 聽到 niao3",
+      "牛 應 niu2 聽到 niao3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "猴子長大了！",
+   "file": "guide_f09b1aca.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "猴子長大了",
+   "pinyin": "hou2 zi5 zhang3 da4 le5",
+   "correct": "hou2 zi5 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "猴子長大了！",
+     "pinyin": "hou2 zi5 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "猴子長大了！",
+     "pinyin": "hou2 zi5 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "猴子長大了！",
+     "pinyin": "hou2 zi3 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "無尾熊長大了！",
+   "file": "guide_d8570b77.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "無尾熊長大了",
+   "pinyin": "wu2 wei3 xiong2 zhang3 da4 le5",
+   "correct": "wu2 wei3 xiong2 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "無尾熊長大了！",
+     "pinyin": "wu2 wei3 xiong2 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "無尾熊長大了！",
+     "pinyin": "wo3 ye3 zhang3 da4 le5",
+     "why": [
+      "音節數不同：應 6（wu2 wei3 xiong2 chang2 da4 le5），聽到 5（wo3 ye3 zhang3 da4 le5）"
+     ]
+    },
+    {
+     "sent": "無尾熊長大了！",
+     "pinyin": "hu2 wei3 xiong2 zhang3 da4 le5",
+     "why": [
+      "無 應 wu2 聽到 hu2",
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "長頸鹿長大了！",
+   "file": "guide_7aa73d64.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "長頸鹿長大了！",
+   "pinyin": "chang2 jing3 lu4 zhang3 da4 le5",
+   "correct": "chang2 jing3 lu4 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "長頸鹿長大了！",
+     "pinyin": "chang2 jing3 lu4 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "長頸鹿長大了！",
+     "pinyin": "chang2 jing3 lu4 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "長頸鹿長大了！",
+     "pinyin": "chang2 jing3 lu4 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "老虎長大了！",
+   "file": "guide_cdae4add.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "老虎長大了",
+   "pinyin": "lao3 hu3 zhang3 da4 le5",
+   "correct": "lao3 hu3 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "老虎長大了！",
+     "pinyin": "lao3 hu2 zhang3 da4 le5",
+     "why": [
+      "虎 應 hu3 聽到 hu2",
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "老虎長大了！",
+     "pinyin": "lao3 hu3 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "老虎長大了！",
+     "pinyin": "lao2 hu3 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "小鹿長大了！",
+   "file": "guide_1f42b3eb.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "小鹿長大了！",
+   "pinyin": "xiao3 lu4 zhang3 da4 le5",
+   "correct": "xiao3 lu4 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "小鹿長大了！",
+     "pinyin": "xiao3 lu4 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小鹿長大了！",
+     "pinyin": "xiao3 lu4 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小鹿長大了！",
+     "pinyin": "xiao3 lu4 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "鸚鵡長大了！",
+   "file": "guide_b7132662.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "鸚鵡長大了",
+   "pinyin": "ying1 wu3 zhang3 da4 le5",
+   "correct": "ying1 wu3 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "鸚鵡長大了！",
+     "pinyin": "ying1 wu3 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "鸚鵡長大了！",
+     "pinyin": "ying1 wu3 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "鸚鵡長大了！",
+     "pinyin": "yin1 wei4 zhang3 da4 le5",
+     "why": [
+      "鸚 應 ying1 聽到 yin1",
+      "鵡 應 wu3 聽到 wei4",
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "蜜蜂長大了！",
+   "file": "guide_f9ab85d9.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "蜜蜂長大了",
+   "pinyin": "mi4 feng1 zhang3 da4 le5",
+   "correct": "mi4 feng1 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "蜜蜂長大了！",
+     "pinyin": "mi4 feng1 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "蜜蜂長大了！",
+     "pinyin": "mi4 feng1 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "蜜蜂長大了！",
+     "pinyin": "mi4 feng1 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "螃蟹長大了！",
+   "file": "guide_9988ee38.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "螃蟹長大了",
+   "pinyin": "pang2 xie4 zhang3 da4 le5",
+   "correct": "pang2 xie4 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "螃蟹長大了！",
+     "pinyin": "pang2 xie4 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "螃蟹長大了！",
+     "pinyin": "pang2 xie4 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "螃蟹長大了！",
+     "pinyin": "pang2 xie4 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "河狸來了！",
+   "file": "hatch_38f80076.mp3",
+   "level": "可疑",
+   "why": [
+    "狸 應 li2 聽到 li4"
+   ],
+   "heard": "荷莉來了",
+   "pinyin": "he2 li4 lai2 le5",
+   "correct": "he2 li2 lai2 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "河狸來了！",
+     "pinyin": "he2 li4 lai2 le5",
+     "why": [
+      "狸 應 li2 聽到 li4"
+     ]
+    },
+    {
+     "sent": "河狸來了！",
+     "pinyin": "he2 li2 lai2 luo5",
+     "why": [
+      "了 應 le5 聽到 luo5"
+     ]
+    },
+    {
+     "sent": "河狸來了！",
+     "pinyin": "ke2 li2 lai2 le5",
+     "why": [
+      "河 應 he2 聽到 ke2"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "河狸長大了！",
+   "file": "guide_7a3e9877.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "河狸長大了",
+   "pinyin": "he2 li2 zhang3 da4 le5",
+   "correct": "he2 li2 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "河狸長大了！",
+     "pinyin": "he2 li2 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "河狸長大了！",
+     "pinyin": "he2 li3 zhang3 da4 le5",
+     "why": [
+      "狸 應 li2 聽到 li3",
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "河狸長大了！",
+     "pinyin": "he2 li2 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "河狸變成超級了！",
+   "file": "guide_b0f4d5a2.mp3",
+   "level": "可疑",
+   "why": [
+    "狸 應 li2 聽到 ti3"
+   ],
+   "heard": "合體變成超級了",
+   "pinyin": "he2 ti3 bian4 cheng2 chao1 ji2 le5",
+   "correct": "he2 li2 bian4 cheng2 chao1 ji2 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "河狸變成超級了！",
+     "pinyin": "ke3 li4 bian4 cheng2 chao1 ji2 le5",
+     "why": [
+      "河 應 he2 聽到 ke3",
+      "狸 應 li2 聽到 li4"
+     ]
+    },
+    {
+     "sent": "河狸變成超級了！",
+     "pinyin": "he2 ti3 bian4 cheng2 chao1 ji2 le5",
+     "why": [
+      "狸 應 li2 聽到 ti3"
+     ]
+    },
+    {
+     "sent": "河狸變成超級了！",
+     "pinyin": "he2 li3 bian4 cheng2 chao1 ji2 le5",
+     "why": [
+      "狸 應 li2 聽到 li3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "河狸",
+   "file": "friend_dfb4da94.mp3",
+   "level": "可疑",
+   "why": [
+    "狸 應 li2 聽到 li3"
+   ],
+   "heard": "合理",
+   "pinyin": "he2 li3",
+   "correct": "he2 li2",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "河狸",
+     "pinyin": "he2 li3",
+     "why": [
+      "狸 應 li2 聽到 li3"
+     ]
+    },
+    {
+     "sent": "河狸",
+     "pinyin": "he2 li3",
+     "why": [
+      "狸 應 li2 聽到 li3"
+     ]
+    },
+    {
+     "sent": "河狸",
+     "pinyin": "he2 li3",
+     "why": [
+      "狸 應 li2 聽到 li3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "山豬長大了！",
+   "file": "guide_ddc093c5.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "山豬長大了！",
+   "pinyin": "shan1 zhu1 zhang3 da4 le5",
+   "correct": "shan1 zhu1 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "山豬長大了！",
+     "pinyin": "shan1 zhu1 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "山豬長大了！",
+     "pinyin": "shan1 zhu1 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "山豬長大了！",
+     "pinyin": "shan1 zhu1 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "北極熊長大了！",
+   "file": "guide_530996e3.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "北極熊長大了！",
+   "pinyin": "bei3 ji2 xiong2 zhang3 da4 le5",
+   "correct": "bei3 ji2 xiong2 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "北極熊長大了！",
+     "pinyin": "bei3 ji2 xiong2 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "北極熊長大了！",
+     "pinyin": "bei3 ji2 xiong2 zhang3 da4 la5",
+     "why": [
+      "長 應 chang2 聽到 zhang3",
+      "了 應 le5 聽到 la5"
+     ]
+    },
+    {
+     "sent": "北極熊長大了！",
+     "pinyin": "bei3 ji2 xiong2 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "毛毛蟲長大了！",
+   "file": "guide_7a0c5e41.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "毛毛蟲長大了！",
+   "pinyin": "mao2 mao2 chong2 zhang3 da4 le5",
+   "correct": "mao2 mao2 chong2 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "毛毛蟲長大了！",
+     "pinyin": "mao2 mao2 chong2 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "毛毛蟲長大了！",
+     "pinyin": "mao2 mao2 chong2 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "毛毛蟲長大了！",
+     "pinyin": "mao2 mao2 chong2 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "小象長大了！",
+   "file": "guide_be54a9fc.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "小象長大了",
+   "pinyin": "xiao3 xiang4 zhang3 da4 le5",
+   "correct": "xiao3 xiang4 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "小象長大了！",
+     "pinyin": "xiao3 xiang4 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小象長大了！",
+     "pinyin": "xiao3 xiang4 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小象長大了！",
+     "pinyin": "xiao3 xiang4 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "小恐龍長大了！",
+   "file": "guide_aed324bc.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "小恐龍長大了！",
+   "pinyin": "xiao3 kong3 long2 zhang3 da4 le5",
+   "correct": "xiao3 kong3 long2 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "小恐龍長大了！",
+     "pinyin": "xiao3 kong3 long2 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小恐龍長大了！",
+     "pinyin": "xiao3 kong3 long2 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小恐龍長大了！",
+     "pinyin": "xiao3 kong3 long2 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "小鯨魚來了！",
+   "file": "hatch_a98faba5.mp3",
+   "level": "可疑",
+   "why": [
+    "鯨 應 jing1 聽到 jin1"
+   ],
+   "heard": "小金魚來了",
+   "pinyin": "xiao3 jin1 yu2 lai2 le5",
+   "correct": "xiao3 jing1 yu2 lai2 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "小鯨魚來了！",
+     "pinyin": "xiao3 jin1 yu2 lai2 lou5",
+     "why": [
+      "鯨 應 jing1 聽到 jin1",
+      "了 應 le5 聽到 lou5"
+     ]
+    },
+    {
+     "sent": "小鯨魚來了！",
+     "pinyin": "xiao3 jin1 yu2 lai2 luo5",
+     "why": [
+      "鯨 應 jing1 聽到 jin1",
+      "了 應 le5 聽到 luo5"
+     ]
+    },
+    {
+     "sent": "小鯨魚來了！",
+     "pinyin": "xiao3 jin1 yu2 lai2 le5",
+     "why": [
+      "鯨 應 jing1 聽到 jin1"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "小鯨魚長大了！",
+   "file": "guide_419fe795.mp3",
+   "level": "可疑",
+   "why": [
+    "鯨 應 jing1 聽到 jin1",
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "小金魚長大了！",
+   "pinyin": "xiao3 jin1 yu2 zhang3 da4 le5",
+   "correct": "xiao3 jing1 yu2 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "小鯨魚長大了！",
+     "pinyin": "xiao3 jin1 yu2 zhang3 da4 le5",
+     "why": [
+      "鯨 應 jing1 聽到 jin1",
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小鯨魚長大了！",
+     "pinyin": "xiao3 jin1 yu2 zhang3 da4 le5",
+     "why": [
+      "鯨 應 jing1 聽到 jin1",
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小鯨魚長大了！",
+     "pinyin": "xiao3 jin1 yu2 zhang3 da4 le5",
+     "why": [
+      "鯨 應 jing1 聽到 jin1",
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "小鯨魚變成超級了！",
+   "file": "guide_a7c41e7f.mp3",
+   "level": "可疑",
+   "why": [
+    "鯨 應 jing1 聽到 jin1"
+   ],
+   "heard": "小金魚變成超級了",
+   "pinyin": "xiao3 jin1 yu2 bian4 cheng2 chao1 ji2 le5",
+   "correct": "xiao3 jing1 yu2 bian4 cheng2 chao1 ji2 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "小鯨魚變成超級了！",
+     "pinyin": "xiao3 jin1 yu2 bian4 cheng2 chao1 ji2 le5",
+     "why": [
+      "鯨 應 jing1 聽到 jin1"
+     ]
+    },
+    {
+     "sent": "小鯨魚變成超級了！",
+     "pinyin": "xiao3 jin1 yu2 bian4 cheng2 chao1 ji2 le5",
+     "why": [
+      "鯨 應 jing1 聽到 jin1"
+     ]
+    },
+    {
+     "sent": "小鯨魚變成超級了！",
+     "pinyin": "xiao3 jin1 yu2 bian4 cheng2 chao1 ji2 le5",
+     "why": [
+      "鯨 應 jing1 聽到 jin1"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "彩虹小龍來了！",
+   "file": "hatch_07318aa5.mp3",
+   "level": "可疑",
+   "why": [
+    "了 應 le5 聽到 lo5"
+   ],
+   "heard": "彩虹小龍來囉",
+   "pinyin": "cai3 hong2 xiao3 long2 lai2 lo5",
+   "correct": "cai3 hong2 xiao3 long2 lai2 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "彩虹小龍來了！",
+     "pinyin": "cai3 hong2 xiao3 long2 lai2 lo5",
+     "why": [
+      "了 應 le5 聽到 lo5"
+     ]
+    },
+    {
+     "sent": "彩虹小龍來了！",
+     "pinyin": "cai3 hong2 xiao3 long2 lai2 luo5",
+     "why": [
+      "了 應 le5 聽到 luo5"
+     ]
+    },
+    {
+     "sent": "彩虹小龍來了！",
+     "pinyin": "cai3 hong2 xiao3 long2 lai2 lo5",
+     "why": [
+      "了 應 le5 聽到 lo5"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "彩虹小龍長大了！",
+   "file": "guide_7feb3689.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "彩虹小龍長大了！",
+   "pinyin": "cai3 hong2 xiao3 long2 zhang3 da4 le5",
+   "correct": "cai3 hong2 xiao3 long2 chang2 da4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "彩虹小龍長大了！",
+     "pinyin": "cai3 hong2 xiao3 long2 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "彩虹小龍長大了！",
+     "pinyin": "cai3 hong2 xiao3 long2 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "彩虹小龍長大了！",
+     "pinyin": "cai3 hong2 xiao3 long2 zhang3 da4 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
   {
    "text": "水，謝謝你！",
    "file": "order_671049f8.mp3",

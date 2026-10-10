@@ -1,20 +1,20 @@
 {
  "meta": {
   "generated_by": "tools/voice/build_lines.py",
-  "total_lines": 295,
-  "total_chars": 1334,
+  "total_lines": 447,
+  "total_chars": 2356,
   "by_cat": {
-   "intro": 8,
+   "intro": 9,
    "praise": 5,
-   "guide": 6,
-   "system": 1,
-   "result": 1,
-   "hatch": 1,
-   "dynamic": 54,
-   "friend": 5,
+   "guide": 104,
+   "system": 4,
+   "result": 2,
+   "word": 139,
+   "hatch": 28,
+   "friend": 19,
+   "dynamic": 59,
    "order": 64,
    "hunt": 1,
-   "word": 136,
    "phrase": 13
   },
   "words": 136,
@@ -32,8 +32,8 @@
   {
    "template": "再收集 ${n} 張貼紙就可以玩囉！",
    "src": "zhuyin.js:295 點還沒解鎖的模式",
-   "range": "n = 1..25（解鎖門檻最高 25 張）",
-   "suggestion": "展開成 25 句完整句子預錄（數字用國字，二→兩）。或改寫成「再收集一些貼紙就可以玩囉！」＋畫面顯示數字，只要 1 句。"
+   "range": "n = 1..30（解鎖門檻最高 30 張）",
+   "suggestion": "展開成 30 句完整句子預錄（數字用國字，二→兩）。或改寫成「再收集一些貼紙就可以玩囉！」＋畫面顯示數字，只要 1 句。"
   },
   {
    "template": "拿到 ${n} 張新貼紙！",
@@ -42,8 +42,8 @@
    "suggestion": "展開成 12 句預錄。"
   },
   {
-   "template": "再 ${n} 顆星星就可以孵蛋囉！",
-   "src": "zhuyin.js:781 結算後",
+   "template": "再 ${n} 顆星星就可以扭蛋囉！",
+   "src": "zhuyin.js tryHatch（10-11 孵蛋改扭蛋）",
    "range": "n = 1..10",
    "suggestion": "展開成 10 句預錄。"
   },
@@ -134,6 +134,12 @@
    "src": "MODES.intro（zhuyin.js:12-19）"
   },
   {
+   "id": "intro_bubble",
+   "text": "發射泡泡，救出小企鵝！",
+   "cat": "intro",
+   "src": "MODES.intro（zhuyin.js:12-19）"
+  },
+  {
    "id": "praise_1",
    "text": "好棒！",
    "cat": "praise",
@@ -194,12 +200,6 @@
    "src": "renderMenu / showResult（zhuyin.js:782,817）"
   },
   {
-   "id": "guide_allhatched",
-   "text": "朋友都孵出來了，好厲害！",
-   "cat": "guide",
-   "src": "renderMenu / showResult（zhuyin.js:782,817）"
-  },
-  {
    "id": "sys_pause",
    "text": "暫停",
    "cat": "system",
@@ -212,10 +212,895 @@
    "src": "zhuyin.js:541 翻牌全部配對完"
   },
   {
-   "id": "hatch_coming",
-   "text": "蛋要孵出來了！",
+   "id": "retry_banner",
+   "text": "剛剛卡住的，再試一次！",
+   "cat": "system",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "tone1_tip",
+   "text": "第一聲不用加符號，按這個空白格就好",
+   "cat": "system",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "bubble_win",
+   "text": "小企鵝都救出來了，好厲害！",
+   "cat": "result",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "bubble_full",
+   "text": "泡泡太多了，我們再試一次！",
+   "cat": "system",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "wx_sunny",
+   "text": "今天是晴天，太陽好溫暖！",
+   "cat": "guide",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "wx_cloudy",
+   "text": "今天是陰天，雲好多喔！",
+   "cat": "guide",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "wx_rain",
+   "text": "下雨了！滴答滴答！",
+   "cat": "guide",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "wx_storm",
+   "text": "打雷了！轟隆隆！",
+   "cat": "guide",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "wx_typhoon",
+   "text": "颱風來了！大家要待在家裡喔！",
+   "cat": "guide",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "wx_rainbow",
+   "text": "雨停了！看，天上有彩虹！",
+   "cat": "guide",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "town_police",
+   "text": "警察局！警車出動巡邏囉！",
+   "cat": "guide",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "town_fire",
+   "text": "消防局！消防車出動囉！",
+   "cat": "guide",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "town_hospital",
+   "text": "醫院！救護車出發囉！",
+   "cat": "guide",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "town_school",
+   "text": "學校！叮噹叮噹，上課囉！",
+   "cat": "guide",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "town_here",
+   "text": "這裡是新市區！",
+   "cat": "guide",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "town_locked",
+   "text": "收集更多貼紙，就能蓋好囉！",
+   "cat": "guide",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "fire_start",
+   "text": "失火了！快叫消防車！",
+   "cat": "guide",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "fire_tap",
+   "text": "消防車馬上來！",
+   "cat": "guide",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "fire_out",
+   "text": "火熄滅了，謝謝消防員！",
+   "cat": "guide",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "bubble_swap",
+   "text": "點一下泡泡，可以換一顆喔！",
+   "cat": "guide",
+   "src": "zhuyin-bubble.js（10-11）"
+  },
+  {
+   "id": "bubble_intro1",
+   "text": "三個一樣的連在一起，就會破掉喔！把小企鵝救出來！",
+   "cat": "guide",
+   "src": "zhuyin-bubble.js（10-11）"
+  },
+  {
+   "id": "sym_1",
+   "text": "ㄅ",
+   "cat": "word",
+   "src": "zhuyin-bubble.js SYMS",
+   "tts_text": "玻"
+  },
+  {
+   "id": "sym_2",
+   "text": "ㄆ",
+   "cat": "word",
+   "src": "zhuyin-bubble.js SYMS",
+   "tts_text": "坡"
+  },
+  {
+   "id": "sym_3",
+   "text": "ㄇ",
+   "cat": "word",
+   "src": "zhuyin-bubble.js SYMS",
+   "tts_text": "摸"
+  },
+  {
+   "id": "gacha_open",
+   "text": "投一枚扭蛋幣，轉一轉！",
+   "cat": "guide",
+   "src": "zhuyin.js 扭蛋機（10-11）"
+  },
+  {
+   "id": "gacha_nocoin",
+   "text": "收集星星，就能拿到扭蛋幣喔！",
+   "cat": "guide",
+   "src": "zhuyin.js 扭蛋機（10-11）"
+  },
+  {
+   "id": "gacha_dup",
+   "text": "換成點心囉！",
+   "cat": "guide",
+   "src": "zhuyin.js 扭蛋機（10-11）"
+  },
+  {
+   "id": "gacha_decor",
+   "text": "小島多了一個新裝飾！",
+   "cat": "guide",
+   "src": "zhuyin.js 扭蛋機（10-11）"
+  },
+  {
+   "id": "gacha_treats",
+   "text": "拿到點心了！",
+   "cat": "guide",
+   "src": "zhuyin.js 扭蛋機（10-11）"
+  },
+  {
+   "id": "town_open",
+   "text": "橋蓋好了！新市區開放囉！",
+   "cat": "guide",
+   "src": "zhuyin.js 扭蛋機（10-11）"
+  },
+  {
+   "id": "town_built_1",
+   "text": "新市區的警察局蓋好了！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent built"
+  },
+  {
+   "id": "town_built_2",
+   "text": "新市區的消防局蓋好了！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent built"
+  },
+  {
+   "id": "town_built_3",
+   "text": "新市區的醫院蓋好了！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent built"
+  },
+  {
+   "id": "town_built_4",
+   "text": "新市區的學校蓋好了！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent built"
+  },
+  {
+   "id": "pet_come_1",
+   "text": "小熊來了！",
    "cat": "hatch",
-   "src": "zhuyin.js:788"
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_1",
+   "text": "小熊長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_1",
+   "text": "小熊變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_come_2",
+   "text": "小兔來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_2",
+   "text": "小兔長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_2",
+   "text": "小兔變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_come_3",
+   "text": "小貓來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_3",
+   "text": "小貓長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_3",
+   "text": "小貓變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_come_4",
+   "text": "小狐狸來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_4",
+   "text": "小狐狸長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_4",
+   "text": "小狐狸變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_come_5",
+   "text": "熊貓來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_5",
+   "text": "熊貓長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_5",
+   "text": "熊貓變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_come_6",
+   "text": "企鵝來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_6",
+   "text": "企鵝長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_6",
+   "text": "企鵝變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_come_7",
+   "text": "青蛙來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_7",
+   "text": "青蛙長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_7",
+   "text": "青蛙變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_come_8",
+   "text": "小獅子來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_8",
+   "text": "小獅子長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_8",
+   "text": "小獅子變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_come_9",
+   "text": "小狗來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_9",
+   "text": "小狗長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_9",
+   "text": "小狗變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_name_9",
+   "text": "小狗",
+   "cat": "friend",
+   "src": "zhuyin.js 動物朋友圖鑑／小島點寵物"
+  },
+  {
+   "id": "pet_come_10",
+   "text": "小雞來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_10",
+   "text": "小雞長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_10",
+   "text": "小雞變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_come_11",
+   "text": "小豬來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_11",
+   "text": "小豬長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_11",
+   "text": "小豬變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_name_11",
+   "text": "小豬",
+   "cat": "friend",
+   "src": "zhuyin.js 動物朋友圖鑑／小島點寵物"
+  },
+  {
+   "id": "pet_come_12",
+   "text": "乳牛來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_12",
+   "text": "乳牛長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_12",
+   "text": "乳牛變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_name_12",
+   "text": "乳牛",
+   "cat": "friend",
+   "src": "zhuyin.js 動物朋友圖鑑／小島點寵物"
+  },
+  {
+   "id": "pet_come_13",
+   "text": "猴子來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_13",
+   "text": "猴子長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_13",
+   "text": "猴子變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_come_14",
+   "text": "無尾熊來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_14",
+   "text": "無尾熊長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_14",
+   "text": "無尾熊變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_name_14",
+   "text": "無尾熊",
+   "cat": "friend",
+   "src": "zhuyin.js 動物朋友圖鑑／小島點寵物"
+  },
+  {
+   "id": "pet_come_15",
+   "text": "長頸鹿來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_15",
+   "text": "長頸鹿長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_15",
+   "text": "長頸鹿變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_come_16",
+   "text": "老虎來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_16",
+   "text": "老虎長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_16",
+   "text": "老虎變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_come_17",
+   "text": "小鹿來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_17",
+   "text": "小鹿長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_17",
+   "text": "小鹿變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_name_17",
+   "text": "小鹿",
+   "cat": "friend",
+   "src": "zhuyin.js 動物朋友圖鑑／小島點寵物"
+  },
+  {
+   "id": "pet_come_18",
+   "text": "鸚鵡來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_18",
+   "text": "鸚鵡長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_18",
+   "text": "鸚鵡變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_name_18",
+   "text": "鸚鵡",
+   "cat": "friend",
+   "src": "zhuyin.js 動物朋友圖鑑／小島點寵物"
+  },
+  {
+   "id": "pet_come_19",
+   "text": "蜜蜂來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_19",
+   "text": "蜜蜂長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_19",
+   "text": "蜜蜂變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_come_20",
+   "text": "螃蟹來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_20",
+   "text": "螃蟹長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_20",
+   "text": "螃蟹變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_come_21",
+   "text": "河狸來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_21",
+   "text": "河狸長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_21",
+   "text": "河狸變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_name_21",
+   "text": "河狸",
+   "cat": "friend",
+   "src": "zhuyin.js 動物朋友圖鑑／小島點寵物"
+  },
+  {
+   "id": "pet_come_22",
+   "text": "山豬來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_22",
+   "text": "山豬長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_22",
+   "text": "山豬變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_name_22",
+   "text": "山豬",
+   "cat": "friend",
+   "src": "zhuyin.js 動物朋友圖鑑／小島點寵物"
+  },
+  {
+   "id": "pet_come_23",
+   "text": "北極熊來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_23",
+   "text": "北極熊長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_23",
+   "text": "北極熊變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_name_23",
+   "text": "北極熊",
+   "cat": "friend",
+   "src": "zhuyin.js 動物朋友圖鑑／小島點寵物"
+  },
+  {
+   "id": "pet_come_24",
+   "text": "毛毛蟲來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_24",
+   "text": "毛毛蟲長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_24",
+   "text": "毛毛蟲變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_name_24",
+   "text": "毛毛蟲",
+   "cat": "friend",
+   "src": "zhuyin.js 動物朋友圖鑑／小島點寵物"
+  },
+  {
+   "id": "pet_come_25",
+   "text": "小象來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_25",
+   "text": "小象長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_25",
+   "text": "小象變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_name_25",
+   "text": "小象",
+   "cat": "friend",
+   "src": "zhuyin.js 動物朋友圖鑑／小島點寵物"
+  },
+  {
+   "id": "pet_come_26",
+   "text": "小恐龍來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_26",
+   "text": "小恐龍長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_26",
+   "text": "小恐龍變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_name_26",
+   "text": "小恐龍",
+   "cat": "friend",
+   "src": "zhuyin.js 動物朋友圖鑑／小島點寵物"
+  },
+  {
+   "id": "pet_come_27",
+   "text": "小鯨魚來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_27",
+   "text": "小鯨魚長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_27",
+   "text": "小鯨魚變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_name_27",
+   "text": "小鯨魚",
+   "cat": "friend",
+   "src": "zhuyin.js 動物朋友圖鑑／小島點寵物"
+  },
+  {
+   "id": "pet_come_28",
+   "text": "彩虹小龍來了！",
+   "cat": "hatch",
+   "src": "zhuyin.js spinGacha"
+  },
+  {
+   "id": "pet_grow_28",
+   "text": "彩虹小龍長大了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_super_28",
+   "text": "彩虹小龍變成超級了！",
+   "cat": "guide",
+   "src": "zhuyin.js rewardStrip"
+  },
+  {
+   "id": "pet_name_28",
+   "text": "彩虹小龍",
+   "cat": "friend",
+   "src": "zhuyin.js 動物朋友圖鑑／小島點寵物"
+  },
+  {
+   "id": "sick_1",
+   "text": "小熊不舒服，救護車來了！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent"
+  },
+  {
+   "id": "healed_1",
+   "text": "小熊好了，謝謝醫生！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent"
+  },
+  {
+   "id": "sick_2",
+   "text": "小兔不舒服，救護車來了！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent"
+  },
+  {
+   "id": "healed_2",
+   "text": "小兔好了，謝謝醫生！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent"
+  },
+  {
+   "id": "sick_3",
+   "text": "小貓不舒服，救護車來了！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent"
+  },
+  {
+   "id": "healed_3",
+   "text": "小貓好了，謝謝醫生！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent"
+  },
+  {
+   "id": "sick_4",
+   "text": "小狐狸不舒服，救護車來了！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent"
+  },
+  {
+   "id": "healed_4",
+   "text": "小狐狸好了，謝謝醫生！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent"
+  },
+  {
+   "id": "sick_5",
+   "text": "熊貓不舒服，救護車來了！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent"
+  },
+  {
+   "id": "healed_5",
+   "text": "熊貓好了，謝謝醫生！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent"
+  },
+  {
+   "id": "sick_6",
+   "text": "企鵝不舒服，救護車來了！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent"
+  },
+  {
+   "id": "healed_6",
+   "text": "企鵝好了，謝謝醫生！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent"
+  },
+  {
+   "id": "sick_7",
+   "text": "青蛙不舒服，救護車來了！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent"
+  },
+  {
+   "id": "healed_7",
+   "text": "青蛙好了，謝謝醫生！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent"
+  },
+  {
+   "id": "sick_8",
+   "text": "小獅子不舒服，救護車來了！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent"
+  },
+  {
+   "id": "healed_8",
+   "text": "小獅子好了，謝謝醫生！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent"
   },
   {
    "id": "unlock_need_1",
@@ -418,6 +1303,46 @@
    "n": 25
   },
   {
+   "id": "unlock_need_26",
+   "text": "再收集 26 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集二十六張貼紙就可以玩囉！",
+   "n": 26
+  },
+  {
+   "id": "unlock_need_27",
+   "text": "再收集 27 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集二十七張貼紙就可以玩囉！",
+   "n": 27
+  },
+  {
+   "id": "unlock_need_28",
+   "text": "再收集 28 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集二十八張貼紙就可以玩囉！",
+   "n": 28
+  },
+  {
+   "id": "unlock_need_29",
+   "text": "再收集 29 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集二十九張貼紙就可以玩囉！",
+   "n": 29
+  },
+  {
+   "id": "unlock_need_30",
+   "text": "再收集 30 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集三十張貼紙就可以玩囉！",
+   "n": 30
+  },
+  {
    "id": "result_stickers_1",
    "text": "拿到 1 張新貼紙！",
    "cat": "dynamic",
@@ -514,83 +1439,83 @@
    "n": 12
   },
   {
-   "id": "egg_need_1",
-   "text": "再 1 顆星星就可以孵蛋囉！",
+   "id": "coin_need_1",
+   "text": "再 1 顆星星就可以扭蛋囉！",
    "cat": "dynamic",
-   "src": "zhuyin.js:781",
-   "tts_text": "再一顆星星就可以孵蛋囉！",
+   "src": "zhuyin.js tryHatch",
+   "tts_text": "再一顆星星就可以扭蛋囉！",
    "n": 1
   },
   {
-   "id": "egg_need_2",
-   "text": "再 2 顆星星就可以孵蛋囉！",
+   "id": "coin_need_2",
+   "text": "再 2 顆星星就可以扭蛋囉！",
    "cat": "dynamic",
-   "src": "zhuyin.js:781",
-   "tts_text": "再兩顆星星就可以孵蛋囉！",
+   "src": "zhuyin.js tryHatch",
+   "tts_text": "再兩顆星星就可以扭蛋囉！",
    "n": 2
   },
   {
-   "id": "egg_need_3",
-   "text": "再 3 顆星星就可以孵蛋囉！",
+   "id": "coin_need_3",
+   "text": "再 3 顆星星就可以扭蛋囉！",
    "cat": "dynamic",
-   "src": "zhuyin.js:781",
-   "tts_text": "再三顆星星就可以孵蛋囉！",
+   "src": "zhuyin.js tryHatch",
+   "tts_text": "再三顆星星就可以扭蛋囉！",
    "n": 3
   },
   {
-   "id": "egg_need_4",
-   "text": "再 4 顆星星就可以孵蛋囉！",
+   "id": "coin_need_4",
+   "text": "再 4 顆星星就可以扭蛋囉！",
    "cat": "dynamic",
-   "src": "zhuyin.js:781",
-   "tts_text": "再四顆星星就可以孵蛋囉！",
+   "src": "zhuyin.js tryHatch",
+   "tts_text": "再四顆星星就可以扭蛋囉！",
    "n": 4
   },
   {
-   "id": "egg_need_5",
-   "text": "再 5 顆星星就可以孵蛋囉！",
+   "id": "coin_need_5",
+   "text": "再 5 顆星星就可以扭蛋囉！",
    "cat": "dynamic",
-   "src": "zhuyin.js:781",
-   "tts_text": "再五顆星星就可以孵蛋囉！",
+   "src": "zhuyin.js tryHatch",
+   "tts_text": "再五顆星星就可以扭蛋囉！",
    "n": 5
   },
   {
-   "id": "egg_need_6",
-   "text": "再 6 顆星星就可以孵蛋囉！",
+   "id": "coin_need_6",
+   "text": "再 6 顆星星就可以扭蛋囉！",
    "cat": "dynamic",
-   "src": "zhuyin.js:781",
-   "tts_text": "再六顆星星就可以孵蛋囉！",
+   "src": "zhuyin.js tryHatch",
+   "tts_text": "再六顆星星就可以扭蛋囉！",
    "n": 6
   },
   {
-   "id": "egg_need_7",
-   "text": "再 7 顆星星就可以孵蛋囉！",
+   "id": "coin_need_7",
+   "text": "再 7 顆星星就可以扭蛋囉！",
    "cat": "dynamic",
-   "src": "zhuyin.js:781",
-   "tts_text": "再七顆星星就可以孵蛋囉！",
+   "src": "zhuyin.js tryHatch",
+   "tts_text": "再七顆星星就可以扭蛋囉！",
    "n": 7
   },
   {
-   "id": "egg_need_8",
-   "text": "再 8 顆星星就可以孵蛋囉！",
+   "id": "coin_need_8",
+   "text": "再 8 顆星星就可以扭蛋囉！",
    "cat": "dynamic",
-   "src": "zhuyin.js:781",
-   "tts_text": "再八顆星星就可以孵蛋囉！",
+   "src": "zhuyin.js tryHatch",
+   "tts_text": "再八顆星星就可以扭蛋囉！",
    "n": 8
   },
   {
-   "id": "egg_need_9",
-   "text": "再 9 顆星星就可以孵蛋囉！",
+   "id": "coin_need_9",
+   "text": "再 9 顆星星就可以扭蛋囉！",
    "cat": "dynamic",
-   "src": "zhuyin.js:781",
-   "tts_text": "再九顆星星就可以孵蛋囉！",
+   "src": "zhuyin.js tryHatch",
+   "tts_text": "再九顆星星就可以扭蛋囉！",
    "n": 9
   },
   {
-   "id": "egg_need_10",
-   "text": "再 10 顆星星就可以孵蛋囉！",
+   "id": "coin_need_10",
+   "text": "再 10 顆星星就可以扭蛋囉！",
    "cat": "dynamic",
-   "src": "zhuyin.js:781",
-   "tts_text": "再十顆星星就可以孵蛋囉！",
+   "src": "zhuyin.js tryHatch",
+   "tts_text": "再十顆星星就可以扭蛋囉！",
    "n": 10
   },
   {

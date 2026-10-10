@@ -17,7 +17,7 @@ WSRC = (ROOT / "js" / "zhuyin-words.js").read_text(encoding="utf-8")
 OUT = Path(__file__).resolve().parent / "lines.json"
 
 CN_NUM = ["零", "一", "兩", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二", "十三", "十四", "十五",
-          "十六", "十七", "十八", "十九", "二十", "二十一", "二十二", "二十三", "二十四", "二十五"]
+          "十六", "十七", "十八", "十九", "二十", "二十一", "二十二", "二十三", "二十四", "二十五", "二十六", "二十七", "二十八", "二十九", "三十"]
 
 
 def block(name):
@@ -64,16 +64,57 @@ for i, p in enumerate(PRAISE):
 
 # ---- 3. 嚮導（貓頭鷹）固定台詞 ----
 GUIDE = [("guide_hello", "你好！快來選遊戲玩吧！"), ("guide_more", "再收集幾張貼紙，就能開新遊戲喔！"),
-         ("guide_which", "今天要玩哪個呢？"), ("guide_growing", "貼紙越來越多了！"), ("guide_fishhunt", "來釣魚還是去尋寶？"),
-         ("guide_allhatched", "朋友都孵出來了，好厲害！")]
+         ("guide_which", "今天要玩哪個呢？"), ("guide_growing", "貼紙越來越多了！"), ("guide_fishhunt", "來釣魚還是去尋寶？")]
 for i, t in GUIDE:
     must(t); add(i, t, "guide", "renderMenu / showResult（zhuyin.js:782,817）")
 
 # ---- 4. 其他固定句 ----
 for i, t, c, s in [("sys_pause", "暫停", "system", "zhuyin.js:829 確認離開"),
-                   ("match_allfound", "全部找到了！", "result", "zhuyin.js:541 翻牌全部配對完"),
-                   ("hatch_coming", "蛋要孵出來了！", "hatch", "zhuyin.js:788")]:
-    must(f'say("{t}")'); add(i, t, c, s)
+                   ("match_allfound", "全部找到了！", "result", "zhuyin.js:541 翻牌全部配對完")]:   # 10-11：「蛋要孵出來了！」隨孵蛋改扭蛋拿掉
+    if f'say("{t}")' not in SRC and f'talk("{t}")' not in SRC: must(f'say("{t}")')   # 10-11 說明類改用 talk()
+    add(i, t, c, s)
+
+# ---- 4b. 10-11 新增：再試一次、一聲提示、泡泡救援灣、天氣、新市區 ----
+BSRC = (ROOT / "js" / "zhuyin-bubble.js").read_text(encoding="utf-8")
+for i, t, c in [("retry_banner", "剛剛卡住的，再試一次！", "system"), ("tone1_tip", "第一聲不用加符號，按這個空白格就好", "system"),
+                ("bubble_win", "小企鵝都救出來了，好厲害！", "result"), ("bubble_full", "泡泡太多了，我們再試一次！", "system"),
+                ("wx_sunny", "今天是晴天，太陽好溫暖！", "guide"), ("wx_cloudy", "今天是陰天，雲好多喔！", "guide"), ("wx_rain", "下雨了！滴答滴答！", "guide"),
+                ("wx_storm", "打雷了！轟隆隆！", "guide"), ("wx_typhoon", "颱風來了！大家要待在家裡喔！", "guide"), ("wx_rainbow", "雨停了！看，天上有彩虹！", "guide"),
+                ("town_police", "警察局！警車出動巡邏囉！", "guide"), ("town_fire", "消防局！消防車出動囉！", "guide"), ("town_hospital", "醫院！救護車出發囉！", "guide"),
+                ("town_school", "學校！叮噹叮噹，上課囉！", "guide"), ("town_here", "這裡是新市區！", "guide"), ("town_locked", "收集更多貼紙，就能蓋好囉！", "guide"),
+                ("fire_start", "失火了！快叫消防車！", "guide"), ("fire_tap", "消防車馬上來！", "guide"), ("fire_out", "火熄滅了，謝謝消防員！", "guide")]:
+    must(t); add(i, t, c, "zhuyin.js（10-11）")
+for i, t in [("bubble_swap", "點一下泡泡，可以換一顆喔！"), ("bubble_intro1", "三個一樣的連在一起，就會破掉喔！把小企鵝救出來！")]:
+    if t.split("！")[0] not in BSRC: sys.exit(f"zhuyin-bubble.js 找不到：{t}")
+    add(i, t, "guide", "zhuyin-bubble.js（10-11）")
+# 泡泡上的注音符號：唸符號的名稱（台灣念法：ㄅ＝玻、ㄆ＝坡、ㄇ＝摸）
+for i, (sym, rd) in enumerate([("ㄅ", "玻"), ("ㄆ", "坡"), ("ㄇ", "摸")]):
+    add(f"sym_{i + 1}", sym, "word", "zhuyin-bubble.js SYMS", tts=rd)
+# ---- 4c. 10-11 扭蛋機與 28 隻寵物 ----
+RWSRC = (ROOT / "js" / "zhuyin-rewards.js").read_text(encoding="utf-8")
+PETS_BLOCK = RWSRC.split("export const PETS = [")[1].split("];\nexport const PET")[0]
+PETS28 = re.findall(r'\["(\w+)", "([^"]+)"\]|\{ id: "(\w+)", name: "([^"]+)"', PETS_BLOCK)
+PET_NAMES = [b or d for a, b, c, d in PETS28]
+assert len(PET_NAMES) == 28, f"寵物名單解析失敗：{len(PET_NAMES)}"
+for i, t in [("gacha_open", "投一枚扭蛋幣，轉一轉！"), ("gacha_nocoin", "收集星星，就能拿到扭蛋幣喔！"), ("gacha_dup", "換成點心囉！"),
+             ("gacha_decor", "小島多了一個新裝飾！"), ("gacha_treats", "拿到點心了！"), ("town_open", "橋蓋好了！新市區開放囉！")]:
+    must(t); add(i, t, "guide", "zhuyin.js 扭蛋機（10-11）")
+for k, nm in enumerate(["警察局", "消防局", "醫院", "學校"]):
+    add(f"town_built_{k + 1}", f"新市區的{nm}蓋好了！", "guide", "zhuyin.js civicEvent built")
+must('p.name + "來了！"'); must('`${p.name}${g.fed.grew === 3 ? "變成超級" : "長大"}了！`')
+word_set0 = {w["h"] for w in WORDS}
+for k, nm in enumerate(PET_NAMES):
+    add(f"pet_come_{k + 1}", nm + "來了！", "hatch", "zhuyin.js spinGacha")
+    add(f"pet_grow_{k + 1}", nm + "長大了！", "guide", "zhuyin.js rewardStrip")
+    add(f"pet_super_{k + 1}", nm + "變成超級了！", "guide", "zhuyin.js rewardStrip")
+    if nm not in word_set0 and nm not in FRIENDS:
+        add(f"pet_name_{k + 1}", nm, "friend", "zhuyin.js 動物朋友圖鑑／小島點寵物")
+
+# 寵物不舒服／好了（新市區救護車）：每位朋友各一句
+must('who + "不舒服，救護車來了！"'); must('who + "好了，謝謝醫生！"')
+for i, nm in enumerate(FRIENDS):
+    add(f"sick_{i + 1}", nm + "不舒服，救護車來了！", "guide", "zhuyin.js civicEvent")
+    add(f"healed_{i + 1}", nm + "好了，謝謝醫生！", "guide", "zhuyin.js civicEvent")
 
 # ---- 5. 動態句：全部展開成完整句子 ----
 DYNAMIC = []
@@ -92,11 +133,11 @@ DYNAMIC.append(dict(template="拿到 ${n} 張新貼紙！", src="zhuyin.js:763 �
 for n in range(1, nmax + 1):
     add(f"result_stickers_{n}", f"拿到 {n} 張新貼紙！", "dynamic", "zhuyin.js:763", tts=f"拿到{CN_NUM[n]}張新貼紙！", n=n)
 
-must("再 ${EGG_STARS - inJar} 顆星星就可以孵蛋囉！")
-DYNAMIC.append(dict(template="再 ${n} 顆星星就可以孵蛋囉！", src="zhuyin.js:781 結算後",
+must("再 ${EGG_STARS - RW.jarLeft(save.rw, save.stars)} 顆星星就可以扭蛋囉！")
+DYNAMIC.append(dict(template="再 ${n} 顆星星就可以扭蛋囉！", src="zhuyin.js tryHatch（10-11 孵蛋改扭蛋）",
                     range=f"n = 1..{EGG_STARS}", suggestion=f"展開成 {EGG_STARS} 句預錄。"))
 for n in range(1, EGG_STARS + 1):
-    add(f"egg_need_{n}", f"再 {n} 顆星星就可以孵蛋囉！", "dynamic", "zhuyin.js:781", tts=f"再{CN_NUM[n]}顆星星就可以孵蛋囉！", n=n)
+    add(f"coin_need_{n}", f"再 {n} 顆星星就可以扭蛋囉！", "dynamic", "zhuyin.js tryHatch", tts=f"再{CN_NUM[n]}顆星星就可以扭蛋囉！", n=n)
 
 must("${p.name}，歡迎回來！")
 DYNAMIC.append(dict(template="${存檔位名字}，歡迎回來！", src="zhuyin.js:837 換人玩", range=" / ".join(SLOTS),
@@ -104,7 +145,7 @@ DYNAMIC.append(dict(template="${存檔位名字}，歡迎回來！", src="zhuyin
 for i, nm in enumerate(SLOTS):
     add(f"welcome_slot{i + 1}", f"{nm}，歡迎回來！", "dynamic", "zhuyin.js:837")
 
-must('f.name + "來了，會來店裡買東西喔！"')
+if 'f.name + "來了，會來店裡買東西喔！"' not in SRC: pass   # 10-11 起孵蛋改走扭蛋機（寵物「X來了！」），舊句保留音檔
 DYNAMIC.append(dict(template="${朋友}來了，會來店裡買東西喔！", src="zhuyin.js:789 孵蛋",
                     range="FRIENDS[4..] 依序孵出：" + "、".join(FRIENDS[4:]),
                     suggestion=f"展開成 {len(FRIENDS) - 4} 句預錄（前 4 隻一開始就在，不會孵）。"))

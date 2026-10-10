@@ -22,12 +22,14 @@
   </script>
   <!-- 自己的程式一開頁就同時抓（高優先）：不然要等 zhuyin.js 下載完才知道要抓 ann/words/ui，再等它跑起來才抓 hub3d，
        一層等一層，線上 4Mbps 實測多卡約 3 秒（tools/zy-test/loadprofile.js）。網址要跟實際 import 的完全一樣（含 ?v=） -->
-  <link rel="modulepreload" href="js/zhuyin.js?v=20" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin.js?v=21" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-words.js" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-ann.js?v=2" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-ui.js?v=2" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-voice.js?v=1" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=5" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-ann.js?v=3" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-ui.js?v=3" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-voice.js?v=2" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=6" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-weather.js?v=1">
+  <link rel="modulepreload" href="js/zhuyin-rewards.js?v=1" fetchpriority="high">
   <!-- 開頁要等貓頭鷹：圖片預設優先序最低，線上實測 24KB 會排在 three.js 後面最晚才到 → 提高優先序 -->
   <link rel="preload" as="image" href="IMAGE/zhuyin/guide_owl.webp" fetchpriority="high">
   <!-- Three.js 跟頁面一起開始抓（4Mbps 開頁快 0.6 秒）；?no3d 不抓。這裡不先測 WebGL2（建 context 會拖慢開頁），沒有 WebGL2 的極少數機器只是白抓 -->
@@ -40,7 +42,8 @@
     })();
   </script>
   <!-- 樣式表放在上面兩段 script 後面：classic script 會等前面的樣式表下載完才執行，放前面會卡住整頁解析 -->
-  <link rel="stylesheet" href="css/zhuyin.css?v=19">
+  <link rel="stylesheet" href="css/zhuyin.css?v=20">
+  <link rel="stylesheet" href="css/zhuyin-bubble.css?v=1">
 </head>
 <body class="gate-on">
   <!-- body.gate-on：開始畫面還沒按「開始玩」→ CSS 藏起小島浮標、嚮導、圓鈕（開始畫面只留一個標題、一顆按鈕） -->
@@ -61,6 +64,8 @@
   <!-- 常駐按鈕：首頁 / 音樂 / 提示（右上）/ 家長設定（選單右上） -->
   <button id="homeBtn" class="round-btn" title="回首頁">🏠</button>
   <button id="musicBtn" class="round-btn" title="音樂">🎵</button>
+  <button id="townBtn" class="round-btn hidden" title="新市區" aria-label="新市區"><span class="nav-ico">🏙️</span></button>
+  <div id="townTag" class="player-tag town-tag hidden"><span class="nav-word">新市區</span></div>
   <button id="speakBtn" class="hint-btn hidden" title="提示"><span class="ic">🔊</span><span id="speakLabel">提示</span></button>
   <!-- 家長鎖：⚙️ 要按住 2 秒（進度環跑滿）才開；小孩點一下只會晃 -->
   <button id="settingsBtn" class="round-btn hidden" title="家長設定（按住 2 秒）"><span class="ic">⚙️</span><i class="lock-ring"></i></button>
@@ -84,6 +89,7 @@
       <button class="mode-card" data-mode="tone"><span class="big">🎈</span><span class="label">氣球</span><span class="lock"></span></button>
       <button class="mode-card" data-mode="whack"><span class="big">🔨</span><span class="label">地鼠</span><span class="lock"></span></button>
       <button class="mode-card" data-mode="frog"><span class="big">🐸</span><span class="label">青蛙</span><span class="lock"></span></button>
+      <button class="mode-card" data-mode="bubble"><span class="big">🐧</span><span class="label">泡泡</span><span class="lock"></span></button>
     </div>
     <div class="menu-bottom">
       <button id="albumBtn" class="pill"><span>📒 貼紙</span><b id="menuStickers">0</b></button>
@@ -104,7 +110,7 @@
   <!-- ===== 點餐 ===== -->
   <section id="order" class="screen bg-shop hidden">
     <div class="topbar"></div>
-    <div class="counter"><img id="customer" class="customer" alt=""><div id="bubble" class="bubble"></div></div>
+    <div class="counter"><img id="customer" class="customer" alt=""><div id="orderBubble" class="bubble"></div></div>
     <div id="shelf" class="shelf"></div>
   </section>
 
@@ -154,6 +160,12 @@
     <div id="river" class="river"></div>
   </section>
 
+  <!-- ===== 泡泡救援灣（引擎 js/zhuyin-bubble.js 自己在 #bubbleRoot 裡建畫面）===== -->
+  <section id="bubble" class="screen hidden">
+    <div class="topbar"></div>
+    <div id="bubbleRoot" class="bubble-root"></div>
+  </section>
+
   <!-- ===== 結算 ===== -->
   <!-- 結算演出（B1）：星星一顆顆蓋章 → 貼紙一張張貼 → 星星飛進右下的星星罐 → 按鈕最後才淡入；演出中點畫面＝快轉到最後 -->
   <section id="result" class="screen bg-map hidden">
@@ -181,6 +193,16 @@
   <!-- 換人玩：三個存檔位 -->
   <div id="players" class="overlay hidden"><div class="dialog"><div class="q">👋 誰要玩？</div><div id="playerList" class="row wrap"></div></div></div>
   <!-- 翻牌選張數 -->
+  <!-- 扭蛋機（獎勵系統）：投幣轉一轉 → 膠囊 → 點開 → 獎品 -->
+  <div id="gacha" class="overlay hidden"><div class="dialog gacha-box">
+    <div class="q">🎁 扭蛋機</div>
+    <div class="gacha-stage"><img id="gachaMachine" class="gacha-machine" src="IMAGE/zhuyin/gacha_machine.webp" alt=""><img id="gachaCap" class="gacha-cap hidden" alt=""><div id="gachaTip" class="gacha-tip"></div></div>
+    <div id="gachaPrize" class="gacha-prize hidden"></div>
+    <div class="gacha-coins"><span id="gachaCoins" class="gc">🪙 0</span><span id="gachaGold" class="gc gold hidden">🌟 0</span><span id="gachaNext" class="gn"></span></div>
+    <div class="row wrap"><button id="gachaGo" class="big-btn">🪙 轉一轉</button><button id="gachaGoGold" class="big-btn alt hidden">🌟 用金幣（一定稀有）</button></div>
+    <button id="gachaClose" class="big-btn alt small">↩️ 回去</button>
+  </div></div>
+  <div id="bubblePick" class="overlay hidden"><div class="dialog"><div class="q">🐧 要玩第幾關？</div><div id="bubbleLevels" class="bb-levels"></div><button id="bubblePickClose" class="big-btn alt small">↩️ 回去</button></div></div>
   <div id="matchPick" class="overlay hidden"><div class="dialog"><div class="q">🃏 要翻幾張牌？</div><div id="matchSizes" class="row wrap"></div><button id="matchPickClose" class="big-btn alt small">↩️ 回去</button></div></div>
   <!-- 家長設定（B6）：整頁給家長看 → noann 不加注音、靠左、分段 -->
   <div id="settings" class="overlay hidden"><div class="dialog settings noann">
@@ -196,6 +218,11 @@
       <div class="set-note">題目和答案的唸音一定會播（學注音要聽），不受下面兩個開關影響。</div>
       <div class="set-pair"><span class="set-sub">背景音樂</span><div class="seg" id="musicOpts"><button class="opt" data-v="1">開</button><button class="opt" data-v="0">關</button></div></div>
       <div class="set-pair"><span class="set-sub">說明語音<small>貓頭鷹說明、稱讚、暫停、結算的話</small></span><div class="seg" id="talkOpts"><button class="opt" data-v="1">開</button><button class="opt" data-v="0">關</button></div></div>
+    </div>
+    <div class="set-sec">
+      <div class="set-label">🎁 扭蛋機（不用花錢，只能靠學習拿到）</div>
+      <div class="set-note">每 10 顆星星換 1 枚扭蛋幣；貼紙一個分類集滿也送 1 枚；集章卡（每天第一局蓋 1 格）集滿 7 格送 1 枚金幣（保證稀有）。<br>機率：普通（藍色膠囊，小島裝飾或點心）70%、稀有（紫色，稀有寵物）25%、超稀有（金色，小恐龍／小鯨魚／彩虹小龍）5%。<br>保底：連續 4 次沒拿到稀有，第 5 次一定稀有以上；連續 14 次沒拿到超稀有，第 15 次一定超稀有。寵物優先給還沒有的，重複的換成點心。點心會餵給夥伴，讓牠從寶寶長大、變超級（永遠不會倒退）。</div>
+      <div id="rwStats" class="set-note strong"></div>
     </div>
     <div class="set-sec">
       <div class="set-label">📈 容易搞混的注音：<span id="mixName"></span></div>
@@ -234,6 +261,6 @@
   <div id="flash" class="flash"></div>
 
   <div id="fx" class="fx"></div>
-  <script type="module" src="js/zhuyin.js?v=20"></script>
+  <script type="module" src="js/zhuyin.js?v=21"></script>
 </body>
 </html>

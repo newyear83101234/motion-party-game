@@ -202,7 +202,7 @@ const btnState = p => p.evaluate(() => { const b = document.getElementById("resu
     for (const [w, h, t] of [[1180, 820, "L"], [820, 1180, "P"], [1024, 768, "43"]]) {
       await p.setViewportSize({ width: w, height: h }); await sleep(900);
       const hit = await p.evaluate(() => { const r = document.getElementById("playerTag").getBoundingClientRect(), bad = [];
-        for (const s of ["#menu > .menu-bottom", "#resumeBtn", "#homeBtn", "#musicBtn", "#playerBtn", "#settingsBtn", "#guideText", "#guide img", ".hub-tag"]) for (const e of document.querySelectorAll(s)) {
+        for (const s of ["#menu > .menu-bottom", "#resumeBtn", "#homeBtn", "#musicBtn", "#playerBtn", "#settingsBtn", "#guideText", "#guide img", ".hub-tag:not(.civic)"]) for (const e of document.querySelectorAll(s)) {
           if (!e.offsetParent && getComputedStyle(e).position !== "fixed") continue; const q = e.getBoundingClientRect(); if (!q.width) continue;
           if (r.left < q.right - 1 && r.right > q.left + 1 && r.top < q.bottom - 1 && r.bottom > q.top + 1) bad.push(s + (e.dataset.mode ? ":" + e.dataset.mode : "")); }
         return { bad, inside: r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight }; });
