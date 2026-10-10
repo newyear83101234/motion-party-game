@@ -27,6 +27,8 @@
   <link rel="modulepreload" href="js/zhuyin-ann.js" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-ui.js" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=2" fetchpriority="high">
+  <!-- 開頁要等貓頭鷹：圖片預設優先序最低，線上實測 24KB 會排在 three.js 後面最晚才到 → 提高優先序 -->
+  <link rel="preload" as="image" href="IMAGE/zhuyin/guide_owl.webp" fetchpriority="high">
   <!-- Three.js 跟頁面一起開始抓（4Mbps 開頁快 0.6 秒）；?no3d 不抓。這裡不先測 WebGL2（建 context 會拖慢開頁），沒有 WebGL2 的極少數機器只是白抓 -->
   <script>
     (function () {
