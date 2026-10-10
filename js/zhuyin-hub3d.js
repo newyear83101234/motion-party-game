@@ -27,18 +27,18 @@ const FPS = 30;                                       // 省電：最多 30 格�
 const TAP_MOVE = 24, TAP_MS = 800;                    // 5 歲小孩常按久、拖著點：移動 < 24px、按住 < 0.8 秒都算點（寧次 10-10）
 const DEBUG = /[?&]debug\b/.test(location.search);
 // 遊戲建築（＋扭蛋機）：街區 (bx, bz)，door＝往哪一側的路接過去；鏡頭從 +x+z 看，正面朝 +x 或 +z。
-// ex＝不種樹的範圍、foot＝施工圍籬半寬；LAYOUT 是模型載完後的實際大小（區域座標，先寫死：模型還在下載時鏡頭就能擺好、浮標就能點，
+// ex＝不種樹的範圍；LAYOUT 是模型載完後的實際大小（區域座標，先寫死：模型還在下載時鏡頭就能擺好、浮標就能點，
 // 改了建築要更新——網址加 ?debug 後在主控台跑 __hub3d.measure() 會印出新的值）
 const DEFS = [
-  { mode: "hunt", bx: 0, bz: 0, door: [0, 1], ex: [-1.8, 1.8, -1.8, 1.8], foot: [1.5, 1.5] },
-  { mode: "match", bx: 2, bz: 0, door: [0, 1], ex: [-1.4, 1.4, -1.5, 1.7], foot: [1.1, 1.3] },
-  { mode: "build", bx: 1, bz: 1, door: [1, 0], ex: [-1.5, 1.6, -1.6, 1.6], foot: [1.2, 1.45] },
-  { mode: "tone", bx: 3, bz: 1, door: [0, 1], ex: [-1.5, 1.8, -1.6, 1.6], foot: [1.2, 1.2] },
-  { mode: "whack", bx: 0, bz: 2, door: [1, 0], ex: [-1.7, 1.8, -1.6, 1.6], foot: [1.4, 1.3] },
-  { mode: "order", bx: 2, bz: 2, door: [1, 0], ex: [-1.8, 1.8, -1.5, 1.5], foot: [1.35, 1.2] },
-  { mode: "fish", bx: 1, bz: 3, door: [1, 0], ex: [-1.6, 1.6, 1.2, 2.8], foot: [1.2, 1.0] },
-  { mode: "frog", bx: 3, bz: 3, door: [0, -1], ex: [-1.8, 1.9, -1.6, 1.7], foot: [1.5, 1.3] },
-  { mode: "gacha", bx: 0, bz: 3, door: [1, 0], ex: [-1.5, 1.5, -1.5, 1.5], foot: [1.1, 1.1], free: true },
+  { mode: "hunt", bx: 0, bz: 0, door: [0, 1], ex: [-1.8, 1.8, -1.8, 1.8] },
+  { mode: "match", bx: 2, bz: 0, door: [0, 1], ex: [-1.4, 1.4, -1.5, 1.7] },
+  { mode: "build", bx: 1, bz: 1, door: [1, 0], ex: [-1.5, 1.6, -1.6, 1.6] },
+  { mode: "tone", bx: 3, bz: 1, door: [0, 1], ex: [-1.5, 1.8, -1.6, 1.6] },
+  { mode: "whack", bx: 0, bz: 2, door: [1, 0], ex: [-1.7, 1.8, -1.6, 1.6] },
+  { mode: "order", bx: 2, bz: 2, door: [1, 0], ex: [-1.8, 1.8, -1.5, 1.5] },
+  { mode: "fish", bx: 1, bz: 3, door: [1, 0], ex: [-1.6, 1.6, 1.2, 2.8] },
+  { mode: "frog", bx: 3, bz: 3, door: [0, -1], ex: [-1.8, 1.9, -1.6, 1.7] },
+  { mode: "gacha", bx: 0, bz: 3, door: [1, 0], ex: [-1.5, 1.5, -1.5, 1.5], free: true },
 ].map(d => ({ ...d, x: BC(d.bx), z: BC(d.bz) }));
 const LAYOUT = {   // [box x0,x1,y0,y1,z0,z1]、[anchor x,y,z]、[body x,y,z]（區域座標）
   hunt: [[-1.48, 1.24, 0.5, 2.32, -1.12, 1.43], [0.27, 1.64, 0.27], [0.27, 0.94, 0.27]],
@@ -69,7 +69,7 @@ const anims = new Set();                              // 一次性動畫 { updat
 const view = { k: 40, cx: 0, cy: 0 };                 // 擺好的鏡頭：每單位幾 px、視角中心
 const user = { zoom: 1, px: 0, py: 0 };               // 小孩拖曳／縮放
 const hitBoxes = [], agents = [], pets = new Map(), timers = new Set(), failedPets = new Set(), warnedPets = new Set();
-const exRects = [], terraces = [], blobs = [], decorSlots = [], statics = [];   // statics：景點、路、地形等不會動也不能點的群組（最後整個合併）
+const exRects = [], terraces = [], blobs = [], decorSlots = [], statics = [], treeXZ = [];   // statics：景點、路、地形等不會動也不能點的群組（最後整個合併）；treeXZ：種好的樹／樹叢（施工三角錐要讓開）
 let tapLockUntil = 0, hopCycle = -1, fingerDone = false, petWant = null, decorWant = null, decorGroup = null, decorBlob = null, agentBlob = null;
 const _v = new THREE.Vector3(), _c = new THREE.Color(), _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3();
 const later = (fn, ms) => { const id = setTimeout(() => { timers.delete(id); fn(); }, ms); timers.add(id); return id; };
@@ -571,17 +571,15 @@ function startDef(d) {
   exRects.push([d.x + d.ex[0], d.x + d.ex[1], d.z + d.ex[2], d.z + d.ex[3]]);
   blob(d.x + (b[0] + b[1]) / 2, d.z + (b[4] + b[5]) / 2, Math.min(3.2, Math.max(b[1] - b[0], b[5] - b[4]) * 1.05), groundY(d.x, d.z));
   if (d.free) return;
-  // 施工圍籬：橘白斜條紋板（共用材質，條紋密度改 UV）＋柱子，圍在鏡頭看得到的兩面（+x、+z）
-  const [fx, fz] = d.foot, g = d.lockDeco;
-  const board = w => { const geo = box(w, 0.2, 0.05), uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setX(i, uv.getX(i) * w / 1.1); return geo; };
-  const barrier = (x, z, ry, w) => {
-    const bg = new THREE.Group(); bg.position.set(x, 0, z); bg.rotation.y = ry; g.add(bg);
-    const geo = board(w);
-    mesh(geo, fenceMat, { y: 0.42, parent: bg }); mesh(geo, fenceMat, { y: 0.16, parent: bg });
-    for (const s of [-1, 1]) mesh(box(0.07, 0.6, 0.07), postMat, { x: s * (w / 2 - 0.06), y: 0.3, parent: bg });
-  };
-  barrier(fx + 0.25, 0, Math.PI / 2, fz * 1.5);
-  barrier(0, fz + 0.25, 0, fx * 1.5);
+  // 施工中：門口小路經過人行道的那一段擋一道路障（橘白斜條紋板＋柱腳），兩邊的三角錐 buildDef 第二段放。
+  // 只擋門口：路燈、行道樹都讓開門口 0.9，不會穿模（10-11 阿葉：舊版圍籬沿人行道圍一圈，跟路燈、樹、樓梯打架＝破圖）
+  const g = d.lockDeco, [dx, dz] = d.door, dist = PITCH / 2 - RW / 2 - SW / 2 + 0.05;   // 人行道中線再靠馬路一點（區域座標；讓開建築門口的招牌、花台）
+  const bx = dx * dist, bz = dz * dist, y = groundY(d.x + bx, d.z + bz) + 0.075, w = 0.8;
+  d.lockSpot = { x: bx, y, z: bz, ax: dx ? 0 : 1, az: dx ? 1 : 0 };   // ax/az＝沿人行道的方向（路障橫擋、三角錐排兩邊）
+  const geo = box(w, 0.2, 0.05), uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setX(i, uv.getX(i) * w / 1.1);
+  const bg = new THREE.Group(); bg.position.set(bx, y, bz); bg.rotation.y = dx ? Math.PI / 2 : 0; g.add(bg);
+  mesh(geo, fenceMat, { y: 0.42, parent: bg }); mesh(geo, fenceMat, { y: 0.16, parent: bg });
+  for (const s of [-1, 1]) { mesh(box(0.07, 0.6, 0.07), postMat, { x: s * (w / 2 - 0.06), y: 0.3, parent: bg }); mesh(box(0.09, 0.04, 0.3), postMat, { x: s * (w / 2 - 0.06), y: 0.02, parent: bg }); }
   g.traverse(o => { if (o.isMesh) o.userData.keepColor = true; });
   mergeStatic(g);
 }
@@ -591,8 +589,9 @@ async function buildDef(d, builder, delay) {
   const a = await builder(d, p);
   scene.updateMatrixWorld(true); d.anchorBox = new THREE.Box3().setFromObject(a); d.sigBox = d.sig ? new THREE.Box3().setFromObject(d.sig) : null;   // 給 __hub3d.measure() 用（合併前量）
   if (!d.free) {
-    const [fx, fz] = d.foot;
-    await Promise.all([[fx + 0.25, fz + 0.25], [fx + 0.25, -fz * 0.95], [-fx * 0.95, fz + 0.25]].map(([x, z]) => kenney("car-kit", "cone", { scale: 0.75, x, z, parent: d.lockDeco, shadow: false })));
+    const L = d.lockSpot, clear = (x, z) => ![...treeXZ, ...graph.lamps].some(([tx, tz]) => Math.hypot(d.x + x - tx, d.z + z - tz) < 0.45);   // 太靠近行道樹／路燈的那一邊就不放
+    await Promise.all([-1, 1].map(s => [L.x + s * L.ax * 0.56, L.z + s * L.az * 0.56]).filter(([x, z]) => clear(x, z))
+      .map(([x, z]) => kenney("car-kit", "cone", { scale: 0.75, x, y: L.y, z, parent: d.lockDeco, shadow: false })));
     d.lockDeco.traverse(o => { if (o.isMesh) o.userData.keepColor = true; });
     mergeStatic(d.lockDeco);
   }
@@ -823,7 +822,7 @@ async function buildWhack(d, p) {
   // 菜園
   const soil = slab({ hx: 0.85, hz: 1.15, r: 0.3, top: 0.07, depth: 0.12, color: "#8a5a3c", x: 0.45, z: 0 }); p.add(soil);
   await Promise.all([
-    ...[-0.55, 0.55].map(z => kenney("nature-kit", "crops_dirtRow", { parent: p, scale: 1.1, x: 0.1, y: 0.07, z, shadow: false })),
+    ...[-0.55, 0.55].map(z => kenney("nature-kit", "crops_dirtRow", { parent: p, scale: 1.1, x: 0.1, y: 0.082, z, shadow: false })),   // 墊高一點：底面跟菜園土面同高會閃（z-fighting）
     ...[["crop_carrot", -0.8], ["crop_turnip", -0.3], ["crop_carrot", 0.3], ["crop_pumpkin", 0.8]].map(([n, z]) => kenney("nature-kit", n, { parent: p, scale: 0.9, x: 0.1, y: 0.08, z })),
   ]);
   const HOLES = [[0.85, -0.75], [0.85, 0.0], [0.85, 0.75]];
@@ -1065,7 +1064,7 @@ function makeGeos() {
 }
 const FLOWER_COLORS = ["#ff8fb1", "#ffffff", "#ffd75e", "#ff6f7d", "#c9a2ff"];
 function buildTrees() {
-  const rand = rng(7), placed = [], inst = [[], [], [], [], []], spots = [];
+  const rand = rng(7), placed = treeXZ, inst = [[], [], [], [], []], spots = [];
   const patch = (x, z, n, s) => { for (let k = 0; k < n; k++) { const px = x + (rand() - 0.5) * s * 2, pz = z + (rand() - 0.5) * s * 2; spots.push([px, groundY(px, pz), pz]); } };
   const onRoad = (x, z) => ROADS.some(c => Math.abs(x - c) < RW / 2 + SW + 0.25 || Math.abs(z - c) < RW / 2 + SW + 0.25) || Math.hypot(x, z) < RR + RW / 2 + SW + 0.25;
   const blocked = (x, z) => onRoad(x, z) || exRects.some(([x0, x1, z0, z1]) => x > x0 && x < x1 && z > z0 && z < z1) || decorSlots.some(s => Math.hypot(x - s.x, z - s.z) < 0.7)
@@ -1142,7 +1141,7 @@ function nextEdge(a) {
     a.home = false;
   }
   if (n.door && a.kind === "pet") { a.pause = 2 + agentRand() * 2.5; a.atDoor = true; a.fwd = !a.fwd; a.s = 0; return; }   // 到建築門口：停一下、轉身看鏡頭，再走回去
-  let opts = n.edges.filter(e => e !== a.e && (a.kind === "pet" || !e.spur) && !(e.spur && (e.a === parkDoor || e.b === parkDoor)));
+  let opts = n.edges.filter(e => e !== a.e && (a.kind === "pet" || !e.spur) && !(e.spur && (e.a === parkDoor || e.b === parkDoor || (e.a.door || e.b.door || {}).locked)));   // 還在施工（門口有路障）的不走進去
   if (a.kind === "pet") { const sp = opts.filter(e => e.spur), rd = opts.filter(e => !e.spur); opts = sp.length && agentRand() < 0.3 ? sp : rd.length ? rd : opts; }
   if (!opts.length) { a.fwd = !a.fwd; a.s = 0; return; }   // 路的盡頭（海邊）：掉頭
   const e = opts[Math.floor(agentRand() * opts.length)];
@@ -1770,6 +1769,7 @@ if (DEBUG) window.__hub3d = {
   petScreen(id) { const p = pets.get(id); if (!p) return null; _v.set(0, PET_H * 0.45 * (STAGE_SCALE[p.stage] || 1), 0).applyMatrix4(p.holder.matrixWorld).project(camera); return { x: (_v.x + 1) / 2 * innerWidth, y: (1 - _v.y) / 2 * innerHeight }; },
   pets: () => [...pets.keys()],
   locked: () => DEFS.filter(d => d.locked).map(d => d.mode),
+  lockScreen(m) { const d = DEFS.find(x => x.mode === m), L = d.lockSpot; if (!L) return null; _v.set(d.x + L.x, L.y + 0.3, d.z + L.z).project(camera); return { x: (_v.x + 1) / 2 * innerWidth, y: (1 - _v.y) / 2 * innerHeight }; },   // 施工路障在螢幕上的位置（截圖檢查穿模用）
   finger: () => !!finger,
   tags(on) { tagLayer.style.visibility = on ? "" : "hidden"; },
   focus(m, z = 1.5) { const d = DEFS.find(x => x.mode === m) || SPOTS.find(x => x.id === m); if (!d) { user.zoom = 1; user.px = user.py = 0; return; } user.zoom = z; _v.set(d.x, 1, d.z).applyMatrix4(camera.matrixWorldInverse); user.px = _v.x - view.cx; user.py = _v.y - view.cy; },
