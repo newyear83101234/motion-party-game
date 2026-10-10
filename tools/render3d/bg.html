@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <title>3D 背景工作站</title>
+  <link rel="icon" href="data:,">
+  <!-- 用法：bg.html?bg=pond&o=L（o=L 橫式 1600×900、o=P 直式 900×1600；視窗大小由 render_bg.js 設定）。完成時 window.__done=true -->
+  <style>
+    html, body { margin: 0; background: #000; overflow: hidden; }
+    canvas { display: block; }
+    #err { position: fixed; left: 8px; top: 8px; color: #f66; font: 14px monospace; white-space: pre; }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="err"></div>
+  <script type="module" src="bg.js"></script>
+</body>
+</html>

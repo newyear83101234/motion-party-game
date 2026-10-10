@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <title>3D 渲染工作站</title>
+  <link rel="icon" href="data:,">
+  <!-- 用法：studio.html?job=<名稱>（名稱見 jobs.json）；可加 &yaw=&pitch= 臨時覆蓋角度。完成時 window.__done=true -->
+  <style>
+    html, body { margin: 0; background: transparent; }
+    body.preview { background: repeating-conic-gradient(#ddd 0 25%, #f4f4f4 0 50%) 0 0 / 24px 24px; }
+    canvas { display: block; }
+    #err { position: fixed; left: 8px; top: 8px; color: #c00; font: 14px monospace; white-space: pre; }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="err"></div>
+  <script type="module" src="studio.js"></script>
+</body>
+</html>

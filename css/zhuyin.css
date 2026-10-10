@@ -21,9 +21,21 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 .bg-album  { background-image: url("../IMAGE/zhuyin/bg_album.webp"); }
 .bg-garden { background-image: url("../IMAGE/zhuyin/bg_garden.webp"); }
 .bg-frog   { background-image: url("../IMAGE/zhuyin/bg_frog.webp"); }
+@media (orientation: portrait) {   /* 直式換 900×1600 的直式背景（_p） */
+  .bg-map { background-image: url("../IMAGE/zhuyin/bg_map_p.webp"); }
+  .bg-pond { background-image: url("../IMAGE/zhuyin/bg_pond_p.webp"); }
+  .bg-shop { background-image: url("../IMAGE/zhuyin/bg_shop_p.webp"); }
+  .bg-blocks { background-image: url("../IMAGE/zhuyin/bg_blocks_p.webp"); }
+  .bg-park { background-image: url("../IMAGE/zhuyin/bg_park_p.webp"); }
+  .bg-table { background-image: url("../IMAGE/zhuyin/bg_table_p.webp"); }
+  .bg-sky { background-image: url("../IMAGE/zhuyin/bg_sky_p.webp"); }
+  .bg-album { background-image: url("../IMAGE/zhuyin/bg_album_p.webp"); }
+  .bg-garden { background-image: url("../IMAGE/zhuyin/bg_garden_p.webp"); }
+  .bg-frog { background-image: url("../IMAGE/zhuyin/bg_frog_p.webp"); }
+}
 
 /* ===== 圓形常駐按鈕 ===== */
-.round-btn { position: absolute; z-index: 20; width: 12vmin; height: 12vmin; border-radius: 50%; background: rgba(255,255,255,0.9); font-size: 6vmin; box-shadow: 0 3px 10px rgba(0,0,0,0.25); }
+.round-btn { position: absolute; z-index: 20; width: 12vmin; height: 12vmin; border-radius: 50%; background: rgba(255,255,255,0.97); font-size: 6vmin; box-shadow: 0 3px 10px rgba(0,0,0,0.25); }
 #homeBtn { left: 2vmin; top: 2vmin; }
 #musicBtn { left: 16vmin; top: 2vmin; }
 #musicBtn.off { opacity: 0.45; }
@@ -101,7 +113,8 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 
 /* ===== 注音直排 ===== */
 .zy { display: inline-flex; gap: 0.35em; align-items: flex-start; font-size: 1em; line-height: 1; position: relative; z-index: 2; }
-.zy b, .zy .tone { text-shadow: 0 0 0.06em #fff, 0 0 0.06em #fff, 0 0 0.12em #fff; }
+.zy b { text-shadow: 0 0 0.06em #fff, 0 0 0.06em #fff, 0 0 0.12em #fff; }
+.zy .tone { text-shadow: none; }   /* 聲調用向量圖畫，透明字的白光暈會把 ˊˇ 切出白痕（寧次 10-10） */
 .prompt, .bubble, .slots, .zlabel, .sticker { position: relative; z-index: 19; }
 /* 白底圓角注音標籤：魚、氣球的注音都放這裡，跟圖片分開排 */
 .zlabel { background: #fff; border: 0.6vmin solid var(--blue); border-radius: 3vmin; padding: 1.8vmin 1.6vmin 1vmin 2vmin; box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; color: #222; }
@@ -155,7 +168,7 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 .zy.hz .han { font-size: 1.25em; margin-top: 0.25em; font-weight: bold; color: var(--blue); }
 
 /* ===== 題目卡 ===== */
-.prompt { display: flex; align-items: center; gap: 3vmin; font-size: 12vmin; min-height: 20vmin; background: rgba(255,255,255,0.9); padding: 1vmin 5vmin; border-radius: 6vmin; box-shadow: 0 4px 14px rgba(0,0,0,0.18); border: 0.6vmin solid rgba(27,79,160,0.35); }
+.prompt { display: flex; align-items: center; gap: 3vmin; font-size: 12vmin; min-height: 20vmin; background: rgba(255,255,255,0.97); padding: 1vmin 5vmin; border-radius: 6vmin; box-shadow: 0 4px 14px rgba(0,0,0,0.18); border: 0.6vmin solid rgba(27,79,160,0.35); }
 .prompt .han { font-size: 9vmin; color: var(--blue); font-weight: bold; }
 .prompt.small { font-size: 10vmin; min-height: 16vmin; }
 .prompt.small .han { font-size: 7vmin; }
@@ -172,7 +185,7 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 /* ===== 釣魚 ===== */
 .pond { position: relative; flex: 1; width: 100%; margin-top: 2vmin; }
 .fishBtn { position: absolute; width: 30vmin; height: 32vmin; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 0.5vmin; animation: bob 2.4s ease-in-out infinite; }
-.fishImg { width: 100%; height: 15vmin; flex-shrink: 0; background: url("../IMAGE/zhuyin/fish.webp") center / contain no-repeat; filter: drop-shadow(0 6px 8px rgba(0,0,0,0.25)); }
+.fishImg { width: 100%; height: 19vmin; flex-shrink: 0; background: url("../IMAGE/zhuyin/fish.webp") center / contain no-repeat; filter: drop-shadow(0 6px 8px rgba(0,0,0,0.25)); }
 .fishBtn .zlabel { min-width: 16vmin; }
 .fishBtn:nth-child(2) { animation-delay: -0.6s; } .fishBtn:nth-child(3) { animation-delay: -1.2s; } .fishBtn:nth-child(4) { animation-delay: -1.8s; }
 .fishBtn.ok { animation: caught 0.9s ease forwards; }
@@ -200,7 +213,7 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 .slots { display: flex; gap: 4vmin; background: rgba(255,255,255,0.8); padding: 2vmin 4vmin; border-radius: 4vmin; min-height: 28vmin; align-items: center; }
 .sylSlot { display: flex; align-items: center; gap: 1.2vmin; }
 .sylSlot .col { display: flex; flex-direction: column; gap: 1vmin; }
-.slot { width: 10vmin; height: 10vmin; border-radius: 2vmin; border: 0.6vmin dashed #7fa3d6; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; font-size: 7vmin; font-weight: 700; color: #222; }
+.slot { width: 10vmin; height: 10vmin; border-radius: 2vmin; border: 0.6vmin dashed #5b86c4; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; font-size: 7vmin; font-weight: 700; color: #222; }
 .slot.toneSlot { width: 9vmin; height: 9vmin; border-radius: 50%; font-size: 6.5vmin; font-weight: 900; color: var(--tone); }
 .slot.toneSlot.off { opacity: 0.35; }
 .slot.cur { border-color: var(--tone); animation: pulse 1s infinite; }
@@ -299,7 +312,7 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 @keyframes padIn { from { transform: scale(0.3); opacity: 0; } }
 @keyframes sink { 30% { transform: rotate(-8deg) scale(0.95); } 100% { transform: translateY(4vmin) scale(0.4); opacity: 0; } }
 @keyframes fadeOut { to { transform: scale(0.8); opacity: 0; } }
-.frog { z-index: 5; width: 14vmin; height: 16.2vmin; translate: -50% -85%; pointer-events: none; background: url("../IMAGE/zhuyin/frog_sit.webp") center bottom / contain no-repeat; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.25)); transition: left 0.45s ease-in-out, top 0.45s ease-in-out, margin 0.45s; }
+.frog { z-index: 5; width: 18.5vmin; height: 21.5vmin; translate: -50% -85%; pointer-events: none; background: url("../IMAGE/zhuyin/frog_sit.webp") center bottom / contain no-repeat; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.25)); transition: left 0.45s ease-in-out, top 0.45s ease-in-out, margin 0.45s; }
 .frog.jump { background-image: url("../IMAGE/zhuyin/frog_jump.webp"); animation: frogArc 0.45s ease-in-out; }
 .frog.onstone { margin-left: -7vmin; }
 @keyframes frogArc { 50% { transform: translateY(-9vmin) scale(1.1); } }
@@ -310,6 +323,8 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 
 /* ===== 結算 ===== */
 #result { justify-content: center; gap: 2.5vmin; }
+#result::before { content: ""; position: absolute; inset: 0; background: rgba(20,60,90,0.35); pointer-events: none; }   /* 暗層：成績和按鈕跳出來 */
+#result > * { position: relative; z-index: 1; }
 .result-text { font-size: 7vmin; color: var(--blue); font-weight: bold; text-align: center; background: rgba(255,255,255,0.9); padding: 2vmin 5vmin; border-radius: 4vmin; }
 .stars { font-size: 15vmin; display: flex; gap: 1vmin; }
 .stars .star { opacity: 0.35; transform: scale(0.6); }
@@ -336,6 +351,7 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 #album { padding-top: 2vmin; }
 .album-head { display: flex; align-items: center; gap: 3vmin; margin-left: 30vmin; margin-right: 4vmin; width: calc(100% - 34vmin); }
 .album-head h2 { font-size: 6vmin; color: var(--blue); }
+@media (orientation: portrait) { .album-head h2 { font-size: 5vmin; } }
 .tabs { display: flex; gap: 1.5vmin; margin-top: 1.5vmin; flex-wrap: wrap; justify-content: center; }
 .tab { font-size: 3.8vmin; font-weight: bold; padding: 1.2vmin 2.4vmin; border-radius: 3vmin; background: rgba(255,255,255,0.8); color: var(--blue); border: 0.5vmin solid transparent; }
 .tab.on { background: var(--yellow); border-color: var(--tone); }
@@ -373,7 +389,7 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
   .build-top { flex-direction: column; gap: 2vmin; }
   .counter { min-height: 34vmin; } .customer { height: 30vmin; }
   #bubble { margin-bottom: 4vmin; padding: 2vmin 4vmin; }
-  .fishBtn { width: 40vmin; height: 34vmin; } .fishImg { height: 17vmin; }
+  .fishBtn { width: 40vmin; height: 34vmin; } .fishImg { height: 21.5vmin; }
   .item { width: 36vmin; height: 34vmin; }
   /* 直式氣球改 2×2 格：各佔一格，飄動時不會碰到隔壁的注音標籤 */
   .sky { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; row-gap: 10vmin; justify-items: center; padding: 2vmin 4vmin 4vmin; }
@@ -411,7 +427,7 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
   .mole { left: calc(50% - var(--cw, 30vmin) * 0.3); transform: translateY(112%); transition: transform 0.2s ease-out; }
   .mole.up { transform: none; }
   .river > .pad { margin: -8.8vmin 0 0 -11vmin; } .river > .pad.start { margin: -8vmin 0 0 -10vmin; }
-  .river > .frog { margin: -13.8vmin 0 0 -7vmin; } .river > .frog.onstone { margin-left: -14vmin; }
+  .river > .frog { margin: -18.3vmin 0 0 -9.25vmin; } .river > .frog.onstone { margin-left: -16.25vmin; }
   .river > .fstone { margin: -9.75vmin 0 0 -15vmin; }
   .fpic { left: 54%; }
   .river > .fword { left: 8%; right: 8%; top: 22%; justify-content: center; }
@@ -421,3 +437,46 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
     #menu > h1, #menu > .resume, #menu > .mode-cards, #menu > .menu-bottom { left: 0; }
   }
 }
+
+/* ===== 3D 選單小島（js/zhuyin-hub3d.js）=====
+   body.hub3d＝3D 載入成功；沒有這個 class（載入失敗／沒 WebGL／?no3d）就是原本的卡片選單。
+   卡片 DOM 留著（點建築＝點卡片、測試也會 click 它們），只是看不到。 */
+.hub-stage, .hub-tags { display: none; }
+body.hub3d .hub-stage { display: block; position: absolute; inset: 0; z-index: 0; }
+body.hub3d .hub-stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+body.hub3d .hub-tags { display: block; position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+body.hub3d #menu { background: #3f97c9; }
+body:not(.hub-off) #menu.bg-map { background-image: none; }   /* 3D 還在載／載好了都不用選單背景圖（省 124KB）；退回卡片選單時 zhuyin.js 會加 hub-off */
+body.hub3d #menu > h1, body.hub3d #menu > .resume, body.hub3d #menu > .menu-bottom { position: relative; z-index: 2; }
+body.hub3d #menu > .mode-cards { position: absolute; left: 0; top: 0; width: 1px; height: 1px; margin: 0; overflow: hidden; opacity: 0; pointer-events: none; clip-path: inset(50%); }
+body.hub3d #menu h1 { pointer-events: none; font-size: 6vmin; color: #24515c; text-shadow: none; background: #fff; border-radius: 6vmin; padding: 1vmin 3.4vmin 1vmin 3.8vmin; margin-top: 2.4vmin;
+  box-shadow: 0 0.6vmin 0 rgba(36,81,92,0.18), 0 1.2vmin 3vmin rgba(20,60,90,0.25); }
+body.hub3d #menu > .menu-bottom { position: absolute; left: 50%; bottom: 2.4vmin; margin: 0; width: max-content; transform: translateX(-50%); }
+body.hub3d #menu .pill { border-color: #fff; color: #24515c; box-shadow: 0 0.6vmin 0 rgba(36,81,92,0.22), 0 1vmin 2.4vmin rgba(20,50,80,0.25); }
+/* 浮標：白色圓角小牌（模式圖示＋兩個字），跟著建築在螢幕上的位置移動 */
+.hub-tag { position: absolute; left: 0; top: 0; pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 0.5vmin;
+  background: #fff; color: #24515c; font-weight: bold; border-radius: 2.4vmin; padding: 0.6vmin 0.6vmin 0.6vmin 1.2vmin; will-change: transform; touch-action: none;
+  box-shadow: 0 0.6vmin 0 rgba(36,81,92,0.22), 0 1vmin 2.4vmin rgba(20,50,80,0.25); }
+.hub-tag::before { content: ""; position: absolute; inset: -0.8vmin -0.6vmin; }   /* 隱形點擊區：實際可點高度 ≥ 9vmin */
+.hub-tag::after { content: ""; position: absolute; left: 50%; bottom: -1.3vmin; margin-left: -1.3vmin; border: 1.3vmin solid transparent; border-top-color: #fff; border-bottom: 0; }
+.hub-tag .ht-row { display: flex; align-items: center; gap: 0.5vmin; }
+.hub-tag .ht-ico { font-size: 3.8vmin; line-height: 1; }
+.hub-tag .ht-word { font-size: 3.3vmin; line-height: 1; white-space: nowrap; padding: 1.5vmin 0; }   /* 三個符號的注音比字高，上下留空才不會超出框 */
+.hub-tag .ht-lock { display: none; font-size: 2.8vmin; line-height: 1; white-space: nowrap; color: #fff; background: #4a5568; border-radius: 2vmin; padding: 0.5vmin 1.3vmin; }
+.hub-tag.locked { background: #eef1f5; } .hub-tag.locked::after { border-top-color: #eef1f5; }
+.hub-tag.locked .ht-row { opacity: 0.8; }   /* 對比 ≥ 4.5:1（寧次 10-10） */
+.hub-tag.locked .ht-lock { display: block; }
+.hub-tag:active { filter: brightness(0.95); }
+.hub-tag.pop { animation: tagPop 0.45s cubic-bezier(.2,1.6,.4,1); }
+@keyframes tagPop { 0% { scale: 1; } 35% { scale: 1.15; } 100% { scale: 1; } }
+.hub-tag.hop { animation: tagHop 0.5s ease-out; }   /* 每 4 秒輪流輕跳：告訴小孩可以點 */
+@keyframes tagHop { 0%, 100% { translate: 0 0; } 40% { translate: 0 -1.4vmin; } 70% { translate: 0 0.2vmin; } }
+/* 新玩家第一次進來：手指點釣魚浮標的提示 */
+.hub-finger { position: absolute; left: 0; top: 0; pointer-events: none; font-size: 9vmin; line-height: 1; will-change: transform; filter: drop-shadow(0 0.6vmin 0.8vmin rgba(0,0,0,0.35)); }
+.hub-finger > span { display: block; animation: fingerTap 3.2s ease-in-out forwards; }
+@keyframes fingerTap { 0% { opacity: 0; translate: 5vmin 7vmin; } 18% { opacity: 1; translate: 0 0; scale: 1; } 30% { scale: 0.82; translate: 0 -0.8vmin; } 38% { scale: 1; translate: 0 0; } 52% { scale: 0.82; translate: 0 -0.8vmin; } 60% { scale: 1; translate: 0 0; } 85% { opacity: 1; } 100% { opacity: 0; translate: 0 1vmin; } }
+@media (orientation: portrait) {   /* 直式：標題在圓鈕下面、膠囊緊接著標題（底部留給貓頭鷹），小島在中間 */
+  body.hub3d #menu h1 { margin-top: 13vmin; }
+  body.hub3d #menu > .menu-bottom { position: relative; left: auto; bottom: auto; transform: none; margin-top: 2vmin; }
+}
+body.hub3d #menu > .resume { font-size: 3.6vmin; padding: 1.1vmin 3vmin; margin-top: 1.4vmin; }   /* 3D 小島要空間：繼續玩按鈕縮小一點 */

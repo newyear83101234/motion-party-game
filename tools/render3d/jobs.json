@@ -1,0 +1,42 @@
+{
+  "說明": "3D 渲染工作站 job 清單。yaw＝相機水平角（0＝正面，負值＝角色轉向畫面右邊）、pitch＝俯角。parts 的 src：kit:<套件>/<模型> 或 zy:<自製模型>；h/w＝正規化高度/寬度、s＝倍率、p＝位置、r＝旋轉(度)、tint＝{材質名:色}。out＝輸出檔名（IMAGE/zhuyin/<out>.webp，沒寫＝中間檔）、size＝輸出長邊 px、pad＝留邊比例、padB＝底部留邊（覆蓋 pad）、group＝同組共用畫框與裁切、clipY＝此高度以下不畫。kind=card＝卡背合成（正方形：遊戲卡片寬高比 0.78–1.35 都用 cover，白框內縮 16% 才不會被裁）。",
+  "defaults": { "yaw": -25, "pitch": 15, "res": 1400, "size": 560, "pad": 0.04, "light": { "hemi": 1.65, "fill": 0.62 } },
+  "jobs": {
+    "fish": { "out": "fish", "parts": [{ "src": "kit:cube-pets/animal-fish", "r": [-12, 0, 0] }], "yaw": -62, "pitch": 12, "size": 600 },
+
+    "balloon": { "out": "balloon", "group": "balloon", "parts": [{ "src": "zy:balloon_red" }], "yaw": -15, "pitch": 10, "clipY": 0.45, "size": 560 },
+    "balloon_blue": { "out": "balloon_blue", "group": "balloon", "parts": [{ "src": "zy:balloon_blue" }], "yaw": -15, "pitch": 10, "clipY": 0.45, "size": 560 },
+    "balloon_green": { "out": "balloon_green", "group": "balloon", "parts": [{ "src": "zy:balloon_green" }], "yaw": -15, "pitch": 10, "clipY": 0.45, "size": 560 },
+    "balloon_yellow": { "out": "balloon_yellow", "group": "balloon", "parts": [{ "src": "zy:balloon_yellow" }], "yaw": -15, "pitch": 10, "clipY": 0.45, "size": 560 },
+
+    "cust_bear": { "out": "cust_bear", "parts": [{ "src": "zy:bear" }], "yaw": -20, "pitch": 12, "size": 600 },
+    "cust_rabbit": { "out": "cust_rabbit", "parts": [{ "src": "zy:bunny" }], "yaw": -20, "pitch": 12, "size": 600 },
+    "cust_cat": { "out": "cust_cat", "parts": [{ "src": "zy:cat" }], "yaw": -20, "pitch": 12, "size": 600 },
+    "cust_fox": { "out": "cust_fox", "parts": [{ "src": "zy:fox" }], "yaw": -20, "pitch": 12, "size": 600 },
+    "cust_panda": { "out": "cust_panda", "parts": [{ "src": "zy:panda" }], "yaw": -20, "pitch": 12, "size": 600 },
+    "cust_penguin": { "out": "cust_penguin", "parts": [{ "src": "zy:penguin" }], "yaw": -20, "pitch": 12, "size": 600 },
+    "cust_frog": { "out": "cust_frog", "parts": [{ "src": "zy:frog" }], "yaw": -20, "pitch": 12, "size": 600 },
+    "cust_lion": { "out": "cust_lion", "parts": [{ "src": "zy:lion" }], "yaw": -20, "pitch": 12, "size": 600 },
+
+    "guide_owl": { "out": "guide_owl", "parts": [{ "src": "zy:owl" }], "yaw": -22, "pitch": 12, "size": 560 },
+
+    "egg": { "out": "egg", "group": "egg", "parts": [{ "src": "zy:egg" }], "yaw": -15, "pitch": 14, "size": 560 },
+    "egg_crack": { "out": "egg_crack", "group": "egg", "parts": [{ "src": "zy:egg_crack" }], "yaw": -15, "pitch": 14, "size": 560 },
+
+    "mole_up_body": { "out": "mole_up_body", "parts": [{ "src": "zy:mole" }], "yaw": 0, "pitch": 12, "clipY": 0.3, "size": 520, "padB": 0 },
+    "mole_hit_body": { "out": "mole_hit_body", "parts": [{ "src": "zy:mole_hit" }], "yaw": 0, "pitch": 12, "clipY": 0.3, "size": 520, "padB": 0 },
+    "hole": { "out": "hole", "parts": [{ "src": "zy:hole" }], "yaw": 0, "pitch": 32, "size": 560, "aspect": 2.11 },
+
+    "frog_sit": { "out": "frog_sit", "group": "frog", "parts": [{ "src": "zy:frog" }], "yaw": -40, "pitch": 22, "size": 440 },
+    "frog_jump": { "out": "frog_jump", "group": "frog", "parts": [{ "src": "zy:frog_jump" }], "yaw": -40, "pitch": 22, "size": 440 },
+
+    "lilypad": { "out": "lilypad", "group": "lily", "parts": [{ "proc": "lily", "w": 2 }], "yaw": 0, "pitch": 58, "size": 460 },
+    "lilypad_flower": { "out": "lilypad_flower", "group": "lily", "parts": [{ "proc": "lily", "w": 2 }, { "proc": "lotus", "w": 1.15, "p": [-0.05, 0.12, 0.05] }], "yaw": 0, "pitch": 58, "size": 460 },
+
+    "stone": { "out": "stone", "parts": [{ "src": "kit:nature-kit/stone_smallFlatA", "w": 2.4, "sc": [1, 1.7, 1], "r": [0, 15, 0], "tint": { "stone": "#c4bdb3", "stoneDark": "#a49c92" } }, { "src": "kit:nature-kit/grass_leafs", "h": 0.26, "p": [0.15, 0, -0.5], "onTop": true, "sink": 0.02, "tint": { "grass": "#79c24e" } }, { "src": "kit:nature-kit/flower_redA", "h": 0.34, "p": [0.5, 0, -0.35], "onTop": true, "sink": 0.02, "tint": { "grass": "#5f9c3a", "colorRed": "#f2808f" } }], "yaw": 0, "pitch": 30, "size": 480 },
+
+    "_icon_q": { "parts": [{ "src": "zy:qmark" }], "yaw": -8, "pitch": 4, "size": 600, "pad": 0 },
+    "card_back": { "kind": "card", "out": "card_back", "icon": "_icon_q", "w": 480, "h": 480, "inset": 0.16, "frame": 0.028, "iconW": 0.56, "iconH": 0.56, "glowR": 0.3, "shadow": 0.5, "bg": "#3f97c9", "bg2": "#5fa9d6", "pattern": "grid", "glow": 0 },
+    "card_back_orange": { "kind": "card", "out": "card_back_orange", "icon": "_icon_q", "w": 480, "h": 480, "inset": 0.16, "frame": 0.028, "iconW": 0.56, "iconH": 0.56, "glowR": 0.3, "shadow": 0.5, "bg": "#f08a3c", "bg2": "#f6a462", "pattern": "stripe", "glow": 0 }
+  }
+}

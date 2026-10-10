@@ -9,7 +9,28 @@
   <meta name="theme-color" content="#1b4fa0">
   <link rel="icon" href="data:,">
   <title>注音小島</title>
-  <link rel="stylesheet" href="css/zhuyin.css?v=11">
+  <!-- 3D 選單小島（js/zhuyin-hub3d.js）用的 Three.js 0.186.1：自架在 IMAGE/zy3d/vendor/（MIT，授權檔在同資料夾），只有選單要用時才由 zhuyin.js 動態載入。
+       three.module.min.js 裡 import 的是 ./three.core.js → 這裡改指到壓縮版 three.core.min.js -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./IMAGE/zy3d/vendor/three/build/three.module.min.js",
+      "./IMAGE/zy3d/vendor/three/build/three.core.js": "./IMAGE/zy3d/vendor/three/build/three.core.min.js",
+      "three/addons/": "./IMAGE/zy3d/vendor/three/examples/jsm/"
+    }
+  }
+  </script>
+  <!-- Three.js 跟頁面一起開始抓（4Mbps 開頁快 0.6 秒）；?no3d 不抓。這裡不先測 WebGL2（建 context 會拖慢開頁），沒有 WebGL2 的極少數機器只是白抓 -->
+  <script>
+    (function () {
+      if (/[?&]no3d\b/.test(location.search)) return;
+      ["build/three.module.min.js", "build/three.core.min.js", "examples/jsm/loaders/GLTFLoader.js", "examples/jsm/utils/BufferGeometryUtils.js", "examples/jsm/utils/SkeletonUtils.js", "examples/jsm/geometries/RoundedBoxGeometry.js"].forEach(function (f) {
+        var l = document.createElement("link"); l.rel = "modulepreload"; l.fetchPriority = "low"; l.href = "IMAGE/zy3d/vendor/three/" + f; document.head.appendChild(l);
+      });
+    })();
+  </script>
+  <!-- 樣式表放在上面兩段 script 後面：classic script 會等前面的樣式表下載完才執行，放前面會卡住整頁解析 -->
+  <link rel="stylesheet" href="css/zhuyin.css?v=13">
 </head>
 <body>
   <!-- 讀取畫面：開頁與第一次進某個遊戲時，圖還沒抓好就蓋著（不會看到空白） -->
@@ -127,7 +148,7 @@
 
   <!-- ===== 貼紙圖鑑 ===== -->
   <section id="album" class="screen bg-album hidden">
-    <div class="album-head"><button id="albumBack" class="big-btn alt small">⬅️</button><h2>📒 我的貼紙 <span id="albumCount"></span></h2></div>
+    <div class="album-head"><button id="albumBack" class="big-btn alt small">⬅️</button><h2>📒 我的貼紙 <span id="albumCount" class="nw"></span></h2></div>
     <div id="albumTabs" class="tabs"></div>
     <div id="albumGrid" class="album-grid"></div>
   </section>
@@ -153,6 +174,6 @@
   <div id="hatch" class="overlay hidden"><div class="dialog hatchBox"><div id="hatchEgg" class="hatchEgg"></div><img id="hatchFriend" class="hatchFriend hidden" alt=""><div id="hatchName" class="q"></div><button id="hatchClose" class="big-btn">🎉 太棒了</button></div></div>
 
   <div id="fx" class="fx"></div>
-  <script type="module" src="js/zhuyin.js?v=11"></script>
+  <script type="module" src="js/zhuyin.js?v=13"></script>
 </body>
 </html>

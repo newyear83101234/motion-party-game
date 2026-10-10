@@ -1,0 +1,4 @@
+three.js 0.186.1 (MIT, three/LICENSE)
+  build/three.module.min.js, build/three.core.min.js, examples/jsm/** : jsDelivr minified copies of npm three@0.186.1
+  (https://cdn.jsdelivr.net/npm/three@0.186.1/...; addons saved under their original .js names so relative imports keep working)
+es-module-shims 2.8.4 (MIT, es-module-shims/LICENSE) : only loaded on old iPads without import map support

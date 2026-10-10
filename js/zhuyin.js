@@ -153,7 +153,7 @@ function confetti(n = 60) {
 }
 
 // ---------- 預載：每個畫面只抓自己要的圖，第二次進入直接從快取來 ----------
-const IMG = n => `IMAGE/zhuyin/${n}.webp`;
+const IMG = n => `IMAGE/zhuyin/${n}${n.startsWith("bg_") && matchMedia("(orientation: portrait)").matches ? "_p" : ""}.webp`;   // 直式背景用 _p（跟 CSS 一致，才不會抓兩份）
 const ASSETS = {
   menu: ["bg_map", "guide_owl"], album: ["bg_album"], result: ["bg_map"],
   fish: ["bg_pond", "fish"], build: ["bg_blocks"], hunt: ["bg_park"], match: ["bg_table", "card_back", "card_back_orange"], tone: ["bg_sky", "balloon", "balloon_blue", "balloon_green", "balloon_yellow"],
@@ -180,6 +180,31 @@ async function ensure(k, tok) {                                                 
 }
 function showLoading(on) { $("loading").classList.toggle("hidden", !on); }
 
+// ---------- 3D 選單小島（js/zhuyin-hub3d.js）----------
+// 選單要用時才動態載入 Three.js＋模型；網址加 ?no3d、沒有 WebGL、載入失敗或 8 秒內沒好 → 退回原本卡片選單（遊戲照常玩）
+let hub = null;
+function hasWebGL() {                                 // Three.js r163 起只支援 WebGL2；探測完把 context 還回去（iPad 同時能開的 context 有限）
+  try { const gl = document.createElement("canvas").getContext("webgl2"); if (!gl) return false; const x = gl.getExtension("WEBGL_lose_context"); if (x) x.loseContext(); return true; } catch (e) { return false; }
+}
+function importHub() {
+  const url = "./zhuyin-hub3d.js?v=2";
+  if (window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports("importmap")) return import(url);
+  return new Promise((ok, no) => {                    // 舊 iPad（iOS 16.3 以前）不支援 importmap → 補 es-module-shims 再載
+    const s = document.createElement("script"); s.src = "IMAGE/zy3d/vendor/es-module-shims/es-module-shims.js";
+    s.onload = () => window.importShim ? window.importShim(new URL(url, import.meta.url).href).then(ok, no) : no(new Error("no importShim")); s.onerror = no; document.head.appendChild(s);
+  });
+}
+function hubFail(why) { console.warn("[hub3d] 退回卡片選單：", why); hub = null; document.body.classList.remove("hub3d"); document.body.classList.add("hub-off"); }
+function initHub() {
+  if (/[?&]no3d\b/.test(location.search) || !hasWebGL()) { document.body.classList.add("hub-off"); return Promise.resolve(null); }   // hub-off：卡片選單才顯示背景圖
+  let settled = false;                                 // （Three.js 已由 zhuyin.html 的 modulepreload 跟頁面一起開始抓）
+  const ready = importHub().then(m => m.createHub({ host: $("menu"), friends: () => friends(), onFriend: f => { play("tap"); say(f.name); }, onFail: hubFail, newbie: () => stickerCount() === 0 }))
+    .then(h => { if (settled) { h.dispose(); return null; } settled = true; hub = h; document.body.classList.add("hub3d"); return h; },
+      e => { if (!settled) { settled = true; hubFail(e && e.message || e); } return null; });
+  const late = new Promise(r => setTimeout(() => { if (!settled) { settled = true; hubFail("逾時"); } r(null); }, 8000));
+  return Promise.race([ready, late]);
+}
+
 // ---------- 畫面切換 / 嚮導 ----------
 let mode = null, round = [], idx = 0, results = [], locked = false, wrongThisQ = 0, combo = 0, earned = [], idleTimer = null, roundStars = 0, qToken = 0;
 const READING = new Set(["order", "hunt"]);          // 看注音自己讀的模式：題目完全不出聲，按提示才唸
@@ -190,6 +215,7 @@ function showScreen(id) {
   $("settingsBtn").classList.toggle("hidden", id !== "menu"); $("playerBtn").classList.toggle("hidden", id !== "menu");
   $("progress").classList.toggle("hidden", !inGame || id === "match");
   $("guide").classList.toggle("hidden", id !== "menu");
+  if (hub) { if (id === "menu") hub.show(); else hub.hide(); }   // 3D 小島只在選單畫面渲染（省電）
 }
 function guideSay(text, speak = true) { $("guideText").textContent = text; if (speak) say(text); }
 function armIdle() {                                   // 家長設定秒數沒動作 → 只讓「🔊 提示」閃，不出聲
@@ -789,6 +815,7 @@ function renderMenu() {
   rb.classList.toggle("hidden", !r);
   if (r) { const icon = document.querySelector(`.mode-card[data-mode=${r.mode}] .big`)?.textContent || "▶"; const label = document.querySelector(`.mode-card[data-mode=${r.mode}] .label`)?.textContent || ""; rb.textContent = `▶️ 繼續玩${label} ${icon} ${r.idx + 1}/${r.words.length}`; }
   const total = stickerCount(); guideSay(total === 0 ? "你好！快來選遊戲玩吧！" : total < 5 ? "再收集幾張貼紙，就能開新遊戲喔！" : pick(["今天要玩哪個呢？", "貼紙越來越多了！", "來釣魚還是去尋寶？"]), false);
+  if (hub) hub.refresh();                              // 3D 小島跟著卡片更新：鎖頭、朋友、鏡頭擺位
 }
 let menuPrefetch = null;
 function goMenu() {
@@ -875,6 +902,11 @@ $("guide").onclick = () => say($("guideText").textContent);
 document.addEventListener("pointerdown", () => { if (!curBgm) playBgm("island"); }, { once: true });   // 第一次觸碰就起音樂
 for (const ev of ["touchend", "click"]) document.addEventListener(ev, unlockAudio, { capture: true, once: true });   // iOS：第一次點擊解鎖語音與音效
 window.addEventListener("resize", () => { if (mode === "fish" && !locked) buildFish(round[idx]); if (mode === "match" && mq) layoutBoard(mq.pairs * 2); if (mode === "whack") layoutField(); if (mode === "frog") relayoutFrog(); });
-// 開頁：讀取畫面蓋著，只等選單要的兩張圖（背景＋貓頭鷹），好了才打開
-(async () => { await Promise.race([Promise.all(assetsOf("menu").map(loadImg)), new Promise(r => setTimeout(r, 6000))]); goMenu(); showLoading(false); })();
+// 開頁：讀取畫面蓋著，等貓頭鷹＋3D 小島（小島最多等 8 秒）；3D 模式選單背景被小島蓋住 → 退回卡片選單時才等背景圖
+(async () => {
+  const cap = p => Promise.race([p, new Promise(r => setTimeout(r, 6000))]), h = initHub();
+  await Promise.all([h, cap(loadImg("guide_owl"))]);
+  if (!hub) await cap(Promise.all(assetsOf("menu").map(loadImg)));
+  goMenu(); showLoading(false);
+})();
 if (location.search.includes("debug")) window.__zy = { renderZ, parseZ, WORDS, stickerNode, zMissing, get wq() { return wq; }, get fq() { return fq; }, get idx() { return idx; }, get results() { return results; }, get wrong() { return wrongThisQ; }, get mode() { return mode; }, get round() { return round; }, get curOpts() { return curOpts; }, toneVariant, pickDistractors, zToStr };   // 測試用（tools/zy-test）

@@ -1,0 +1,4 @@
+{
+  "說明": "3D 選單（js/zhuyin-hub3d.js）只會載入這裡列出的自製模型（沒列＝跳過，避免抓不存在的檔案出現 404）。做好的朋友模型（bear／frog／bunny／cat／fox／lion／panda／penguin）把檔名（不含 .glb）加進 models。",
+  "models": ["bear", "frog", "bunny", "cat", "fox", "lion", "panda", "penguin"]
+}
