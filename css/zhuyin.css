@@ -749,3 +749,28 @@ body:not(.night) .night-sky { display: none; }
 .result-stickers.done .sticker.fresh { animation: none; opacity: 1; transform: rotate(-6deg); }   /* 快轉：貼紙直接貼好 */
 .result-btns.arming { pointer-events: none; }
 #restoreBtn.armed { background: #c0392b; border-color: #c0392b; color: #fff; }
+
+/* 10-11 阿葉 10-10 ③⑤⑥ */
+/* 家長設定：聲音兩個開關（左字右鈕）、容易搞混的注音清單 */
+.set-pair { display: flex; align-items: center; justify-content: space-between; gap: 2vmin; width: 100%; }
+.set-sub { font-size: 3.8vmin; font-weight: bold; color: #333; text-align: left; display: flex; flex-direction: column; }
+.set-sub small { font-size: 3vmin; font-weight: normal; color: #667; }
+.mix-list { display: flex; flex-direction: column; gap: 1.2vmin; width: 100%; }
+.mix-row { display: flex; align-items: center; gap: 1.6vmin; font-size: 4.6vmin; font-weight: bold; color: var(--blue); background: #f2f7ff; border-radius: 2vmin; padding: 1vmin 2.4vmin; }
+.mix-row.tone { color: var(--tone); background: #fff4ec; }
+.mix-x { color: #99a; font-weight: normal; }
+.mix-n { margin-left: auto; font-size: 3.4vmin; color: #556; font-weight: normal; }
+/* 每輪最後「剛剛卡住的，再試一次！」橫幅＋進度列上的再試一次格（虛線圈） */
+.retry-banner { position: absolute; z-index: 40; left: 50%; top: 42%; translate: -50% -50%; pointer-events: none; white-space: nowrap;
+  font-size: 6.4vmin; font-weight: 900; color: #fff; background: linear-gradient(180deg, #ff9b54, #f2702a); border: 0.8vmin solid #fff;
+  border-radius: 6vmin; padding: 2.4vmin 5vmin; box-shadow: 0 1vmin 0 #c4511a, 0 2vmin 4vmin rgba(0,0,0,0.3); animation: retryIn 2.5s ease both; }
+@keyframes retryIn { 0% { opacity: 0; scale: 0.4; } 14% { opacity: 1; scale: 1.08; } 22% { scale: 1; } 82% { opacity: 1; scale: 1; } 100% { opacity: 0; scale: 0.9; } }
+.progress span.retry { border-style: dashed; border-color: #ffb27a; }
+.progress span.retry.gold, .progress span.retry.silver { border-style: solid; }
+/* 積木：一聲＝空白積木的提示泡泡（指著空白積木） */
+.tone-tip { position: absolute; z-index: 30; translate: -50% calc(-100% - 2.2vmin); max-width: 70vmin; font-size: 4vmin; font-weight: bold; line-height: 1.5; color: #333;
+  background: #fffbe6; border: 0.6vmin solid var(--yellow-dk); border-radius: 3vmin; padding: 1.4vmin 2.6vmin; box-shadow: 0 0.8vmin 1.6vmin rgba(0,0,0,0.25); animation: tipIn 0.35s cubic-bezier(.2,1.5,.4,1) both; pointer-events: none; }
+.tone-tip::after { content: ""; position: absolute; left: var(--ax, 50%); bottom: -2.4vmin; translate: -50% 0; border: 1.4vmin solid transparent; border-top: 1.4vmin solid var(--yellow-dk); }
+.tone-tip.bye { opacity: 0; transition: opacity 0.35s; }
+@keyframes tipIn { 0% { opacity: 0; scale: 0.6; } 100% { opacity: 1; scale: 1; } }
+.tile.toneTile.tipped { outline: 1vmin solid var(--yellow); outline-offset: 0.6vmin; }

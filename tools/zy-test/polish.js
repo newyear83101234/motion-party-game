@@ -66,10 +66,11 @@ const nextIdx = (p, n, t = 5000) => p.waitForFunction(n => window.__zy.idx === n
       const s3 = await sfx(p);
       ok("戳小生物：不計錯、不出答錯音、有叫一聲", JSON.stringify(w0) === JSON.stringify(w1) && !s3.some(x => x.f === "zy_ng.mp3") && s3.some(x => x.f === "zy_pop.mp3"), JSON.stringify({ w0, w1, s3 }));
       // 答對後揭曉中戳小生物：不能變成「點一下換下一題」
-      await answer(p, "fish", true); const i0 = await p.evaluate(() => window.__zy.idx); await sleep(1300);
-      const still2 = await p.evaluate(() => document.querySelector("#fish .critter:not(.bye)"));
-      if (still2) { await p.mouse.click(cr.x, cr.y); await sleep(150); }
-      ok("揭曉中戳小生物不會跳題", !still2 || (await p.evaluate(() => window.__zy.idx)) === i0, still2 ? "" : "（小生物已離開，略過）");
+      const tA = Date.now(); await answer(p, "fish", true); const i0 = await p.evaluate(() => window.__zy.idx); await sleep(1300);
+      const still2 = await p.evaluate(([x, y]) => { const c = document.querySelector("#fish .critter:not(.bye)"); if (!c) return null; const e = document.elementFromPoint(x, y); return (e && (e.closest(".critter") ? "critter" : e.className || e.tagName)) || "none"; }, [cr.x, cr.y]);
+      let tC = 0; if (still2) { tC = Date.now() - tA; await p.mouse.click(cr.x, cr.y); await sleep(150); }
+      const i1 = await p.evaluate(() => window.__zy.idx);
+      ok("揭曉中戳小生物不會跳題", !still2 || i1 === i0, still2 ? `點的位置是 ${still2}、答對後 ${tC}ms 點、idx ${i0}→${i1}、檢查時 ${Date.now() - tA}ms` : "（小生物已離開，略過）");
       await nextIdx(p, i0 + 1, 5000);
     }
     for (let k = 0; k < 4; k++) await p.evaluate(() => window.__zyPolish.spawnCritter());

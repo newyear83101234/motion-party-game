@@ -3,7 +3,7 @@
 // 八個模式：釣魚 / 點餐 / 積木 / 尋寶 / 翻牌 / 聲調氣球 / 打地鼠 / 跳跳蛙（後兩個 2026-10-10 加）。長期動力：貼紙圖鑑（每個詞一張貼紙）＋星星罐孵蛋（解鎖朋友）。
 // 設計依據：櫻木花道（遊戲設計）＋寧次（UI/UX）2026-09-09 審查報告；規格見 memory project-zhuyin-game.md
 import { WORDS, PHRASES, CATS, FRIENDS } from "./zhuyin-words.js";
-import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js";
+import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js?v=2";
 import { voiceUnlock, voiceSay, voiceStop, voiceSpeaking, voicePreload } from "./zhuyin-voice.js?v=1";
 startAnnotate();                                      // 畫面上每個國字自動加注音（阿葉 10-10）
 
@@ -188,7 +188,7 @@ function polishCorrect(target, gold, pre) {
   else if (m === "hunt") {                                // A8：東西飛進背包 → 背包彈一下、數字「3/8」
     const bag = $("bag");
     flyTo(target, bag, { hide: true, dur: 600, scale: 0.3 }).then(() => {
-      bag.textContent = `🎒 ${results.filter(Boolean).length}/${MODES.hunt.rounds}`; bag.classList.remove("got"); void bag.offsetWidth; bag.classList.add("got"); if (tok === navToken) play("pop", 1.4);
+      bag.textContent = `🎒 ${results.slice(0, MODES.hunt.rounds).filter(Boolean).length}/${MODES.hunt.rounds}`; bag.classList.remove("got"); void bag.offsetWidth; bag.classList.add("got"); if (tok === navToken) play("pop", 1.4);
     });
   }
   else if (m === "build") [...document.querySelectorAll("#slots .slot")].forEach((d, i) => setTimeout(() => { d.classList.remove("hop2"); void d.offsetWidth; d.classList.add("hop2"); }, 250 + i * 80));   // A8：拼完各格依序跳
@@ -388,7 +388,7 @@ const K = k => `zy${slot}_${k}`;
   lsSet("zy_legacy_bak", old);                        // 舊資料留一份備查；搬完刪舊鍵，否則「清除重來」後重新整理又會被搬回來（里維 10-10）
   for (const k of ["zy_stickers", "zy_stars", "zy_eggs", "zy_last_mode", ...Object.keys(MODES).map(m => "zy_intro_" + m)]) { try { localStorage.removeItem(k); } catch (e) {} }
 })();
-const save = { music: lsGet("zy_music", 1), hintWait: lsGet("zy_hint_wait", 20) };   // hintWait：家長設定幾秒沒動作讓「🔊 提示」閃（0＝關閉）；遊戲永遠不自己唸答案
+const save = { music: lsGet("zy_music", 1), hintWait: lsGet("zy_hint_wait", 20), talk: lsGet("zy_talk", 1) };   // talk：說明語音開關（家長設定，全家共用）   // hintWait：家長設定幾秒沒動作讓「🔊 提示」閃（0＝關閉）；遊戲永遠不自己唸答案
 function loadSlot(n) {
   slot = n; lsSet("zy_slot", n);
   save.stickers = lsGet(K("stickers"), {});           // { 國字: 1 } 第一次一次答對就貼上
@@ -397,9 +397,10 @@ function loadSlot(n) {
   save.intro = lsGet(K("intro"), {});                 // 哪些模式聽過開場語
   save.matchSize = lsGet(K("match_size"), 8);         // 翻牌上次選的張數（新存檔預設 8＝簡單）
   save.best = lsGet(K("best"), {});                   // 個人紀錄（B14）：{ 模式: 最佳星數 }
+  save.mix = lsGet(K("mix"), {});                     // 容易混淆的注音／聲調：{ "ㄅ|ㄆ": 次數, "t:1|2": 次數 }（家長頁顯示）
 }
 loadSlot(slot);
-const persist = () => [lsSet(K("stickers"), save.stickers), lsSet(K("stars"), save.stars), lsSet(K("eggs"), save.eggs), lsSet(K("intro"), save.intro), lsSet(K("match_size"), save.matchSize), lsSet(K("best"), save.best), lsSet("zy_music", save.music), lsSet("zy_hint_wait", save.hintWait)].every(Boolean);
+const persist = () => [lsSet(K("stickers"), save.stickers), lsSet(K("stars"), save.stars), lsSet(K("eggs"), save.eggs), lsSet(K("intro"), save.intro), lsSet(K("match_size"), save.matchSize), lsSet(K("best"), save.best), lsSet("zy_music", save.music), lsSet("zy_hint_wait", save.hintWait), lsSet("zy_talk", save.talk)].every(Boolean);
 const slotSummary = n => ({ stickers: Object.keys(lsGet(`zy${n}_stickers`, {})).length, stars: lsGet(`zy${n}_stars`, 0) });
 try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}   // 請瀏覽器不要自動清掉存檔
 // 備份碼（B6）：ZY2＝三個存檔位一次包起來（換平板或瀏覽器被清掉時可以還原）；舊的 ZY1（只有一位）照樣能還原到目前這一位
@@ -444,7 +445,7 @@ function importCode(code) {
   if (!ok) for (const [k, v] of Object.entries(snap)) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }   // 寫一半失敗：整批放回原狀
   loadSlot(slot); return ok ? "ok" : "fail";
 }
-function clearSlot() { for (const k of ["stickers", "stars", "eggs", "intro", "last_mode", "resume", "match_size", "whack_up", "best", "hello"]) { try { localStorage.removeItem(K(k)); } catch (e) {} } loadSlot(slot); }
+function clearSlot() { for (const k of ["stickers", "stars", "eggs", "intro", "last_mode", "resume", "match_size", "whack_up", "best", "hello", "mix"]) { try { localStorage.removeItem(K(k)); } catch (e) {} } loadSlot(slot); }
 // 新存檔第一次進來（B8）：貓頭鷹先自我介紹；已經有進度的舊存檔不會突然被介紹
 function helloText() {
   if (lsGet(K("hello"), 0)) return null; lsSet(K("hello"), 1);
@@ -466,9 +467,9 @@ function playBgm(key) {
   if (curBgm && curBgm !== b) { curBgm.pause(); }
   curBgm = b; b.playbackRate = 1; if (save.music) b.play().catch(() => {});   // 速度歸零：最後一題衝刺（A19）加快過
 }
+function setMusic(on) { save.music = on ? 1 : 0; persist(); if (save.music) { if (curBgm) curBgm.play().catch(() => {}); } else if (curBgm) curBgm.pause(); $("musicBtn").classList.toggle("off", !save.music); }
 function toggleMusic() {                               // B10：關掉＝白底＋紅斜線；切換時彈一下＋tap 音
-  save.music = save.music ? 0 : 1; persist(); if (save.music) { if (curBgm) curBgm.play().catch(() => {}); } else if (curBgm) curBgm.pause();
-  const b = $("musicBtn"); b.classList.toggle("off", !save.music); b.classList.remove("pop"); void b.offsetWidth; b.classList.add("pop"); play("tap");
+  setMusic(!save.music); const b = $("musicBtn"); b.classList.remove("pop"); void b.offsetWidth; b.classList.add("pop"); play("tap");
 }
 function duck(on) { ducked = on; for (const b of Object.values(BGM)) b.volume = on ? 0.1 : 0.3; }   // TTS 講話時壓低音樂（聽力題的關鍵）
 let zhVoice = null;
@@ -491,10 +492,16 @@ function say(text, rate = 0.85, onEnd) {
     setTimeout(() => { if (!speechSynthesis.speaking) fin(); }, Math.max(2500, text.length * 450));   // 語音引擎沒回 onend 時的保險
   } catch (e) { duck(false); if (onEnd) onEnd(); }
 }
+const pendingSays = new Set();                         // 排隊中、還沒開口的句子（答對後要等它們也講完才換題）
+const engineTalking = () => voiceSpeaking() || ("speechSynthesis" in window && speechSynthesis.speaking);
+const talking = () => engineTalking() || pendingSays.size > 0;
 function queueSay(text) {                              // 等目前這句唸完再唸（稱讚不能蓋掉學習詞）；中途換畫面就作廢
-  const tok = navToken; let tries = 0;
-  const t = setInterval(() => { tries++; if (tok !== navToken) { clearInterval(t); return; } if (((!("speechSynthesis" in window) || !speechSynthesis.speaking) && !voiceSpeaking()) || tries > 25) { clearInterval(t); say(text); } }, 200);
+  const tok = navToken, me = {}; let tries = 0; pendingSays.add(me);
+  const t = setInterval(() => { tries++; if (tok !== navToken) { clearInterval(t); pendingSays.delete(me); return; } if (!engineTalking() || tries > 25) { clearInterval(t); pendingSays.delete(me); say(text); } }, 200);
 }
+// 說明語音（貓頭鷹說明、開場語、稱讚、暫停、結算）：家長設定可以關；題目與答案的唸音一律用 say()，不受影響（阿葉 10-10 ③）
+function talk(text, onEnd) { if (save.talk) say(text, 0.85, onEnd); else if (onEnd) setTimeout(onEnd, 0); }
+function queueTalk(text) { if (save.talk) queueSay(text); }
 function stopSpeech() { voiceStop(); try { if ("speechSynthesis" in window) speechSynthesis.cancel(); } catch (e) {} duck(false); }
 // iOS Safari：語音與每個音效元件都要在「手指點擊當下」解鎖一次，之後等圖載完才出聲也不會被吞掉
 let audioUnlocked = false;
@@ -548,7 +555,15 @@ const assetsOf = k => { const a = ASSETS[k]; return typeof a === "function" ? a(
 function preload(k) { for (const n of assetsOf(k)) loadImg(n); }                 // 背景偷偷抓，不擋畫面
 // 導覽代號：每次換畫面 +1。等圖片的非同步流程回來時代號不同＝小孩已經點去別的地方，這次作廢
 let navToken = 0, loadingOwner = 0;
-function nav() { const tok = ++navToken; qToken++; if (loadingOwner) { loadingOwner = 0; showLoading(false); } return tok; }   // qToken++：上一題「答對後自動下一題」的計時器一起作廢
+function nav() { const tok = ++navToken; qToken++; gClear(); pendingSays.clear(); if (loadingOwner) { loadingOwner = 0; showLoading(false); } return tok; }   // qToken++＋gClear：上一局還沒到的換題、結算、稱讚全部作廢
+// 同一局的計時器（阿葉 10-10 ①）：換題、配對結算、延遲的稱讚都走這裡 → 暫停選單開著＝凍結（剩下的時間留著）、回小島／重新開始＝全部作廢
+const gameT = new Set(); let gamePaused = false, pausedAt = 0, pausedTotal = 0;
+const gNow = () => (gamePaused ? pausedAt : performance.now()) - pausedTotal;   // 本局時鐘：暫停的時間不算
+function gArm(t) { t.id = setTimeout(() => { gameT.delete(t); t.fn(); }, Math.max(0, t.due - gNow())); }
+function gLater(fn, ms) { const t = { fn, due: gNow() + ms, id: 0 }; gameT.add(t); if (!gamePaused) gArm(t); return t; }
+function gPause() { if (gamePaused) return; pausedAt = performance.now(); gamePaused = true; for (const t of gameT) clearTimeout(t.id); }
+function gResume() { if (!gamePaused) return; pausedTotal += performance.now() - pausedAt; gamePaused = false; for (const t of gameT) gArm(t); }
+function gClear() { for (const t of gameT) clearTimeout(t.id); gameT.clear(); if (gamePaused) { pausedTotal += performance.now() - pausedAt; gamePaused = false; } }
 function setLoadProgress(f) { const i = $("ldFill"); if (i) i.style.width = Math.max(4, Math.min(100, f * 100)).toFixed(1) + "%"; }   // 讀取進度條（B12）
 async function ensure(k, tok) {                                                   // 要用了：沒抓完就顯示讀取動畫等它
   const prs = assetsOf(k).map(loadImg); if (prs.every(x => x.done)) return;
@@ -602,7 +617,7 @@ function showScreen(id) {
   $("guide").classList.toggle("hidden", id !== "menu");
   if (hub) { if (id === "menu") hub.show(); else hub.hide(); }   // 3D 小島只在選單畫面渲染（省電）
 }
-function guideSay(text, speak = true) { $("guideText").textContent = text; if (speak) say(text); }
+function guideSay(text, speak = true) { $("guideText").textContent = text; if (speak) talk(text); }
 function armIdle() {                                   // 家長設定秒數沒動作 → 只讓「🔊 提示」閃，不出聲
   clearIdle(); if (!save.hintWait || mode === "match") return;
   idleTimer = setTimeout(() => { if (locked || !mode) return; hintPulse(true); }, save.hintWait * 1000);
@@ -625,7 +640,7 @@ function useHint() {
 let curOpts = null;                                    // 目前題目的選項（提示時找正解用）
 function drawProgress() {
   const p = $("progress"); p.innerHTML = ""; const n = MODES[mode].rounds; if (n <= 1) { p.classList.add("hidden"); return; } p.classList.remove("hidden");
-  for (let i = 0; i < n; i++) { const s = el("span"); if (results[i] === "gold") s.className = "gold"; else if (results[i] === "silver") s.className = "silver"; if (i === idx) s.classList.add("cur"); if (results[i] === "gold" && results[i - 1] === "gold") s.classList.add("link"); p.appendChild(s); }   // link：A5 連續金星用金色光帶連起來
+  for (let i = 0; i < Math.max(n, round.length); i++) { const s = el("span"), rt = !!round[i]?.retry; if (results[i] === "gold") s.className = "gold"; else if (results[i] === "silver") s.className = "silver"; if (rt) s.classList.add("retry"); if (i === idx) s.classList.add("cur"); if (results[i] === "gold" && results[i - 1] === "gold" && !rt) s.classList.add("link"); p.appendChild(s); }   // link：A5 連續金星用金色光帶連起來；retry：最後「再試一次」的題
 }
 
 // ---------- 出題 ----------
@@ -682,11 +697,11 @@ async function startMode(m, resume) {
   // 音樂與開場語在「點下去的當下」就開始（iOS 要求在點擊裡啟動聲音；圖片載入時也不會一片安靜）
   playBgm(MODES[m].bgm);
   firstPlay = save.intro[m] ? null : m;                 // A20：第一次玩這個模式 → 第 1 題 6 秒沒動作就示範
-  if (!save.intro[m]) { save.intro[m] = 1; persist(); introUntil = Date.now() + 6000; say(MODES[m].intro, 0.85, () => { introUntil = 0; }); }
+  if (!save.intro[m] && save.talk) { save.intro[m] = 1; persist(); introUntil = Date.now() + 6000; talk(MODES[m].intro, () => { introUntil = 0; }); }   // 說明語音關著＝不算聽過（家長開回來時還會唸）
   await ensure(m, tok);
   if (tok !== navToken) return;                        // 等圖的時候小孩已經點去別的地方
   lsSet(K("last_mode"), m);
-  mode = m; idx = 0; results = []; combo = 0; earned = []; locked = false; wrongThisQ = 0;
+  mode = m; idx = 0; results = []; combo = 0; earned = []; locked = false; wrongThisQ = 0; retryDone = false; wrongN = [];
   const pool = m === "order" ? WORDS.filter(w => w.c === "food") : WORDS;
   round = m === "match" ? [] : makeRound(pool, m);
   if (resume) {                                        // 接著上次的題目、從上次那題開始
@@ -701,7 +716,8 @@ async function startMode(m, resume) {
 }
 function nextQ() {
   clearIdle();
-  if (mode !== "match" && idx >= MODES[mode].rounds) return showResult();
+  if (mode !== "match" && idx === MODES[mode].rounds && !retryDone) { retryDone = true; if (addRetries()) return; }
+  if (mode !== "match" && idx >= round.length) return showResult();
   saveResume();                                       // 每題開始前存一次：關掉平板也能從這題繼續
   wrongThisQ = 0; locked = false; curOpts = null; hintPulse(false); drawProgress();
   ({ fish: buildFish, order: buildOrder, build: buildBuild, hunt: buildHunt, match: buildMatch, tone: buildTone, whack: buildWhack, frog: buildFrog })[mode](round[idx]);
@@ -710,19 +726,61 @@ function nextQ() {
 // 答對：金星（一次對）/ 銀星（錯過再對）；連對音高照大調音階往上爬（A1）＋更多星星；連對 3、6 題、全對有分等級的稱讚（A12）
 function correct(target, onDone, { tolerate = 0, holdMs = 1200, autoMs = 1800 } = {}) {   // holdMs：多久後點一下可以跳下一題（A6：揭曉至少停 1.2 秒，免得連點把國字跳掉）
   locked = true; clearIdle(); hintPulse(false);
-  const gold = wrongThisQ <= tolerate; results[idx] = gold ? "gold" : "silver";
-  if (gold) { combo++; const w = round[idx]?.word; if (w && !save.stickers[w.h] && !PHRASES.includes(w)) { save.stickers[w.h] = 1; earned.push(w); persist(); } } else combo = 0;
-  const n = MODES[mode].rounds, praise = !gold || n <= 1 ? "" : combo === n ? "全部都對！注音小天才！" : combo === 6 ? "哇，六題都對！" : combo === 3 ? "好棒！" : "";
-  if (praise) autoMs = Math.max(autoMs, 3000);          // 有稱讚的那題多停一下，稱讚不會被下一題的語音切掉
+  const n = MODES[mode].rounds, retry = !!round[idx]?.retry, gold = wrongThisQ <= tolerate; results[idx] = gold ? "gold" : "silver";
+  if (!retry) wrongN[idx] = wrongThisQ;
+  if (gold) { if (!retry) combo++; const w = round[idx]?.word; if (w && !save.stickers[w.h] && !PHRASES.includes(w)) { save.stickers[w.h] = 1; earned.push(w); persist(); } } else if (!retry) combo = 0;   // 再試一次答對也給貼紙（那一下是一次就對）
+  const praise = !gold || n <= 1 || retry ? "" : combo === n ? "全部都對！注音小天才！" : combo === 6 ? "哇，六題都對！" : combo === 3 ? "好棒！" : "";   // 再試一次的題不稱讚連對（連對數已經斷過）
+  if (praise) autoMs = Math.max(autoMs, 3000);          // 有稱讚的那題多停一下
   play("ok", gold ? stepRate(combo - 1) : 1); burst(target, 10 + Math.min(combo, 4) * 5, BURST[mode]);   // 錯過再對＝回到 Do
-  if (praise) setTimeout(() => queueSay(praise), 800);
+  if (praise && save.talk) { const me = {}; pendingSays.add(me); gLater(() => { pendingSays.delete(me); queueTalk(praise); }, 800); }   // 排隊中就算「還在講」：換題要等它
   const pre = PZ(promptBefore);
   if (onDone) onDone(); drawProgress();
   PZ(() => polishCorrect(target, gold, pre));
   const token = ++qToken;                              // 這一題的代號：舊題的計時器不能跳過新題
-  const adv = () => { document.removeEventListener("pointerdown", adv, true); if (token !== qToken) return; qToken++; idx++; nextQ(); };
-  setTimeout(() => { if (locked && token === qToken) document.addEventListener("pointerdown", adv, true); }, holdMs);   // 鎖定中再點一下＝直接下一題
-  setTimeout(() => { if (locked && token === qToken) adv(); }, autoMs);
+  const adv = e => {
+    if (e && e.target?.closest?.("#homeBtn, #musicBtn, #confirm")) return;   // 按 🏠／🎵／暫停選單不算「點一下下一題」
+    document.removeEventListener("pointerdown", adv, true); if (token !== qToken) return; qToken++; idx++; nextQ();
+  };
+  gLater(() => { if (locked && token === qToken) document.addEventListener("pointerdown", adv, true); }, holdMs);   // 鎖定中再點一下＝直接下一題
+  afterQuiet(() => { if (locked && token === qToken) adv(); }, autoMs, LOOK_MS);   // 阿葉 10-10 ②：答案詞＋稱讚播完、再留一下看答案才換題（最快 autoMs）
+}
+const LOOK_MS = 700;                                   // 語音講完後留給小孩看答案的時間
+// 等語音（含排隊中的句子）講完、再安靜 look 毫秒、而且本局時鐘過了 minMs 才做 fn；語音卡住最多等 6 秒（iOS speechSynthesis.speaking 偶爾卡 true）。走本局計時器（暫停凍結、離開作廢）
+function afterQuiet(fn, minMs, look = 0) {
+  const t0 = gNow(); let quietAt = 0;
+  const tick = () => {
+    const now = gNow();
+    if (talking() && now - t0 < 6000) { quietAt = 0; gLater(tick, 120); return; }
+    if (!quietAt) quietAt = now;
+    if (now - quietAt >= look && now - t0 >= minMs) fn(); else gLater(tick, 120);
+  };
+  gLater(tick, 250);
+}
+// 阿葉 10-10 ⑤：每輪最後，剛剛卡住的（錯過才對＝銀星）挑最多 2 題再試一次，答對才結算；星星照第一次作答算，不會變少也不會變多
+let retryDone = false, wrongN = [];
+function addRetries() {
+  const n = MODES[mode].rounds;
+  const stuck = [...Array(n).keys()].filter(i => results[i] === "silver" && round[i]).sort((a, b) => (wrongN[b] || 1) - (wrongN[a] || 1) || b - a).slice(0, 2).sort((a, b) => a - b);
+  if (!stuck.length) return false;
+  round.push(...stuck.map(i => ({ word: round[i].word, level: round[i].level, retry: true })));
+  drawProgress(); hintPulse(false);
+  const sec = $(mode), b = el("div", "retry-banner", "剛剛卡住的，再試一次！"); sec.appendChild(b); setTimeout(() => b.remove(), 2600);
+  play("select"); talk("剛剛卡住的，再試一次！");
+  afterQuiet(nextQ, 1700, 200);
+  return true;
+}
+// 家長頁「容易混淆的注音／聲調」（阿葉 10-10 ⑤）：答錯時，正解跟小孩選的只差一個地方（聲母／韻母／聲調）才記；整個不一樣的（亂點）不算
+const INITIALS = "ㄅㄆㄇㄈㄉㄊㄋㄌㄍㄎㄏㄐㄑㄒㄓㄔㄕㄖㄗㄘㄙ", TONE_NAME = ["一聲", "二聲", "三聲", "四聲", "輕聲"];
+function bumpMix(key) { save.mix[key] = (save.mix[key] || 0) + 1; lsSet(K("mix"), save.mix); }
+function mixSym(x, y) { if (!x || !y || x === y) return; while (x.length > 1 && y.length > 1 && x[0] === y[0]) { x = x.slice(1); y = y.slice(1); } bumpMix([x, y].sort().join("|")); }   // ㄧㄠ／ㄧㄡ → ㄠ／ㄡ
+function mixTone(a, b) { if (a !== b) bumpMix("t:" + [a, b].sort().join("|")); }
+function noteMix(want, got) {
+  try {
+    if (!want || !got || want.length !== got.length) return;
+    const sp = s => { const i = INITIALS.includes(s.sym[0]) ? s.sym[0] : ""; return { i, f: s.sym.slice(i.length), t: s.tone }; }, d = [];
+    want.forEach((w, k) => { const a = sp(w), b = sp(got[k]); if (a.i !== b.i) d.push(() => mixSym(a.i, b.i)); if (a.f !== b.f) d.push(() => mixSym(a.f, b.f)); if (a.t !== b.t) d.push(() => mixTone(a.t, b.t)); });
+    if (d.length === 1) d[0]();
+  } catch (e) {}
 }
 function wrong(elm) {
   wrongThisQ++; combo = 0; play("ng");
@@ -745,7 +803,7 @@ function buildFish(q) {
     onTap(b, () => {                                   // A2：手指一碰就算；isConnected：同一下點擊已經換題（舊的魚被拿掉）就不算
       if (locked || !b.isConnected) return;
       if (o.ok) { b.classList.add("ok"); correct(b, () => { p.appendChild(el("span", "han", q.word.h)); say(q.word.h); }); }
-      else { wrong(b); if (o.toneFake) { const d = o.syls.diffAt ?? 0, t = b.querySelectorAll(".syl")[d]?.querySelector(".tone"); if (t) t.classList.add("hint"); } }
+      else { wrong(b); noteMix(parseZ(q.word.z), o.syls); if (o.toneFake) { const d = o.syls.diffAt ?? 0, t = b.querySelectorAll(".syl")[d]?.querySelector(".tone"); if (t) t.classList.add("hint"); } }
     });
     pond.appendChild(b); PZ(() => fitZ(lab, z, 6.5));   // A15：標籤固定大小、字縮放
   });
@@ -766,7 +824,7 @@ function buildOrder(q) {
     onTap(it, () => {
       if (locked || !it.isConnected) return;
       if (o.ok) { it.classList.add("ok"); correct(it, () => { bubble.innerHTML = ""; bubble.appendChild(renderZ(parseZ(q.word.z), q.word.h)); say(q.word.h + "，謝謝你！"); }); }   // 客人吃東西的動作在 polishCorrect（食物飛到嘴邊才嚼）
-      else { wrong(it); cust.classList.remove("no", "enter", "chew"); void cust.offsetWidth; cust.classList.add("no"); PZ(() => fxMark(cust, "?", { cls: "qm", at: [0.5, 0.02], rise: 3, dur: 800 })); }   // A10：客人搖頭、頭上冒「?」
+      else { wrong(it); if (o.word) noteMix(parseZ(q.word.z), parseZ(o.word.z)); cust.classList.remove("no", "enter", "chew"); void cust.offsetWidth; cust.classList.add("no"); PZ(() => fxMark(cust, "?", { cls: "qm", at: [0.5, 0.02], rise: 3, dur: 800 })); }   // A10：客人搖頭、頭上冒「?」
     });
     shelf.appendChild(it);
   }
@@ -780,7 +838,7 @@ function buildBuild(q) {
   const p = $("buildPrompt"); p.innerHTML = ""; p.textContent = q.word.e;
   const syls = parseZ(q.word.z), need = syls.flatMap(s => [...s.sym]);
   const extra = 1 + q.level, pool = shuffle([...ALL_SYMS].filter(c => !need.includes(c))).slice(0, extra);
-  const slotsEl = $("slots"); slotsEl.innerHTML = ""; bq = { syls, slots: [], toneSlots: [] };
+  const slotsEl = $("slots"); slotsEl.innerHTML = ""; bq = { syls, slots: [], toneSlots: [] }; document.querySelectorAll(".tone-tip").forEach(x => x.remove());
   syls.forEach(s => {
     const g = el("div", "sylSlot"), col = el("div", "col"), arr = [];
     for (let i = 0; i < s.sym.length; i++) { const d = el("div", "slot"); col.appendChild(d); arr.push(d); }
@@ -789,7 +847,7 @@ function buildBuild(q) {
   const tray = $("tray"); tray.innerHTML = "";
   for (const c of shuffle([...need.map(c => ({ t: "s", v: c })), ...pool.map(c => ({ t: "s", v: c }))])) { const b = el("button", "tile", c.v); b.dataset.v = c.v; if (!PZ(() => dragTile(b, false))) b.onclick = () => placeSym(b); tray.appendChild(b); }   // A8：可以點、也可以拖
   const toneRow = $("toneRow"); toneRow.innerHTML = ""; toneRow.classList.add("hidden");
-  [0, 1, 2, 3, 4].forEach(t => { const b = el("button", "tile toneTile" + (t ? " tv" + (t + 1) : ""), TONE_TILE[t]); b.dataset.v = t; if (!PZ(() => dragTile(b, true))) b.onclick = () => placeTone(b); toneRow.appendChild(b); });   // tv2~tv5：跟題目同一套向量聲調圖
+  [0, 1, 2, 3, 4].forEach(t => { const b = el("button", "tile toneTile" + (t ? " tv" + (t + 1) : ""), TONE_TILE[t]); b.dataset.v = t; b.setAttribute("aria-label", t ? TONE_NAME[t] : "一聲（空白，不用加符號）"); if (!PZ(() => dragTile(b, true))) b.onclick = () => placeTone(b); toneRow.appendChild(b); });   // tv2~tv5：跟題目同一套向量聲調圖
   markCur(); askSay(q.word.h);
 }
 function buildHint() {                                // 按提示且已錯 2 次：晃「下一個該放的」積木
@@ -808,6 +866,7 @@ function placeSym(b, pref) {                          // pref：拖曳放開時�
   if (hit) { const d = hit[2]; d.dataset.v = b.dataset.v; d.textContent = b.dataset.v; d.classList.remove("bad", "cur"); d.classList.add("good"); b.classList.add("used"); play("tap", stepRate(pz.placed++)); PZ(() => tileLand(b, d)); }   // A8：每放對一格音高升一級、積木飛進格子
   else {
     wrongThisQ++; combo = 0; play("ng"); b.classList.remove("bounce"); void b.offsetWidth; b.classList.add("bounce"); const d = pref && !pref.dataset.v ? pref : empties[0][2]; d.classList.remove("bad"); void d.offsetWidth; d.classList.add("bad");
+    const e = empties.find(x => x[2] === d); if (e) { const want = bq.syls[e[0]].sym[e[1]], got = b.dataset.v; if (INITIALS.includes(want) === INITIALS.includes(got)) mixSym(want, got); }   // 同類（聲母對聲母、韻母對韻母）放錯才算混淆
     if (wrongThisQ >= 2) hintPulse(true);
   }
   markCur(); refreshToneRow(); armIdle();
@@ -816,16 +875,31 @@ function refreshToneRow() {                          // 有音節符號填滿且
   let anyOpen = false;
   bq.syls.forEach((s, i) => { const full = bq.slots[i].every(d => d.dataset.v); const ts = bq.toneSlots[i]; if (full && ts.dataset.v === undefined) { ts.classList.remove("off"); ts.classList.add("open"); anyOpen = true; } else ts.classList.remove("open"); });
   $("toneRow").classList.toggle("hidden", !anyOpen);
+  const oi = bq.syls.findIndex((s, k) => bq.toneSlots[k].classList.contains("open"));
+  if (oi >= 0 && bq.syls[oi].tone === 0 && !lsGet(K("tone1tip"), 0)) { lsSet(K("tone1tip"), 1); toneTip(true); }   // ⑥ 第一次遇到一聲：教他按空白積木
   if (!anyOpen && bq.syls.every((s, i) => bq.toneSlots[i].dataset.v !== undefined)) finishBuild();
 }
 function placeTone(b) {
   if (locked) return;
   const i = bq.syls.findIndex((s, k) => bq.toneSlots[k].classList.contains("open")); if (i < 0) return;
   const ts = bq.toneSlots[i], v = +b.dataset.v;
-  if (v === bq.syls[i].tone) { ts.dataset.v = v; ts.textContent = TONE_TILE[v]; if (v) ts.classList.add("tv" + (v + 1)); ts.classList.remove("bad"); ts.classList.add("good"); play("tap", stepRate(pz.placed++)); PZ(() => tileLand(b, ts)); }
-  else { wrongThisQ++; combo = 0; play("ng"); b.classList.remove("bounce"); void b.offsetWidth; b.classList.add("bounce"); ts.classList.remove("bad"); void ts.offsetWidth; ts.classList.add("bad");
+  if (v === bq.syls[i].tone) { document.querySelectorAll(".tone-tip").forEach(x => x.remove()); b.classList.remove("tipped"); ts.dataset.v = v; ts.textContent = TONE_TILE[v]; if (v) ts.classList.add("tv" + (v + 1)); ts.classList.remove("bad"); ts.classList.add("good"); play("tap", stepRate(pz.placed++)); PZ(() => tileLand(b, ts)); }
+  else { wrongThisQ++; combo = 0; play("ng"); b.classList.remove("bounce"); void b.offsetWidth; b.classList.add("bounce"); ts.classList.remove("bad"); void ts.offsetWidth; ts.classList.add("bad"); mixTone(bq.syls[i].tone, v);
+    if (bq.syls[i].tone === 0 && !bq.tipAgain) { bq.tipAgain = true; toneTip(false); }   // 一聲放錯：再提醒一次（只出字、不再唸）
     if (wrongThisQ >= 2) hintPulse(true); }
   refreshToneRow(); armIdle();
+}
+// ⑥ 一聲＝空白積木的提示：泡泡指著空白積木＋它晃一下；speak＝順便唸出來（第一次）
+function toneTip(speak) {
+  const row = $("toneRow"), blank = row.querySelector('.toneTile[data-v="0"]'); if (!blank) return;
+  document.querySelectorAll(".tone-tip").forEach(x => x.remove());
+  const tip = el("div", "tone-tip", "第一聲不用加符號，按這個空白格就好"); $("build").appendChild(tip);
+  const r = blank.getBoundingClientRect(), sr = $("build").getBoundingClientRect();
+  const cx = r.left + r.width / 2 - sr.left, tw = tip.offsetWidth, x = Math.min(sr.width - tw / 2 - 8, Math.max(tw / 2 + 8, cx));   // 泡泡夾在畫面內，箭頭照樣指著空白積木
+  tip.style.left = x + "px"; tip.style.top = (r.top - sr.top) + "px"; tip.style.setProperty("--ax", (cx - x + tw / 2) + "px");
+  blank.classList.add("tipped"); wiggle(blank);
+  const tok = navToken, q = idx; setTimeout(() => { if (tok === navToken && idx === q) { tip.classList.add("bye"); setTimeout(() => tip.remove(), 400); } }, 5200);
+  if (speak) talk("第一聲不用加符號，按這個空白格就好");
 }
 function finishBuild() {
   const q = round[idx];
@@ -835,10 +909,10 @@ function finishBuild() {
 // ---------- 尋寶（場景 8 個東西，泡泡只給注音、不唸；後段用「顏色＋東西」短語）----------
 function buildHunt(q) {
   const scene = $("scene"); scene.innerHTML = "";
-  const bubble = $("huntBubble"); bubble.innerHTML = ""; $("bag").textContent = `🎒 ${results.filter(Boolean).length}/${MODES.hunt.rounds}`;   // A8：背包「找到幾個／共幾個」（答對時東西飛進去才加）
+  const bubble = $("huntBubble"); bubble.innerHTML = ""; $("bag").textContent = `🎒 ${results.slice(0, MODES.hunt.rounds).filter(Boolean).length}/${MODES.hunt.rounds}`;   // A8：背包「找到幾個／共幾個」（答對時東西飛進去才加）
   let target = q.word, objs;
   if (q.level >= 3) {                                // 短語題：目標＋它的顏色配對＋6 個其他詞
-    target = pick(PHRASES); q.word = target; const pairE = target.pair;
+    target = q.retry && PHRASES.includes(q.word) ? q.word : pick(PHRASES); q.word = target; const pairE = target.pair;   // 再試一次：同一個短語
     const others = shuffle(WORDS.filter(w => w.e !== target.e && w.e !== pairE)).slice(0, 6);
     objs = shuffle([{ e: target.e, ok: true }, { e: pairE, ok: false }, ...others.map(w => ({ e: w.e, ok: false }))]);
   } else { const others = shuffle(WORDS.filter(w => w !== q.word && w.e !== q.word.e)).slice(0, 7); objs = shuffle([{ e: q.word.e, ok: true }, ...others.map(w => ({ e: w.e, ok: false }))]); }
@@ -915,7 +989,7 @@ function flip(card) {
   if (mq.open.length < 2) return;
   const [a, b] = mq.open; mq.busy = true;
   if (a._c.w === b._c.w && a._c.kind !== b._c.kind) {
-    setTimeout(() => { a.classList.add("done"); b.classList.add("done"); play("ok", stepRate(mq.matched)); burst(b, 12); say(a._c.w.h); mq.matched++; mq.open = []; mq.busy = false;
+    gLater(() => { a.classList.add("done"); b.classList.add("done"); play("ok", stepRate(mq.matched)); burst(b, 12); say(a._c.w.h); mq.matched++; mq.open = []; mq.busy = false;
       const pic = a._c.kind === "e" ? a : b, reveal = () => { if (!pic.querySelector(".front .han")) pic.querySelector(".front").appendChild(el("div", "han", a._c.w.h)); };   // 配對成功才揭曉國字（自動加注音）
       if (!PZ(() => pairFx(a, b, reveal))) reveal();    // A3：兩張一起放大＋金框，閃光從注音卡飛到圖卡再揭曉
       const w = a._c.w; if (!save.stickers[w.h]) { save.stickers[w.h] = 1; earned.push(w); persist(); }   // 配對成功＝讀對了，直接貼貼紙
@@ -924,8 +998,8 @@ function flip(card) {
     mq.miss++;
     let done = false;                                  // 錯配：停 0.9 秒（16/24 張 1.2 秒，可以點一下提早蓋回）；蓋回的牌背留腳印
     const back = () => { if (done) return; done = true; mq.hold = null; a.classList.remove("up"); b.classList.remove("up"); a.classList.add("seen"); b.classList.add("seen"); play("flip", 0.85); mq.open = []; mq.busy = false; };   // A3：翻錯只是蓋回去，不播失敗音
-    setTimeout(() => { if (!done && mq.pairs > 4) mq.hold = back; }, 450);
-    setTimeout(back, mq.pairs > 4 ? 1200 : 900);
+    gLater(() => { if (!done && mq.pairs > 4) mq.hold = back; }, 450);
+    gLater(back, mq.pairs > 4 ? 1200 : 900);
   }
 }
 // 翻牌圖卡不收的詞（櫻木 B4：看圖猜不出、或圖意會偏）
@@ -935,7 +1009,7 @@ function finishMatch() {
   clearIdle(); locked = true; results = ["gold"]; combo = 0;
   const th = { 4: [4, 8], 8: [10, 18], 12: [16, 28] }[mq.pairs] || [mq.pairs, mq.pairs * 2];   // 櫻木 B1：3 星／2 星的錯配上限
   results[0] = mq.miss <= th[0] ? "gold" : "silver"; mq.stars = mq.miss <= th[0] ? 3 : mq.miss <= th[1] ? 2 : 1;
-  persist(); setTimeout(() => say("全部找到了！"), 900); setTimeout(showResult, 1800);
+  persist(); gLater(() => talk("全部找到了！"), 900); gLater(showResult, 1800);   // 走本局計時器：結算前離開＝不會跳出結算畫面
 }
 
 // ---------- 聲調氣球（同一組符號、四種聲調，戳對的爆）----------
@@ -951,7 +1025,7 @@ function buildTone(q) {
     onTap(b, () => {
       if (locked || !b.isConnected) return;
       if (o.ok) { b.classList.add("ok"); play("pop"); correct(b, () => { p.appendChild(el("span", "han", q.word.h)); say(q.word.h); }); }
-      else { wrong(b); play("tap", 0.6); }               // A10：氣球漏氣扭一扭（CSS .balloon.ng）
+      else { wrong(b); noteMix(ts, o.syls); play("tap", 0.6); }               // A10：氣球漏氣扭一扭（CSS .balloon.ng）
     });
     sky.appendChild(b);
   });
@@ -1035,7 +1109,7 @@ function whackLoop(now) {
 }
 function moleUp(c, ok, now) {
   const s = wq; c.ok = ok; const z = ok ? s.target : pick(s.distract);
-  c.sign.innerHTML = ""; const zz = renderZ(parseZ(z)); zz.style.fontSize = (s.ts.length >= 2 ? 4 : 5) + "vmin"; c.sign.appendChild(zz);
+  c.z = z; c.sign.innerHTML = ""; const zz = renderZ(parseZ(z)); zz.style.fontSize = (s.ts.length >= 2 ? 4 : 5) + "vmin"; c.sign.appendChild(zz);
   c.state = "up"; c.until = now + s.up[s.upKey] * 1000; c.mole.className = "mole up";
   if (ok && s.hintNext) { s.hintNext = false; c.mole.classList.add("hinted"); c.until += 1500; }   // 按了提示才冒的正解：金框＋多待 1.5 秒
 }
@@ -1064,7 +1138,7 @@ function whackTap(c) {
       correct($("whackPic"), () => { $("whackPic").appendChild(renderZ(s.ts, s.q.word.h)); say(s.q.word.h); }, { tolerate: 1, holdMs: 1200, autoMs: 2200 });   // 連打中的小孩別一下就把揭曉跳掉
     }
   } else {
-    wrongThisQ++; combo = 0; whackRun = 0; s.wrongRun++; s.lastWrongAt = now; s.lockUntil = now + 500 * Math.min(3, s.wrongRun); play("ng");
+    wrongThisQ++; combo = 0; whackRun = 0; s.wrongRun++; s.lastWrongAt = now; if (c.z) noteMix(s.ts, parseZ(c.z)); s.lockUntil = now + 500 * Math.min(3, s.wrongRun); play("ng");
     c.mole.classList.add("nope"); setTimeout(() => moleDown(c, performance.now(), false), 350);
     if (wrongThisQ >= 2) hintPulse(true);
   }
@@ -1113,7 +1187,7 @@ function showPads() {
 function frogJump(lp, done) {
   const s = fq, f = s.frog; f.classList.remove("jump"); void f.offsetWidth; f.classList.add("jump"); f._lp = lp; fplace(f);
   f.classList.toggle("onstone", lp[0] === s.k + 1);
-  setTimeout(() => { if (!frogLive(s)) return; f.classList.remove("jump"); PZ(() => fxRipple(lp)); if (done) done(); }, 460);   // A4：落地水波
+  gLater(() => { if (!frogLive(s)) return; f.classList.remove("jump"); PZ(() => fxRipple(lp)); if (done) done(); }, 460);   // A4：落地水波
 }
 function padTap(pad, o) {
   const s = fq, now = performance.now(); if (!s || !pad.isConnected || !frogLive(s) || locked || pad.classList.contains("sink")) return;   // 里維 10-10：「再點一下換題」跟荷葉同一下點擊時，舊荷葉不能推進新題
@@ -1123,10 +1197,10 @@ function padTap(pad, o) {
   if (o.ok) {
     s.busy = true; s.okAt = now; s.slapped = false; frogStreak = Math.min(8, frogStreak + 1); hintPulse(false);
     play("tap", 1.4); const sq = PZ(() => s.frog.animate([{ scale: "1 1" }, { scale: "1.08 0.8" }], { duration: 80, easing: "ease-out", fill: "forwards" }));   // A4：點下當下就出聲、青蛙先壓扁 80ms 再跳
-    setTimeout(() => { if (sq) sq.cancel(); if (frogLive(s)) frogJump(pad._lp, () => {
+    gLater(() => { if (sq) sq.cancel(); if (frogLive(s)) frogJump(pad._lp, () => {
       pad.classList.remove("enter"); pad.classList.add("bloom"); play("pop", Math.pow(2, frogStreak / 12)); burst(pad, 16);   // 跳對特效要比掉水大很多（防故意跳水）
       for (const c of s.cols) if (c.pad !== pad) c.pad.classList.add("gone");
-      setTimeout(() => {
+      gLater(() => {
         if (!frogLive(s)) return;
         for (const c of s.cols) if (c.pad !== pad) c.pad.remove();
         s.step++;
@@ -1134,7 +1208,7 @@ function padTap(pad, o) {
       }, 350);
     }); }, 80);
   } else {
-    wrongThisQ++; combo = 0; frogStreak = 0; s.lockUntil = now + 800; play("ng"); burst(pad, 4, "💧"); pad.classList.add("sink");
+    wrongThisQ++; combo = 0; frogStreak = 0; s.lockUntil = now + 800; noteMix([s.ts[s.step]], parseZ(o.z)); play("ng"); burst(pad, 4, "💧"); pad.classList.add("sink");
     const rv = $("river"); rv.classList.add("hold"); setTimeout(() => rv.classList.remove("hold"), 800);
     s.cols = s.cols.filter(c => c.pad !== pad); setTimeout(() => pad.remove(), 650);
     if (wrongThisQ >= 2) hintPulse(true);
@@ -1158,7 +1232,7 @@ const RESULT_TEXT = any => mode === "match" ? "全部配對成功！" : mode ===
 function showResult() {
   clearIdle(); locked = false; lsSet(K("resume"), null);
   voicePreload([`拿到 ${earned.length} 張新貼紙！`]);
-  const n = MODES[mode].rounds, golds = results.filter(r => r === "gold").length, any = results.filter(Boolean).length;
+  const n = MODES[mode].rounds, first = results.slice(0, n), golds = first.filter(r => r === "gold").length, any = first.filter(Boolean).length;   // 星星只算第一次作答（再試一次的題不算）
   roundStars = mode === "match" ? (mq?.stars || 2) : golds >= n - 1 ? 3 : golds >= Math.ceil(n / 2) ? 2 : 1;
   const prevBest = save.best[mode] || 0, record = prevBest > 0 && roundStars > prevBest;   // 個人紀錄（B14）：第一次玩沒有紀錄可破
   if (roundStars > prevBest) save.best[mode] = roundStars;
@@ -1193,7 +1267,7 @@ function quake() {                                    // 整頁輕震 0.2 秒（
 function stampRecord(st) { if (st.stamped) return; st.stamped = true; $("resultStars").appendChild(el("div", "rec-stamp", "新紀錄！")); play("win"); }
 function resultVoice(st) {
   if (st.said) return; st.said = true;
-  if (st.k) say(`拿到 ${st.k} 張新貼紙！`); else say(practicedWords().every(w => save.stickers[w.h]) ? "都收集過了，好厲害！" : "下次直接答對，就能拿到新貼紙喔！");
+  if (st.k) talk(`拿到 ${st.k} 張新貼紙！`); else talk(practicedWords().every(w => save.stickers[w.h]) ? "都收集過了，好厲害！" : "下次直接答對，就能拿到新貼紙喔！");
 }
 // 這回合練過的詞（貼紙詞庫裡有的、不重複）
 function practicedWords() { const ws = mode === "match" ? (mq?.words || []) : round.map(q => q.word); return [...new Map(ws.filter(w => w && !PHRASES.includes(w)).map(w => [w.h, w])).values()]; }
@@ -1252,7 +1326,7 @@ async function tryHatch() {
   if (tok !== navToken) { hatching = false; return; }   // 等圖時小孩離開了：蛋不扣
   const f = FRIENDS[4 + save.eggs]; save.eggs++; persist(); updateJar();
   voicePreload([f.name + "來了，會來店裡買東西喔！"]);
-  say("蛋要孵出來了！");
+  talk("蛋要孵出來了！");
   await playHatchShow(`IMAGE/zhuyin/${f.id}.webp`, f.name, { line: f.name + "來了，會來店裡買東西喔！" });
   hatching = false; updateJar(); if (!(mode && !$("result").classList.contains("hidden"))) renderMenu();
 }
@@ -1275,7 +1349,7 @@ function playHatchShow(imgSrc, name, { taps = 0, line = "" } = {}) {
       const fl = $("flash"); fl.classList.remove("go"); void fl.offsetWidth; fl.classList.add("go");
       egg.className = "hatchEgg gone"; img.classList.remove("hidden"); box.classList.add("out");
       $("hatchName").textContent = name + "來了！"; $("hatchClose").classList.remove("hidden");
-      play("win"); confetti(40); say(line || name + "來了！");
+      play("win"); confetti(40); talk(line || name + "來了！");
     };
     hatchDone = () => { T.forEach(clearTimeout); egg.onclick = null; box.classList.remove("out"); resolve(); };
     if (taps) egg.onclick = () => { if (stage < STAGES.length && !out) shake(); };
@@ -1321,7 +1395,7 @@ function goMenu() {
 }
 function askHome() {                                  // 遊戲中按 🏠：休息選單（繼續／重新開始／回小島），左上是拇指位置，誤觸率高
   if (!mode || $("menu").classList.contains("hidden") === false) { goMenu(); return; }
-  clearIdle(); $("confirm").classList.remove("hidden"); say("暫停");
+  clearIdle(); gPause(); $("confirm").classList.remove("hidden"); talk("暫停");
 }
 // 換人玩：三個存檔位（小熊／小兔／小貓），各有各的貼紙、星星、朋友
 function openPlayers() {
@@ -1355,8 +1429,8 @@ for (const b of document.querySelectorAll(".mode-card")) {
 }
 $("homeBtn").onclick = () => { if ($("album").classList.contains("hidden") === false || $("result").classList.contains("hidden") === false) goMenu(); else askHome(); };
 $("confirmYes").onclick = () => { $("confirm").classList.add("hidden"); goMenu(); };
-$("confirmNo").onclick = () => { $("confirm").classList.add("hidden"); armIdle(); };
-$("confirmRestart").onclick = () => { $("confirm").classList.add("hidden"); play("select"); lsSet(K("resume"), null); startMode(mode); };
+$("confirmNo").onclick = () => { $("confirm").classList.add("hidden"); gResume(); armIdle(); };
+$("confirmRestart").onclick = () => { $("confirm").classList.add("hidden"); gResume(); play("select"); lsSet(K("resume"), null); startMode(mode); };
 $("resumeBtn").onclick = () => { const r = getResume(); if (!r) return; play("select"); if (r.mode === "match") startMode("match"); else startMode(r.mode, r); };
 $("playerBtn").onclick = () => { play("select"); openPlayers(); };
 $("playerTag").onclick = () => { play("select"); openPlayers(); };
@@ -1405,7 +1479,23 @@ $("resetBtn").onclick = () => {
 $("musicBtn").onclick = toggleMusic; $("musicBtn").classList.toggle("off", !save.music);
 $("speakBtn").onclick = useHint;
 // 家長設定：提示等待時間
-function renderSettings() { for (const b of document.querySelectorAll("#hintOpts button")) b.classList.toggle("on", +b.dataset.v === save.hintWait); }
+function renderSettings() {
+  for (const b of document.querySelectorAll("#hintOpts button")) b.classList.toggle("on", +b.dataset.v === save.hintWait);
+  for (const b of document.querySelectorAll("#musicOpts button")) b.classList.toggle("on", +b.dataset.v === (save.music ? 1 : 0));
+  for (const b of document.querySelectorAll("#talkOpts button")) b.classList.toggle("on", +b.dataset.v === (save.talk ? 1 : 0));
+  renderMix();
+}
+// 容易搞混的注音（目前這位）：次數多的排前面，最多 6 組
+function renderMix() {
+  $("mixName").textContent = `${SLOTS[slot - 1].e} ${SLOTS[slot - 1].name}`;
+  const box = $("mixList"); box.innerHTML = "";
+  const list = Object.entries(save.mix || {}).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  if (!list.length) { box.appendChild(el("div", "set-note", "還沒有資料。玩一陣子之後，這裡會列出最常搞混的注音和聲調。")); return; }
+  for (const [k, n] of list) {
+    const tone = k.startsWith("t:"), [a, b] = (tone ? k.slice(2) : k).split("|"), name = x => tone ? TONE_NAME[+x] : x;
+    const row = el("div", "mix-row" + (tone ? " tone" : "")); row.appendChild(el("span", "mix-a", name(a))); row.appendChild(el("span", "mix-x", "↔")); row.appendChild(el("span", "mix-a", name(b))); row.appendChild(el("span", "mix-n", `${n} 次`)); box.appendChild(row);
+  }
+}
 function openSettings() {
   play("select"); renderSettings(); renderBackupInfo(); disarmRestore(); $("lockTip").classList.add("hidden");
   $("setSlotName").textContent = `${SLOTS[slot - 1].e} ${SLOTS[slot - 1].name}`; $("saveCode").classList.add("hidden"); saveMsg(""); $("settings").classList.remove("hidden");
@@ -1435,6 +1525,8 @@ function lockEnd(opened) {
   b.onclick = () => { if (DEBUG && Date.now() - lockOpenedAt > 800) openSettings(); };
 }
 for (const b of document.querySelectorAll("#hintOpts button")) b.onclick = () => { save.hintWait = +b.dataset.v; persist(); play("tap"); renderSettings(); };
+for (const b of document.querySelectorAll("#musicOpts button")) b.onclick = () => { setMusic(+b.dataset.v); play("tap"); renderSettings(); };
+for (const b of document.querySelectorAll("#talkOpts button")) b.onclick = () => { save.talk = +b.dataset.v; persist(); play("tap"); if (!save.talk) stopSpeech(); renderSettings(); };
 $("settingsClose").onclick = () => { play("select"); $("settings").classList.add("hidden"); };
 $("againBtn").onclick = () => { play("select"); startMode(mode); };
 $("menuBtn").onclick = () => { play("select"); goMenu(); };
@@ -1470,7 +1562,7 @@ $("startBtn").onclick = () => {                         // 開始玩：這一下
   document.body.classList.remove("gate-on"); $("startGate").classList.add("hidden"); play("select");
   if (save.music && curBgm) curBgm.play().catch(() => {});
   const hi = helloText(); if (hi) $("guideText").textContent = hi + "快來選遊戲玩吧！";
-  setTimeout(() => say($("guideText").textContent), 300);
+  setTimeout(() => talk($("guideText").textContent), 300);
 };
 // 夜間（B15）：19:00–06:00 遊戲背景加藍紫色＋幾顆會閃的星星；網址 ?night=1／?night=0 可強制（測試、截圖用）
 const NIGHT_Q = (location.search.match(/[?&]night=([01])/) || [])[1];

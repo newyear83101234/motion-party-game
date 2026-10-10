@@ -22,10 +22,10 @@
   </script>
   <!-- 自己的程式一開頁就同時抓（高優先）：不然要等 zhuyin.js 下載完才知道要抓 ann/words/ui，再等它跑起來才抓 hub3d，
        一層等一層，線上 4Mbps 實測多卡約 3 秒（tools/zy-test/loadprofile.js）。網址要跟實際 import 的完全一樣（含 ?v=） -->
-  <link rel="modulepreload" href="js/zhuyin.js?v=19" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin.js?v=20" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-words.js" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-ann.js" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-ui.js" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-ann.js?v=2" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-ui.js?v=2" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-voice.js?v=1" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=5" fetchpriority="high">
   <!-- 開頁要等貓頭鷹：圖片預設優先序最低，線上實測 24KB 會排在 three.js 後面最晚才到 → 提高優先序 -->
@@ -40,7 +40,7 @@
     })();
   </script>
   <!-- 樣式表放在上面兩段 script 後面：classic script 會等前面的樣式表下載完才執行，放前面會卡住整頁解析 -->
-  <link rel="stylesheet" href="css/zhuyin.css?v=18">
+  <link rel="stylesheet" href="css/zhuyin.css?v=19">
 </head>
 <body class="gate-on">
   <!-- body.gate-on：開始畫面還沒按「開始玩」→ CSS 藏起小島浮標、嚮導、圓鈕（開始畫面只留一個標題、一顆按鈕） -->
@@ -192,6 +192,17 @@
       <div class="seg" id="hintOpts"><button class="opt" data-v="0">關閉</button><button class="opt" data-v="10">10 秒</button><button class="opt" data-v="20">20 秒</button><button class="opt" data-v="30">30 秒</button></div>
     </div>
     <div class="set-sec">
+      <div class="set-label">🎵 聲音</div>
+      <div class="set-note">題目和答案的唸音一定會播（學注音要聽），不受下面兩個開關影響。</div>
+      <div class="set-pair"><span class="set-sub">背景音樂</span><div class="seg" id="musicOpts"><button class="opt" data-v="1">開</button><button class="opt" data-v="0">關</button></div></div>
+      <div class="set-pair"><span class="set-sub">說明語音<small>貓頭鷹說明、稱讚、暫停、結算的話</small></span><div class="seg" id="talkOpts"><button class="opt" data-v="1">開</button><button class="opt" data-v="0">關</button></div></div>
+    </div>
+    <div class="set-sec">
+      <div class="set-label">📈 容易搞混的注音：<span id="mixName"></span></div>
+      <div class="set-note">答錯時，正確答案跟小朋友選的只差一個地方（聲母、韻母或聲調），才會記在這裡。可以陪他多練這幾組。</div>
+      <div id="mixList" class="mix-list"></div>
+    </div>
+    <div class="set-sec">
       <div class="set-label">💾 備份與還原（小熊、小兔、小貓三位一起）</div>
       <div class="set-note">進度存在這台平板的瀏覽器裡。換平板或清除瀏覽器資料前，按「備份全部」把備份碼存到 LINE 或備忘錄。</div>
       <div id="lastBackup" class="set-note strong"></div>
@@ -223,6 +234,6 @@
   <div id="flash" class="flash"></div>
 
   <div id="fx" class="fx"></div>
-  <script type="module" src="js/zhuyin.js?v=19"></script>
+  <script type="module" src="js/zhuyin.js?v=20"></script>
 </body>
 </html>
