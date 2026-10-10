@@ -1,0 +1,104 @@
+/* 注音小島 3D 等角示範頁（獨立，不影響正式遊戲） */
+:root {
+  --ink: #33405a;
+  --card: #ffffff;
+  --shadow: 0 0.6vmin 0 rgba(40, 70, 120, 0.18), 0 1.4vmin 3vmin rgba(40, 70, 120, 0.18);
+  --hz: 5vmin;     /* 國字大小 */
+  --zy: 2.2vmin;   /* 注音大小 */
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; overflow: hidden; }
+body {
+  font-family: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", "Heiti TC", sans-serif;
+  color: var(--ink);
+  /* 天空漸層：海面在上方淡出時露出來 */
+  background: linear-gradient(180deg, #ffe6ef 0%, #e4f1ff 18%, #b9dcf7 34%, #78ace4 60%, #5f98d9 100%);
+  -webkit-user-select: none; user-select: none;
+  touch-action: none;
+}
+#stage { position: fixed; inset: 0; }
+#stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
+/* ---------- 卡片 ---------- */
+.card {
+  background: var(--card);
+  border-radius: 2.4vmin;
+  box-shadow: var(--shadow);
+  display: inline-flex; align-items: center;
+  padding: 1.2vmin 2.2vmin;
+}
+.title-card {
+  position: fixed; top: max(2vmin, env(safe-area-inset-top)); left: 50%;
+  transform: translateX(-50%);
+  gap: 1vmin; z-index: 5; pointer-events: none;
+}
+.title-ico { font-size: 5.4vmin; line-height: 1; }
+
+.name-card {
+  position: fixed; left: 0; top: 0; z-index: 6;
+  gap: 1vmin; pointer-events: none;
+  transform-origin: 50% 100%;
+  will-change: transform;
+}
+.name-card[hidden] { display: none; }
+.name-card::after { /* 小尾巴 */
+  content: ""; position: absolute; left: 50%; bottom: -1.6vmin;
+  border: 1.7vmin solid transparent; border-top-color: var(--card); border-bottom: 0;
+  transform: translateX(-50%);
+}
+.name-card.pop { animation: cardPop 0.42s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes cardPop { from { scale: 0.3; opacity: 0; } to { scale: 1; opacity: 1; } }
+.nc-ico { font-size: 5vmin; line-height: 1; }
+
+.plant-btn {
+  position: fixed; z-index: 5;
+  right: max(2.4vmin, env(safe-area-inset-right)); bottom: max(2.4vmin, env(safe-area-inset-bottom));
+  gap: 1vmin; border: 0; cursor: pointer; font: inherit; color: var(--ink);
+  padding: 1.4vmin 2.6vmin 1.4vmin 2vmin;
+  transition: transform 0.12s, background 0.2s, box-shadow 0.2s;
+}
+.plant-btn:active { transform: scale(0.94); }
+.plant-btn .pb-ico { font-size: 5.6vmin; line-height: 1; }
+.plant-btn.on {
+  background: #d9f7c8;
+  box-shadow: 0 0 0 0.8vmin #8fdc6c, var(--shadow);
+  animation: btnPulse 1.4s ease-in-out infinite;
+}
+@keyframes btnPulse { 50% { box-shadow: 0 0 0 1.4vmin rgba(143, 220, 108, 0.55), var(--shadow); } }
+
+/* ---------- 國字＋直排注音 ---------- */
+.zy-word { display: inline-flex; align-items: center; }
+.zc { display: inline-flex; align-items: center; margin: 0 0.35vmin; }
+.hz { font-size: var(--hz); line-height: 1; font-weight: 800; letter-spacing: 0; }
+.zy {
+  display: inline-flex; flex-direction: column; align-items: center;
+  font-size: var(--zy); line-height: 1; font-weight: 700;
+  margin-left: 0.25em;
+  padding-right: 0.55em;          /* 留位置給右側聲調 */
+}
+.zy-col { position: relative; display: flex; flex-direction: column; align-items: center; }
+.zy-col > b { display: block; height: 1.02em; line-height: 1.02em; font-weight: inherit; }
+.zy-tone {                         /* ˊˇˋ 放在注音欄右側 */
+  position: absolute; left: 100%; margin-left: 0.02em;
+  font-size: 0.95em; line-height: 1; font-style: normal;
+  transform: translateY(-50%);
+}
+.zy-light { display: block; height: 0.6em; line-height: 0.6em; font-style: normal; } /* 輕聲˙在欄頂 */
+
+/* ---------- 讀取中 ---------- */
+#loading {
+  position: fixed; inset: 0; z-index: 10;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2vmin;
+  background: linear-gradient(180deg, #ffe6ef, #b9dcf7 50%, #78ace4);
+  transition: opacity 0.5s;
+}
+#loading.done { opacity: 0; pointer-events: none; }
+.ld-ico { font-size: 14vmin; animation: bob 1.2s ease-in-out infinite; }
+.ld-dots { display: flex; gap: 1.6vmin; }
+.ld-dots i { width: 2vmin; height: 2vmin; border-radius: 50%; background: #fff; animation: dot 1s infinite; }
+.ld-dots i:nth-child(2) { animation-delay: 0.15s; }
+.ld-dots i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes bob { 50% { transform: translateY(-1.6vmin); } }
+@keyframes dot { 50% { transform: scale(0.5); opacity: 0.5; } }
+#fail { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 6vmin; }
+#fail[hidden] { display: none; }

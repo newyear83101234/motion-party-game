@@ -202,7 +202,7 @@ const TRANSFORM_DUR = 2.0;
 // 最高分（存在手機裡，給「破紀錄」動機）
 function lsGet(k) { try { return +(localStorage.getItem(k) || 0); } catch (e) { return 0; } }
 function lsSet(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
-bestWhack = lsGet("best_whack"); bestDodge = lsGet("best_dodge"); bestPvz = lsGet("best_pvz"); bestKpop = lsGet("best_kpop"); bestRedlight = lsGet("best_redlight"); bestZhuyin = lsGet("zy_stars"); // 注音小島累積星星數（zhuyin.js 存 localStorage zy_stars）
+bestWhack = lsGet("best_whack"); bestDodge = lsGet("best_dodge"); bestPvz = lsGet("best_pvz"); bestKpop = lsGet("best_kpop"); bestRedlight = lsGet("best_redlight"); bestZhuyin = lsGet("zy" + (lsGet("zy_slot") || 1) + "_stars") || lsGet("zy_stars"); // 注音小島目前玩家的累積星星（2026-10-10 起分三個存檔位 zy1~3_stars；舊版 zy_stars 當備援）
 playerMode = lsGet("player_mode") === 1 ? "duo" : "solo";
 superUsedEver = lsGet("super_used") === 1;
 function commitBest() {

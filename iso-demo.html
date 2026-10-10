@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>注音小島 3D 示範</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/iso-demo.css?v=1">
+  <!-- 獨立示範頁：3D 等角小島。不接正式遊戲（zhuyin.html）。素材：Kenney.nl CC0 -->
+  <!-- 舊 iPad（iOS 16.3 以前）不支援 importmap → 這支 polyfill 補上；新瀏覽器會自動略過 -->
+  <script>
+    if (!(window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports('importmap'))) {
+      var s = document.createElement('script'); s.async = true;
+      s.src = 'https://cdn.jsdelivr.net/npm/es-module-shims@2.8.4/dist/es-module-shims.js';
+      document.head.appendChild(s);
+    }
+  </script>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="stage" aria-label="注音小島"></div>
+
+  <div id="title" class="card title-card">
+    <span class="title-ico" aria-hidden="true">🏝️</span>
+    <span class="zy-word" data-hz="注音小島" data-zy="ㄓㄨˋ ㄧㄣ ㄒㄧㄠˇ ㄉㄠˇ"></span>
+  </div>
+
+  <div id="nameCard" class="card name-card" aria-live="polite" hidden>
+    <span class="nc-ico" aria-hidden="true"></span>
+    <span class="zy-word nc-word"></span>
+  </div>
+
+  <button id="plantBtn" class="card plant-btn" type="button" aria-pressed="false">
+    <span class="pb-ico" aria-hidden="true">🌳</span>
+    <span class="zy-word" data-hz="種樹" data-zy="ㄓㄨㄥˋ ㄕㄨˋ"></span>
+  </button>
+
+  <div id="loading" aria-hidden="true"><div class="ld-ico">🏝️</div><div class="ld-dots"><i></i><i></i><i></i></div></div>
+  <div id="fail" hidden>⚠️ WebGL</div>
+
+  <script type="module" src="js/iso-demo.js?v=1"></script>
+</body>
+</html>

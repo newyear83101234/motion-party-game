@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#1b4fa0">
   <link rel="icon" href="data:,">
   <title>注音小島</title>
-  <link rel="stylesheet" href="css/zhuyin.css?v=9">
+  <link rel="stylesheet" href="css/zhuyin.css?v=11">
 </head>
 <body>
   <!-- 讀取畫面：開頁與第一次進某個遊戲時，圖還沒抓好就蓋著（不會看到空白） -->
@@ -24,6 +24,7 @@
   <button id="musicBtn" class="round-btn" title="音樂">🎵</button>
   <button id="speakBtn" class="hint-btn hidden" title="提示"><span class="ic">🔊</span><span id="speakLabel">提示</span></button>
   <button id="settingsBtn" class="round-btn hidden" title="家長設定">⚙️</button>
+  <button id="playerBtn" class="round-btn hidden" title="換人玩">🐻</button>
 
   <!-- 嚮導貓頭鷹（只在選單出現） -->
   <div id="guide" class="guide hidden"><img src="IMAGE/zhuyin/guide_owl.webp" alt=""><div id="guideText" class="guideText"></div></div>
@@ -31,6 +32,7 @@
   <!-- ===== 選單（注音小島） ===== -->
   <section id="menu" class="screen bg-map">
     <h1>注音小島</h1>
+    <button id="resumeBtn" class="resume hidden"></button>
     <div class="mode-cards">
       <button class="mode-card" data-mode="fish"><span class="big">🎣</span><span class="label">釣魚</span><span class="lock"></span></button>
       <button class="mode-card" data-mode="order"><span class="big">🍔</span><span class="label">點餐</span><span class="lock"></span></button>
@@ -38,6 +40,8 @@
       <button class="mode-card" data-mode="hunt"><span class="big">🔍</span><span class="label">尋寶</span><span class="lock"></span></button>
       <button class="mode-card" data-mode="match"><span class="big">🃏</span><span class="label">翻牌</span><span class="lock"></span></button>
       <button class="mode-card" data-mode="tone"><span class="big">🎈</span><span class="label">氣球</span><span class="lock"></span></button>
+      <button class="mode-card" data-mode="whack"><span class="big">🔨</span><span class="label">地鼠</span><span class="lock"></span></button>
+      <button class="mode-card" data-mode="frog"><span class="big">🐸</span><span class="label">青蛙</span><span class="lock"></span></button>
     </div>
     <div class="menu-bottom">
       <button id="albumBtn" class="pill"><span>📒 貼紙</span><b id="menuStickers">0</b></button>
@@ -93,6 +97,21 @@
     <div id="sky" class="sky"></div>
   </section>
 
+  <!-- ===== 打地鼠 ===== -->
+  <section id="whack" class="screen bg-garden hidden">
+    <div class="topbar"></div>
+    <div class="whack-main">
+      <div class="wtarget"><div id="whackPic" class="wpic"></div><div id="whackDots" class="wdots"></div></div>
+      <div id="field" class="field"></div>
+    </div>
+  </section>
+
+  <!-- ===== 跳跳蛙 ===== -->
+  <section id="frog" class="screen bg-frog hidden">
+    <div class="topbar"></div>
+    <div id="river" class="river"></div>
+  </section>
+
   <!-- ===== 結算 ===== -->
   <section id="result" class="screen bg-map hidden">
     <div id="resultText" class="result-text"></div>
@@ -114,17 +133,26 @@
   </section>
 
   <!-- ===== 覆蓋層：回家確認 / 孵蛋 ===== -->
-  <div id="confirm" class="overlay hidden"><div class="dialog"><div class="q">🏠 要回小島嗎？</div><div class="row"><button id="confirmYes" class="big-btn">✅ 好</button><button id="confirmNo" class="big-btn alt">↩️ 繼續玩</button></div></div></div>
+  <div id="confirm" class="overlay hidden"><div class="dialog"><div class="q">⏸️ 暫停</div><div class="row wrap"><button id="confirmNo" class="big-btn">▶️ 繼續玩</button><button id="confirmRestart" class="big-btn alt">🔄 重新開始</button><button id="confirmYes" class="big-btn alt">🏝️ 回小島</button></div></div></div>
+  <!-- 換人玩：三個存檔位 -->
+  <div id="players" class="overlay hidden"><div class="dialog"><div class="q">👋 誰要玩？</div><div id="playerList" class="row wrap"></div></div></div>
+  <!-- 翻牌選張數 -->
+  <div id="matchPick" class="overlay hidden"><div class="dialog"><div class="q">🃏 要翻幾張牌？</div><div id="matchSizes" class="row wrap"></div><button id="matchPickClose" class="big-btn alt small">↩️ 回去</button></div></div>
   <div id="settings" class="overlay hidden"><div class="dialog settings">
     <div class="q">⚙️ 家長設定</div>
-    <div class="set-label">🔊 小朋友多久沒動作，<br><span class="nw">「提示」</span>按鈕會閃一閃提醒？</div>
+    <div class="set-label">🔊 小朋友多久沒<span class="nw">動作，</span><wbr><span class="nw">「提示」</span>按鈕會<span class="nw">閃爍提醒？</span></div>
     <div class="row" id="hintOpts"><button class="opt" data-v="0">關閉</button><button class="opt" data-v="10">10 秒</button><button class="opt" data-v="20">20 秒</button><button class="opt" data-v="30">30 秒</button></div>
-    <div class="set-note">遊戲不會自己唸出答案，<br>小朋友按<span class="nw">「🔊 提示」</span>才會唸。<br>同一題答錯 2 次，提示按鈕也會閃；<br>這時按提示，正確答案會輕輕晃一下。</div>
+    <div class="set-note noann">遊戲不會自己唸出答案，<br>小朋友按<span class="nw">「🔊 提示」</span>才會唸。<br>同一題答錯 2 次，提示按鈕也會閃；<br>這時按提示，正確答案會輕輕晃一下。</div>
+    <div class="set-label">💾 存檔：<span id="setSlotName"></span></div>
+    <div class="row wrap"><button id="backupBtn" class="opt">📋 備份</button><button id="restoreBtn" class="opt">📥 還原</button><button id="resetBtn" class="opt danger">🗑️ 清除重來</button></div>
+    <textarea id="saveCode" class="save-code hidden" rows="2" spellcheck="false"></textarea>
+    <div id="saveMsg" class="set-note noann"></div>
+    <div class="set-note noann">進度會自動存在這台平板的瀏覽器裡。<br>換平板或清除瀏覽器資料前，先按「備份」把備份碼存起來。</div>
     <button id="settingsClose" class="big-btn">✅ 好</button>
   </div></div>
   <div id="hatch" class="overlay hidden"><div class="dialog hatchBox"><div id="hatchEgg" class="hatchEgg"></div><img id="hatchFriend" class="hatchFriend hidden" alt=""><div id="hatchName" class="q"></div><button id="hatchClose" class="big-btn">🎉 太棒了</button></div></div>
 
   <div id="fx" class="fx"></div>
-  <script type="module" src="js/zhuyin.js?v=9"></script>
+  <script type="module" src="js/zhuyin.js?v=11"></script>
 </body>
 </html>
