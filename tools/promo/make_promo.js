@@ -1,5 +1,5 @@
 // 注音小島宣傳片（阿葉 10-11：仿《開工吧！社畜人生！》宣傳片——等角小鎮推鏡、斜放黃色大標語、章節標籤、說明小膠囊、片尾卡）
-// 用法：node tools/promo/make_promo.js [輸出.mp4] [--keep]
+// 用法：node tools/promo/make_promo.js [輸出.mp4] [--keep] [--portrait＝直式 1080×1920（IG Reels／Shorts）]
 // 做法：headless Chromium（1280×720 ×1.5＝1920×1080）＋ CDP 虛擬時間逐格截圖 30fps（3D 算得慢也一樣順）
 //       → 疊字用頁面裡的 DOM（#promo，class noann＝不自動加注音）→ ffmpeg 合成＋背景音樂淡入淡出
 // 需要：本機伺服器 python -m http.server 8765（專案根目錄）、ffmpeg
@@ -7,8 +7,9 @@ const fs = require("fs"), path = require("path"), os = require("os"), { spawnSyn
 const { launch } = require("../zy-test/lib");
 const ROOT = path.resolve(__dirname, "../..");
 const OUTMP4 = process.argv[2] && !process.argv[2].startsWith("--") ? path.resolve(process.argv[2]) : path.join(ROOT, "promo", "zhuyin-island-promo.mp4");
-const FR = path.join(os.tmpdir(), "zy_promo_frames");
-const URL = (process.env.ZY_URL || "http://127.0.0.1:8765/zhuyin.html") + "?debug&weather=sunny&novoice";
+const PORTRAIT = process.argv.includes("--portrait"), VW = PORTRAIT ? 720 : 1280, VH = PORTRAIT ? 1280 : 720;
+const FR = path.join(os.tmpdir(), PORTRAIT ? "zy_promo_frames_p" : "zy_promo_frames");
+const URL = (process.env.ZY_URL || "http://127.0.0.1:8765/zhuyin.html") + "?debug&weather=sunny&novoice&night=0";   // 宣傳片固定白天（真實時鐘晚上會自動變夜景）
 const FPS = 30, DT = 1000 / FPS;
 
 const CSS = `
@@ -38,13 +39,17 @@ const CSS = `
 #promo .pill.right { left: auto; right: 3vmin; }
 @keyframes ppIn { 0% { opacity: 0; translate: -6vmin 0; } 100% { opacity: 1; translate: 0 0; } }
 #promo .end { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(255,255,255,0.55); backdrop-filter: blur(6px); animation: peIn 0.6s ease-out both; }
-#promo .card { background: #fff; border-radius: 5vmin; padding: 5vmin 9vmin; text-align: center; box-shadow: 0 2vmin 6vmin rgba(20,50,80,0.3); animation: pbIn 0.6s 0.15s cubic-bezier(.2,1.5,.4,1) both; }
-#promo .card .logo { font-size: 11vmin; font-weight: 900; color: #f6c445; -webkit-text-stroke: 1.2vmin #24515c; paint-order: stroke fill; letter-spacing: 0.6vmin; line-height: 1.15; }
-#promo .card .tag { margin-top: 1.6vmin; font-size: 4.8vmin; font-weight: 900; color: #24515c; }
+#promo .card { width: max-content; max-width: 92vw; background: #fff; border-radius: 5vmin; padding: 5vmin 9vmin; text-align: center; box-shadow: 0 2vmin 6vmin rgba(20,50,80,0.3); animation: pbIn 0.6s 0.15s cubic-bezier(.2,1.5,.4,1) both; }
+#promo .card .logo { white-space: nowrap; font-size: 11vmin; font-weight: 900; color: #f6c445; -webkit-text-stroke: 1.2vmin #24515c; paint-order: stroke fill; letter-spacing: 0.6vmin; line-height: 1.15; }
+#promo .card .tag { white-space: nowrap; margin-top: 1.6vmin; font-size: 4.8vmin; font-weight: 900; color: #24515c; }
 #promo .card .row { margin-top: 2.6vmin; display: flex; gap: 2vmin; justify-content: center; }
 #promo .card .row span { background: #fff4d6; color: #8a5a00; font-weight: 800; font-size: 3.4vmin; border-radius: 4vmin; padding: 1vmin 2.4vmin; }
 #promo .card .sm { margin-top: 2.4vmin; font-size: 3vmin; color: #667; font-weight: 700; }
 @keyframes peIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+@media (orientation: portrait) {
+  #promo .banner { top: 34%; padding: 2.4vmin 4.4vmin 2.6vmin; } #promo .banner b { font-size: 11vmin; } #promo .banner.small b { font-size: 6vmin; -webkit-text-stroke-width: 0.9vmin; } #promo .banner i { font-size: 4.2vmin; }
+  #promo .chap { top: 30vmin; } #promo .pill { bottom: 26vmin; } #promo .card { padding: 5vmin 5vmin; max-width: 90vw; } #promo .card .row { flex-wrap: wrap; }
+}
 `;
 // 頁面裡的疊字小工具
 const OVERLAY = () => {
@@ -64,7 +69,7 @@ const OVERLAY = () => {
 (async () => {
   fs.rmSync(FR, { recursive: true, force: true }); fs.mkdirSync(FR, { recursive: true }); fs.mkdirSync(path.dirname(OUTMP4), { recursive: true });
   const browser = await launch();
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1.5 });
+  const ctx = await browser.newContext({ viewport: { width: VW, height: VH }, deviceScaleFactor: 1.5 });
   await ctx.addInitScript(() => {
     const fake = { speaking: false, cancel() {}, getVoices() { return []; }, onvoiceschanged: null, speak(u) { setTimeout(() => u.onend && u.onend(), 300); } };
     Object.defineProperty(window, "speechSynthesis", { value: fake, configurable: true });
@@ -97,10 +102,10 @@ const OVERLAY = () => {
   await cdp.send("Emulation.setVirtualTimePolicy", { policy: "pause" });
   const within = (pr, ms) => Promise.race([pr, new Promise(r => setTimeout(() => r("TIMEOUT"), ms))]);
   const step = ms => within(new Promise(res => { cdp.once("Emulation.virtualTimeBudgetExpired", () => res("ok")); cdp.send("Emulation.setVirtualTimePolicy", { policy: "advance", budget: ms }); }), 15000);
-  let F = 0, last = null;
+  let F = 0, last = null; const CLIP = { x: 0, y: 0, width: VW, height: VH, scale: 1.5 };   // CDP 截圖不吃 deviceScaleFactor：要用 clip.scale 才是 1080p
   const shot = async () => {
-    let s = await within(cdp.send("Page.captureScreenshot", { format: "jpeg", quality: 92 }), 20000);
-    if (s === "TIMEOUT") { console.log("截圖逾時，重試", F); await step(5); s = await within(cdp.send("Page.captureScreenshot", { format: "jpeg", quality: 92 }), 30000); }
+    let s = await within(cdp.send("Page.captureScreenshot", { format: "jpeg", quality: 92, clip: CLIP }), 20000);
+    if (s === "TIMEOUT") { console.log("截圖逾時，重試", F); await step(5); s = await within(cdp.send("Page.captureScreenshot", { format: "jpeg", quality: 92, clip: CLIP }), 30000); }
     const buf = s && s.data ? Buffer.from(s.data, "base64") : last; if (!buf) throw new Error("截圖失敗");
     last = buf; fs.writeFileSync(path.join(FR, `f${String(F++).padStart(5, "0")}.jpg`), buf);
   };
@@ -149,8 +154,8 @@ const OVERLAY = () => {
   await rec(220, async i => {
     if (i <= 40) await E(a => window.__zy.bubble.debug.aim(a), Math.PI / 2 + (best.angle - Math.PI / 2) * Math.min(1, i / 36));
     if (i === 46) await E(() => window.__zy.bubble.debug.fire());
-    if (i === 70) await E(() => __promo.banner("打掉支撐點", "一發救出一大片！", true));
-    if (i === 200) await E(() => __promo.bannerOut());
+    if (i === 150) await E(() => __promo.banner("打掉支撐點", "一發救出一大片！", true));   // 掉落救援演完才出標語（不擋精彩瞬間）
+    if (i === 208) await E(() => __promo.bannerOut());
   });
   await E(() => __promo.clear()); await toMenu(); lap("泡泡");
 

@@ -592,7 +592,7 @@ function hasWebGL() {                                 // Three.js r163 起只支
   try { const gl = document.createElement("canvas").getContext("webgl2"); if (!gl) return false; const x = gl.getExtension("WEBGL_lose_context"); if (x) x.loseContext(); return true; } catch (e) { return false; }
 }
 function importHub() {
-  const url = "./zhuyin-hub3d.js?v=6";
+  const url = "./zhuyin-hub3d.js?v=7";
   if (window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports("importmap")) return import(url);
   return new Promise((ok, no) => {                    // 舊 iPad（iOS 16.3 以前）不支援 importmap → 補 es-module-shims 再載
     const s = document.createElement("script"); s.src = "IMAGE/zy3d/vendor/es-module-shims/es-module-shims.js";
@@ -621,11 +621,12 @@ const WX_LINES = { sunny: "今天是晴天，太陽好溫暖！", cloudy: "今�
 async function initWeather() {
   if (!hub || weather) return;
   try {
-    const m = wxMod = await import("./zhuyin-weather.js?v=1"); if (!hub) return;
+    const m = wxMod = await import("./zhuyin-weather.js?v=2"); if (!hub) return;
     const q = (location.search.match(/[?&]weather=(\w+)/) || [])[1];   // 網址 ?weather=rain 可指定（截圖、宣傳片用）
     wxKind = m.WEATHERS[q] ? q : m.pickWeather();
     wxSound = m.createWeatherSound(); if (wxSound.setDuck) wxSound.setDuck(() => engineTalking());   // 講話時雷聲小一點
     weather = hub.use(c => m.weatherPlugin(c, { kind: wxKind, sound: wxSound }));
+    if (weather && weather.setNight) PZ(() => weather.setNight(document.body.classList.contains("night"), { instant: true }));
     if (!q) scheduleWeather();
     wxAudio();
   } catch (e) { console.warn("[weather]", e); }
@@ -1775,7 +1776,9 @@ $("startBtn").onclick = () => {                         // 開始玩：這一下
 const NIGHT_Q = (location.search.match(/[?&]night=([01])/) || [])[1];
 function applyNight() {
   const h = new Date().getHours(), on = NIGHT_Q ? NIGHT_Q === "1" : (h >= 19 || h < 6);
-  document.body.classList.toggle("night", on); if (!on) return;
+  document.body.classList.toggle("night", on);
+  if (weather && weather.setNight) PZ(() => weather.setNight(on));   // 3D 小島也跟著變夜景
+  if (!on) return;
   for (const id of Object.keys(MODES)) {
     const s = $(id); if (!s || s.querySelector(":scope > .night-sky")) continue;
     const sky = el("div", "night-sky");

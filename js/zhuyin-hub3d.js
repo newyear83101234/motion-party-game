@@ -2227,7 +2227,8 @@ function dispose() {
 function use(plugin) {
   if (dead || !scene) return null;
   const ctx = { THREE, scene, camera, renderer, sun, hemi, sea: seaU, P, groundY, islPoly, mainPoly, inside, DEFS, SPOTS, ROADS, PITCH, DEBUG,
-    stage, tagLayer, markShadow: () => { shadowDirty = true; }, running: () => running, later };
+    stage, tagLayer, markShadow: () => { shadowDirty = true; }, running: () => running, later,
+    lamps: graph.lamps.map(([x, z]) => ({ x, z, y: groundY(x, z) + 0.075 })), town: { x: DIST.x, z: DIST.z, h: DIST.h } };   // 路燈（夜晚發光用）、新市區範圍
   let p = null; try { p = plugin(ctx) || {}; } catch (e) { console.warn("[hub3d] 外掛載入失敗", e); return null; }
   plugins.push(p); return p;
 }

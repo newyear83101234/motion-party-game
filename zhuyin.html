@@ -22,13 +22,13 @@
   </script>
   <!-- 自己的程式一開頁就同時抓（高優先）：不然要等 zhuyin.js 下載完才知道要抓 ann/words/ui，再等它跑起來才抓 hub3d，
        一層等一層，線上 4Mbps 實測多卡約 3 秒（tools/zy-test/loadprofile.js）。網址要跟實際 import 的完全一樣（含 ?v=） -->
-  <link rel="modulepreload" href="js/zhuyin.js?v=21" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin.js?v=22" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-words.js" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-ann.js?v=3" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-ui.js?v=3" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-voice.js?v=2" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=6" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-weather.js?v=1">
+  <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=7" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-weather.js?v=2">
   <link rel="modulepreload" href="js/zhuyin-rewards.js?v=1" fetchpriority="high">
   <!-- 開頁要等貓頭鷹：圖片預設優先序最低，線上實測 24KB 會排在 three.js 後面最晚才到 → 提高優先序 -->
   <link rel="preload" as="image" href="IMAGE/zhuyin/guide_owl.webp" fetchpriority="high">
@@ -261,6 +261,6 @@
   <div id="flash" class="flash"></div>
 
   <div id="fx" class="fx"></div>
-  <script type="module" src="js/zhuyin.js?v=21"></script>
+  <script type="module" src="js/zhuyin.js?v=22"></script>
 </body>
 </html>

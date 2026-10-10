@@ -116,7 +116,8 @@ const visible = (p, id) => p.evaluate(id => !document.getElementById(id).classLi
     await enterMode(p, "build"); await sleep(600);
     ok("⑥ 聲調積木有 aria-label（空白＝一聲）", await p.evaluate(() => document.querySelector('#toneRow .toneTile[data-v="0"]')?.getAttribute("aria-label")?.includes("一聲")));
     let tip = null, tipSpoken = false;
-    for (let q = 0; q < 6 && !tip; q++) {
+    for (let q = 0; q < 18 && !tip; q++) {             // 題目是隨機的：一輪 6 題可能剛好沒有一聲 → 最多玩 3 輪
+      if (q && q % 6 === 0) { await enterMode(p, "build"); await sleep(600); }
       const syls = await p.evaluate(() => window.__zy.parseZ(window.__zy.round[window.__zy.idx].word.z));
       for (const s of syls) {
         for (const ch of s.sym) await p.evaluate(ch => { const t = [...document.querySelectorAll("#tray .tile:not(.used)")].find(t => t.dataset.v === ch); t && t.click(); }, ch);

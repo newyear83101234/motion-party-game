@@ -5,6 +5,7 @@
 //   const snd = createWeatherSound(); snd.start(audioCtx);              // 可選：程式合成雨聲／風聲／遠雷（晴、陰天無聲）
 //   const w = hub.use(ctx => weatherPlugin(ctx, { kind: pickWeather(), sound: snd }));
 //   w.set("rain")  w.set("sunny", { instant: true })  w.get()  w.rainbow()  w.flash()
+//   w.setNight(true／false, { instant })：夜晚小島（跟天氣相乘疊加；換天氣時夜晚狀態保持；晚上不出彩虹）；也可一開始就傳 { night: true }
 //   有傳 sound：外掛換天氣時會幫忙 sound.setKind()、閃電時打遠雷；選單藏起來（進遊戲）時請自己 snd.setVolume(0)，回選單再調回來。
 // 畫面組成（每樣最多 1 個 draw call，用不到就整個不畫）：
 //   雲＝一個 InstancedMesh（每朵 6 顆低多邊形泡泡）｜雲影＝一張高空半透明貼圖慢慢飄｜雨絲＝一個 BufferGeometry，位置全在 shader 依時間算（每格只改 uniform）
@@ -63,7 +64,7 @@ function flashEnv(s) {
   return 0;
 }
 
-export function weatherPlugin(ctx, { kind = "sunny", sound = null, onLightning = null } = {}) {
+export function weatherPlugin(ctx, { kind = "sunny", sound = null, onLightning = null, night: night0 = false } = {}) {
   const { THREE, scene, camera, renderer, sun, hemi, sea, stage, inside, groundY, islPoly } = ctx;
   if (!WEATHERS[kind]) kind = "sunny";
   const rnd = Math.random;
@@ -150,10 +151,17 @@ export function weatherPlugin(ctx, { kind = "sunny", sound = null, onLightning =
   const clouds = [];
   for (let i = 0; i < MAXC; i++) clouds.push({ i, alive: false, want: false, grow: 0, delay: 0, a: 0, b: 0, sy: 0, top: true, u: 0, h: 7, s: 1, tpl: CLOUD_TPL[i % 3], spd: 1, ph: rnd() * 6.28, tone: rnd() });
   const whiteC = new THREE.Color(0xffffff), grayC = new THREE.Color("#a9b5c8");
-  let cloudGrayShown = -1;
+  let cloudGrayShown = -1, cloudNightShown = -1;
+  const nightCloudC = new THREE.Color("#55638c");
+  // 夜晚狀態（setNight）：night＝目前 0–1（2.5 秒內插），nightOn＝目標
+  let night = 0, nightOn = false, nightFrom = 0, nightStart = 0, nightPending = false, nightSettled = true;
   function paintClouds(g) {
-    for (const c of clouds) { _c.copy(whiteC).lerp(grayC, clamp01(g * (0.82 + c.tone * 0.36))); for (let k = 0; k < PUFF; k++) cloudIM.setColorAt(c.i * PUFF + k, _c); }
-    cloudIM.instanceColor.needsUpdate = true; cloudGrayShown = g;
+    for (const c of clouds) {
+      _c.copy(whiteC).lerp(grayC, clamp01(g * (0.82 + c.tone * 0.36)));
+      if (night > 0) _c.lerp(nightCloudC, night * 0.6);                // 夜裡變深藍灰
+      for (let k = 0; k < PUFF; k++) cloudIM.setColorAt(c.i * PUFF + k, _c);
+    }
+    cloudIM.instanceColor.needsUpdate = true; cloudGrayShown = g; cloudNightShown = night;
   }
   paintClouds(cur[IX.cloudGray]);
   // 雲走的高度帶（螢幕 y）：上帶＝主島遠側上空、下帶＝主島近側外海；再夾進「目前畫面」的上緣／下緣一條帶子裡
@@ -211,7 +219,8 @@ export function weatherPlugin(ctx, { kind = "sunny", sound = null, onLightning =
       }
     }
     cloudIM.instanceMatrix.needsUpdate = true;
-    const gr = cur[IX.cloudGray]; if (Math.abs(gr - cloudGrayShown) > 0.002 || (settled && gr !== cloudGrayShown)) paintClouds(gr);
+    const gr = cur[IX.cloudGray];
+    if (Math.abs(gr - cloudGrayShown) > 0.002 || (settled && gr !== cloudGrayShown) || Math.abs(night - cloudNightShown) > 0.002 || (nightSettled && night !== cloudNightShown)) paintClouds(gr);
   }
 
   // ---------- 雲影：高空一張半透明貼圖（雲跟建築頂會擋住它；看起來像雲影飄過）----------
@@ -424,6 +433,7 @@ export function weatherPlugin(ctx, { kind = "sunny", sound = null, onLightning =
   rb.frustumCulled = false; rb.renderOrder = 1; rb.visible = false;
   let rbT0 = null, rbWant = null;   // rbWant：要出彩虹的時間（換回晴天淡到一半時）
   function startRainbow() {
+    if (nightOn) return;                                  // 晚上不出彩虹
     readView();
     const W = view.r - view.l, H = view.t - view.b, rad = Math.min(W, H) * 0.4;
     const sx = view.l + W * 0.27, sy = view.b + H * 0.5;
@@ -432,17 +442,125 @@ export function weatherPlugin(ctx, { kind = "sunny", sound = null, onLightning =
     rbT0 = now; rb.visible = true;
   }
   function updateRainbow(t) {
-    if (rbWant !== null && t >= rbWant) { rbWant = null; startRainbow(); rbT0 = t; }
+    if (rbWant !== null && t >= rbWant) { rbWant = null; startRainbow(); }
     if (rbT0 === null) return;
     const age = t - rbT0, op = 0.62 * Math.min(clamp01(age / 2.5), clamp01((RAINBOW_LIFE - age) / 4));
     rbU.uOp.value = smooth(op / 0.62) * 0.62;
     if (age >= RAINBOW_LIFE) { rbT0 = null; rb.visible = false; rbU.uOp.value = 0; }
   }
 
+  // ---------- 夜晚：燈光／海跟天氣「相乘」再壓暗變藍；路燈光暈＋地上暖光圈＋螢火蟲（1 個 draw call）；星星＋月亮（1 個 draw call）----------
+  const NIGHT = { hemiK: 0.42, sunK: 0.4, shadowK: 0.75, amt: 0.78, seaAmt: 0.82, vignette: 0.3 };
+  const nSky = lin("#7590d6"), nGround = lin("#3d4774"), nMoon = lin("#a9bcff"), nDeep = lin("#16305f"), nShallow = lin("#2c5a8e"), nGrid = lin("#274b82");
+  const LAMP_HEAD = 0.95;                                 // 路燈燈頭離地高（ctx.lamps 的 y 是燈座地面）
+  const quadGeo = new THREE.PlaneGeometry(1, 1);
+  const camQ = camera.quaternion.clone(), flatQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+  // 光：k 0＝燈頭光暈（面向鏡頭）1＝地上暖光圈（平躺）2＝新市區路口小燈 3＝螢火蟲
+  const glows = [];
+  for (const L of ctx.lamps || []) { glows.push({ k: 0, x: L.x, y: L.y + LAMP_HEAD, z: L.z, s: 1.15 }); glows.push({ k: 1, x: L.x, y: L.y + 0.012, z: L.z, s: 2.2 }); }
+  if (ctx.town) for (const [dx, dz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {   // 新市區沒有路燈：十字路口四角放矮矮的地燈
+    const x = ctx.town.x + dx * 0.88, z = ctx.town.z + dz * 0.88, y = groundY(x, z) + 0.075;
+    glows.push({ k: 2, x, y: y + 0.22, z, s: 0.7 }); glows.push({ k: 1, x, y: y + 0.012, z, s: 1.6 });
+  }
+  const park = (ctx.SPOTS || []).find(q => q.id === "park") || { x: -2.4, z: 2.4 };
+  const FLY = 10, flyBase = glows.length;
+  for (let i = 0; i < FLY; i++) glows.push({ k: 3, x: park.x, y: 0.5, z: park.z, s: 0.5, ph: rnd() * 6.28, r: 0.5 + rnd() * 1.1, sp: 0.25 + rnd() * 0.35, hy: 0.35 + rnd() * 0.6 });
+  const GLOW_COL = [[1.0, 0.8, 0.42], [1.0, 0.7, 0.36], [1.0, 0.78, 0.45], [0.72, 1.0, 0.32]], GLOW_K = [1.0, 0.8, 1.0, 1.0];
+  const glowU = { uNight: { value: 0 } };
+  const glowMat = new THREE.ShaderMaterial({
+    uniforms: glowU, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    vertexShader: `
+      varying vec2 vQ; varying vec3 vCol;
+      void main(){
+        vQ = position.xy * 2.0; vCol = vec3(1.0);
+        #ifdef USE_INSTANCING_COLOR
+        vCol = instanceColor;
+        #endif
+        gl_Position = projectionMatrix * viewMatrix * modelMatrix * instanceMatrix * vec4(position, 1.0);
+      }`,
+    fragmentShader: `
+      uniform float uNight; varying vec2 vQ; varying vec3 vCol;
+      void main(){ float r = length(vQ); if (r > 1.0) discard; float a = (1.0 - r) * (1.0 - r); a *= 0.7 + 0.5 * smoothstep(0.4, 0.0, r); gl_FragColor = vec4(vCol, a * uNight); }`,
+  });
+  const glowIM = own(new THREE.InstancedMesh(quadGeo, glowMat, Math.max(1, glows.length)), glowMat);
+  glowIM.frustumCulled = false; glowIM.castShadow = glowIM.receiveShadow = false; glowIM.renderOrder = 5; glowIM.visible = false;
+  glows.forEach((G, i) => {
+    _m4.compose(_p.set(G.x, G.y, G.z), G.k === 1 ? flatQ : camQ, _s.set(G.s, G.s, G.s)); glowIM.setMatrixAt(i, _m4);
+    const c = GLOW_COL[G.k], k = GLOW_K[G.k]; glowIM.setColorAt(i, _c.setRGB(c[0] * k, c[1] * k, c[2] * k));
+  });
+  glowIM.instanceColor.needsUpdate = true;
+  // 星星＋月亮：貼在畫面上緣／下緣（跟鏡頭走，像真的天空），推到島後面 → 只在海上看得到、不會蓋在建築上；雲在前面會擋住它們
+  const STARS = 16, skyGeo = new THREE.PlaneGeometry(1, 1), kindArr = new Float32Array(STARS + 1); kindArr[STARS] = 1;
+  skyGeo.setAttribute("aKind", new THREE.InstancedBufferAttribute(kindArr, 1));
+  const stars = []; for (let i = 0; i < STARS; i++) stars.push({ top: rnd() < 0.7, u: rnd(), fx: 0.03 + rnd() * 0.94, s: 0.7 + rnd() * 0.6 });
+  const skyU = { uNight: { value: 0 }, uT: { value: 0 }, uClearS: { value: 1 }, uClearM: { value: 1 } };
+  const skyMat = new THREE.ShaderMaterial({
+    uniforms: skyU, transparent: true, depthWrite: false,
+    vertexShader: `
+      attribute float aKind; uniform float uT; varying vec2 vQ; varying float vK; varying float vTw;
+      void main(){
+        vQ = position.xy * 2.0; vK = aKind;
+        vec3 org = instanceMatrix[3].xyz; float ph = fract(sin(float(gl_InstanceID) * 12.9898) * 43758.5453) * 6.283;
+        vTw = aKind > 0.5 ? 1.0 : 0.45 + 0.55 * (0.5 + 0.5 * sin(uT * (1.1 + ph * 0.25) + ph));
+        gl_Position = projectionMatrix * viewMatrix * modelMatrix * instanceMatrix * vec4(position, 1.0);
+      }`,
+    fragmentShader: `
+      uniform float uNight, uClearS, uClearM; varying vec2 vQ; varying float vK; varying float vTw;
+      void main(){
+        vec3 c; float a;
+        if (vK > 0.5) {
+          float r = length(vQ), disc = smoothstep(0.6, 0.56, r), cut = smoothstep(0.46, 0.5, length(vQ - vec2(0.27, 0.2))), moon = disc * cut;
+          float glow = (1.0 - smoothstep(0.0, 1.0, r)); glow = glow * glow * 0.45;
+          c = mix(vec3(0.78, 0.85, 1.0), vec3(1.0, 0.95, 0.74), moon); a = (moon + glow * (1.0 - moon)) * uClearM;
+        } else {
+          vec2 q = abs(vQ); float core = smoothstep(0.32, 0.0, length(vQ));
+          float rays = max(smoothstep(0.1, 0.0, q.x) * (1.0 - q.y), smoothstep(0.1, 0.0, q.y) * (1.0 - q.x));
+          c = vec3(1.0, 0.97, 0.84); a = clamp(core + rays * 0.85, 0.0, 1.0) * vTw * uClearS;
+        }
+        gl_FragColor = vec4(c, a * uNight);
+      }`,
+  });
+  const skyIM = own(new THREE.InstancedMesh(skyGeo, skyMat, STARS + 1), skyMat);
+  skyIM.frustumCulled = false; skyIM.castShadow = skyIM.receiveShadow = false; skyIM.renderOrder = 1; skyIM.visible = false;
+  function skyAt(i, sx, sy, size) { _p.copy(R).multiplyScalar(sx).addScaledVector(Up, sy).addScaledVector(fwd, 30); _m4.compose(_p, camQ, _s.set(size, size, size)); skyIM.setMatrixAt(i, _m4); }
+  function updateNight(t, dt) {
+    if (nightPending) { nightStart = t; nightPending = false; }
+    if (!nightSettled) { const p = clamp01((t - nightStart) / FADE); if (p >= 1) { night = nightOn ? 1 : 0; nightSettled = true; } else night = nightFrom + ((nightOn ? 1 : 0) - nightFrom) * smooth(p); }
+    const vis = night > 0.003; glowIM.visible = skyIM.visible = vis;
+    if (!vis) return;
+    glowU.uNight.value = night; skyU.uNight.value = night; skyU.uT.value = t;
+    const g = cur[IX.cloudGray]; skyU.uClearS.value = clamp01(1 - g * 2.2); skyU.uClearM.value = clamp01(1 - g * 1.4);   // 陰天星星少、下雨看不到
+    // 螢火蟲：公園上空慢慢繞、一閃一閃
+    for (let i = 0; i < FLY; i++) {
+      const G = glows[flyBase + i], a = t * G.sp + G.ph, x = park.x + Math.cos(a) * G.r + Math.sin(a * 2.3) * 0.25, z = park.z + Math.sin(a * 1.3) * G.r;
+      _m4.compose(_p.set(x, groundY(x, z) + G.hy + Math.sin(a * 3.1) * 0.12, z), camQ, _s.set(G.s, G.s, G.s)); glowIM.setMatrixAt(flyBase + i, _m4);
+      const b = Math.max(0, Math.sin(t * 2.2 + G.ph * 3)) ** 2; glowIM.setColorAt(flyBase + i, _c.setRGB(0.85 * b, 1.0 * b, 0.4 * b));
+    }
+    glowIM.instanceMatrix.needsUpdate = true; glowIM.instanceColor.needsUpdate = true;
+    // 星星、月亮：螢幕位置（上帶＝主島遠側外的海，夾進畫面上緣；下帶同理）
+    const W = view.r - view.l, H = view.t - view.b, M = Math.min(W, H), IH = main.t - main.b;
+    stars.forEach((S, i) => {
+      const sy = S.top ? Math.max(view.t - H * 0.3, Math.min(main.t + IH * (0.01 + 0.16 * S.u), view.t - H * (0.015 + 0.08 * S.u)))
+                       : Math.min(view.b + H * 0.25, Math.max(main.b - IH * (0.02 + 0.14 * S.u), view.b + H * (0.02 + 0.07 * S.u)));
+      skyAt(i, view.l + W * S.fx, sy, M * 0.03 * S.s);
+    });
+    skyAt(STARS, view.l + W * 0.74, Math.max(view.t - H * 0.3, Math.min(main.t + IH * 0.1, view.t - M * 0.13)), M * 0.15);
+    skyIM.instanceMatrix.needsUpdate = true;
+  }
+  function setNight(on, { instant = false } = {}) {
+    if (disposed) return; on = !!on;
+    if (on === nightOn && !instant) return;
+    nightOn = on;
+    if (instant) { night = on ? 1 : 0; nightPending = false; nightSettled = true; }
+    else { nightFrom = night; nightPending = true; nightSettled = false; }
+    if (on) fadeRainbow();
+    apply();
+  }
+
   // ---------- 樹搖：樹／樹叢的 InstancedMesh 換成 clone 材質（只動這些，其他共用 vcMat 的不碰）----------
   const swayU = { uSwayT: { value: 0 }, uSway: { value: 0 }, uLean: { value: 0 }, uWindDir: { value: new THREE.Vector2(R.x, R.z) } };
   const swayMats = new Map();
-  scene.traverse(o => { if (o.isInstancedMesh && o !== cloudIM && o !== leafIM && o.material && o.material.isMeshLambertMaterial && o.material.vertexColors && !o.material.map) treeMeshes.push({ mesh: o, mat: o.material }); });
+  scene.traverse(o => { if (o.isInstancedMesh && !o.userData.zyWeather && o.material && o.material.isMeshLambertMaterial && o.material.vertexColors && !o.material.map) treeMeshes.push({ mesh: o, mat: o.material }); });
   for (const tm of treeMeshes) {
     if (!swayMats.has(tm.mat)) {
       const nm = tm.mat.clone();
@@ -468,12 +586,23 @@ export function weatherPlugin(ctx, { kind = "sunny", sound = null, onLightning =
 
   // ---------- 套用目前狀態 ----------
   const setC = (c, key) => { const i = IX[key]; c.setRGB(cur[i], cur[i + 1], cur[i + 2]); };
+  const setN = (c, key, nc, a) => { const i = IX[key]; c.setRGB(cur[i] + (nc.r - cur[i]) * a, cur[i + 1] + (nc.g - cur[i + 1]) * a, cur[i + 2] + (nc.b - cur[i + 2]) * a); };
   function apply() {
-    hemi.intensity = cur[IX.hemiI] + flashBoost;
-    sun.intensity = cur[IX.sunI]; sun.shadow.intensity = cur[IX.shadowI];
-    setC(hemi.color, "sky"); setC(hemi.groundColor, "ground"); setC(sun.color, "sunC");
-    setC(sea.uDeep.value, "deep"); setC(sea.uShallow.value, "shallow"); setC(sea.uGrid.value, "grid");
-    const vg = Math.round(cur[IX.vignette] * 1000) / 1000; if (vg !== vigShown) { vigEl.style.opacity = String(vg); vigShown = vg; }
+    const n = night;
+    if (n > 0) {                                          // 夜：在天氣的結果上再乘一層（強度相乘、顏色往夜色混）
+      const a = NIGHT.amt * n, sa = NIGHT.seaAmt * n;
+      hemi.intensity = Math.max((cur[IX.hemiI] + flashBoost) * (1 + (NIGHT.hemiK - 1) * n), orig.hemiI * 0.3 * n);   // 雨夜／颱風夜也不會暗到看不清（下限＝原本 0.3 倍）
+      sun.intensity = cur[IX.sunI] * (1 + (NIGHT.sunK - 1) * n); sun.shadow.intensity = cur[IX.shadowI] * (1 + (NIGHT.shadowK - 1) * n);
+      setN(hemi.color, "sky", nSky, a); setN(hemi.groundColor, "ground", nGround, a); setN(sun.color, "sunC", nMoon, a);
+      setN(sea.uDeep.value, "deep", nDeep, sa); setN(sea.uShallow.value, "shallow", nShallow, sa); setN(sea.uGrid.value, "grid", nGrid, sa);
+    } else {                                              // 白天：直接用天氣的值（晴天＝逐位元等於原值）
+      hemi.intensity = cur[IX.hemiI] + flashBoost;
+      sun.intensity = cur[IX.sunI]; sun.shadow.intensity = cur[IX.shadowI];
+      setC(hemi.color, "sky"); setC(hemi.groundColor, "ground"); setC(sun.color, "sunC");
+      setC(sea.uDeep.value, "deep"); setC(sea.uShallow.value, "shallow"); setC(sea.uGrid.value, "grid");
+    }
+    const vg = Math.round(Math.min(Math.max(cur[IX.vignette], 0.55), 1 - (1 - cur[IX.vignette]) * (1 - NIGHT.vignette * n)) * 1000) / 1000;   // 夜＋颱風的暗角不疊到太重 if (vg !== vigShown) { vigEl.style.opacity = String(vg); vigShown = vg; }
+    rainU.uOpacity.value = 0.72 * (1 - 0.25 * n);
     const sh = cur[IX.shade]; shade.visible = sh > 0.1; shadeMat.opacity = sh * clamp01((sh - 0.1) / 0.03);   // ≤ 0.1 不畫（晴天省一個全螢幕透明面）；過門檻時從 0 淡入不跳
     rainU.uDensity.value = cur[IX.rain]; rainU.uSlant.value = cur[IX.slant]; rainU.uLen.value = 0.6 + cur[IX.slant] * 0.25;
     rain.visible = cur[IX.rain] > 0.003;
@@ -488,15 +617,13 @@ export function weatherPlugin(ctx, { kind = "sunny", sound = null, onLightning =
     else { from = cur.slice(); pending = true; settled = false; }
     syncClouds(instant); syncLeaves(instant);
     if (k === "sunny" && WET.has(prev)) { if (instant) startRainbow(); else rbWant = -1; }   // -1：開始淡出後 1.5 秒（update 裡換算）
-    else if (WET.has(k)) {                                   // 又下雨了：還沒出的彩虹取消、已經出的從現在的亮度淡掉
-      rbWant = null;
-      if (rbT0 !== null) rbT0 = Math.min(rbT0, now - (RAINBOW_LIFE - 4 * clamp01(rbU.uOp.value / 0.62)));
-    }
+    else if (WET.has(k)) fadeRainbow();                     // 又下雨了：還沒出的彩虹取消、已經出的從現在的亮度淡掉
     if (!WEATHERS[k].lightning) nextFlash = null;
     if (sound && sound.setKind) sound.setKind(k);
     apply();
   }
   function rainbow() { if (!disposed) startRainbow(); }
+  function fadeRainbow() { rbWant = null; if (rbT0 !== null) rbT0 = Math.min(rbT0, now - (RAINBOW_LIFE - 4 * clamp01(rbU.uOp.value / 0.62))); }
 
   function update(t, dt) {
     if (disposed) return;
@@ -510,6 +637,7 @@ export function weatherPlugin(ctx, { kind = "sunny", sound = null, onLightning =
       else { const s = smooth(p); for (let i = 0; i < N; i++) cur[i] = from[i] + (to[i] - from[i]) * s; }
     }
     updateFlash(t);
+    updateNight(t, dt);
     apply();
     updateClouds(dt, t);
     updateLeaves(dt, t);
@@ -530,15 +658,16 @@ export function weatherPlugin(ctx, { kind = "sunny", sound = null, onLightning =
   }
 
   if (sound) { sound._linked = true; if (sound.setKind) sound.setKind(kind); }
+  if (night0) { nightOn = true; night = 1; }
   syncClouds(true); syncLeaves(true); apply();
   // 先把所有天氣的 shader 編譯好（不然第一次換到雨／颱風那一格會卡一下）：暫時全部打開 → compile → 還原
   { const vis = owned.map(o => o.visible); owned.forEach(o => { o.visible = true; }); try { renderer.compile(scene, camera); } finally { owned.forEach((o, i) => { o.visible = vis[i]; }); } }
 
   return {
-    update, dispose, set, rainbow, flash,
-    get: () => kind,
+    update, dispose, set, rainbow, flash, setNight,
+    get: () => kind, getNight: () => nightOn,
     // 測試用：目前狀態
-    info: () => ({ kind, settled, draws: owned.filter(o => o.visible).length, clouds: clouds.filter(c => c.alive).length, leaves: leaves.filter(L => L.alive).length, rain: +cur[IX.rain].toFixed(3), rainbow: rbT0 !== null, trees: treeMeshes.length }),
+    info: () => ({ kind, settled, draws: owned.filter(o => o.visible).length, clouds: clouds.filter(c => c.alive).length, leaves: leaves.filter(L => L.alive).length, rain: +cur[IX.rain].toFixed(3), rainbow: rbT0 !== null, trees: treeMeshes.length, night: +night.toFixed(3) }),
   };
   } catch (e) { dispose(); throw e; }
 }

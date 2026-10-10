@@ -1,6 +1,8 @@
 // 天氣外掛（js/zhuyin-weather.js）截圖＋驗證：node tools/zy-test/weather-shots.js [輸出資料夾] [L,P]
 // 需要本機伺服器：專案根目錄 python -m http.server 8765
 // 橫 1180×820（L）與直 820×1180（P）各拍：五種天氣（整島＋拉近一棟）、晴→雨轉換中間一格、雷雨閃電、雨後彩虹
+// 夜晚（setNight）：白天→夜轉換中間一格、晴夜／雨夜／颱風夜（整島＋新市區），檔名 night-*.jpg；夜裡不出彩虹、多出的 draw call ≤ 3、
+//       setNight(false) 與 dispose 後數值逐位元還原
 // 並驗：每種天氣 5 秒的畫格數與 draw calls、set 回 sunny 後與 dispose 後燈光／海面數值跟一開始完全相同、
 //       dispose 後場景物件數／stage 疊層／樹材質都還原、沒有 console error
 const path = require("path"), fs = require("fs");
@@ -17,13 +19,15 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const ok = (name, cond, info = "") => { if (!cond) fails++; lines.push(`${cond ? "PASS" : "FAIL"}  ${name}${info ? "  — " + info : ""}`); };
   for (const [W, H, tag] of [[1180, 820, "L"], [820, 1180, "P"]]) {
     if (!ONLY.includes(tag)) continue;
-    // zhuyin.js 自己也會掛一份天氣（隨機、每幾分鐘換）：?weather=sunny 把它固定在晴天（也關掉它的換天氣計時器）
-    const { ctx, p, errs } = await openGame(browser, { w: W, h: H, stickers: 40, stars: 5, query: "debug&weather=sunny" });
+    // zhuyin.js 自己也會掛一份天氣（隨機、每幾分鐘換、依時鐘變夜晚）：?weather=sunny&night=0 把它固定在白天晴天（也關掉它的換天氣計時器）
+    const { ctx, p, errs } = await openGame(browser, { w: W, h: H, stickers: 40, stars: 5, query: "debug&weather=sunny&night=0" });
     await p.waitForFunction(() => window.__hub3d && window.__hub3d.ready, null, { timeout: 30000 });
     await p.waitForFunction(() => !window.__zy || window.__zy.weather, null, { timeout: 10000 }).catch(() => {});
     await sleep(1500);
     await p.evaluate(() => { const g = document.getElementById("guide"); if (g) g.style.visibility = "hidden"; });   // 貓頭鷹對話框先藏起來
     const shot = n => p.screenshot({ path: path.join(OUT, `${tag}-${n}.jpg`), type: "jpeg", quality: 84 });
+    const nshot = n => p.screenshot({ path: path.join(OUT, `night-${tag}-${n}.jpg`), type: "jpeg", quality: 84 });
+    const town = async n => { if (!(await p.evaluate(() => typeof window.__hub3d.goPlace === "function"))) return; await p.evaluate(() => window.__hub3d.goPlace("town")); await sleep(2600); await nshot(n); await p.evaluate(() => window.__hub3d.goPlace("main")); await sleep(2600); };
     const focus = (m, z) => p.evaluate(([m, z]) => window.__hub3d.focus(m, z), [m, z]);
     // 偷拿 ctx（空外掛）→ 讀燈光／海面原值
     await p.evaluate(() => window.__hub3d.use(c => { window.__ctx = c; c.scene.traverse(o => { if (o.userData.zyWeather) o.visible = false; }); return {}; }));   // 主程式那份（晴天）的雲藏起來，只看測試這份
@@ -126,6 +130,36 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     ok(`[${tag}] dispose 後主迴圈照常在跑`, fB > fA, `${fA}→${fB}`);
     lines.push(`[${tag}] 還原比對：晴天回復 ${d1.length ? "有差異" : "完全相同"}；dispose 後 ${d2.length || d3.length ? "有差異" : "完全相同"}（hemi ${after.light.hemiI}、sun ${after.light.sunI}、shadow ${after.light.shadowI}、殘留天氣物件 ${after.scene.weatherObjs}、殘留疊層 ${after.scene.weatherDom}、stage 子元素 ${after.scene.stageKids}）`);
     await shot("7-after-dispose");
+
+    // ===== 夜晚小島（新的一份外掛，從白天晴天開始）=====
+    await p.evaluate(() => { window.__w = window.__hub3d.use(c => window.__wm.weatherPlugin(c, { kind: "sunny" })); }); await sleep(900);
+    const dayDraws = (await p.evaluate(() => window.__w.info())).draws;
+    await p.evaluate(() => window.__w.setNight(true)); await sleep(1250);
+    const nmid = await snap(); await nshot("0-mid-day-to-night");
+    const qn = (base.light.hemiI - nmid.light.hemiI) / (base.light.hemiI * (1 - 0.42));
+    ok(`[${tag}] 夜：轉換中間是中間值（10%–90%）`, qn > 0.1 && qn < 0.9, `hemi ${nmid.light.hemiI.toFixed(3)}（進度 ${(qn * 100).toFixed(0)}%）`);
+    await sleep(2200);
+    const ni = await p.evaluate(() => window.__w.info());
+    ok(`[${tag}] 夜：多出來的 draw call ≤ 3`, ni.draws - dayDraws <= 3, `白天晴 ${dayDraws} → 晴夜 ${ni.draws}`);
+    const npf = await perf(); lines.push(`[${tag}] 晴夜   5秒畫格 ${npf.frames5s}  draw calls(最少/中位/最多) ${npf.calls}  外掛自己 ${ni.draws}`);
+    await nshot("1-sunny"); await p.evaluate(() => window.__hub3d.focus("park", 2.2)); await sleep(900); await nshot("1-sunny-park"); await p.evaluate(() => window.__hub3d.focus(null)); await sleep(500);
+    await town("1-sunny-town");
+    await p.evaluate(() => window.__w.set("rain")); await sleep(3000);
+    ok(`[${tag}] 夜：換天氣後夜晚狀態保持`, await p.evaluate(() => window.__w.getNight() === true && window.__w.info().night === 1));
+    await nshot("2-rain"); await town("2-rain-town");
+    await p.evaluate(() => window.__w.set("typhoon")); await sleep(3000);
+    { const pf = await perf(), inf = await p.evaluate(() => window.__w.info()); lines.push(`[${tag}] 颱風夜 5秒畫格 ${pf.frames5s}  draw calls(最少/中位/最多) ${pf.calls}  外掛自己 ${inf.draws}`); }
+    await nshot("3-typhoon"); await town("3-typhoon-town");
+    await p.evaluate(() => window.__w.set("sunny")); await sleep(5500);
+    await p.evaluate(() => window.__w.rainbow());
+    ok(`[${tag}] 夜：颱風轉晴、手動 rainbow() 都不出彩虹`, !(await p.evaluate(() => window.__w.info().rainbow)));
+    await p.evaluate(() => window.__w.setNight(false)); await sleep(3200);
+    const dayBack = await snap(), d4 = diff(base.light, dayBack.light);
+    ok(`[${tag}] setNight(false) 後燈光／海面逐位元還原`, d4.length === 0, d4.join("｜"));
+    await p.evaluate(() => { window.__w.set("rain", { instant: true }); window.__w.setNight(true, { instant: true }); }); await sleep(500);
+    await p.evaluate(() => window.__w.dispose()); await sleep(600);
+    const after2 = await snap(), d5 = diff(base.light, after2.light), d6 = diff(base.scene, after2.scene);
+    ok(`[${tag}] 雨夜直接 dispose：燈光／海面逐位元還原、物件／疊層／樹材質都收乾淨`, d5.length === 0 && d6.length === 0, [...d5, ...d6].join("｜"));
     ok(`[${tag}] 沒有 console error`, errs.length === 0, errs.join(" / ").slice(0, 300));
     await ctx.close();
   }
