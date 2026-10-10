@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>注音排版比較</title>
+<!-- 原型：國字旁直排注音 A 現況 / B 照教育部（W3C clreq 5.5.3）比例修正 / C 注音字型（注音粉圓子集）
+     不改正式檔；A 的規則照抄 css/zhuyin.css（2026-10-10 版）加 .A 前綴。
+     ?guides=1 會把每個國字的 1em 字框畫成紅虛框，用來看注音欄有沒有超出字高。 -->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --blue: #1b4fa0;
+    --t2: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2.4 8.6 7.6 1.4' stroke='%23c2410c' stroke-width='2.4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+    --t3: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M1.6 2.2 5 8 8.4 2.2' stroke='%23c2410c' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+    --t4: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2.4 1.4 7.6 8.6' stroke='%23c2410c' stroke-width='2.4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+    --t5: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Ccircle cx='5' cy='5' r='3.6' fill='%23c2410c'/%3E%3C/svg%3E");
+  }
+  @font-face { font-family: "BpmfHuninnSub"; src: url("fonts/BpmfHuninn-sub.ttf") format("truetype"); font-display: block; }
+  html, body { background: #fff; color: var(--blue); font-family: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", "Heiti TC", sans-serif; }
+  body { padding: 1.2vmin 1.6vmin 3vmin; }
+  h1 { font-size: 2.4vmin; color: #333; margin-bottom: 0.6vmin; }
+  .note { font-size: 1.5vmin; color: #555; margin-bottom: 1vmin; line-height: 1.5; }
+  .grid { display: grid; grid-template-columns: 7vmin repeat(3, minmax(0, 1fr)); border-top: 2px solid #1b4fa0; }
+  .grid > div { border-bottom: 1px solid #d6dfef; padding: 1vmin 1.2vmin; min-width: 0; }
+  .grid > div + div { border-left: 1px solid #eef1f7; }
+  .hd { font-size: 1.6vmin; color: #333; font-weight: bold; background: #f4f7fc; line-height: 1.4; }
+  .hd small { display: block; font-weight: normal; color: #666; font-size: 1.35vmin; }
+  .sz { font-size: 1.7vmin; color: #333; font-weight: bold; background: #f9fafc; }
+  .sz small { display: block; font-weight: normal; color: #777; font-size: 1.3vmin; }
+  .cell { font-weight: bold; line-height: 1.6; }
+  .cell .w { display: inline-block; white-space: nowrap; margin: 0 0.9em 0.25em 0; }
+  .stat { display: block; font: normal 1.25vmin/1.3 "Microsoft JhengHei", sans-serif; color: #888; margin-top: 0.3vmin; }
+  .guides .ac, .guides .cch { box-shadow: inset 0 0 0 1px rgba(220, 0, 0, 0.45); }
+  h2 { font-size: 2vmin; color: #333; margin: 2vmin 0 0.6vmin; }
+  .bigrow { display: grid; grid-template-columns: 7vmin 1fr 1fr; border-top: 2px solid #1b4fa0; }
+  .bigrow > div { padding: 1vmin 1.2vmin; border-bottom: 1px solid #d6dfef; }
+  .bigrow > div + div { border-left: 1px solid #eef1f7; }
+  .bigcell { display: flex; gap: 2.4vmin; flex-wrap: wrap; align-items: flex-start; }
+  .zlab { background: #fff; border: 0.5vmin solid var(--blue); border-radius: 2.4vmin; padding: 1.4vmin 1.3vmin 0.8vmin 1.6vmin; color: #222; display: flex; }
+
+  /* 聲調向量圖＋跟字同色（兩版共用，照正式檔） */
+  .syl .tone, .ac.t2::before, .ac.t3::before, .ac.t4::before, .ac.t5::before { background-color: currentColor; -webkit-mask: center / contain no-repeat; mask: center / contain no-repeat; }
+  .tone.k2, .ac.t2::before { -webkit-mask-image: var(--t2); mask-image: var(--t2); }
+  .tone.k3, .ac.t3::before { -webkit-mask-image: var(--t3); mask-image: var(--t3); }
+  .tone.k4, .ac.t4::before { -webkit-mask-image: var(--t4); mask-image: var(--t4); }
+  .tone.light, .ac.t5::before { -webkit-mask-image: var(--t5); mask-image: var(--t5); }
+
+  /* ================= A 現況（照抄 css/zhuyin.css 115-163） ================= */
+  .A .zy { display: inline-flex; gap: 0.35em; align-items: flex-start; font-size: 1em; line-height: 1; position: relative; }
+  .A .syl { position: relative; display: flex; flex-direction: column; align-items: center; padding: 0.1em 0.75em 0.1em 0.1em; }
+  .A .syl b { font-weight: 700; font-size: 1em; line-height: 1.05; }
+  .A .syl { --n: 1; } .A .syl.n2 { --n: 2; } .A .syl.n3 { --n: 3; } .A .syl.n4 { --n: 4; }
+  .A .syl .tone { position: absolute; right: 0.02em; top: calc(0.1em + (var(--n) - 1) * 1.05em); transform: translateY(-50%); width: 0.62em; height: 0.62em; font-size: 1em; line-height: 1; text-indent: 200%; white-space: nowrap; overflow: hidden; }
+  .A .syl .tone.light { right: auto; left: 0.43em; top: -0.08em; width: 0.34em; height: 0.34em; }
+  .A .ac { --zs: max(0.36em, 2.1vmin); position: relative; display: inline-block; line-height: 1; margin-right: calc(var(--zs) * 2.15); text-indent: 0; }
+  .A .ac[data-z]::after { content: attr(data-z); position: absolute; left: calc(100% + 0.03em); top: 50%; transform: translateY(-50%);
+    writing-mode: vertical-rl; text-orientation: upright; font-size: var(--zs); line-height: 1.05; letter-spacing: 0; font-weight: 700; white-space: nowrap; }
+  .A .ac { --n: 1; } .A .ac.n2 { --n: 2; } .A .ac.n3 { --n: 3; } .A .ac.n4 { --n: 4; }
+  .A .ac.t2::before, .A .ac.t3::before, .A .ac.t4::before { content: ""; position: absolute; width: calc(var(--zs) * 0.68); height: calc(var(--zs) * 0.68);
+    left: calc(100% + var(--zs) * 1.1); top: calc(50% + var(--n) * var(--zs) * 0.5 - var(--zs) - var(--zs) * 0.34); }
+  .A .ac.t5::before { content: ""; position: absolute; width: calc(var(--zs) * 0.36); height: calc(var(--zs) * 0.36);
+    left: calc(100% + var(--zs) * 0.34); top: calc(50% - var(--n) * var(--zs) * 0.5 - var(--zs) * 0.46); }
+
+  /* ================= B 照標準修正（同一套 span 結構） =================
+     教育部手冊／clreq 5.5.3：注文高度不超過字高、置中；符號:字 = 3:10；注文總寬約半個字；
+     ˊˇˋ 在最後一個符號右上、往上回半格（聲調中心＝最後一個符號格的頂邊）；˙ 在最前面（直排＝頂上）。
+     做法：字級固定比例（不再用 vmin 保底），符號用負字距壓成 0.33em 一格 → 3 個符號 ≤ 1em。
+     ::after 裡的 em＝注音自己的字級，所以 ::after 只用「注音 em」寫；::before 用國字 em。 */
+  .B .zy { display: inline-flex; gap: 0.35em; align-items: flex-start; font-size: 1em; line-height: 1; position: relative; }
+  .B .syl { position: relative; display: flex; flex-direction: column; align-items: center; padding: 0.08em 0.62em 0.08em 0.08em; }
+  .B .syl:has(.tone.light) { padding-top: 0.34em; }
+  .B .syl b { font-weight: 700; font-size: 1em; line-height: 0.86; }
+  .B .syl { --n: 1; } .B .syl.n2 { --n: 2; } .B .syl.n3 { --n: 3; } .B .syl.n4 { --n: 4; }
+  .B .syl .tone { position: absolute; right: 0.05em; top: calc(0.08em + (var(--n) - 1) * 0.86em); transform: translateY(-50%); width: 0.5em; height: 0.5em; font-size: 1em; line-height: 1; text-indent: 200%; white-space: nowrap; overflow: hidden; }
+  .B .syl .tone.light { right: auto; left: calc(0.08em + 0.5em - 0.13em); top: 0.06em; transform: none; width: 0.26em; height: 0.26em; }
+  .B .ac { --zs: 0.38em; --zp: 0.33em; --tw: 0.22em; --n: 1; position: relative; display: inline-block; line-height: 1; margin-right: 0.66em; text-indent: 0; }
+  .B .ac.n2 { --n: 2; } .B .ac.n3 { --n: 3; } .B .ac.n4 { --n: 4; }
+  .B .ac[data-z]::after { content: attr(data-z); position: absolute;
+    left: calc(100% + 0.08em);                         /* 0.03 國字 em */
+    top: calc(50% - 0.066em);                          /* (字級-格距)/2：負字距讓墨水往下偏，拉回來 */
+    transform: translateY(-50%);
+    writing-mode: vertical-rl; text-orientation: upright; font-size: var(--zs); line-height: 1;
+    letter-spacing: -0.132em;                          /* 格距 0.33 ÷ 字級 0.38 = 0.868 → -0.132 注音 em */
+    font-weight: 700; white-space: nowrap; }
+  .B .ac.t2::before, .B .ac.t3::before, .B .ac.t4::before { content: ""; position: absolute; width: var(--tw); height: var(--tw);
+    left: calc(100% + 0.03em + var(--zs) * 0.88);
+    top: calc(50% + var(--n) * var(--zp) * 0.5 - var(--zp) - var(--tw) * 0.5); }   /* 聲調中心＝最後一個符號格的頂邊 */
+  .B .ac.t5::before { content: ""; position: absolute; width: 0.13em; height: 0.13em;
+    left: calc(100% + 0.03em + var(--zs) * 0.5 - 0.065em); top: calc(50% - var(--n) * var(--zp) * 0.5 - 0.14em); }
+
+  /* ================= C 注音字型（注音粉圓，子集） ================= */
+  .C .cell, .C.cell { font-family: "BpmfHuninnSub", sans-serif; font-weight: 400; }
+  .C .w { letter-spacing: 0.02em; }
+</style>
+</head>
+<body>
+<h1>國字旁直排注音：A 現況 ／ B 照教育部比例修正 ／ C 注音字型（注音粉圓）</h1>
+<div class="note">畫面寬 1180×820（iPad 橫放）。字級用 vmin，跟遊戲一樣。B、C 的注音欄都不超過字高；A 在小字時注音被 2.1vmin 保底放大，欄高到字高的 1.5～1.9 倍。<span id="env"></span></div>
+<div class="grid" id="grid">
+  <div class="hd">字級</div>
+  <div class="hd">A 現況<small>注音 max(0.36em, 2.1vmin)、一格 1em</small></div>
+  <div class="hd">B 照標準修正<small>注音 0.38em、一格 0.33em、聲調 0.22em</small></div>
+  <div class="hd">C 注音字型<small>注音粉圓子集（240KB）、注音 0.3em</small></div>
+</div>
+<h2>大注音（題目、注音牌 renderZ）：三個符號</h2>
+<div class="bigrow" id="big">
+  <div class="hd">字級</div><div class="hd">A 現況<small>一格 1.05em、聲調 0.62em</small></div><div class="hd">B 修正<small>一格 0.86em、聲調 0.5em</small></div>
+</div>
+<script type="module">
+import { readRun } from "../../js/zhuyin-ann.js";
+const ALL = ["小", "點", "青", "熊", "長頸鹿", "注音小島", "釣魚", "繼續玩", "長大", "來了"];
+const SIZES = [3.6, 4.6, 6, 9];
+const WORDS_AT = { 3.6: ALL, 4.6: ALL, 6: ["小", "點", "青", "熊", "長頸鹿", "繼續玩", "來了"], 9: ["小", "點", "青", "熊"] };
+const TONE = { "ˊ": 2, "ˇ": 3, "ˋ": 4, "˙": 5 };
+// 注音粉圓：我們的讀音不是字型預設讀音時，補異體字選擇子（U+E01E0 + 序號）。tools/ivsmap.mjs 從 bpmfvs/ime/poyin_db.txt 算出
+const IVS = {"子":{"˙ㄗ":1},"奶":{"˙ㄋㄞ":1},"媽":{"˙ㄇㄚ":1},"長":{"ㄓㄤˇ":1},"還":{"ㄏㄨㄢˊ":1},"囉":{"˙ㄌㄨㄛ":2},"相":{"ㄒㄧㄤ":1},"晃":{"ㄏㄨㄤˇ":1},"爸":{"˙ㄅㄚ":1},"爺":{"˙ㄧㄝ":1},"覺":{"ㄐㄧㄠˋ":1},"蔔":{"˙ㄅㄛ":1},"朵":{"˙ㄉㄨㄛ":1},"謝":{"˙ㄒㄧㄝ":1},"重":{"ㄔㄨㄥˊ":1},"匙":{"˙ㄕ":1}};
+const norm = s => s && s.endsWith("˙") ? "˙" + s.slice(0, -1) : s;
+const guides = new URLSearchParams(location.search).has("guides");
+if (guides) document.body.classList.add("guides");
+
+function makeChar(ch, syl) {             // 同 js/zhuyin-ann.js makeChar
+  const s = document.createElement("span"); s.className = "ac"; s.textContent = ch;
+  if (!syl) return s;
+  const t = TONE[syl[syl.length - 1]] || 0, sym = t ? syl.slice(0, -1) : syl;
+  s.dataset.z = sym; s.classList.add("n" + Math.min(4, sym.length)); if (t) s.classList.add("t" + t);
+  return s;
+}
+function annWord(w) { const r = readRun(w), box = document.createElement("span"); box.className = "w"; [...w].forEach((c, i) => box.appendChild(makeChar(c, r[i]))); return box; }
+function fontWord(w) {
+  const r = readRun(w), box = document.createElement("span"); box.className = "w";
+  [...w].forEach((c, i) => { const s = document.createElement("span"); s.className = "cch"; const k = IVS[c] && IVS[c][norm(r[i])]; s.textContent = k ? c + String.fromCodePoint(0xE01E0 + k) : c; box.appendChild(s); });
+  return box;
+}
+const vmin = Math.min(innerWidth, innerHeight) / 100;
+const grid = document.getElementById("grid");
+for (const v of SIZES) {
+  const px = v * vmin;
+  const lab = document.createElement("div"); lab.className = "sz"; lab.innerHTML = `${v}vmin<small>${px.toFixed(0)}px</small>`; grid.appendChild(lab);
+  for (const k of ["A", "B", "C"]) {
+    const c = document.createElement("div"); c.className = "cell " + k; c.style.fontSize = v + "vmin";
+    const wrap = document.createElement("div");
+    for (const w of WORDS_AT[v]) wrap.appendChild(k === "C" ? fontWord(w) : annWord(w));
+    c.appendChild(wrap);
+    // 三符號欄高 / 字高
+    let ratio, zpx;
+    if (k === "A") { zpx = Math.max(0.36 * px, 2.1 * vmin); ratio = 3 * zpx / px; }
+    if (k === "B") { zpx = 0.38 * px; ratio = 3 * 0.33; }
+    if (k === "C") { zpx = 0.3 * px; ratio = 0.9; }
+    const st = document.createElement("span"); st.className = "stat";
+    st.textContent = `注音字級 ${zpx.toFixed(1)}px（字的 ${(zpx / px).toFixed(2)}）・三符號欄高＝字高 ×${ratio.toFixed(2)}`;
+    c.appendChild(st); grid.appendChild(c);
+  }
+}
+// 大注音
+function renderZ(syls) {                 // 同 js/zhuyin.js renderZ（不含國字）
+  const TONES = ["", "ˊ", "ˇ", "ˋ", "˙"];
+  const wrap = document.createElement("div"); wrap.className = "zy";
+  syls.forEach(s => {
+    const col = document.createElement("div"); col.className = "syl n" + Math.min(4, s.sym.length) + (s.sym.length === 1 ? " one" : "");
+    for (const ch of s.sym) { const b = document.createElement("b"); b.textContent = ch; col.appendChild(b); }
+    if (s.tone) { const t = document.createElement("span"); t.className = "tone " + (s.tone === 4 ? "light" : "k" + (s.tone + 1)); t.textContent = TONES[s.tone]; col.appendChild(t); }
+    wrap.appendChild(col);
+  });
+  return wrap;
+}
+const BIG = [[{ sym: "ㄒㄧㄠ", tone: 2 }], [{ sym: "ㄉㄧㄢ", tone: 2 }], [{ sym: "ㄑㄧㄥ", tone: 0 }], [{ sym: "ㄒㄩㄥ", tone: 1 }], [{ sym: "ㄐㄧ", tone: 3 }], [{ sym: "ㄋㄜ", tone: 4 }], [{ sym: "ㄩ", tone: 1 }]];
+const big = document.getElementById("big");
+for (const v of [9]) {
+  const lab = document.createElement("div"); lab.className = "sz"; lab.innerHTML = `${v}vmin<small>${(v * vmin).toFixed(0)}px</small>`; big.appendChild(lab);
+  for (const k of ["A", "B"]) {
+    const c = document.createElement("div"); c.className = "bigcell " + k; c.style.fontSize = v + "vmin";
+    for (const s of BIG) { const l = document.createElement("div"); l.className = "zlab"; l.appendChild(renderZ(s)); c.appendChild(l); }
+    big.appendChild(c);
+  }
+}
+window.__zy = { annWord, fontWord, renderZ };   // 量測腳本用（tools 外部 headless 量墨水）
+document.fonts.ready.then(() => { document.body.dataset.ready = "1"; });
+</script>
+</body>
+</html>

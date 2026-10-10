@@ -101,12 +101,82 @@ PALETTE = {
     "penguin_white": ("#fbfbfd", "#e6e6ee"),
     "penguin_dark":  ("#525566", "#41434f"),
     "qmark":       ("#ffffff", "#e9eef6"),
+    # 獎勵系統：超稀有寵物
+    "dino":        ("#7ccf5a", "#4fa83f"),
+    "dino_belly":  ("#effac8", "#d3eda0"),
+    "dino_fin":    ("#ffd24f", "#f7a62e"),
+    "whale":       ("#6cb2f2", "#3f80d6"),
+    "whale_belly": ("#eef7ff", "#c9def6"),
+    "spout":       ("#ffffff", "#bfe7ff"),
+    "dragon":      ("#b9a2f2", "#8f74da"),
+    "dragon_belly": ("#fff3d8", "#f5dcb0"),
+    "dragon_wing": ("#ffc6e4", "#f39ac9"),
+    "horn":        ("#fff0c2", "#f2d48a"),
+    "rb_red":      ("#ff6b6b", "#e94b4b"),
+    "rb_orange":   ("#ffa24a", "#f0842a"),
+    "rb_yellow":   ("#ffe066", "#f5c63a"),
+    "rb_green":    ("#7ed66b", "#57b84a"),
+    "rb_blue":     ("#5fb0f5", "#3c8de0"),
+    "rb_purple":   ("#b07cf0", "#8c58dc"),
+    # 配件
+    "gold_light":  ("#ffe89a", "#f9cd5a"),
+    "jewel_red":   ("#ff5a6e", "#d63a52"),
+    "jewel_blue":  ("#5ab4ff", "#2f86e0"),
+    "cape_red":    ("#ef5a66", "#c83e4b"),
+    "bow_pink":    ("#ff8fb6", "#f06a98"),
+    "bow_pink_dk": ("#f06a98", "#d94f80"),
+    "hat_blue":    ("#6cb6ff", "#4692e6"),
+    "hat_yellow":  ("#ffe066", "#f5c23a"),
+    "sprout":      ("#8fd85a", "#5fb43c"),
+    # 扭蛋
+    "gacha_red":   ("#f4707c", "#d94a58"),
+    "gacha_cream": ("#fff6e6", "#f2e2c4"),
+    "cap_blue":    ("#5aa8ff", "#3a84e0"),
+    "cap_purple":  ("#b07cf0", "#8c58dc"),
+    "cap_gold":    ("#ffd34d", "#f2a91f"),
+    "cap_pink":    ("#ff9ec2", "#f27aa6"),
+    "cap_green":   ("#7ed66b", "#57b84a"),
+    # 小島裝飾、彩蛋
+    "stone":       ("#dcd8d0", "#bdb7ad"),
+    "stone_lt":    ("#f2efea", "#e0dcd5"),
+    "stone_dk":    ("#aba49a", "#8d867c"),
+    "leaf":        ("#79c24e", "#559e38"),
+    "flower_pink": ("#ff9ec2", "#f27aa6"),
+    "flower_yellow": ("#ffe066", "#f5c63a"),
+    "egg_purple":  ("#c7a6ff", "#9572e6"),
+    "egg_lilac":   ("#f3e8ff", "#e2ceff"),
+    "egg_gold":    ("#ffe07a", "#f2b02e"),
+    "bpmf":        ("#f59a4c", "#e07a2a"),
 }
+
+
+def kenney_palette():
+    """Cube Pets 原貼圖 4 列 x 16 欄 → 色票 k_列_欄（取格子中心色，做一點上亮下暗）"""
+    path = os.path.join(PROJ, "IMAGE", "_src", "iso", "kits", "cube-pets", "Models", "GLB format", "Textures", "colormap.png")
+    if not os.path.exists(path):
+        return {}
+    img = bpy.data.images.load(path)
+    W, H = img.size
+    px = list(img.pixels)
+    out = {}
+    hx = lambda c: "#%02x%02x%02x" % tuple(max(0, min(255, round(v * 255))) for v in c)
+    for r in range(4):
+        for c in range(16):
+            x, y = int((c + 0.5) / 16 * W), int((1 - (r + 0.5) / 4) * H)
+            j = (y * W + x) * 4
+            col = px[j:j + 3]
+            out[f"k_{r}_{c}"] = (hx([v * 0.92 + 0.08 for v in col]), hx([v * 0.88 for v in col]))
+    bpy.data.images.remove(img)
+    return out
+
+
+PALETTE.update(kenney_palette())
 NAMES = list(PALETTE)
 INDEX = {n: i for i, n in enumerate(NAMES)}
-IMG = 256          # 貼圖邊長
-CELL_W, CELL_H = 16, 64   # 每格大小 → 16 欄 x 4 列 = 64 色
-assert len(NAMES) <= 64
+IMG = 512          # 貼圖邊長
+CELL_W, CELL_H = 16, 32   # 每格大小 → 32 欄 x 16 列 = 512 色（2026-10-10 從 64 色擴充；舊 GLB 各自內嵌舊色票，不受影響）
+COLS = IMG // CELL_W
+assert len(NAMES) <= COLS * (IMG // CELL_H)
 
 
 def srgb(h):
@@ -117,9 +187,9 @@ def srgb(h):
 def uv_for(name, t):
     """色票名稱 + 高度比例 t(0=底,1=頂) → UV 座標"""
     i = INDEX[name]
-    col, row = i % 16, i // 16
+    col, row = i % COLS, i // COLS
     u = (col * CELL_W + CELL_W / 2) / IMG
-    v = (row * CELL_H + 4 + 56 * t) / IMG
+    v = (row * CELL_H + 2 + (CELL_H - 4) * t) / IMG
     return (u, v)
 
 
@@ -128,9 +198,9 @@ def build_palette_image():
     px = [1.0] * (IMG * IMG * 4)
     for i, name in enumerate(NAMES):
         top, bot = srgb(PALETTE[name][0]), srgb(PALETTE[name][1])
-        col, row = i % 16, i // 16
+        col, row = i % COLS, i // COLS
         for yy in range(CELL_H):
-            t = min(1.0, max(0.0, (yy + 0.5 - 4) / 56.0))
+            t = min(1.0, max(0.0, (yy + 0.5 - 2) / (CELL_H - 4.0)))
             c = [bot[k] + (top[k] - bot[k]) * t for k in range(3)]
             y = row * CELL_H + yy
             for xx in range(CELL_W):
@@ -580,7 +650,37 @@ PETS = {
 }
 
 
+# 稀有 17 隻（自動模式）：new_eyes＝換成張開的圓眼；hl＝原本是黑豆眼，只加反光點；mouth＝微笑最低點；cheeks＝腮紅
+HL = (("k_3_15",), (0.06, 0.42, 0.8, 1.12, -0.70))
+def _auto(src, **kw):
+    d = dict(src=src, auto=True, flat=False, cheeks=(0.42, 0.72))
+    d.update(kw)
+    return d
+PETS.update({
+    "dog":      _auto("animal-dog", new_eyes=True, mouth=(0.0, 0.745, 0.05)),
+    "chick":    _auto("animal-chick", hl=HL, cheeks=(0.41, 0.74)),
+    "pig":      _auto("animal-pig", new_eyes=True, mouth=(0.0, 0.64, 0.045)),
+    "cow":      _auto("animal-cow", new_eyes=True, mouth=(0.0, 0.6, 0.045), cheeks=(0.44, 0.72)),
+    "monkey":   _auto("animal-monkey", new_eyes=True, eye_at=(0.2, 0.9, 0.14, 0.088)),
+    "koala":    _auto("animal-koala", new_eyes=True, eye_at=(0.2, 0.9, 0.14, 0.088), mouth=(0.0, 0.53, 0.045)),
+    "giraffe":  _auto("animal-giraffe", new_eyes=True, mouth=(0.0, 0.66, 0.045), cheeks=(0.44, 0.72)),
+    "tiger":    _auto("animal-tiger", new_eyes=True),
+    "deer":     _auto("animal-deer", new_eyes=True, mouth=(0.0, 0.62, 0.045)),
+    "parrot":   _auto("animal-parrot", new_eyes=True, eye_at=(0.2, 0.9, 0.14, 0.088), cheeks=(0.41, 0.74)),
+    "bee":      _auto("animal-bee", hl=HL, cheeks=(0.4, 0.74)),
+    "crab":     _auto("animal-crab", hl=HL, cheeks=(0.4, 0.74)),
+    "beaver":   _auto("animal-beaver", new_eyes=True),
+    "hog":      _auto("animal-hog", new_eyes=True, mouth=(0.0, 0.58, 0.045), cheeks=(0.47, 0.72)),
+    "polar":    _auto("animal-polar", hl=(("k_3_15",), (0.06, 0.4, 0.75, 1.1, -0.70)), mouth=(0.0, 0.6, 0.05), cheeks=(0.41, 0.72)),
+    "caterpillar": _auto("animal-caterpillar", hl=HL, cheeks=(0.4, 0.7)),
+    "elephant": _auto("animal-elephant", new_eyes=True, eye_at=(0.19, 0.84, 0.13, 0.085), erase_zone=(0.43, 0.68, 1.02), cheeks=(0.47, 0.7)),
+})
+
+
 def pet_cat(spec):
+    if spec.get("auto"):                            # 顏色直接用 Kenney 原貼圖（k_列_欄）
+        rec = spec.get("recolor", {})
+        return lambda ob, cell, c: rec.get(cell, f"k_{min(3, max(0, cell[0]))}_{min(15, max(0, cell[1]))}")
     def f(ob, cell, c):
         er = spec.get("erase")
         if er and ob.name == "body" and cell in er[0]:
@@ -598,7 +698,8 @@ def pet_cat(spec):
 
 def build_pet(name, mat):
     s = PETS[name]
-    recolor_pet(mat, os.path.join(PET_DIR, s["src"] + ".glb"), s["src"], name, pet_cat(s), s["grad"], flat=s.get("flat", True), spec=s)
+    grad = s.get("grad") or tuple(k for k in PALETTE if k.startswith("k_"))
+    recolor_pet(mat, os.path.join(PET_DIR, s["src"] + ".glb"), s["src"], name, pet_cat(s), grad, flat=s.get("flat", True), spec=s)
 
 
 def build_bear(mat):
@@ -620,6 +721,9 @@ def front_y(bm, mw, x, z):
         if min(p.x for p in ps) - 0.004 <= x <= max(p.x for p in ps) + 0.004 and min(p.z for p in ps) - 0.004 <= z <= max(p.z for p in ps) + 0.004:
             y = sum(p.y for p in ps) / len(ps)
             best = y if best is None else min(best, y)
+    if best is None:                                  # 那一點沒有朝前的面（臉不平的寵物）→ 用標準臉面
+        print(f"[front_y] ({x:.2f},{z:.2f}) 找不到臉面，用 -0.635")
+        best = -0.635
     return best
 
 
@@ -631,7 +735,7 @@ def zone_boxes(bm, mw, cats, want, zone):
         if cat not in want:
             continue
         c = mw @ f.calc_center_median()
-        if not (x0 <= abs(c.x) <= x1 and z0 <= c.z <= z1 and c.y >= ymin):
+        if not (x0 <= abs(c.x) <= x1 and z0 <= c.z <= z1 and ymin <= c.y <= -0.55):
             continue
         for v in f.verts:
             p = mw @ v.co
@@ -663,6 +767,28 @@ def merge_into(bm, uvl, mw, tmp):
     tmp.bm.free()
 
 
+def erase_old_eyes(bm, mw, cats, spec):
+    """Kenney 半閉眼：臉面（y≈-0.63）眼區裡的眼白／瞳孔面 → 改成眼區周圍臉面最多的顏色"""
+    x1, z0, z1 = spec.get("erase_zone", (0.43, 0.76, 1.12))
+    eye_cats = spec.get("eye_cats", ("k_2_3", "k_3_15"))
+    on_plane = lambda c: abs(c.y + 0.63) < 0.03
+    cand, ring = [], {}
+    for f, cat in cats.items():
+        c = mw @ f.calc_center_median()
+        if not on_plane(c):
+            continue
+        if cat in eye_cats and abs(c.x) <= x1 and z0 <= c.z <= z1:
+            cand.append(f)
+        elif abs(c.x) <= 0.62 and z0 - 0.25 <= c.z <= z1 + 0.2:
+            ring[cat] = ring.get(cat, 0.0) + f.calc_area()
+    if not cand or not ring:
+        return
+    tgt = max(ring, key=ring.get)
+    print(f"[erase] {len(cand)} 個舊眼睛面 → {tgt}")
+    for f in cand:
+        cats[f] = tgt
+
+
 def recolor_pet(mat, glb, src_name, name, classify, grad_cats, flat=True, spec=None):
     """匯入 Cube Pets 原檔 → 依原貼圖格子把每個面換成自製色票 → 臉上加眼睛反光／圓眼、嘴、腮紅"""
     spec = spec or {}
@@ -685,6 +811,8 @@ def recolor_pet(mat, glb, src_name, name, classify, grad_cats, flat=True, spec=N
             v = sum(x.y for x in us) / len(us)
             cell = (int((1 - v) * 4), int(u * 16))
             cats[f] = classify(ob, cell, mw @ f.calc_center_median())
+        if ob.name == "body" and spec.get("new_eyes"):
+            erase_old_eyes(bm, mw, cats, spec)
         # 每一類用自己的高度範圍做漸層
         zr = {}
         for f, cat in cats.items():
@@ -713,6 +841,9 @@ def recolor_pet(mat, glb, src_name, name, classify, grad_cats, flat=True, spec=N
                     fy = front_y(bm, mw, sx * x, z)
                     disc(tmp, min(hw, hh) * 0.36, 0.02, (sx * x - hw * 0.3, fy - 0.03, z + hh * 0.35), "white", n=8)
             eyes = [(sx * x, z, rw, rp) for (x, z, rw, rp) in spec.get("eyes", []) for sx in (1, -1)]
+            if spec.get("new_eyes"):
+                x, z, rw, rp = spec.get("eye_at", (0.2, 0.93, 0.14, 0.088))
+                eyes += [(x, z, rw, rp), (-x, z, rw, rp)]
             if spec.get("eyes_auto"):
                 want, zone, rw, rp = spec["eyes_auto"]
                 eyes += [(cx, cz, rw, rp) for (cx, cz, hw, hh, fy) in zone_boxes(bm, mw, cats, want, zone).values()]
@@ -949,6 +1080,453 @@ def build_hole():
 # ---------------------------------------------------------------------------
 # 輸出
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 10. 獎勵系統（docs/zhuyin-rewards-spec.md）：超稀有寵物、配件、扭蛋、小島裝飾、彩蛋
+#     座標同上：臉朝 -Y、Z 朝上、底部貼地；配件原點＝掛點（見各函式說明）
+# ---------------------------------------------------------------------------
+def p_hemi(r, us=16, vs=8, up=True):
+    """半球（開口在 z=0，up＝往 +Z 的上半）"""
+    bm = p_sphere(r, us, vs)
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if (v.co.z < -1e-4 if up else v.co.z > 1e-4)], context='VERTS')
+    return bm
+
+
+def legs4(parts, color, w=0.36, h=0.32, off=0.3):
+    """Cube Pets 式四條短腿：leg-front-left／right、leg-back-left／right，關節在腿頂"""
+    for sy, fb in ((-1, "front"), (1, "back")):
+        for sx in (1, -1):
+            side = "left" if sx > 0 else "right"
+            leg = Part(f"leg-{fb}-{side}", (sx * off, sy * off, h))
+            leg.add(p_box(w, w, h + 0.06, 0.07), color, T(sx * off, sy * off, (h + 0.06) / 2 - 0.03))
+            parts.append(leg)
+
+
+def pet_face(body, yf, ez, mz, cz, ex=0.21, rw=0.15, rp=0.095, cx=0.38):
+    """張開的圓眼＋微笑＋腮紅（yf＝臉面 y）"""
+    for sx in (1, -1):
+        add_eye(body, sx * ex, ez, yf, rw, rp, look=(-sx * 0.012, -0.008), szw=1.06)
+        disc(body, 0.075, 0.014, (sx * cx, yf - 0.006, cz), "cheek", sx=1.3, sz=0.82, n=14)
+    smile(body, 0.0, mz, 0.05, yf - 0.012)
+
+
+def build_dino():
+    """小恐龍：綠色方身、背上一排圓圓的黃色背鰭、短尾巴"""
+    parts = []
+    W, D, H, z0 = 1.24, 1.22, 1.16, 0.26
+    yf = -D / 2
+    body = Part("body")
+    body.add(p_box(W, D, H, 0.16), "dino", T(0, 0, z0 + H / 2))
+    disc(body, 0.2, 0.03, (0, yf - 0.004, z0 + 0.19), "dino_belly", sx=1.75, sz=0.8, n=18)   # 圓圓的肚子
+    pet_face(body, yf, z0 + 0.74, z0 + 0.44, z0 + 0.5)
+    for sx in (1, -1):
+        for (y, z, r) in [(-0.2, z0 + 0.75, 0.11), (0.2, z0 + 0.45, 0.09), (0.3, z0 + 0.85, 0.07)]:
+            body.add(p_cyl(r, 0.03, 10), "dino_belly", T(sx * W / 2, y, z) @ R(0, 90, 0), grad=False)
+    for (y, z, r) in [(-0.32, z0 + H, 0.17), (-0.02, z0 + H, 0.23), (0.3, z0 + H, 0.22), (D / 2, z0 + H - 0.24, 0.2), (D / 2, z0 + H - 0.6, 0.15)]:
+        body.add(p_cyl(r, 0.1, 14), "dino_fin", T(0, y, z) @ R(0, 90, 0), grad=False)
+    body.add(p_box(0.5, 0.55, 0.42, 0.13), "dino", T(0, D / 2 + 0.2, z0 + 0.3))
+    body.add(p_box(0.3, 0.42, 0.26, 0.08), "dino", T(0, D / 2 + 0.56, z0 + 0.18))
+    body.add(p_cyl(0.07, 0.1, 10), "dino_fin", T(0, D / 2 + 0.47, z0 + 0.52) @ R(0, 90, 0), grad=False)
+    parts.append(body)
+    legs4(parts, "dino")
+    return parts
+
+
+def build_whale():
+    """小鯨魚：藍色圓方身、白肚、頭頂噴水（獨立物件 spout）、尾鰭往上翹；四片小鰭＝四條腿"""
+    parts = []
+    W, D, H, z0 = 1.42, 1.46, 1.0, 0.2
+    yf = -D / 2
+    body = Part("body")
+    body.add(p_box(W, D, H, 0.3), "whale", T(0, 0, z0 + H / 2))
+    disc(body, 0.22, 0.03, (0, yf - 0.004, z0 + 0.16), "whale_belly", sx=2.1, sz=0.62, n=20)
+    pet_face(body, yf, z0 + 0.58, z0 + 0.28, z0 + 0.38, ex=0.27, rw=0.14, rp=0.09, cx=0.45)
+    body.add(p_box(0.42, 0.5, 0.36, 0.12), "whale", T(0, D / 2 + 0.16, z0 + 0.5))
+    for sx in (1, -1):
+        body.add(p_box(0.5, 0.26, 0.1, 0.05), "whale", T(sx * 0.24, D / 2 + 0.42, z0 + 0.72) @ R(0, sx * -28, 0) @ R(-20, 0, 0))
+    parts.append(body)
+    sp = Part("spout", (0, -0.12, z0 + H))
+    sp.add(p_cyl(0.06, 0.34, 8), "spout", T(0, -0.12, z0 + H + 0.16))
+    for (x, y, z, r) in [(0, -0.12, 0.44, 0.1), (0.15, -0.12, 0.4, 0.075), (-0.15, -0.12, 0.4, 0.075), (0.25, -0.1, 0.3, 0.06), (-0.25, -0.1, 0.3, 0.06), (0.08, -0.25, 0.36, 0.06), (-0.06, 0.02, 0.38, 0.06)]:
+        sp.add(p_ico(r, 1), "spout", T(x, y, z0 + H + z))
+    parts.append(sp)
+    # 小鰭當腳（leg-* 物件，選單可以擺動）
+    for sy, fb in ((-1, "front"), (1, "back")):
+        for sx in (1, -1):
+            side = "left" if sx > 0 else "right"
+            fin = Part(f"leg-{fb}-{side}", (sx * 0.42, sy * 0.42, 0.24))
+            fin.add(p_box(0.42, 0.3, 0.12, 0.05), "whale", T(sx * 0.55, sy * 0.42, 0.12) @ R(0, sx * 18, 0))
+            parts.append(fin)
+    return parts
+
+
+def build_dragon():
+    """彩虹小龍：淡紫方身、奶油色肚子、彩虹背刺、小翅膀（wing-left／right 物件）、小角"""
+    parts = []
+    W, D, H, z0 = 1.22, 1.22, 1.14, 0.26
+    yf = -D / 2
+    body = Part("body")
+    body.add(p_box(W, D, H, 0.16), "dragon", T(0, 0, z0 + H / 2))
+    disc(body, 0.2, 0.03, (0, yf - 0.004, z0 + 0.19), "dragon_belly", sx=1.75, sz=0.8, n=18)
+    pet_face(body, yf, z0 + 0.74, z0 + 0.44, z0 + 0.5)
+    for sx in (1, -1):
+        body.add(p_cone(0.08, 0.26, 8), "horn", T(sx * 0.3, -0.18, z0 + H + 0.1) @ R(-18, sx * 12, 0))
+    rb = ["rb_red", "rb_orange", "rb_yellow", "rb_green", "rb_blue", "rb_purple"]
+    spikes = [(-0.38, z0 + H, 0), (-0.12, z0 + H, 0), (0.14, z0 + H, 0), (0.4, z0 + H, 0), (D / 2, z0 + H - 0.28, 1), (D / 2, z0 + H - 0.6, 1)]
+    for k, (y, z, back) in enumerate(spikes):
+        Mx = T(0, y, z) @ (R(-70, 0, 0) if back else Matrix.Identity(4))
+        body.add(p_cone(0.15, 0.4, 4), rb[k], Mx @ T(0, 0, 0.13) @ S(0.5, 1.0, 1.0), grad=False)
+    body.add(p_box(0.46, 0.55, 0.4, 0.12), "dragon", T(0, D / 2 + 0.2, z0 + 0.3))
+    body.add(p_box(0.28, 0.4, 0.24, 0.08), "dragon", T(0, D / 2 + 0.55, z0 + 0.2))
+    body.add(p_cone(0.16, 0.22, 4), "rb_purple", T(0, D / 2 + 0.82, z0 + 0.2) @ R(-90, 0, 0) @ S(1.0, 0.45, 1.0), grad=False)
+    parts.append(body)
+    for sx in (1, -1):
+        side = "left" if sx > 0 else "right"
+        wg = Part(f"wing-{side}", (sx * 0.58, 0.2, z0 + H - 0.25))
+        A = T(sx * 0.6, 0.2, z0 + H - 0.25) @ R(0, 0, sx * 25)           # 往外、往後張
+        wg.add(p_cone(0.2, 0.62, 3), "dragon_wing", A @ R(0, sx * 55, 0) @ T(0, 0, 0.3) @ S(1.0, 0.28, 1.0))
+        wg.add(p_cone(0.15, 0.42, 3), "dragon_wing", A @ R(0, sx * 100, 0) @ T(0, 0, 0.2) @ S(1.0, 0.28, 1.0))
+        wg.add(p_ico(0.07, 1), "dragon", A)
+        parts.append(wg)
+    legs4(parts, "dragon")
+    return parts
+
+
+# ----- 配件：原點＝掛點 -----
+def build_crown():
+    """皇冠：原點在底部中心（放在寵物頭頂 head 掛點）"""
+    c = Part("crown_body")
+    c.add(p_cyl(0.27, 0.14, 14), "gold", T(0, 0, 0.07))
+    for k in range(5):
+        a = math.radians(90 + k * 72)
+        x, y = 0.23 * math.cos(a), 0.23 * math.sin(a)
+        c.add(p_cone(0.08, 0.18, 6), "gold", T(x, y, 0.22))
+        c.add(p_ico(0.04, 1), "gold_light", T(x, y, 0.33))
+    c.add(p_ico(0.055, 1), "jewel_red", T(0, -0.27, 0.07))
+    for sx in (1, -1):
+        c.add(p_ico(0.04, 1), "jewel_blue", T(sx * 0.19, -0.19, 0.07))
+    return [c]
+
+
+def build_cape():
+    """小披風：原點在上緣中間、貼著寵物背面（back 掛點）；往下垂、下襬往後張開（+Y＝背後）"""
+    c = Part("cape_cloth")
+    bm = bmesh.new()
+    bmesh.ops.create_grid(bm, x_segments=6, y_segments=6, size=1.0)
+    for v in bm.verts:
+        u, w = v.co.x, (1.0 - v.co.y) / 2          # w：0＝上緣、1＝下襬
+        v.co = Vector((u * (0.36 + 0.2 * w), 0.02 + 0.16 * w * w - 0.06 * u * u, -w * 0.92))
+    bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=0.035)
+    c.add(bm, "cape_red")
+    c.add(p_box(0.78, 0.07, 0.08, 0.03), "gold", T(0, 0.0, -0.02))
+    c.add(p_ico(0.06, 1), "gold_light", T(0, -0.04, -0.02))
+    return [c]
+
+
+def build_bow():
+    """蝴蝶結：原點在底部中心（head 掛點，可以往一側偏一點）"""
+    b = Part("bow_knot")
+    for sx in (1, -1):
+        b.add(p_sphere(0.14, 12, 8), "bow_pink", T(sx * 0.15, 0, 0.14) @ R(0, sx * 18, 0) @ S(1.25, 0.5, 0.85))
+        b.add(p_box(0.08, 0.04, 0.18, 0.02), "bow_pink_dk", T(sx * 0.07, 0.02, 0.05) @ R(0, sx * 22, 0))
+    b.add(p_ico(0.07, 1), "bow_pink_dk", T(0, -0.02, 0.14))
+    return [b]
+
+
+def build_hat():
+    """派對帽：原點在底部中心（head 掛點）；藍黃條紋圓錐＋白色毛球"""
+    h = Part("hat_cone")
+    Hh, R0 = 0.5, 0.22
+    for k in range(4):
+        z1, z2 = k * Hh / 4, (k + 1) * Hh / 4
+        h.add(p_cyl(R0 * (1 - z1 / (Hh * 1.06)), Hh / 4, 16, r2=R0 * (1 - z2 / (Hh * 1.06))), "hat_blue" if k % 2 == 0 else "hat_yellow", T(0, 0, (z1 + z2) / 2), grad=False)
+    h.add(p_ico(0.075, 1), "white", T(0, 0, Hh + 0.02))
+    return [h]
+
+
+def build_baby_tuft():
+    """寶寶頭頂的小芽：原點在底部中心（head 掛點）"""
+    t = Part("sprout")
+    seg_cyl(t, (0, 0, -0.02), (0.02, 0, 0.13), 0.024, "sprout")
+    seg_cyl(t, (0.02, 0, 0.13), (-0.005, 0, 0.21), 0.022, "sprout")
+    for sx in (1, -1):
+        t.add(p_sphere(0.09, 10, 6), "sprout", T(sx * 0.08, 0, 0.23) @ R(0, sx * -32, 0) @ S(1.35, 0.35, 0.75))
+    return [t]
+
+
+# ----- 扭蛋 -----
+def build_coin():
+    """扭蛋幣：金色、正反兩面浮雕星星；直立、面朝前"""
+    c = Part("coin_body")
+    c.add(p_cyl(0.5, 0.12, 32), "gold", T(0, 0, 0.5) @ FRONT, grad=False)
+    c.add(p_cyl(0.41, 0.13, 32), "gold_light", T(0, 0, 0.5) @ FRONT, grad=False)
+    for y, rot in ((-0.065, FRONT), (0.065, R(-90, 0, 0))):
+        c.add(p_star(0.27, 0.12, 0.05), "gold", T(0, y, 0.5) @ rot, grad=False)
+    return [c]
+
+
+def build_capsule():
+    """扭蛋膠囊：capsule_top（上半，單色材質，程式可換藍／紫／金）＋capsule_bottom（下半白色）；
+       capsule_top 的原點在背面接縫（樞紐），往後轉＝打開"""
+    r = 0.32
+    top = Part("capsule_top", (0, r, r))
+    top.add(p_hemi(r, 20, 8, up=True), "white", T(0, 0, r), grad=False)
+    bot = Part("capsule_bottom")
+    bot.add(p_hemi(r * 0.985, 20, 8, up=False), "white", T(0, 0, r), grad=False)
+    bot.add(p_cyl(r * 1.01, 0.04, 20), "gacha_cream", T(0, 0, r - 0.01), grad=False)
+    return [top, bot]
+
+
+def capsule_points():
+    """扭蛋機圓頂裡的膠囊位置（在球內、偏下方堆著）"""
+    rnd = random.Random(5)
+    pts, C, Rd, r = [], Vector((0, 0, 1.5)), 0.56, 0.11
+    for z in (1.08, 1.26, 1.44):
+        for k in range(9):
+            a = k / 9 * math.pi * 2 + z * 3
+            rr = 0.33 if z > 1.1 else 0.22
+            p = Vector((rr * math.cos(a), rr * math.sin(a), z)) + Vector((rnd.uniform(-0.03, 0.03), rnd.uniform(-0.03, 0.03), 0))
+            if (p - C).length <= Rd - r - 0.03 and all((p - q).length > 2 * r * 0.95 for q in pts):
+                pts.append(p)
+    return pts, r
+
+
+def build_gacha():
+    """扭蛋機：base（紅色底座：投幣口、出口、星星）、dome（玻璃圓頂，透明材質）、capsules（彩色膠囊）、
+       handle（前面的轉把，原點在轉軸中心，繞前後軸轉）、top（頂上的小球）"""
+    parts = []
+    base = Part("base")
+    base.add(p_box(1.2, 1.0, 0.86, 0.13), "gacha_red", T(0, 0, 0.53))
+    for sx in (1, -1):
+        for sy in (1, -1):
+            base.add(p_box(0.16, 0.16, 0.12, 0.04), "gacha_cream", T(sx * 0.45, sy * 0.36, 0.06))
+    base.add(p_box(0.94, 0.05, 0.64, 0.06), "gacha_cream", T(0, -0.5, 0.53))
+    base.add(p_box(0.2, 0.04, 0.24, 0.03), "gold", T(0.3, -0.53, 0.66))
+    base.add(p_box(0.05, 0.05, 0.16, 0.015), "hole_dark", T(0.3, -0.555, 0.66))
+    base.add(p_box(0.36, 0.05, 0.2, 0.05), "hole_dark", T(0, -0.53, 0.32))
+    base.add(p_box(0.4, 0.07, 0.06, 0.025), "gold", T(0, -0.55, 0.44))
+    base.add(p_star(0.1, 0.045, 0.04), "gold", T(-0.3, -0.535, 0.66) @ FRONT)
+    base.add(p_cyl(0.56, 0.1, 28), "gold", T(0, 0, 1.0))
+    parts.append(base)
+    hd = Part("handle", (0, -0.56, 0.66))
+    hd.add(p_cyl(0.13, 0.06, 20), "white", T(0, -0.56, 0.66) @ FRONT)
+    hd.add(p_box(0.3, 0.06, 0.07, 0.025), "gold", T(0, -0.6, 0.66))
+    hd.add(p_cyl(0.04, 0.1, 10), "gold", T(0.12, -0.65, 0.66) @ FRONT)
+    parts.append(hd)
+    dome = Part("dome", (0, 0, 1.5))
+    dome.add(p_sphere(0.56, 28, 16), "white", T(0, 0, 1.5), grad=False)
+    parts.append(dome)
+    top = Part("top")
+    top.add(p_cyl(0.12, 0.08, 16), "gacha_red", T(0, 0, 2.07))
+    top.add(p_ico(0.08, 1), "gold", T(0, 0, 2.15))
+    parts.append(top)
+    caps = Part("capsules")
+    cols = ["cap_blue", "cap_purple", "cap_gold", "cap_pink", "cap_green"]
+    rnd = random.Random(9)
+    pts, r = capsule_points()
+    for k, p in enumerate(pts):
+        M = T(*p) @ R(rnd.uniform(-60, 60), rnd.uniform(-60, 60), 0)
+        caps.add(p_hemi(r, 10, 5, up=True), cols[k % len(cols)], M, grad=False)
+        caps.add(p_hemi(r, 10, 5, up=False), "white", M, grad=False)
+    parts.append(caps)
+    return parts
+
+
+# ----- 小島裝飾 -----
+def build_statue_owl():
+    """貓頭鷹雕像（石材）：台座＋戴學士帽的貓頭鷹"""
+    s = Part("owl_statue")
+    s.add(p_box(0.9, 0.9, 0.34, 0.05), "stone_dk", T(0, 0, 0.17))
+    s.add(p_box(1.0, 1.0, 0.08, 0.03), "stone", T(0, 0, 0.38))
+    z = 0.42
+    s.add(p_box(0.64, 0.56, 0.72, 0.17), "stone", T(0, 0, z + 0.36))
+    for sx in (1, -1):
+        s.add(p_cyl(0.13, 0.04, 16), "stone_lt", T(sx * 0.15, -0.28, z + 0.5) @ FRONT, grad=False)
+        s.add(p_cyl(0.06, 0.04, 12), "stone_dk", T(sx * 0.15, -0.3, z + 0.5) @ FRONT, grad=False)
+        s.add(p_box(0.08, 0.36, 0.42, 0.04), "stone_dk", T(sx * 0.34, 0.02, z + 0.32))
+        s.add(p_cone(0.07, 0.18, 6), "stone", T(sx * 0.22, 0, z + 0.8) @ R(0, sx * 18, 0))
+    s.add(p_cone(0.05, 0.12, 6), "stone_dk", T(0, -0.3, z + 0.38) @ R(180, 0, 0))
+    s.add(p_box(0.32, 0.32, 0.1, 0.03), "stone_dk", T(0, 0, z + 0.78))
+    s.add(p_box(0.52, 0.52, 0.04, 0.01), "stone_dk", T(0, 0, z + 0.85) @ R(0, 0, 45))
+    return [s]
+
+
+def build_flower_arch():
+    """花拱門：兩根白柱＋半圓拱，綠葉上開粉紅／白／黃花"""
+    a = Part("arch_frame")
+    rnd = random.Random(3)
+    for sx in (1, -1):
+        a.add(p_box(0.12, 0.12, 1.1, 0.03), "white", T(sx * 0.7, 0, 0.55))
+        a.add(p_box(0.24, 0.24, 0.1, 0.03), "stone", T(sx * 0.7, 0, 0.05))
+    pts = [(0.7 * math.cos(math.radians(t)), 1.1 + 0.7 * math.sin(math.radians(t))) for t in range(0, 181, 15)]
+    for (x1, z1), (x2, z2) in zip(pts, pts[1:]):
+        seg_box(a, (x1, 0, z1), (x2, 0, z2), 0.1, 0.1, (0, -1, 0), "white", extra=0.06)
+    flowers = ["flower_pink", "white", "flower_yellow", "flower_pink"]
+    spots = [(sx * 0.7, 0.25 + k * 0.22) for sx in (1, -1) for k in range(4)] + [(x, z) for (x, z) in pts[1:-1]]
+    for k, (x, z) in enumerate(spots):
+        a.add(p_ico(0.12, 1), "leaf", T(x + rnd.uniform(-0.04, 0.04), rnd.uniform(-0.06, 0.04), z))
+        a.add(p_ico(0.065, 1), flowers[k % 4], T(x + rnd.uniform(-0.05, 0.05), -0.1, z + rnd.uniform(-0.04, 0.06)), grad=False)
+    return [a]
+
+
+def text_mesh(ch, fonts, size, extrude, bevel, color, name, mat):
+    """Blender 文字物件 → 網格、站立面朝前（-Y）、底部貼 z=0、x 置中；回傳物件"""
+    bpy.ops.object.text_add(location=(0, 0, 0))
+    ob = bpy.context.object
+    cu = ob.data
+    cu.body = ch
+    for fp in fonts:
+        if os.path.exists(fp):
+            try:
+                cu.font = bpy.data.fonts.load(fp)
+                break
+            except Exception as e:
+                print("[font] 載入失敗", fp, e)
+    cu.size, cu.extrude, cu.bevel_depth, cu.bevel_resolution, cu.align_x = size, extrude, bevel, 2, 'CENTER'
+    bpy.ops.object.convert(target='MESH')
+    ob = bpy.context.object
+    ob.name = name
+    ob.rotation_euler = (math.radians(90), 0, 0)
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    me = ob.data
+    if not me.uv_layers:
+        me.uv_layers.new(name="UVMap")
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    xs, ys, zs = [v.co.x for v in bm.verts], [v.co.y for v in bm.verts], [v.co.z for v in bm.verts]
+    off = Vector(((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2, min(zs)))
+    for v in bm.verts:
+        v.co -= off
+    z1 = max(zs) - min(zs)
+    uvl = bm.loops.layers.uv.active
+    for f in bm.faces:
+        f.smooth = False
+        for lp in f.loops:
+            lp[uvl].uv = uv_for(color, lp.vert.co.z / z1)
+    bm.to_mesh(me)
+    bm.free()
+    me.materials.clear()
+    me.materials.append(mat)
+    return ob, z1
+
+
+def build_statue_bpmf(mat):
+    """ㄅ字雕像：石台座＋橘色立體「ㄅ」（微軟正黑體粗體）"""
+    ped = Part("pedestal")
+    ped.add(p_box(0.9, 0.7, 0.3, 0.05), "stone_dk", T(0, 0, 0.15))
+    ped.add(p_box(1.0, 0.8, 0.08, 0.03), "stone", T(0, 0, 0.34))
+    parts_to_scene("statue_bpmf", [ped], mat)
+    root = bpy.data.objects["statue_bpmf"]
+    fonts = [r"C:\Windows\Fonts\msjhbd.ttc", r"C:\Windows\Fonts\msjh.ttc", r"C:\Windows\Fonts\kaiu.ttf"]
+    ob, h = text_mesh("ㄅ", fonts, 1.25, 0.16, 0.04, "bpmf", "bpmf", mat)
+    if len(ob.data.vertices) < 8:
+        print("[bpmf] 字型沒有ㄅ，雕像只有台座")
+    ob.location = (0, 0, 0.38)
+    ob.parent = root
+
+
+def build_egg_color(base, spots, name):
+    """紫蛋（稀有）／金蛋（超稀有）：同 egg.glb 的蛋形，換底色和斑點色"""
+    egg = Part("shell")
+    bm = p_sphere(EGG_R, 14, 11)
+    for v in bm.verts:
+        zn = v.co.z / EGG_R
+        f = 1.0 - 0.13 * zn - 0.06 * max(0.0, zn) ** 2
+        v.co = Vector((v.co.x * f, v.co.y * f, v.co.z * EGG_Z + EGG_R * EGG_Z))
+    egg.add(bm, base)
+    N, k = 22, 0
+    for i in range(N):
+        zn = 1 - 2 * (i + 0.5) / N
+        if abs(zn) > 0.8:
+            continue
+        theta = i * math.pi * (3 - math.sqrt(5)) - math.pi / 4
+        phi = math.asin(zn)
+        p, n = egg_point(theta, phi), egg_normal(theta, phi)
+        q = n.to_track_quat('Z', 'Y').to_matrix().to_4x4()
+        if spots == "stars":
+            egg.add(p_star(0.085, 0.04, 0.03), "white" if k % 2 else "gold_light", T(*(p - n * 0.004)) @ q, grad=False)
+        else:
+            r = 0.065 + 0.03 * ((i * 7) % 5) / 4
+            egg.add(p_cyl(r, 0.03, 10), spots[k % len(spots)], T(*(p - n * 0.006)) @ q, grad=False)
+        k += 1
+    return [egg]
+
+
+def solid_material(name, rgba, alpha=1.0, rough=0.4):
+    """不吃色票的單色材質（膠囊上半＝程式換色；圓頂玻璃＝半透明）"""
+    m = bpy.data.materials.new(name)
+    try:
+        m.use_nodes = True
+    except Exception:
+        pass
+    bsdf = m.node_tree.nodes.get("Principled BSDF")
+    bsdf.inputs["Base Color"].default_value = rgba
+    bsdf.inputs["Roughness"].default_value = rough
+    if alpha < 1.0:
+        bsdf.inputs["Alpha"].default_value = alpha
+        for attr, val in (("blend_method", "BLEND"), ("surface_render_method", "BLENDED")):
+            try:
+                setattr(m, attr, val)
+            except Exception:
+                pass
+    return m
+
+
+def set_object_material(obname, m, smooth=False):
+    ob = bpy.data.objects[obname]
+    ob.data.materials.clear()
+    ob.data.materials.append(m)
+    if smooth:
+        for p in ob.data.polygons:
+            p.use_smooth = True
+
+
+CUSTOM = {   # 名稱 → (建模函式, 建好後的處理)
+    "dino": (build_dino, None), "whale": (build_whale, None), "dragon": (build_dragon, None),
+    "crown": (build_crown, None), "cape": (build_cape, None), "bow": (build_bow, None), "hat": (build_hat, None), "baby_tuft": (build_baby_tuft, None),
+    "coin": (build_coin, None),
+    "capsule": (build_capsule, lambda: (set_object_material("capsule_top", solid_material("capsule_top", (0.28, 0.6, 1.0, 1.0))), set_object_material("capsule_bottom", bpy.data.objects["capsule_bottom"].data.materials[0], smooth=True), [setattr(p, "use_smooth", True) for p in bpy.data.objects["capsule_top"].data.polygons])),
+    "gacha_machine": (build_gacha, lambda: set_object_material("dome", solid_material("glass", (0.82, 0.94, 1.0, 1.0), alpha=0.28, rough=0.1), smooth=True)),
+    "statue_owl": (build_statue_owl, None), "flower_arch": (build_flower_arch, None),
+    "egg_rare": (lambda: build_egg_color("egg_purple", ["white", "egg_lilac", "spot_pink", "white"], "egg_rare"), None),
+    "egg_ssr": (lambda: build_egg_color("egg_gold", "stars", "egg_ssr"), None),
+}
+
+
+def pet_anchors(path):
+    """寵物配件掛點（glTF 座標：x、y 上、z 朝前）：
+       head＝身體朝上的面裡最高的一大層（≥最大層 25%）的中心；back＝頭頂往下 0.38、身體中線（|x|<0.3）最後面的點"""
+    clear_objects()
+    bpy.ops.import_scene.gltf(filepath=path)
+    ob = bpy.data.objects.get("body")
+    if ob is None:
+        return None
+    mw = ob.matrix_world
+    me = ob.data
+    up, bk = {}, {}
+    for p in me.polygons:
+        n = mw.to_3x3() @ p.normal
+        c = mw @ p.center
+        if n.z > 0.9:
+            k = round(c.z, 2); a = up.setdefault(k, [0.0, 0.0, 0.0]); a[0] += p.area; a[1] += c.x * p.area; a[2] += c.y * p.area
+        if n.y > 0.9:
+            k = round(c.y, 2); b = bk.setdefault(k, [0.0, -9.0]); b[0] += p.area; b[1] = max(b[1], max((mw @ me.vertices[i].co).z for i in p.vertices))
+    if not up:
+        return None
+    bigu = max(v[0] for v in up.values())
+    hz = max(k for k, v in up.items() if v[0] >= bigu * 0.25)      # 最高的一大層＝頭頂（螃蟹的鉗子、獅子鬃毛不算）
+    a = up[hz]
+    head = [round(a[1] / a[0], 3), round(hz, 3), round(-a[2] / a[0], 3)]
+    bz, ys = hz - 0.38, []
+    for p in me.polygons:                              # 朝後、而且蓋住 (x=0, 頭頂往下 0.38) 那一點的面
+        if (mw.to_3x3() @ p.normal).y < 0.7:
+            continue
+        ps = [mw @ me.vertices[i].co for i in p.vertices]
+        if min(q.x for q in ps) <= 0.0 <= max(q.x for q in ps) and min(q.z for q in ps) <= bz <= max(q.z for q in ps):
+            ys.append(max(q.y for q in ps))
+    back = [0.0, round(bz, 3), round(-max(ys), 3)] if ys else None
+    return {"head": head, "back": back}
+
+
 def clear_objects():
     for ob in list(bpy.data.objects):
         bpy.data.objects.remove(ob, do_unlink=True)
@@ -1058,6 +1636,8 @@ def main():
         ("egg_crack", lambda: build_egg(True), mat),
         ("hole", build_hole, mat),
     ]
+    jobs += [(n, None, mat) for n in PETS if n not in {j[0] for j in jobs}]   # 稀有寵物（自動模式）
+    jobs += [(n, None, mat) for n in CUSTOM] + [("statue_bpmf", None, mat)]   # 獎勵系統自製模型
     done = []
     for name, fn, m in jobs:
         if only and name not in only:
@@ -1069,6 +1649,16 @@ def main():
             build_pet(name, m)
         elif name == "qmark":
             build_qmark(m)
+        elif name == "statue_bpmf":
+            build_statue_bpmf(m)
+        elif name in CUSTOM:
+            fn, post = CUSTOM[name]
+            parts = fn()
+            if name not in ("cape", "crown", "bow", "hat", "baby_tuft"):   # 配件的原點＝掛點，不要重新貼地
+                ground_parts(parts)
+            parts_to_scene(name, parts, m)
+            if post:
+                post()
         else:
             parts = fn()
             ground_parts(parts)
@@ -1078,6 +1668,14 @@ def main():
         print("[build] 輸出", path)
         done.append(path)
     verify(done)
+    if "--anchors" in argv:                       # 印出寵物配件掛點（給 models.json）
+        import json
+        out = {}
+        for n in argv[argv.index("--anchors") + 1].split(","):
+            pth = os.path.join(OUT_DIR, n + ".glb")
+            if os.path.exists(pth):
+                out[n] = pet_anchors(pth)
+        print("[anchors] " + json.dumps(out))
 
 
 main()

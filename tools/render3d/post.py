@@ -35,12 +35,27 @@ def sprite(j, box):
         cw, ch = max(cw, round(ch * j['aspect'])), max(ch, round(cw / j['aspect']))
     cv = Image.new('RGBA', (cw, ch), (0, 0, 0, 0))
     cv.paste(im, ((cw - w) // 2, ch - h - pb))
+    if j.get('halo'):  # 金色光暈（超稀有、金幣）：圓形柔光墊在後面
+        hc = j['halo']
+        g = Image.new('RGBA', cv.size, (0, 0, 0, 0))
+        r = max(w, h) * hc.get('r', 0.62)
+        cx, cy = cv.width / 2, ch - pb - h / 2
+        ImageDraw.Draw(g).ellipse([cx - r, cy - r, cx + r, cy + r], fill=hc.get('color', '#ffd34d') + '%02x' % hc.get('alpha', 190))
+        g = g.filter(ImageFilter.GaussianBlur(max(w, h) * hc.get('blur', 0.12)))
+        g.alpha_composite(cv)
+        cv = g
+    if j.get('sparkle'):  # 四角小閃光
+        d = ImageDraw.Draw(cv)
+        for (fx, fy, fs) in j['sparkle']:
+            x, y, r = fx * cv.width, fy * cv.height, fs * max(w, h)
+            d.polygon([(x, y - r), (x + r * 0.22, y - r * 0.22), (x + r, y), (x + r * 0.22, y + r * 0.22), (x, y + r), (x - r * 0.22, y + r * 0.22), (x - r, y), (x - r * 0.22, y - r * 0.22)], fill=(255, 250, 220, 255))
     s = j.get('size', 560) / max(cv.size)
     return resize_rgba(cv, (max(1, round(cv.width * s)), max(1, round(cv.height * s))))
 
 
 def save(im, out):
     path = os.path.join(OUT, out + '.webp')
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     im.save(path, 'WEBP', quality=85, method=6)
     print(f'寫入 {out}.webp  {im.size[0]}×{im.size[1]}  {os.path.getsize(path) // 1024}KB')
 

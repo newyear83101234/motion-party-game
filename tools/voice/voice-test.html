@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>語音模組測試</title>
+  <link rel="icon" href="data:,">
+  <!-- js/zhuyin-voice.js 的測試頁（tools/voice/test_voice_module.js 用 headless Chromium 開）。也可以手動開來點著聽。 -->
+  <style>
+    body { font-family: "Microsoft JhengHei", "PingFang TC", sans-serif; background: #f5f7fb; color: #1f2a44; padding: 16px; }
+    button { font: inherit; font-size: 18px; margin: 4px; padding: 8px 14px; border-radius: 10px; border: 1px solid #c8d2e6; background: #fff; }
+  </style>
+</head>
+<body>
+  <h1>語音模組測試</h1>
+  <button id="unlock">① 先點我解鎖聲音</button>
+  <div id="list"></div>
+  <script type="module">
+    import * as V from "../../js/zhuyin-voice.js";
+    window.V = V;
+    document.getElementById("unlock").onclick = () => V.voiceUnlock();
+    V.voiceReady.then(() => {
+      for (const t of ["聽聲音，點對的魚！", "好棒！", "你好會拼喔！", "蝸牛", "企鵝", "找到了，紅色的蘋果", "拿到 3 張新貼紙！", "我要蘋果"]) {
+        const b = document.createElement("button"); b.textContent = t; b.onclick = () => { V.voiceUnlock(); V.voiceSay(t); };
+        document.getElementById("list").appendChild(b);
+      }
+    });
+  </script>
+</body>
+</html>

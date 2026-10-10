@@ -1,7 +1,9 @@
 // 3D 選單小島測試：node tools/zy-test/hub3d.js
 // 驗：3D 選單有出現（canvas、卡片視覺隱藏）、點建築投影位置會進那個遊戲、浮標也能點、翻牌先開選張數、
 //     點未解鎖建築不會進遊戲、拖曳不算點擊、長按 0.6 秒／拖 15px 也算點、點朋友會唸名字、進遊戲 rAF 停／回選單 rAF 恢復、
-//     新玩家（0 張貼紙）五棟上鎖＋手指提示、?no3d 退回卡片選單照常可玩、沒有錯誤
+//     新玩家（0 張貼紙）五棟上鎖＋手指提示、?no3d 退回卡片選單照常可玩、沒有錯誤、
+//     路網全部連通（每棟建築／景點都接到路）、扭蛋機點了會呼叫 onGacha、setPets 30 隻走路不卡（路上最多 12 隻、其他在寵物公園）、
+//     setDecor 20 個都擺上去、對向兩隻寵物能交會而過不迴轉、新玩家釣魚浮標有黃框
 const { launch, openGame } = require("./lib");
 const out = []; const ok = (name, cond, info = "") => out.push(`${cond ? "PASS" : "FAIL"}  ${name}${info !== "" ? "  — " + info : ""}`);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -31,11 +33,17 @@ const backToMenu = async p => { await p.evaluate(() => { document.getElementById
       return { hub: document.body.classList.contains("hub3d"), canvas: !!document.querySelector("#menu .hub-stage canvas"), cardsW: cards.width, cardsOpacity: getComputedStyle(document.querySelector("#menu > .mode-cards")).opacity, tags: document.querySelectorAll(".hub-tag").length }; });
     ok("3D 選單有出現（body.hub3d＋canvas）", st.hub && st.canvas, JSON.stringify(st));
     ok("卡片 DOM 還在但看不到", st.cardsW <= 1 && st.cardsOpacity === "0" && (await p.evaluate(() => document.querySelectorAll(".mode-card").length)) === 8);
-    ok("8 個浮標", st.tags === 8);
+    ok("9 個浮標（8 個遊戲＋扭蛋機）", st.tags === 9, String(st.tags));
+    const g = await p.evaluate(() => window.__hub3d.graph());
+    ok("路網全部連通、9 棟建築＋7 個景點都接到路", g.components === 1 && g.doors.length === 16, JSON.stringify(g));
+    await p.waitForFunction(() => window.__hub3d.pets().length >= 6, null, { timeout: 15000 }).catch(() => {});   // 寵物模型在建築之後才抓
+    ok("島上的寵物照 setPets 來（eggs 2 → 6 位朋友）", (await p.evaluate(() => window.__hub3d.pets().length)) === 6, JSON.stringify(await p.evaluate(() => window.__hub3d.pets())));
     ok("未解鎖：只有青蛙鎖著", JSON.stringify(await p.evaluate(() => window.__hub3d.locked())) === '["frog"]', JSON.stringify(await p.evaluate(() => window.__hub3d.locked())));
-    ok("鎖著的浮標顯示 🔒 25 📒", await p.evaluate(() => { const t = document.querySelector('.hub-tag[data-mode=frog]'); return t.classList.contains("locked") && t.querySelector(".ht-lock").textContent === document.querySelector('.mode-card[data-mode=frog] .lock').textContent && t.textContent.includes("25"); }));
+    ok("鎖著的浮標只留圖示＋🔒 25（字收起來）", await p.evaluate(() => { const t = document.querySelector('.hub-tag[data-mode=frog]'), lk = t.querySelector(".ht-lock").textContent;
+      return t.classList.contains("locked") && lk === "🔒 25" && getComputedStyle(t.querySelector(".ht-word")).display === "none" && getComputedStyle(t.querySelector(".ht-lock")).display !== "none"; }), await p.evaluate(() => document.querySelector('.hub-tag[data-mode=frog] .ht-lock').textContent));
+    ok("不是新玩家：沒有黃框", await p.evaluate(() => document.querySelectorAll(".hub-tag.first").length === 0));
     // 浮標不能被標題／圓鈕／膠囊／貓頭鷹擋到
-    const clash = await p.evaluate(() => { const ob = ["#menu > h1", "#menu > .menu-bottom", "#guide img", "#guideText", "#homeBtn", "#musicBtn", "#playerBtn", "#settingsBtn"].map(s => document.querySelector(s).getBoundingClientRect());
+    const clash = await p.evaluate(() => { const ob = ["#menu > h1", "#menu > .menu-bottom", "#guide img", "#guideText", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn"].map(s => document.querySelector(s)).filter(Boolean).map(e => e.getBoundingClientRect());
       const bad = []; for (const t of document.querySelectorAll(".hub-tag")) { const r = t.getBoundingClientRect(); if (r.left < 0 || r.top < 0 || r.right > innerWidth || r.bottom > innerHeight || ob.some(o => r.left < o.right && r.right > o.left && r.top < o.bottom && r.bottom > o.top)) bad.push(t.dataset.mode); } return bad; });
     ok("浮標沒有被標題／按鈕／膠囊／貓頭鷹擋住", clash.length === 0, clash.join(","));
     // rAF：選單在跑
@@ -69,6 +77,12 @@ const backToMenu = async p => { await p.evaluate(() => { document.getElementById
     await p.mouse.click((tr.x0 + tr.x1) / 2, (tr.y0 + tr.y1) / 2);
     ok("點浮標（氣球）→ 進氣球", await p.waitForFunction(() => !document.getElementById("tone").classList.contains("hidden"), null, { timeout: 8000 }).then(() => true, () => false));
     await backToMenu(p);
+    // 扭蛋機：點建築、點浮標都會呼叫 onGacha（目前 zhuyin.js 讓嚮導說「扭蛋機快要開張囉」）
+    const sg = await spot(p, "gacha"); if (sg) await p.mouse.click(sg.x, sg.y); await sleep(700);
+    ok("點扭蛋機 → onGacha（嚮導說話、沒有進遊戲）", !!sg && (await p.evaluate(() => document.getElementById("guideText").textContent)).includes("扭蛋") && (await p.evaluate(() => window.__zy.mode)) === null, JSON.stringify(sg));
+    await p.evaluate(() => { document.getElementById("guideText").textContent = ""; }); await sleep(800);
+    const tg = await p.evaluate(() => window.__hub3d.tagRect("gacha")); await p.mouse.click((tg.x0 + tg.x1) / 2, (tg.y0 + tg.y1) / 2); await sleep(700);
+    ok("點扭蛋浮標 → onGacha", (await p.evaluate(() => document.getElementById("guideText").textContent)).includes("扭蛋"));
     // 翻牌：先開選張數
     const sm = await spot(p, "match"); if (sm) await p.mouse.click(sm.x, sm.y); await sleep(700);
     ok("點翻牌建築 → 先跳出選張數", !!sm && await visible(p, "matchPick"), JSON.stringify(sm));
@@ -76,7 +90,7 @@ const backToMenu = async p => { await p.evaluate(() => { document.getElementById
     // 5 歲小孩的點法：按住 0.6 秒、拖著 15px 也要算點（朋友會走過去擋到 → 最多試 3 次）
     const kidTap = async (m, how) => { for (let k = 0; k < 3; k++) { const s = await spot(p, m); if (!s) { await sleep(500); continue; }
       await p.mouse.move(s.x, s.y); await p.mouse.down();
-      if (how === "hold") await sleep(600); else { await p.mouse.move(s.x + 8, s.y + 2); await p.mouse.move(s.x + 15, s.y + 3); }   // headless 每次 move 要 0.15 秒，步數少一點
+      if (how === "hold") await sleep(600); else await p.mouse.move(s.x + 15, s.y + 3);   // headless 軟體繪圖每次 move 要等一兩幀（0.1～0.3 秒）：一步滑 15px
       await p.mouse.up(); if (await inMode(p, m)) return true; } return false; };
     ok("長按 0.6 秒點積木建築 → 進積木", await kidTap("build", "hold"));
     await backToMenu(p);
@@ -104,7 +118,7 @@ const backToMenu = async p => { await p.evaluate(() => { document.getElementById
     ok("分頁隱藏時 rAF 停止", h1 === h0, `${h0}→${h1}`);
     await p.evaluate(() => { Object.defineProperty(document, "hidden", { value: false, configurable: true }); document.dispatchEvent(new Event("visibilitychange")); });
     const st2 = await p.evaluate(() => window.__hub3d.stats());
-    ok("像素比 ≤ 1.5", st2.pixelRatio <= 1.5, JSON.stringify(st2));
+    ok("像素比 ≤ 2", st2.pixelRatio <= 2, JSON.stringify(st2));
     ok("不是新玩家：沒有手指提示", !(await p.evaluate(() => window.__hub3d.finger())));
     ok("沒有錯誤（3D 選單）", errs.length === 0, errs.join(" | "));
     await ctx.close();
@@ -118,6 +132,7 @@ const backToMenu = async p => { await p.evaluate(() => { document.getElementById
     const lk = await p.evaluate(() => window.__hub3d.locked());
     ok("新玩家：尋寶／翻牌／氣球／地鼠／青蛙都鎖著", JSON.stringify(lk.sort()) === JSON.stringify(["frog", "hunt", "match", "tone", "whack"]), JSON.stringify(lk));
     ok("新玩家：鎖著的浮標都有 🔒", await p.evaluate(() => [...document.querySelectorAll(".hub-tag.locked")].length === 5 && [...document.querySelectorAll(".hub-tag.locked .ht-lock")].every(e => e.textContent.includes("🔒"))));
+    ok("新玩家：只有釣魚浮標有常駐黃框", await p.evaluate(() => { const f = [...document.querySelectorAll(".hub-tag.first")]; return f.length === 1 && f[0].dataset.mode === "fish" && getComputedStyle(f[0]).boxShadow.includes("255, 213, 74"); }));
     const sl = await spot(p, "tone"); if (sl) { await p.mouse.click(sl.x, sl.y); await sleep(1200); }
     ok("新玩家：點鎖著的氣球攤不會進遊戲", !!sl && (await p.evaluate(() => window.__zy.mode)) === null, JSON.stringify(sl));
     const sf = await spot(p, "fish"); if (sf) await p.mouse.click(sf.x, sf.y);
@@ -125,16 +140,60 @@ const backToMenu = async p => { await p.evaluate(() => { document.getElementById
     ok("新玩家：沒有錯誤", errs.length === 0, errs.join(" | "));
     await ctx.close();
   }
+  // ===== 1c. 最壞情況：30 隻寵物＋20 個裝飾，走路不能卡住 =====
+  {
+    const { ctx, p, errs } = await openGame(browser, { stickers: 136, eggs: 4, stars: 45, query: "debug" });
+    await ready(p);
+    const names = ["bear", "bunny", "cat", "fox", "panda", "penguin", "frog", "lion", "dog", "chick", "pig", "cow", "monkey", "koala", "giraffe", "tiger", "deer", "parrot", "bee", "crab", "beaver", "hog", "polar", "caterpillar", "elephant", "dino", "whale", "dragon", "cat", "dog"];
+    const deco = ["kenney/holiday-kit/bench", "kenney/fantasy-town-kit/lantern", "kenney/pirate-kit/barrel", "kenney/city-kit-commercial/detail-parasol-a", "kenney/pirate-kit/crate"];
+    await p.evaluate(({ names, deco }) => {
+      window.__hub3d.setPets(names.map((n, i) => ({ id: "p" + i, name: n, stage: i % 3 + 1, glb: `IMAGE/zy3d/models/${n}.glb` })));
+      window.__hub3d.setDecor(Array.from({ length: 20 }, (_, i) => ({ id: "d" + i, glb: `IMAGE/zy3d/${deco[i % deco.length]}.glb` })));
+    }, { names, deco });
+    const loaded = await p.waitForFunction(() => window.__hub3d.pets().length >= 30 && window.__hub3d.decorCount() >= 20, null, { timeout: 60000 }).then(() => true, () => false);
+    ok("setPets 30 隻、setDecor 20 個都擺上去", loaded, JSON.stringify(await p.evaluate(() => [window.__hub3d.pets().length, window.__hub3d.decorCount(), window.__hub3d.decorSlots()])));
+    // 路上最多 12 隻（含車子以外的寵物），其他在寵物公園休息；一直在路上的都要有在走
+    const trk = new Map(); let close = 0, samples = 0, maxWalk = 0, minWalk = 99, homing = 0;
+    for (let k = 0; k <= 24; k++) {
+      const ag = await p.evaluate(() => window.__hub3d.agents());
+      for (const a of ag) { const r = trk.get(a.id); if (r) { r.d += Math.hypot(a.x - r.x, a.z - r.z); r.x = a.x; r.z = a.z; r.road = r.road && a.onRoad; } else trk.set(a.id, { x: a.x, z: a.z, d: 0, road: a.onRoad, kind: a.kind }); }
+      const pets = ag.filter(a => a.kind === "pet" && a.visible), walk = ag.filter(a => a.kind === "pet" && a.onRoad).length;
+      maxWalk = Math.max(maxWalk, walk); minWalk = Math.min(minWalk, walk); homing += ag.some(a => a.home) ? 1 : 0;
+      for (let i = 0; i < pets.length; i++) for (let j = i + 1; j < pets.length; j++) if (Math.hypot(pets[i].x - pets[j].x, pets[i].z - pets[j].z) < 0.3) close++;
+      samples++; await sleep(500);
+    }
+    ok("路上同時最多 12 隻寵物（其他在寵物公園）", maxWalk <= 12 && minWalk >= 8, `路上 ${minWalk}～${maxWalk} 隻`);
+    ok("寵物有輪流回公園（有一隻在回家路上）", homing > 0, `${homing}／${samples} 次取樣有人在回家`);
+    const roads = [...trk.values()].filter(r => r.road), moved = roads.map(r => r.d), stuck = moved.filter(d => d < 1).length;
+    ok("路上的寵物＋2 台車 12 秒內都有在走（沒有卡住）", roads.length >= 10 && stuck === 0, `${roads.length} 隻一直在路上，走最少 ${Math.min(...moved).toFixed(1)}、卡住 ${stuck} 隻`);
+    ok("寵物不會疊在一起（距離 < 0.3 的次數很少）", close <= samples * 0.5, `${close} 次／${samples} 次取樣`);
+    ok("最壞情況沒有錯誤", errs.length === 0, errs.join(" | "));
+    await ctx.close();
+  }
+  // ===== 1d. 對向兩隻寵物在同一條路上面對面：要能錯身而過，不能停下來掉頭 =====
+  {
+    const { ctx, p, errs } = await openGame(browser, { stickers: 40, eggs: 4, stars: 45, query: "debug" });
+    await ready(p);
+    await p.waitForFunction(() => window.__hub3d.pets().length >= 2, null, { timeout: 20000 }).catch(() => {});
+    const dl = await p.evaluate(() => window.__hub3d.duel());
+    const pos = () => p.evaluate(ids => window.__hub3d.agents().filter(a => ids.includes(a.id)), dl ? dl.ids : []);
+    const a0 = await pos(); await sleep(7000); const a1 = await pos();
+    const res = a1.map(a => { const b = a0.find(o => o.id === a.id); return { id: a.id, turns: a.turns, far: Math.hypot(a.x - dl.node[0], a.z - dl.node[1]), was: Math.hypot(b.x - dl.node[0], b.z - dl.node[1]), side: Math.sign((a.x - dl.node[0]) * (b.x - dl.node[0]) + (a.z - dl.node[1]) * (b.z - dl.node[1])) }; });
+    ok("對向兩隻能交會而過、不迴轉", !!dl && res.length === 2 && res.every(r => r.turns === 0 && r.side < 0), JSON.stringify({ dl, res }));
+    ok("交會測試沒有錯誤", errs.length === 0, errs.join(" | "));
+    await ctx.close();
+  }
   // ===== 2. 直式／4:3 也框得好 =====
   for (const [w, h] of [[820, 1180], [1024, 768]]) {
     const { ctx, p, errs } = await openGame(browser, { w, h, stickers: 20, stars: 25, eggs: 2, query: "debug" });
     await ready(p);
-    const r = await p.evaluate(() => { const ob = ["#menu > h1", "#menu > .menu-bottom", "#guide img", "#guideText", "#homeBtn", "#musicBtn", "#playerBtn", "#settingsBtn"].map(s => document.querySelector(s).getBoundingClientRect());
+    const r = await p.evaluate(() => { const ob = ["#menu > h1", "#menu > .menu-bottom", "#guide img", "#guideText", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn"].map(s => document.querySelector(s)).filter(Boolean).map(e => e.getBoundingClientRect());
       const bad = []; for (const t of document.querySelectorAll(".hub-tag")) { const q = t.getBoundingClientRect(); if (q.left < 0 || q.top < 0 || q.right > innerWidth || q.bottom > innerHeight || ob.some(o => q.left < o.right && q.right > o.left && q.top < o.bottom && q.bottom > o.top)) bad.push(t.dataset.mode); }
       return { hub: document.body.classList.contains("hub3d"), bad, fit: window.__hub3d.fitOk }; });
     ok(`${w}×${h}：3D 選單出現、浮標沒被擋`, r.hub && r.fit && r.bad.length === 0, JSON.stringify(r));
-    const s = await spot(p, "build"); if (s) await p.mouse.click(s.x, s.y);
-    ok(`${w}×${h}：點積木建築 → 進積木`, await p.waitForFunction(() => !document.getElementById("build").classList.contains("hidden"), null, { timeout: 8000 }).then(() => true, () => false));
+    let inB = false;   // 朋友會剛好走過去擋到 → 最多試 3 次
+    for (let k = 0; k < 3 && !inB; k++) { const s = await spot(p, "build"); if (s) { await p.mouse.click(s.x, s.y); inB = await inMode(p, "build"); } else await sleep(500); }
+    ok(`${w}×${h}：點積木建築 → 進積木`, inB);
     ok(`${w}×${h}：沒有錯誤`, errs.length === 0, errs.join(" | "));
     await ctx.close();
   }

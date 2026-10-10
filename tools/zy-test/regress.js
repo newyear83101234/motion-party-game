@@ -4,13 +4,16 @@
 const { launch, openGame, enterMode } = require("./lib");
 const out = []; const ok = (name, cond, info = "") => out.push(`${cond ? "PASS" : "FAIL"}  ${name}${info !== "" ? "  — " + info : ""}`);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// 等選項進場動畫（拋光 A9：縮放＋位移，一個接一個）跑完再量位置，不然量到的是動畫中的框（最多等 2 秒；無限循環的漂浮動畫不算）
+const settle = p => p.waitForFunction(() => document.getAnimations().every(a => a.playState !== "running" || a.effect.getComputedTiming().endTime === Infinity), null, { timeout: 2000, polling: 50 }).catch(() => {});
 const bareHan = p => p.evaluate(() => { const r = []; const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   while (w.nextNode()) { const n = w.currentNode, e = n.parentElement; if (!/[㐀-鿿]/.test(n.data) || !e || e.closest("script,style,.noann,.zy,.ac,.hidden,textarea")) continue; r.push(n.data.trim().slice(0, 10)); } return r; });
 const spoken = p => p.evaluate(() => window.__spoken.map(s => s.text));
 const clearSpoken = p => p.evaluate(() => { window.__spoken = []; });
 // 點目前題目的正確選項（魚／點餐／尋寶／氣球：DOM 順序＝curOpts 順序）
 const SEL = { fish: "#pond .fishBtn", order: "#shelf .item", hunt: "#scene .obj", tone: "#sky .balloon" };
-const answer = (p, m, right) => p.evaluate(({ m, right, sel }) => { const o = window.__zy.curOpts; const i = o.findIndex(x => !!x.ok === right); document.querySelectorAll(sel)[i].click(); }, { m, right, sel: SEL[m] });
+// 選項改成手指一碰（pointerdown）就判定（拋光 A2）→ 測試也派 PointerEvent，不用 element.click()
+const answer = (p, m, right) => p.evaluate(({ m, right, sel }) => { const o = window.__zy.curOpts; const i = o.findIndex(x => !!x.ok === right); document.querySelectorAll(sel)[i].dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, pointerType: "touch", isPrimary: true })); }, { m, right, sel: SEL[m] });
 const overlaps = (p, sel) => p.evaluate(sel => { const r = [...document.querySelectorAll(sel)].map(e => e.getBoundingClientRect()); let n = 0;
   for (let i = 0; i < r.length; i++) for (let j = i + 1; j < r.length; j++) { const a = r[i], b = r[j]; if (a.left < b.right - 2 && b.left < a.right - 2 && a.top < b.bottom - 2 && b.top < a.bottom - 2) n++; } return n; }, sel);
 
@@ -58,7 +61,7 @@ const overlaps = (p, sel) => p.evaluate(sel => { const r = [...document.querySel
     // 結算 / 圖鑑 / 設定 / 換人 / 翻牌選張數 的注音
     await enterMode(p, "match", 8);
     await p.evaluate(() => { const cs = [...document.querySelectorAll("#board .card")]; const by = new Map(); for (const c of cs) { const k = c._c.w.h; by.set(k, [...(by.get(k) || []), c]); } window.__pairs = [...by.values()]; });
-    for (let i = 0; i < 4; i++) { await p.evaluate(i => { const [a, b] = window.__pairs[i]; a.click(); b.click(); }, i); await sleep(450); }
+    for (let i = 0; i < 4; i++) { await p.evaluate(i => { const tap = e => e.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, pointerType: "touch", isPrimary: true })); const [a, b] = window.__pairs[i]; tap(a); tap(b); }, i); await sleep(450); }
     await p.waitForFunction(() => !document.getElementById("result").classList.contains("hidden"), null, { timeout: 5000 }); await sleep(1500);
     ok("結算：沒有漏注音的國字", (await bareHan(p)).length === 0, (await bareHan(p)).join("、"));
     ok("翻牌 8 張全對＝3 星", await p.evaluate(() => document.querySelectorAll("#resultStars .star.on").length === 3));
@@ -100,12 +103,12 @@ const overlaps = (p, sel) => p.evaluate(sel => { const r = [...document.querySel
     await p.evaluate(() => document.getElementById("settingsBtn").click()); await sleep(200);
     await p.evaluate(() => document.getElementById("backupBtn").click()); await sleep(200);
     const code = await p.evaluate(() => document.getElementById("saveCode").value);
-    ok("備份碼產生（ZY1: 開頭）", code.startsWith("ZY1:"), code.slice(0, 12) + "…");
+    ok("備份碼產生（ZY2: 開頭＝三位一起，B6）", code.startsWith("ZY2:"), code.slice(0, 12) + "…");
     await p.evaluate(() => document.getElementById("resetBtn").click()); await sleep(100);
     ok("清除按第 1 次只是警告", (await cnt()) === "40" && await p.evaluate(() => document.getElementById("resetBtn").classList.contains("armed")));
     await p.evaluate(() => document.getElementById("resetBtn").click()); await sleep(200);
     ok("清除按第 2 次＝清掉", (await cnt()) === "0");
-    await p.evaluate(c => { const ta = document.getElementById("saveCode"); ta.classList.remove("hidden"); ta.value = c; document.getElementById("restoreBtn").click(); }, code); await sleep(200);
+    await p.evaluate(c => { const ta = document.getElementById("saveCode"); ta.classList.remove("hidden"); ta.value = c; document.getElementById("restoreBtn").click(); document.getElementById("restoreBtn").click(); }, code); await sleep(200);   // ZY2：第 1 下說明會蓋掉哪幾位、第 2 下才還原
     ok("貼備份碼還原＝40 張、7 顆星", (await cnt()) === "40" && (await p.evaluate(() => localStorage.getItem("zy1_stars"))) === "7");
     await p.evaluate(c => { const ta = document.getElementById("saveCode"); ta.value = "亂打的"; document.getElementById("restoreBtn").click(); }); await sleep(100);
     ok("亂打的備份碼＝拒絕、存檔不變", (await cnt()) === "40" && (await p.evaluate(() => document.getElementById("saveMsg").textContent)).includes("❌"));
@@ -131,13 +134,13 @@ const overlaps = (p, sel) => p.evaluate(sel => { const r = [...document.querySel
   for (const [W, H, tag] of [[1180, 820, "橫"], [820, 1180, "直"], [1024, 768, "4:3"]]) {
     const { ctx, p, errs } = await openGame(browser, { w: W, h: H, stickers: 40, query: "debug" });
     for (const n of [8, 16, 24]) {
-      await enterMode(p, "match", n);
+      await enterMode(p, "match", n); await settle(p);
       const r = await p.evaluate(() => { const cs = [...document.querySelectorAll("#board .card")].map(c => c.getBoundingClientRect()); const rows = new Map(); for (const b of cs) rows.set(Math.round(b.top), (rows.get(Math.round(b.top)) || 0) + 1);
         return { n: cs.length, rows: [...rows.values()], inside: cs.every(b => b.left >= 0 && b.top >= 0 && b.right <= innerWidth + 1 && b.bottom <= innerHeight + 1), han: document.querySelectorAll("#board .card .han").length, w: Math.round(cs[0].width) }; });
       ok(`${tag} 翻牌 ${n}：張數對、每列排滿、都在畫面內、圖卡沒國字`, r.n === n && new Set(r.rows).size === 1 && r.inside && r.han === 0, JSON.stringify(r));
     }
     for (const [m, sel] of [["fish", "#pond .zlabel"], ["tone", "#sky .zlabel"]]) {
-      let worst = 0; for (let k = 0; k < 3; k++) { await enterMode(p, m); worst = Math.max(worst, await overlaps(p, sel)); }
+      let worst = 0; for (let k = 0; k < 3; k++) { await enterMode(p, m); await settle(p); worst = Math.max(worst, await overlaps(p, sel)); }
       ok(`${tag} ${m}：注音標籤互不重疊（抽 3 題）`, worst === 0, "重疊對數 " + worst);
     }
     ok(`${tag} 沒有錯誤`, errs.length === 0, errs.join(" | "));

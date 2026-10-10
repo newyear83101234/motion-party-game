@@ -22,11 +22,12 @@
   </script>
   <!-- 自己的程式一開頁就同時抓（高優先）：不然要等 zhuyin.js 下載完才知道要抓 ann/words/ui，再等它跑起來才抓 hub3d，
        一層等一層，線上 4Mbps 實測多卡約 3 秒（tools/zy-test/loadprofile.js）。網址要跟實際 import 的完全一樣（含 ?v=） -->
-  <link rel="modulepreload" href="js/zhuyin.js?v=13" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin.js?v=18" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-words.js" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-ann.js" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-ui.js" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=2" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-voice.js?v=1" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=4" fetchpriority="high">
   <!-- 開頁要等貓頭鷹：圖片預設優先序最低，線上實測 24KB 會排在 three.js 後面最晚才到 → 提高優先序 -->
   <link rel="preload" as="image" href="IMAGE/zhuyin/guide_owl.webp" fetchpriority="high">
   <!-- Three.js 跟頁面一起開始抓（4Mbps 開頁快 0.6 秒）；?no3d 不抓。這裡不先測 WebGL2（建 context 會拖慢開頁），沒有 WebGL2 的極少數機器只是白抓 -->
@@ -39,19 +40,21 @@
     })();
   </script>
   <!-- 樣式表放在上面兩段 script 後面：classic script 會等前面的樣式表下載完才執行，放前面會卡住整頁解析 -->
-  <link rel="stylesheet" href="css/zhuyin.css?v=13">
+  <link rel="stylesheet" href="css/zhuyin.css?v=18">
 </head>
-<body>
-  <!-- 讀取畫面：開頁與第一次進某個遊戲時，圖還沒抓好就蓋著（不會看到空白） -->
+<body class="gate-on">
+  <!-- body.gate-on：開始畫面還沒按「開始玩」→ CSS 藏起小島浮標、嚮導、圓鈕（開始畫面只留一個標題、一顆按鈕） -->
+  <!-- 讀取畫面：開頁與第一次進某個遊戲時，圖還沒抓好就蓋著（不會看到空白）。貓頭鷹圖到了才換掉ㄅㄆㄇ積木；進度條＝真的已載入幾個／共幾個 -->
   <div id="loading" class="loading">
+    <img id="ldOwl" class="ld-owl" src="IMAGE/zhuyin/guide_owl.webp" alt="" onload="this.parentNode.classList.add('owl-ok')">
     <div class="ld-blocks"><span>ㄅ</span><span>ㄆ</span><span>ㄇ</span></div>
     <div class="ld-text">準備中…</div>
-    <div class="ld-bar"><i></i></div>
+    <div class="ld-bar"><i id="ldFill"></i></div>
   </div>
   <!-- 開始畫面：瀏覽器規定要先點一下才能出聲，所以開頁先請小朋友點「開始玩」，這一下同時開音樂和打招呼（阿葉 10-10「剛開始的畫面沒有音樂」） -->
   <div id="startGate" class="start-gate hidden">
-    <img src="IMAGE/zhuyin/guide_owl.webp" alt="">
     <div class="sg-title">注音小島</div>
+    <img class="sg-owl" src="IMAGE/zhuyin/guide_owl.webp" alt="">
     <button id="startBtn" class="big-btn sg-btn">▶️ 開始玩</button>
   </div>
 
@@ -59,8 +62,11 @@
   <button id="homeBtn" class="round-btn" title="回首頁">🏠</button>
   <button id="musicBtn" class="round-btn" title="音樂">🎵</button>
   <button id="speakBtn" class="hint-btn hidden" title="提示"><span class="ic">🔊</span><span id="speakLabel">提示</span></button>
-  <button id="settingsBtn" class="round-btn hidden" title="家長設定">⚙️</button>
+  <!-- 家長鎖：⚙️ 要按住 2 秒（進度環跑滿）才開；小孩點一下只會晃 -->
+  <button id="settingsBtn" class="round-btn hidden" title="家長設定（按住 2 秒）"><span class="ic">⚙️</span><i class="lock-ring"></i></button>
+  <div id="lockTip" class="lock-tip noann hidden">家長請按住 2 秒</div>
   <button id="playerBtn" class="round-btn hidden" title="換人玩">🐻</button>
+  <div id="playerTag" class="player-tag">換人</div>
 
   <!-- 嚮導貓頭鷹（只在選單出現） -->
   <div id="guide" class="guide hidden"><img src="IMAGE/zhuyin/guide_owl.webp" alt=""><div id="guideText" class="guideText"></div></div>
@@ -149,21 +155,23 @@
   </section>
 
   <!-- ===== 結算 ===== -->
+  <!-- 結算演出（B1）：星星一顆顆蓋章 → 貼紙一張張貼 → 星星飛進右下的星星罐 → 按鈕最後才淡入；演出中點畫面＝快轉到最後 -->
   <section id="result" class="screen bg-map hidden">
+    <div id="resultCf" class="cf-layer"></div>
     <div id="resultText" class="result-text"></div>
     <div id="resultStars" class="stars"></div>
     <div id="resultStickers" class="result-stickers"></div>
-    <div class="result-btns">
+    <div id="resultBtns" class="result-btns">
       <button id="againBtn" class="big-btn">🔁 再玩</button>
       <button id="resultAlbumBtn" class="big-btn alt">📒 貼紙</button>
       <button id="menuBtn" class="big-btn alt">🏝️ 回小島</button>
     </div>
-    <button id="hatchHint" class="pill jarBtn ready hidden"><span class="jar"><span class="jarFill"></span></span><span>⭐ <span class="jarText">0/10</span></span><span class="egg">🥚 孵蛋！</span></button>
+    <button id="hatchHint" class="pill jarBtn resJar"><span class="jar"><span class="jarFill"></span></span><span>⭐ <span class="jarText">0/10</span></span><span class="egg">🥚<span class="eggGo">孵蛋！</span></span></button>
   </section>
 
   <!-- ===== 貼紙圖鑑 ===== -->
   <section id="album" class="screen bg-album hidden">
-    <div class="album-head"><button id="albumBack" class="big-btn alt small">⬅️</button><h2>📒 我的貼紙 <span id="albumCount" class="nw"></span></h2></div>
+    <div class="album-head"><button id="albumBack" class="hidden" aria-hidden="true"></button><h2>📒 我的貼紙 <span id="albumCount" class="nw"></span></h2></div>
     <div id="albumTabs" class="tabs"></div>
     <div id="albumGrid" class="album-grid"></div>
   </section>
@@ -174,21 +182,47 @@
   <div id="players" class="overlay hidden"><div class="dialog"><div class="q">👋 誰要玩？</div><div id="playerList" class="row wrap"></div></div></div>
   <!-- 翻牌選張數 -->
   <div id="matchPick" class="overlay hidden"><div class="dialog"><div class="q">🃏 要翻幾張牌？</div><div id="matchSizes" class="row wrap"></div><button id="matchPickClose" class="big-btn alt small">↩️ 回去</button></div></div>
-  <div id="settings" class="overlay hidden"><div class="dialog settings">
+  <!-- 家長設定（B6）：整頁給家長看 → noann 不加注音、靠左、分段 -->
+  <div id="settings" class="overlay hidden"><div class="dialog settings noann">
     <div class="q">⚙️ 家長設定</div>
-    <div class="set-label">🔊 小朋友多久沒<span class="nw">動作，</span><wbr><span class="nw">「提示」</span>按鈕會<span class="nw">閃爍提醒？</span></div>
-    <div class="row" id="hintOpts"><button class="opt" data-v="0">關閉</button><button class="opt" data-v="10">10 秒</button><button class="opt" data-v="20">20 秒</button><button class="opt" data-v="30">30 秒</button></div>
-    <div class="set-note noann">遊戲不會自己唸出答案，<br>小朋友按<span class="nw">「🔊 提示」</span>才會唸。<br>同一題答錯 2 次，提示按鈕也會閃；<br>這時按提示，正確答案會輕輕晃一下。</div>
-    <div class="set-label">💾 存檔：<span id="setSlotName"></span></div>
-    <div class="row wrap"><button id="backupBtn" class="opt">📋 備份</button><button id="restoreBtn" class="opt">📥 還原</button><button id="resetBtn" class="opt danger">🗑️ 清除重來</button></div>
-    <textarea id="saveCode" class="save-code hidden" rows="2" spellcheck="false"></textarea>
-    <div id="saveMsg" class="set-note noann"></div>
-    <div class="set-note noann">進度會自動存在這台平板的瀏覽器裡。<br>換平板或清除瀏覽器資料前，先按「備份」把備份碼存起來。</div>
+    <div id="backupNag" class="set-nag hidden"></div>
+    <div class="set-sec">
+      <div class="set-label">🔊 提示按鈕閃爍</div>
+      <div class="set-note">小朋友多久沒動作，「🔊 提示」按鈕會閃爍提醒。遊戲不會自己唸出答案，小朋友按「提示」才會唸；同一題答錯 2 次，提示按鈕也會閃，這時按提示，正確答案會輕輕晃一下。</div>
+      <div class="seg" id="hintOpts"><button class="opt" data-v="0">關閉</button><button class="opt" data-v="10">10 秒</button><button class="opt" data-v="20">20 秒</button><button class="opt" data-v="30">30 秒</button></div>
+    </div>
+    <div class="set-sec">
+      <div class="set-label">💾 備份與還原（小熊、小兔、小貓三位一起）</div>
+      <div class="set-note">進度存在這台平板的瀏覽器裡。換平板或清除瀏覽器資料前，按「備份全部」把備份碼存到 LINE 或備忘錄。</div>
+      <div id="lastBackup" class="set-note strong"></div>
+      <div class="row wrap set-row"><button id="backupBtn" class="opt">📋 備份全部</button><button id="restoreBtn" class="opt">📥 還原</button></div>
+      <textarea id="saveCode" class="save-code hidden" rows="3" spellcheck="false"></textarea>
+      <div id="saveMsg" class="set-note"></div>
+    </div>
+    <div class="set-sec">
+      <div class="set-label">🗑️ 清除重來：<span id="setSlotName"></span></div>
+      <div class="set-note">只清除目前這位的貼紙、星星和朋友，其他兩位不受影響。要按兩次才會清。</div>
+      <div class="row wrap set-row"><button id="resetBtn" class="opt danger">🗑️ 清除重來</button></div>
+    </div>
     <button id="settingsClose" class="big-btn">✅ 好</button>
   </div></div>
-  <div id="hatch" class="overlay hidden"><div class="dialog hatchBox"><div id="hatchEgg" class="hatchEgg"></div><img id="hatchFriend" class="hatchFriend hidden" alt=""><div id="hatchName" class="q"></div><button id="hatchClose" class="big-btn">🎉 太棒了</button></div></div>
+  <!-- 孵蛋演出（B4）：js 的 playHatchShow(圖, 名字) 共用，之後獎勵系統的孵蛋直接沿用 -->
+  <div id="hatch" class="overlay hidden"><div class="dialog hatchBox">
+    <div class="hatchStage">
+      <div class="hatchRays"></div>
+      <div id="hatchEgg" class="hatchEgg"><svg class="hatchCrack" viewBox="0 0 464 560" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <path class="ck1" pathLength="1" d="M56 262 L104 236 L138 270 L184 230 L222 262"/>
+        <path class="ck2" pathLength="1" d="M222 262 L262 228 L300 266 L346 234 L382 270 L412 250"/>
+        <path class="ck3" pathLength="1" d="M184 230 L176 196 L196 172 M300 266 L310 304 L290 330"/>
+      </svg></div>
+      <img id="hatchFriend" class="hatchFriend hidden" alt="">
+    </div>
+    <div id="hatchName" class="q"></div>
+    <button id="hatchClose" class="big-btn">🎉 太棒了</button>
+  </div></div>
+  <div id="flash" class="flash"></div>
 
   <div id="fx" class="fx"></div>
-  <script type="module" src="js/zhuyin.js?v=13"></script>
+  <script type="module" src="js/zhuyin.js?v=18"></script>
 </body>
 </html>

@@ -1,0 +1,241 @@
+{
+ "how": "每句由 Gemini 3.8 Flash 盲聽寫（不給答案），拼音跟正確讀音比對；詞庫詞以遊戲注音為準。AI 聽寫本身也會錯，所以這份是『請人耳確認』清單，不代表一定唸錯。",
+ "count": 4,
+ "suspicious": 4,
+ "items": [
+  {
+   "text": "水，謝謝你！",
+   "file": "order_671049f8.mp3",
+   "level": "可疑",
+   "why": [
+    "水 應 shui3 聽到 shei4",
+    "謝 應 xie4 唸成輕聲"
+   ],
+   "heard": "誰，謝謝你",
+   "pinyin": "shei4 xie4 xie5 ni3",
+   "correct": "shui3 xie4 xie4 ni3",
+   "zhuyin": null,
+   "tries": 7,
+   "all_takes": [
+    {
+     "sent": "水，謝謝你！",
+     "pinyin": "en1 xie4 xie5 ni3",
+     "why": [
+      "水 應 shui3 聽到 en1",
+      "謝 應 xie4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "水，謝謝你！",
+     "pinyin": "xie4 xie4 xie5 ni3",
+     "why": [
+      "水 應 shui3 聽到 xie4",
+      "謝 應 xie4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "水，謝謝你！",
+     "pinyin": "xie4 xie5 ni3",
+     "why": [
+      "音節數不同：應 4（shui3 xie4 xie4 ni3），聽到 3（xie4 xie5 ni3）"
+     ]
+    },
+    {
+     "sent": "水，謝謝你！",
+     "pinyin": "shei2 xie4 xie5 ni3",
+     "why": [
+      "水 應 shui3 聽到 shei2",
+      "謝 應 xie4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "水，謝謝你！",
+     "pinyin": "shui4 xie4 xie5 ni3",
+     "why": [
+      "水 應 shui3 聽到 shui4",
+      "謝 應 xie4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "水，謝謝你！",
+     "pinyin": "shei4 xie4 xie5 ni3",
+     "why": [
+      "水 應 shui3 聽到 shei4",
+      "謝 應 xie4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "水，謝謝你！",
+     "pinyin": "xie4 xie4 xie5 ni3",
+     "why": [
+      "水 應 shui3 聽到 xie4",
+      "謝 應 xie4 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "水餃，謝謝你！",
+   "file": "order_b5812b13.mp3",
+   "level": "可疑",
+   "why": [
+    "水 應 shui3 聽到 shei2",
+    "餃 應 jiao3 聽到 jiang3",
+    "謝 應 xie4 唸成輕聲"
+   ],
+   "heard": "誰講，謝謝你",
+   "pinyin": "shei2 jiang3 xie4 xie5 ni3",
+   "correct": "shui3 jiao3 xie4 xie4 ni3",
+   "zhuyin": null,
+   "tries": 5,
+   "all_takes": [
+    {
+     "sent": "水餃，謝謝你！",
+     "pinyin": "shei2 jiang3 xie4 xie5 ni3",
+     "why": [
+      "水 應 shui3 聽到 shei2",
+      "餃 應 jiao3 聽到 jiang3",
+      "謝 應 xie4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "水餃，謝謝你！",
+     "pinyin": "shei2 jiao4 xie4 xie5 ni3",
+     "why": [
+      "水 應 shui3 聽到 shei2",
+      "餃 應 jiao3 聽到 jiao4",
+      "謝 應 xie4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "水餃，謝謝你！",
+     "pinyin": "shui4 jiao4 xie4 xie5 ni3",
+     "why": [
+      "水 應 shui3 聽到 shui4",
+      "餃 應 jiao3 聽到 jiao4",
+      "謝 應 xie4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "水餃，謝謝你！",
+     "pinyin": "shei2 jiao4 xie4 xie5 ni3",
+     "why": [
+      "水 應 shui3 聽到 shei2",
+      "餃 應 jiao3 聽到 jiao4",
+      "謝 應 xie4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "水餃，謝謝你！",
+     "pinyin": "shei2 jiao4 xie4 xie5 ni3",
+     "why": [
+      "水 應 shui3 聽到 shei2",
+      "餃 應 jiao3 聽到 jiao4",
+      "謝 應 xie4 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "球",
+   "file": "word_f2af96b8.mp3",
+   "level": "可疑",
+   "why": [
+    "球 應 qiu2 聽到 qiao2"
+   ],
+   "heard": "橋",
+   "pinyin": "qiao2",
+   "correct": "qiu2",
+   "zhuyin": "ㄑㄧㄡˊ",
+   "tries": 5,
+   "all_takes": [
+    {
+     "sent": "球",
+     "pinyin": "qiao2",
+     "why": [
+      "球 應 qiu2 聽到 qiao2"
+     ]
+    },
+    {
+     "sent": "球",
+     "pinyin": "qiao2",
+     "why": [
+      "球 應 qiu2 聽到 qiao2"
+     ]
+    },
+    {
+     "sent": "球",
+     "pinyin": "qiao2",
+     "why": [
+      "球 應 qiu2 聽到 qiao2"
+     ]
+    },
+    {
+     "sent": "球",
+     "pinyin": "chou3",
+     "why": [
+      "球 應 qiu2 聽到 chou3"
+     ]
+    },
+    {
+     "sent": "球",
+     "pinyin": "qiong2",
+     "why": [
+      "球 應 qiu2 聽到 qiong2"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "寶寶",
+   "file": "word_cefa7240.mp3",
+   "level": "可疑",
+   "why": [
+    "寶 應 bao3 唸成輕聲"
+   ],
+   "heard": "寶寶",
+   "pinyin": "bao3 bao5",
+   "correct": "bao3 bao3",
+   "zhuyin": "ㄅㄠˇ ㄅㄠˇ",
+   "tries": 5,
+   "all_takes": [
+    {
+     "sent": "寶寶",
+     "pinyin": "bao3 bao2",
+     "why": [
+      "寶 應 bao3 聽到 bao2"
+     ]
+    },
+    {
+     "sent": "寶寶",
+     "pinyin": "bao3 bao1",
+     "why": [
+      "寶 應 bao3 聽到 bao1"
+     ]
+    },
+    {
+     "sent": "寶寶",
+     "pinyin": "zao3 ba5",
+     "why": [
+      "寶 應 bao3 聽到 zao3",
+      "寶 應 bao3 聽到 ba5"
+     ]
+    },
+    {
+     "sent": "寶寶",
+     "pinyin": "bao3 bao1",
+     "why": [
+      "寶 應 bao3 聽到 bao1"
+     ]
+    },
+    {
+     "sent": "寶寶",
+     "pinyin": "bao3 bao5",
+     "why": [
+      "寶 應 bao3 唸成輕聲"
+     ]
+    }
+   ]
+  }
+ ]
+}

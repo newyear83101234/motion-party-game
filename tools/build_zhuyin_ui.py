@@ -25,9 +25,26 @@ TONES = "ˊˇˋ˙"
 # 審過的特例（詞或單字 → 注音，音節空白分隔、聲調在尾、輕聲 ˙ 在尾）
 OVERRIDE = {
     "喔": "ㄛ",            # 句尾語氣「喔」台灣口語標 ㄛ
+    "誰": "ㄕㄟˊ",          # 萌典主讀音 ㄕㄟˊ（ㄕㄨㄟˊ 為讀音）；寧次 10-10 發現標成 ㄕㄨㄟˊ
     "囉": "ㄌㄨㄛ˙",
     "哇": "ㄨㄚ",          # 驚嘆「哇！」一聲（pypinyin 給輕聲）
+    # 10-10 阿葉回報＋全面複查：萌典沒收這個詞、或第一個讀音不是這裡的意思 → 照詞義指定
+    "重來": "ㄔㄨㄥˊ ㄌㄞˊ",       # 清除重來：重新來過（萌典無此詞，單字會落到 ㄓㄨㄥˋ）
+    "困難": "ㄎㄨㄣˋ ㄋㄢˊ",       # 課本標 ㄋㄢˊ（萌典列輕聲）
+    "這台": "ㄓㄜˋ ㄊㄞˊ",         # 量詞「台」＝臺 ㄊㄞˊ（萌典「台」單字列的是天台山的 ㄊㄞ）
+    "不是": "ㄅㄨˋ ㄕˋ",           # 「這不是…」；萌典第一個是名詞「不是（過錯）」ㄅㄨˋ ˙ㄕ
+    "東西": "ㄉㄨㄥ ㄒㄧ˙",        # 物品（不是東邊西邊）
+    "買東西": "ㄇㄞˇ ㄉㄨㄥ ㄒㄧ˙",
+    "哪個": "ㄋㄚˇ ㄍㄜ˙",         # 跟「這個 ㄓㄜˋ ㄍㄜ˙」一致
 }
+
+# 讀音回歸檢查：每次重建字典都要過，錯了就停（阿葉 10-10「加入詞組檢查，避免重新產生注音後又出錯」）
+# 句子 → 句子裡某個詞應該的注音
+MUST = [
+    ("清除重來", "重來", "ㄔㄨㄥˊ ㄌㄞˊ"), ("重新開始", "重新", "ㄔㄨㄥˊ ㄒㄧㄣ"), ("困難", "困難", "ㄎㄨㄣˋ ㄋㄢˊ"),
+    ("誰要玩", "誰", "ㄕㄟˊ"), ("這不是正確的備份碼", "不是", "ㄅㄨˋ ㄕˋ"), ("今天要玩哪個呢", "哪個", "ㄋㄚˇ ㄍㄜ˙"),
+    ("把東西拿給客人", "東西", "ㄉㄨㄥ ㄒㄧ˙"), ("會來店裡買東西喔", "東西", "ㄉㄨㄥ ㄒㄧ˙"),
+]
 
 cache = {}
 if os.path.exists(CACHE):
@@ -164,6 +181,21 @@ with io.open(OUT, "w", encoding="utf-8", newline="\n") as f:
     f.write("export const ZDICT = " + json.dumps(dictionary, ensure_ascii=False, sort_keys=True) + ";\n")
     f.write("export const ZCHAR = " + json.dumps(chars, ensure_ascii=False, sort_keys=True) + ";\n")
 print(f"字串段 {len(runs)}，字典 {len(dictionary)} 筆，單字 {len(chars)} 個 → {OUT}")
+# 讀音回歸檢查（MUST）：在字典裡找含這句的字串段，取出該詞位置的注音比對；含「台」的字串段另外檢查不能是 ㄊㄞ
+bad = []
+for sent, word, want in MUST:
+    hits = [r for r in dictionary if sent in r]
+    if not hits: continue                                  # 畫面上已經沒有這句就跳過
+    for r in hits:
+        syl = dictionary[r].split(" "); i = r.index(sent) + sent.index(word)
+        got = " ".join(syl[i:i + len(word)])
+        if got != want: bad.append(f"「{r}」裡的「{word}」是 {got}，應為 {want}")
+for r, z in dictionary.items():
+    for i, ch in enumerate(r):
+        if ch == "台" and z.split(" ")[i] != "ㄊㄞˊ": bad.append(f"「{r}」裡的「台」是 {z.split(' ')[i]}，應為 ㄊㄞˊ")
+if bad:
+    print("!!!! 讀音回歸檢查失敗 !!!!"); [print("   " + b) for b in bad]; sys.exit(1)
+print(f"讀音回歸檢查：{len(MUST)} 組＋台 全過")
 print("---- 詞庫 vs 萌典（✗＝讀音不同要人工判斷）----")
 for r in word_issues: print(r)
 if "--all" in sys.argv:

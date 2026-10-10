@@ -4,6 +4,7 @@
 // 設計依據：櫻木花道（遊戲設計）＋寧次（UI/UX）2026-09-09 審查報告；規格見 memory project-zhuyin-game.md
 import { WORDS, PHRASES, CATS, FRIENDS } from "./zhuyin-words.js";
 import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js";
+import { voiceUnlock, voiceSay, voiceStop, voiceSpeaking, voicePreload } from "./zhuyin-voice.js?v=1";
 startAnnotate();                                      // 畫面上每個國字自動加注音（阿葉 10-10）
 
 const TONES = ["", "ˊ", "ˇ", "ˋ", "˙"];
@@ -49,9 +50,332 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 function lsGet(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }
 function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }   // 回傳有沒有真的寫進去（空間滿／被擋會 false）
 
+// ---------- 拋光：共用動畫 ----------
+// A 組「遊戲手感」（docs/zhuyin-polish-backlog.md A1–A20）。這一段只管「表現」：答對／答錯／金銀星／提示時機／存檔規則都沒動。
+// 裝飾出錯不能卡住遊戲 → 呼叫點一律包 PZ()（只 console.warn；tools/zy-test/polish.js 會檢查沒有 [polish] 警告）
+const PZ = fn => { try { return fn(); } catch (e) { console.warn("[polish]", (e && e.message) || e); return undefined; } };
+const pzVm = () => Math.min(innerWidth, innerHeight) / 100;
+const MAJOR = [0, 2, 4, 5, 7, 9, 11, 12];                // A1：連對一題升一個音（大調 Do Re Mi Fa So La Si Do）
+const stepRate = k => 2 ** (MAJOR[Math.max(0, Math.min(k, 7))] / 12);
+document.addEventListener("touchstart", () => {}, { passive: true });   // A2：iOS Safari 要有 touchstart 監聽，:active 才會在手指按下時亮
+// A2：手指一碰就算（pointerdown，不等放開）；鍵盤 Enter／空白鍵送出的 click（detail 0）照樣能用
+function onTap(e, fn) {
+  let last = -1e9;
+  e.addEventListener("pointerdown", ev => { if (ev.button > 0) return; last = performance.now(); fn(ev); });
+  e.addEventListener("click", ev => { if (ev.detail === 0 && performance.now() - last > 800) fn(ev); });
+}
+const rectOf = t => (t.getBoundingClientRect ? t.getBoundingClientRect() : { left: t.x, top: t.y, width: 0, height: 0 });
+const ctr = (r, at = [0.5, 0.5]) => ({ x: r.left + r.width * at[0], y: r.top + r.height * at[1] });
+// A8：把 src 的分身沿弧線飛到 target（元素或 {x,y}）、縮到 scale；回傳 Promise（飛到就 resolve，中途換畫面也會 resolve）
+//   text：飛的是一個字／emoji（不複製 src）；hide：飛的時候把原本那個藏起來；from：起點改用這個框（拖曳放開的位置）
+function flyTo(src, target, { dur = 550, scale = 0.3, lift = 10, text, at, hide = false, from } = {}) {
+  return new Promise(done => {
+    const v = pzVm(), a = from || rectOf(src), p0 = ctr(a), p1 = ctr(rectOf(target), at);
+    let g;
+    if (text !== undefined) { const s = 7 * v; g = el("div", "flyer txt", text); g.style.cssText = `left:${p0.x - s / 2}px;top:${p0.y - s / 2}px;width:${s}px;height:${s}px;font-size:${6 * v}px`; }
+    else {
+      g = src.cloneNode(true); g.removeAttribute("id"); g.classList.remove("ok", "ng", "dim", "used", "wiggle", "bounce", "lifted", "hinted", "enter", "golden");
+      g.classList.add("flyer"); g.style.cssText = `left:${a.left}px;top:${a.top}px;width:${a.width}px;height:${a.height}px`;
+    }
+    $("fx").appendChild(g); if (hide) src.style.visibility = "hidden";
+    const dx = p1.x - p0.x, dy = p1.y - p0.y, sm = (1 + scale) / 2 + 0.12;
+    let fin = false; const end = () => { if (fin) return; fin = true; g.remove(); done(); };
+    const an = g.animate([{ transform: "translate(0px, 0px) scale(1)", easing: "ease-out" },
+      { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - lift * v}px) scale(${sm})`, offset: 0.5, easing: "ease-in" },
+      { transform: `translate(${dx}px, ${dy}px) scale(${scale})` }], { duration: dur, fill: "forwards" });
+    an.onfinish = end; setTimeout(end, dur + 400);
+  });
+}
+// 噴碎片（A7）：glyphs＝字／emoji，或 colors＝色塊；往外噴、再受重力往下掉
+function fxSpray(target, n, { glyphs, colors, size = 4.5, dist = 13, grav = 16, dur = 750 } = {}) {
+  const c = ctr(rectOf(target)), v = pzVm(), fx = $("fx");
+  for (let i = 0; i < n; i++) {
+    const s = el("i", "shard");
+    if (glyphs) { s.textContent = pick(glyphs); s.style.fontSize = size * v + "px"; }
+    else { const w = size * v * (0.55 + Math.random() * 0.6); s.style.width = w + "px"; s.style.height = w * (0.6 + Math.random() * 0.6) + "px"; s.style.background = pick(colors); s.style.borderRadius = i % 2 ? "50%" : 0.25 * w + "px"; }
+    s.style.left = c.x + "px"; s.style.top = c.y + "px"; fx.appendChild(s);
+    const ang = (i / n) * Math.PI * 2 + Math.random() * 0.6, d = dist * v * (0.6 + Math.random() * 0.6), ex = Math.cos(ang) * d, ey = Math.sin(ang) * d * 0.8, r = rnd(540) - 270;
+    s.animate([{ transform: "translate(-50%, -50%) scale(0.6)", opacity: 1 },
+      { transform: `translate(calc(-50% + ${ex * 0.65}px), calc(-50% + ${ey * 0.65 - 3 * v}px)) rotate(${r / 2}deg)`, opacity: 1, offset: 0.35 },
+      { transform: `translate(calc(-50% + ${ex}px), calc(-50% + ${ey + grav * v}px)) rotate(${r}deg) scale(0.85)`, opacity: 0 }],
+      { duration: dur + rnd(250), easing: "cubic-bezier(.25,.6,.5,1)", fill: "forwards" });
+    setTimeout(() => s.remove(), dur + 400);
+  }
+}
+function fxRing(target, { color = "#fff", size = 26, dur = 120, at } = {}) {   // 擴散的光圈（氣球破的白閃、魚的水花）
+  const c = ctr(rectOf(target), at), w = size * pzVm(), s = el("i", "ring");
+  s.style.cssText = `left:${c.x - w / 2}px;top:${c.y - w / 2}px;width:${w}px;height:${w}px;border-color:${color}`; $("fx").appendChild(s);
+  s.animate([{ transform: "scale(0.3)", opacity: 1 }, { transform: "scale(1.4)", opacity: 0 }], { duration: dur, easing: "ease-out", fill: "forwards" });
+  setTimeout(() => s.remove(), dur + 200);
+}
+function fxMark(target, text, { dur = 800, at = [0.5, 0.1], rise = 7, cls = "", dx = 0 } = {}) {   // 從 target 冒出來往上飄（愛心、問號、皇冠）
+  const c = ctr(rectOf(target), at), v = pzVm(), s = el("i", "mark " + cls, text);
+  s.style.left = c.x + dx * v + "px"; s.style.top = c.y + "px"; $("fx").appendChild(s);
+  s.animate([{ transform: "translate(-50%, -50%) scale(0.4)", opacity: 0 }, { transform: "translate(-50%, -80%) scale(1.15)", opacity: 1, offset: 0.25 },
+    { transform: `translate(-50%, calc(-50% - ${rise * v}px)) scale(1)`, opacity: rise ? 0 : 1 }], { duration: dur, easing: "ease-out", fill: "forwards" });
+  setTimeout(() => s.remove(), dur + 200);
+}
+function fxFlash() { const s = el("i", "goldflash"); $("fx").appendChild(s); s.animate([{ opacity: 0 }, { opacity: 0.9, offset: 0.35 }, { opacity: 0 }], { duration: 400, fill: "forwards" }); setTimeout(() => s.remove(), 600); }
+
+const pz = { tok: -1, surprise: false, force: false, placed: 0, from: null, demoT: 0, critT: 0 };   // surprise：這一局用過驚喜題了；placed：這題放對幾格（積木音階）
+let firstPlay = null;                                    // A20：這個模式第一次玩（startMode 設；第 1 題 6 秒沒動作就示範）
+const OPT_SEL = { fish: "#pond .fishBtn", order: "#shelf .item", hunt: "#scene .obj", tone: "#sky .balloon", build: "#tray .tile", match: "#board .card" };
+const PROMPT_ID = { fish: "fishPrompt", tone: "tonePrompt", build: "buildPrompt", order: "bubble", hunt: "huntBubble", whack: "whackPic" };
+const BURST = { fish: "💧", order: "💖", build: "🧱", whack: "💫", tone: "✨" };   // A7：每個遊戲自己的答對特效（burst 換主題）
+const BALLOON_C = ["#ff5d5d", "#4a90ff", "#4cc764", "#ffcf33"];                  // 跟 balloon / _blue / _green / _yellow 同色
+const SURPRISE = new Set(["fish", "tone", "order", "frog"]);
+const optEls = () => [...document.querySelectorAll(OPT_SEL[mode] || "#none")];
+// 每題開始（nextQ 出完題後）：選項進場、最後一題衝刺、場景小生物、第一次玩的示範
+function polishQ() {
+  if (pz.tok !== navToken) { pz.tok = navToken; pz.surprise = false; PZ(critterRound); }   // 新的一局
+  pz.placed = 0; pz.from = null;
+  PZ(critterCheck); PZ(optionsIn); PZ(polishSprint); PZ(demoArm);
+}
+// A9：選項進場（縮小→放大回彈＋淡入，一個接一個 70ms）：魚從左右游進、氣球從下面升上來、食物掉進貨架；題目卡 0.25 秒翻面進場
+function optionsIn() {
+  const v = pzVm(), gap = mode === "match" ? 22 : 70;
+  optEls().forEach((e, i) => {
+    const r = e.getBoundingClientRect(), left = r.left + r.width / 2 < innerWidth / 2;
+    const from = mode === "fish" ? `${(left ? -45 : 45) * v}px 0px` : mode === "tone" ? `0px ${45 * v}px` : mode === "order" ? `0px ${-20 * v}px` : "0px 0px";
+    e.animate([{ translate: from, scale: 0.5, opacity: 0 }, { translate: "0px 0px", scale: 1.08, opacity: 1, offset: 0.7 }, { translate: "0px 0px", scale: 1, opacity: 1 }],
+      { duration: mode === "fish" || mode === "tone" ? 450 : 350, delay: i * gap, easing: "ease-out", fill: "backwards" });
+  });
+  const pc = $(PROMPT_ID[mode]);
+  if (pc) pc.animate([{ transform: "perspective(80vmin) rotateX(85deg)", opacity: 0 }, { transform: "perspective(80vmin) rotateX(0deg)", opacity: 1 }], { duration: 250, easing: "ease-out" });
+}
+// A9：答對時錯的選項退場（魚游走、氣球飄走、其他淡掉），正解獨佔畫面
+function optionsOut(okEl) {
+  const v = pzVm();
+  for (const e of optEls()) {
+    if (e === okEl) continue;
+    const r = e.getBoundingClientRect(), left = r.left + r.width / 2 < innerWidth / 2, op = getComputedStyle(e).opacity;
+    const [to, o, d] = mode === "fish" ? [`${(left ? -70 : 70) * v}px ${3 * v}px`, 0, 700] : mode === "tone" ? [`0px ${-80 * v}px`, 0, 1100] : ["0px 0px", 0.25, 400];
+    e.animate([{ translate: "0px 0px", opacity: op }, { translate: to, opacity: o }], { duration: d, delay: 150, easing: mode === "tone" ? "ease-in" : "ease-in-out", fill: "forwards" });
+  }
+}
+// A6：題目卡框轉綠 0.8 秒；揭曉國字後卡片變寬／變高用過渡（量最後大小要等自動注音加完＝下一個 microtask）
+function promptBefore() { const p = $(PROMPT_ID[mode]); return p && p.offsetParent ? { p, w: p.offsetWidth, h: p.offsetHeight } : null; }
+function promptAfter(pre) {
+  if (!pre) return; const { p, w, h } = pre;
+  p.classList.remove("solved"); void p.offsetWidth; p.classList.add("solved"); clearTimeout(p._solvedT); p._solvedT = setTimeout(() => p.classList.remove("solved"), 800);
+  queueMicrotask(() => PZ(() => {
+    const w1 = p.offsetWidth, h1 = p.offsetHeight; if (Math.abs(w1 - w) < 2 && Math.abs(h1 - h) < 2) return;
+    p.animate([{ width: w + "px", height: h + "px" }, { width: w1 + "px", height: h1 + "px" }], { duration: 320, easing: "cubic-bezier(.2,1.25,.4,1)" });
+  }));
+}
+// 答對後的表現（correct() 在 onDone、drawProgress 之後呼叫）
+function polishCorrect(target, gold, pre) {
+  const m = mode, tok = navToken, p = $("progress"), dot = p.children[idx], v = pzVm();
+  if (dot && !p.classList.contains("hidden")) flyTo(target, dot, { text: gold ? "⭐" : "✨", dur: 500, scale: 0.55, lift: 8 });   // A5：一顆星從答案飛到那格
+  promptAfter(pre);                                                                        // A6
+  if (m === "fish" || m === "tone" || m === "order" || m === "hunt") optionsOut(target);    // A9
+  if (gold && [3, 5, 8].includes(combo) && MODES[m].rounds > 1) PZ(() => comboBadge(combo));  // A12
+  const sur = !pz.surprise && SURPRISE.has(m) && (pz.force || Math.random() < 0.12);       // A17：每局最多 1 題、約 12%、只在答對後
+  if (sur) { pz.surprise = true; pz.force = false; }
+  if (m === "fish") { fxSpray(target, 8, { glyphs: ["💧"], size: 4, dist: 11, grav: 14 }); fxRing(target, { color: "rgba(255,255,255,0.9)", size: 24, dur: 380, at: [0.5, 0.3] }); }
+  else if (m === "tone") {                                // A7：氣球破成 10 片同色碎片＋0.12 秒白閃圈（注音牌掉下去是 CSS）
+    const img = target.querySelector(".balloonImg") || target, ci = +((target.className.match(/\bc(\d)\b/) || [])[1] || 0);
+    setTimeout(() => { fxSpray(img, 10, { colors: sur ? BALLOON_C : [BALLOON_C[ci]], size: 4, dist: 15, grav: 20, dur: 650 }); fxRing(img, { size: 22, dur: 120 }); }, sur ? 550 : 0);
+  }
+  else if (m === "order") {                               // A8：食物飛到客人嘴邊 → 嚼兩下＋pop×2＋飄 3 顆愛心
+    const cust = $("customer");
+    flyTo(target, cust, { at: [0.5, 0.42], hide: true, dur: 550, scale: 0.35 }).then(() => {
+      if (tok !== navToken) return;
+      cust.classList.remove("chew", "enter", "no"); void cust.offsetWidth; cust.classList.add("chew"); play("pop", 1.15); setTimeout(() => play("pop", 1.3), 260);
+      for (let k = 0; k < 3; k++) setTimeout(() => fxMark(cust, "💖", { at: [0.5, 0.25], dx: (k - 1) * 6, rise: 10, dur: 1000 }), k * 150);
+    });
+  }
+  else if (m === "hunt") {                                // A8：東西飛進背包 → 背包彈一下、數字「3/8」
+    const bag = $("bag");
+    flyTo(target, bag, { hide: true, dur: 600, scale: 0.3 }).then(() => {
+      bag.textContent = `🎒 ${results.filter(Boolean).length}/${MODES.hunt.rounds}`; bag.classList.remove("got"); void bag.offsetWidth; bag.classList.add("got"); if (tok === navToken) play("pop", 1.4);
+    });
+  }
+  else if (m === "build") [...document.querySelectorAll("#slots .slot")].forEach((d, i) => setTimeout(() => { d.classList.remove("hop2"); void d.offsetWidth; d.classList.add("hop2"); }, 250 + i * 80));   // A8：拼完各格依序跳
+  if (sur) PZ(() => polishSurprise(m, target));
+  const n = MODES[m].rounds; if (n > 1 && idx === n - 1) setTimeout(() => { if (curBgm) curBgm.playbackRate = 1; }, 1200);   // A19 衝刺結束
+}
+// A12：連對 3、5、8 題：頂上落下「連續 N 題！」徽章（0.45 秒彈入、停 1.2 秒收回），收回時進度膠囊亮金 0.6 秒
+//   徽章落在進度膠囊上（蓋住膠囊一下），不要蓋到正在揭曉國字的題目卡
+function comboBadge(n) {
+  const p = $("progress"), pr = p.getBoundingClientRect(), v = pzVm(), b = el("div", "combo-badge", `連續 ${n} 題！`);
+  b.style.top = Math.max(0.5 * v, pr.top - 1.2 * v) + "px"; document.body.appendChild(b);
+  const up = `-50% ${-(pr.bottom + 22 * v)}px`;
+  b.animate([{ translate: up, easing: "cubic-bezier(.2,1.5,.4,1)" }, { translate: "-50% 0px", offset: 0.21 }, { translate: "-50% 0px", offset: 0.79, easing: "ease-in" }, { translate: up }], { duration: 2100, fill: "forwards" });
+  setTimeout(() => b.remove(), 2200);
+  setTimeout(() => { p.classList.remove("glow"); void p.offsetWidth; p.classList.add("glow"); setTimeout(() => p.classList.remove("glow"), 650); }, 1650);
+}
+// A17：驚喜題（不預告、不改難度）：全螢幕金光 0.4 秒＋sticker 音＋30 顆星；金魚／彩虹氣球／戴皇冠的客人／金荷葉
+function polishSurprise(m, target) {
+  fxFlash(); setTimeout(() => play("sticker"), 150); burst(target, 30, "🌟");
+  if (m === "fish") target.classList.add("golden");
+  else if (m === "tone") target.classList.add("rainbow");
+  else if (m === "order") fxMark($("customer"), "👑", { at: [0.5, 0.02], rise: 0, dur: 1700, cls: "crown" });
+  else if (m === "frog") document.querySelectorAll("#river .pad.bloom").forEach(d => d.classList.add("goldpad"));
+}
+// A19：最後一題衝刺：BGM 快 6%（BGM 保留原本音高）、進度最後一格閃
+function polishSprint() {
+  const n = MODES[mode].rounds, last = n > 1 && idx === n - 1;
+  if (curBgm) curBgm.playbackRate = last ? 1.06 : 1;
+  if (last && $("progress").lastElementChild) $("progress").lastElementChild.classList.add("final");
+}
+// A15：注音標籤固定寬高、字縮放塞進去（一個符號的ㄩˇ不會扁寬、三個音節不會擠出框）
+function fitZ(box, z, max) {
+  const v = pzVm(); z.style.fontSize = max * v + "px";
+  const cs = getComputedStyle(box), iw = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), ih = box.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  const k = Math.min(1, iw / (z.offsetWidth || 1), ih / (z.offsetHeight || 1));
+  if (k < 1) z.style.fontSize = max * v * k * 0.97 + "px";
+}
+// A3：翻牌配對成功＝兩張一起放大＋金框，閃光從注音卡飛到圖卡（0.3 秒）再揭曉國字
+function pairFx(a, b, reveal) {
+  for (const c of [a, b]) { c.classList.remove("pairHit"); void c.offsetWidth; c.classList.add("pairHit"); setTimeout(() => c.classList.remove("pairHit"), 650); }
+  const z = a._c.kind === "z" ? a : b, pic = z === a ? b : a;
+  flyTo(z, pic, { text: "✨", dur: 300, scale: 1.3, lift: 5 }).then(reveal, reveal);
+  PZ(() => matchCount(true));
+  return true;
+}
+function matchCount(bump) {   // A14：翻牌頂上的配對計數膠囊「3/12」
+  const top = $("match").querySelector(".topbar"); if (!top || !mq) return;
+  let c = top.querySelector(".mcount"); if (!c) { c = el("div", "mcount"); top.appendChild(c); }
+  c.textContent = `🃏 ${mq.matched}/${mq.pairs}`;
+  if (bump) { c.classList.remove("bump"); void c.offsetWidth; c.classList.add("bump"); }
+}
+// A8：積木拖曳：按住拿起、跟著手指，放開時看手指底下是哪一格 → 交給 placeSym／placeTone 判定（規則不變）；沒拖動＝點一下（照舊）
+function dragTile(b, tone) {
+  const place = pref => (tone ? placeTone(b) : placeSym(b, pref));
+  let st = null, last = -1e9;
+  b.addEventListener("pointerdown", e => {
+    if (e.button > 0 || st || locked || b.classList.contains("used")) return;
+    st = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0, drag: false }; last = performance.now();
+    try { b.setPointerCapture(e.pointerId); } catch (er) {}
+  });
+  b.addEventListener("pointermove", e => {
+    if (!st || e.pointerId !== st.id) return;
+    st.dx = e.clientX - st.x; st.dy = e.clientY - st.y;
+    if (!st.drag) {
+      if (Math.hypot(st.dx, st.dy) < 1.5 * pzVm() || locked) return; st.drag = true; b.classList.add("lifted");
+      for (const a of b.getAnimations()) if (!(window.CSSAnimation && a instanceof CSSAnimation) && !(window.CSSTransition && a instanceof CSSTransition)) a.finish();   // 進場動畫還沒跑完就拿起來：先結束它，積木才會跟著手指
+    }
+    b.style.translate = `${st.dx}px ${st.dy}px`;
+  });
+  const back = s => b.animate([{ translate: `${s.dx}px ${s.dy}px` }, { translate: "0px 0px" }], { duration: 220, easing: "ease-out" });
+  const end = (e, cancel) => {
+    if (!st || e.pointerId !== st.id) return;
+    const s = st; st = null; last = performance.now();
+    const r = b.getBoundingClientRect(); b.classList.remove("lifted"); b.style.translate = "";
+    if (!s.drag) { if (!cancel) place(); return; }
+    const slot = cancel || locked ? undefined : dropSlot(e.clientX, e.clientY, tone);
+    if (slot === undefined) { back(s); return; }          // 放在格子外：滑回托盤，不算錯
+    const w0 = wrongThisQ; pz.from = r; place(slot); pz.from = null;
+    if (wrongThisQ > w0) back(s);                         // 放錯：照舊算一次錯（placeSym 判的），積木滑回托盤
+  };
+  b.addEventListener("pointerup", e => end(e, false));
+  b.addEventListener("pointercancel", e => end(e, true));
+  b.addEventListener("lostpointercapture", e => end(e, true));
+  b.addEventListener("click", e => { if (e.detail === 0 && performance.now() - last > 800) place(); });
+  return true;
+}
+// 拖曳放開的位置：落在某格（多 2.5vmin 寬容）＝那一格；落在題目盤上但不在空格＝null（照點一下判定）；盤外＝undefined（滑回去）
+function dropSlot(x, y, tone) {
+  const pd = 2.5 * pzVm(), inR = (r, q = pd) => x >= r.left - q && x <= r.right + q && y >= r.top - q && y <= r.bottom + q;
+  const hit = [...document.querySelectorAll(tone ? "#slots .toneSlot" : "#slots .slot:not(.toneSlot)")].find(d => inR(d.getBoundingClientRect()));
+  if (hit) return tone || hit.dataset.v ? null : hit;
+  return inR($("slots").getBoundingClientRect(), 0) ? null : undefined;
+}
+function tileLand(b, d) {   // A8：積木 0.22 秒飛進格子、格子彈 1.15
+  const from = pz.from; pz.from = null; d.classList.add("landing");
+  flyTo(b, d, { dur: 220, scale: d.offsetWidth / (b.offsetWidth || 1), lift: 3, from }).then(() => { d.classList.remove("landing", "pop"); void d.offsetWidth; d.classList.add("pop"); });
+}
+function fxRipple(lp) {     // A4：青蛙落地水波（0.3→1.6，0.5 秒）
+  const r = el("div", "ripple"); r._lp = lp; fplace(r); const rv = $("river"); rv.insertBefore(r, rv.firstChild); setTimeout(() => r.remove(), 600);
+}
+// A18：可以戳的場景小生物：每 20–40 秒出現一隻（最多 2 隻），待 11–15 秒；不擋選項，戳了叫一聲翻一圈，不算答錯
+const CRIT = { fish: ["🦆", "🐢"], hunt: ["🦋", "🐿️"], tone: ["🐦", "🦋"], whack: ["🐞", "🐌"], frog: ["🦆", "🐢"], order: ["🐭"], build: ["🐞"] };
+function critterRound() {
+  clearTimeout(pz.critT); document.querySelectorAll(".critter").forEach(c => c.remove());
+  const tok = navToken, m = mode; if (!CRIT[m]) return;
+  const next = () => { pz.critT = setTimeout(() => { if (tok !== navToken || mode !== m) return; PZ(spawnCritter); next(); }, 20000 + rnd(20000)); };
+  next();
+}
+function busyRects() {     // 小生物不能放的地方：選項、題目卡、頂上的按鈕和進度、各遊戲的場地
+  const v = pzVm(), sel = [OPT_SEL[mode], PROMPT_ID[mode] && "#" + PROMPT_ID[mode], "#progress", "#speakBtn", "#homeBtn", "#musicBtn", ".mcount", "#field .wcell", "#field .wwin", "#river > *", "#customer", "#slots", "#whackDots"].filter(Boolean).join(",");
+  const rs = [...document.querySelectorAll(sel)].map(e => e.getBoundingClientRect()).filter(r => r.width > 0);
+  if (mode === "build") { const t = $("tray").getBoundingClientRect(); rs.push({ left: 0, right: innerWidth, top: t.top, bottom: innerHeight }); }   // 托盤以下（聲調積木那排之後才出現）
+  if (mode === "frog" && fq) {                           // 還沒出現的荷葉排也要讓開
+    const rv = $("river").getBoundingClientRect(), w = 22 * v, h = 17.6 * v;
+    for (let i = 0; i <= fq.k + 1; i++) for (let j = 0; j < 3; j++) { const p = fpos(i, j, 3); const x = rv.left + rv.width * p.x / 100, y = rv.top + rv.height * p.y / 100; rs.push({ left: x - w / 2, right: x + w / 2, top: y - h / 2, bottom: y + h / 2 }); }
+  }
+  return rs;
+}
+function spawnCritter() {
+  const m = mode, sec = m && $(m); if (!CRIT[m] || !sec || sec.classList.contains("hidden")) return null;
+  if (sec.querySelectorAll(".critter:not(.bye)").length >= 2) return null;
+  const v = pzVm(), S = 11 * v, M = 4 * v, sr = sec.getBoundingClientRect(), busy = busyRects(), others = [...sec.querySelectorAll(".critter")].map(c => c.getBoundingClientRect());
+  const free = (x, y) => busy.every(r => x + S + M < r.left || x - M > r.right || y + S + M < r.top || y - M > r.bottom) && others.every(r => Math.hypot(r.left - x, r.top - y) > S * 1.6);
+  let pos = null;
+  for (let k = 0; k < 80 && !pos; k++) { const x = sr.left + 2 * v + Math.random() * (sr.width - S - 4 * v), y = sr.top + 15 * v + Math.random() * (sr.height - S - 17 * v); if (free(x, y)) pos = { x, y }; }
+  if (!pos) return null;
+  const c = el("div", "critter", pick(CRIT[m])); c.style.left = pos.x - sr.left + "px"; c.style.top = pos.y - sr.top + "px";
+  sec.appendChild(c); setTimeout(() => byeCritter(c), 11000 + rnd(4000));
+  return c;
+}
+function byeCritter(c) { if (!c.isConnected || c.classList.contains("bye")) return; c.classList.add("bye"); setTimeout(() => c.remove(), 550); }
+function critterCheck() {  // 換題後選項位置變了（尋寶每題亂排）：會擋到的小生物先離開
+  const sec = mode && $(mode); if (!sec) return; const cs = sec.querySelectorAll(".critter:not(.bye)"); if (!cs.length) return; const busy = busyRects();
+  for (const c of cs) { const r = c.getBoundingClientRect(); if (busy.some(b => r.left < b.right && r.right > b.left && r.top < b.bottom && r.bottom > b.top)) byeCritter(c); }
+}
+// 戳小生物：在 window 捕獲階段就攔下來 → 不會變成「再點一下換下一題」、不碰閒置計時、不算答錯
+window.addEventListener("pointerdown", e => {
+  const c = e.target && e.target.closest ? e.target.closest(".critter") : null; if (!c) return;
+  e.stopPropagation(); e.preventDefault(); if (c.classList.contains("bye")) return;
+  play("pop", 1.5 + Math.random() * 0.3);
+  c.animate([{ transform: "rotateY(0deg) translateY(0px)" }, { transform: "rotateY(180deg) translateY(-3vmin)", offset: 0.5 }, { transform: "rotateY(360deg) translateY(0px)" }], { duration: 600, easing: "ease-in-out" });
+}, true);
+// A20：某模式第一次玩、第 1 題 6 秒沒動作 → 手指示範點一次正確答案（只示範、不幫他答，這題照算金星）；積木示範拖曳
+function demoArm() {
+  clearTimeout(pz.demoT); document.querySelectorAll(".demo-finger").forEach(d => d.remove());
+  if (idx !== 0 || !firstPlay || firstPlay !== mode) return;
+  firstPlay = null; const tok = navToken, m = mode;
+  const stop = () => { clearTimeout(pz.demoT); document.removeEventListener("pointerdown", stop, true); };
+  document.addEventListener("pointerdown", stop, true);
+  pz.demoT = setTimeout(() => { document.removeEventListener("pointerdown", stop, true); PZ(() => showDemo(tok, m, 0)); }, 6000);
+}
+function demoTarget(m) {
+  if (m === "frog") { const c = fq && fq.cols.find(c => c.o.ok); return c ? c.pad : null; }
+  if (m === "whack") { const c = wq && wq.cells.find(c => c.ok && c.state === "up"); return c ? c.mole : null; }
+  if (m === "match") return document.querySelector("#board .card.kz:not(.up):not(.done)");
+  const i = curOpts ? curOpts.findIndex(o => o.ok) : -1; return i >= 0 ? optEls()[i] || null : null;
+}
+function showDemo(tok, m, tries) {
+  if (tok !== navToken || mode !== m || idx !== 0 || locked) return;
+  if (m === "build") { demoDrag(); return; }
+  const t = demoTarget(m);
+  if (!t) { if (tries < 20) pz.demoT = setTimeout(() => PZ(() => showDemo(tok, m, tries + 1)), 300); return; }   // 地鼠：等正確那隻冒出來
+  const c = ctr(t.getBoundingClientRect()), v = pzVm(), f = el("div", "demo-finger"); f.appendChild(el("span", "", "👆"));
+  f.style.left = c.x - 4.5 * v + "px"; f.style.top = c.y - 0.5 * v + "px"; $("fx").appendChild(f);
+  for (const at of [960, 1660]) setTimeout(() => { if (t.isConnected) t.animate([{ scale: 1 }, { scale: 0.9 }, { scale: 1 }], { duration: 260 }); }, at);
+  const stop = () => { f.remove(); document.removeEventListener("pointerdown", stop, true); };
+  document.addEventListener("pointerdown", stop, true); setTimeout(stop, 3300);
+}
+function demoDrag() {     // 積木：手指拿著正確的積木拖到格子（半透明分身跟著動）
+  const e = emptySlots()[0]; if (!e) return; const want = bq.syls[e[0]].sym[e[1]];
+  const tile = [...document.querySelectorAll("#tray .tile:not(.used)")].find(t => t.dataset.v === want); if (!tile) return;
+  const a = tile.getBoundingClientRect(), b = e[2].getBoundingClientRect(), v = pzVm(), c = ctr(a);
+  const g = tile.cloneNode(true); g.classList.add("flyer", "ghost"); g.style.cssText = `left:${a.left}px;top:${a.top}px;width:${a.width}px;height:${a.height}px`;
+  const f = el("div", "demo-finger drag"); f.appendChild(el("span", "", "👆")); f.style.left = c.x - 4.5 * v + "px"; f.style.top = c.y - 0.5 * v + "px";
+  $("fx").appendChild(g); $("fx").appendChild(f);
+  const dx = b.left + b.width / 2 - c.x, dy = b.top + b.height / 2 - c.y, go = `translate(${dx}px, ${dy}px)`;
+  const kf = [{ transform: "translate(0px, 0px)" }, { transform: "translate(0px, 0px)", offset: 0.25 }, { transform: go, offset: 0.75 }, { transform: go }];
+  f.animate(kf, { duration: 2600, easing: "ease-in-out", fill: "forwards" });
+  g.animate([{ transform: "translate(0px, 0px)", opacity: 0 }, { transform: "translate(0px, 0px) scale(1.12)", opacity: 0.8, offset: 0.25 }, { transform: go + " scale(1.12)", opacity: 0.8, offset: 0.75 }, { transform: go, opacity: 0 }], { duration: 2600, easing: "ease-in-out", fill: "forwards" });
+  const stop = () => { f.remove(); g.remove(); document.removeEventListener("pointerdown", stop, true); };
+  document.addEventListener("pointerdown", stop, true); setTimeout(stop, 2700);
+}
+if (location.search.includes("debug")) window.__zyPolish = { pz, stepRate, spawnCritter: () => PZ(spawnCritter), force() { pz.surprise = false; pz.force = true; }, get firstPlay() { return firstPlay; } };   // 測試用（tools/zy-test/polish.js）
+
 // ---------- 存檔（localStorage；三個存檔位＝家裡三個小朋友各玩各的，阿葉 10-10「可以做存檔跟重新開始」）----------
-// 每個存檔位的鍵：zy{1..3}_stickers / _stars / _eggs / _intro / _last_mode / _resume / _match_size
-// 全家共用：zy_slot（目前是誰）、zy_music、zy_hint_wait
+// 每個存檔位的鍵：zy{1..3}_stickers / _stars / _eggs / _intro / _last_mode / _resume / _match_size / _best（各模式最佳星數）/ _hello（貓頭鷹自我介紹過）
+// 全家共用：zy_slot（目前是誰）、zy_music、zy_hint_wait、zy_last_backup（上次按「備份全部」的時間，ms）、zy_ld_total（上次開頁載入幾個檔，讀取進度條用）
 export const SLOTS = [{ e: "🐻", name: "小熊" }, { e: "🐰", name: "小兔" }, { e: "🐱", name: "小貓" }];
 let slot = Math.min(3, Math.max(1, (lsGet("zy_slot", 1) | 0) || 1));
 const K = k => `zy${slot}_${k}`;
@@ -71,30 +395,67 @@ function loadSlot(n) {
   save.stars = lsGet(K("stars"), 0);                  // 累積星星（罐子）
   save.eggs = lsGet(K("eggs"), 0);                    // 孵過幾顆蛋 → FRIENDS[4 + eggs] 以前都解鎖
   save.intro = lsGet(K("intro"), {});                 // 哪些模式聽過開場語
-  save.matchSize = lsGet(K("match_size"), 8);         // 翻牌上次選的張數
+  save.matchSize = lsGet(K("match_size"), 8);         // 翻牌上次選的張數（新存檔預設 8＝簡單）
+  save.best = lsGet(K("best"), {});                   // 個人紀錄（B14）：{ 模式: 最佳星數 }
 }
 loadSlot(slot);
-const persist = () => [lsSet(K("stickers"), save.stickers), lsSet(K("stars"), save.stars), lsSet(K("eggs"), save.eggs), lsSet(K("intro"), save.intro), lsSet(K("match_size"), save.matchSize), lsSet("zy_music", save.music), lsSet("zy_hint_wait", save.hintWait)].every(Boolean);
+const persist = () => [lsSet(K("stickers"), save.stickers), lsSet(K("stars"), save.stars), lsSet(K("eggs"), save.eggs), lsSet(K("intro"), save.intro), lsSet(K("match_size"), save.matchSize), lsSet(K("best"), save.best), lsSet("zy_music", save.music), lsSet("zy_hint_wait", save.hintWait)].every(Boolean);
 const slotSummary = n => ({ stickers: Object.keys(lsGet(`zy${n}_stickers`, {})).length, stars: lsGet(`zy${n}_stars`, 0) });
 try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}   // 請瀏覽器不要自動清掉存檔
-// 備份碼：把目前存檔包成一串文字（換平板或瀏覽器被清掉時可以還原）
-function exportCode() { const d = { v: 1, s: Object.keys(save.stickers), st: save.stars, eg: save.eggs }; return "ZY1:" + btoa(unescape(encodeURIComponent(JSON.stringify(d)))); }
-// 回傳 "ok"／"bad"（不是備份碼）／"fail"（寫不進瀏覽器）。從 LINE 複製常夾換行空白 → 先拿掉；只收詞庫裡有的詞、星星設上限
-function importCode(code) {
-  const m = String(code || "").replace(/\s+/g, "").match(/^ZY1:([A-Za-z0-9+/=]+)$/); if (!m || m[1].length > 20000) return "bad";
-  let d; try { d = JSON.parse(decodeURIComponent(escape(atob(m[1])))); } catch (e) { return "bad"; }
-  if (!d || !Array.isArray(d.s)) return "bad";
-  const valid = new Set(WORDS.map(w => w.h));
-  save.stickers = Object.fromEntries(d.s.filter(h => valid.has(h)).map(h => [h, 1]));
-  save.stars = Math.min(99999, Math.max(0, Math.floor(+d.st) || 0)); save.eggs = Math.max(0, Math.min(FRIENDS.length - 4, Math.floor(+d.eg) || 0));
-  return persist() ? "ok" : "fail";
+// 備份碼（B6）：ZY2＝三個存檔位一次包起來（換平板或瀏覽器被清掉時可以還原）；舊的 ZY1（只有一位）照樣能還原到目前這一位
+const b64enc = o => btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+const b64dec = s => JSON.parse(decodeURIComponent(escape(atob(s))));
+const slotRaw = n => { const g = (k, d) => lsGet(`zy${n}_${k}`, d); return { s: Object.keys(g("stickers", {}) || {}), st: g("stars", 0), eg: g("eggs", 0), b: g("best", {}), i: Object.keys(g("intro", {}) || {}), m: g("match_size", 8) }; };
+// 備份碼裡的一位 → 乾淨的存檔資料：只收詞庫有的詞、只收認得的模式、數字有上下限（不是正確格式就回 null）
+function cleanSlot(d) {
+  if (!d || typeof d !== "object" || !Array.isArray(d.s)) return null;
+  const valid = new Set(WORDS.map(w => w.h)), modes = Object.keys(MODES), num = (v, hi) => Math.min(hi, Math.max(0, Math.floor(+v) || 0));
+  const best = {}; if (d.b && typeof d.b === "object") for (const m of modes) { const v = num(d.b[m], 3); if (v) best[m] = v; }
+  const intro = {}; if (Array.isArray(d.i)) for (const m of d.i) if (modes.includes(m)) intro[m] = 1;
+  return { stickers: Object.fromEntries(d.s.filter(h => typeof h === "string" && valid.has(h)).map(h => [h, 1])), stars: num(d.st, 99999), eggs: num(d.eg, FRIENDS.length - 4),
+    best, intro, matchSize: [8, 16, 24].includes(+d.m) ? +d.m : 8 };
 }
-function clearSlot() { for (const k of ["stickers", "stars", "eggs", "intro", "last_mode", "resume", "match_size", "whack_up"]) { try { localStorage.removeItem(K(k)); } catch (e) {} } loadSlot(slot); }
+const slotHasData = c => !!c && (Object.keys(c.stickers).length > 0 || c.stars > 0 || c.eggs > 0);
+function exportCode() { return "ZY2:" + b64enc({ v: 2, hw: save.hintWait, p: [1, 2, 3].map(slotRaw) }); }   // 同樣的進度＝同樣的碼（還原鈕靠這個判斷「框裡只是剛備份的碼」）
+// 讀備份碼（還不寫入）：從 LINE 複製常夾換行空白 → 先拿掉。回傳 null＝不是備份碼；{ v:1, slots:[一位] }／{ v:2, slots:[三位或 null], hw }
+function readCode(code) {
+  const m = String(code || "").replace(/\s+/g, "").match(/^ZY([12]):([A-Za-z0-9+/=]+)$/); if (!m || m[2].length > (m[1] === "1" ? 20000 : 60000)) return null;
+  let d; try { d = b64dec(m[2]); } catch (e) { return null; }
+  if (m[1] === "1") { const c = cleanSlot(d); return c ? { v: 1, slots: [c] } : null; }
+  if (!d || !Array.isArray(d.p) || d.p.length > 3) return null;
+  const slots = [0, 1, 2].map(i => cleanSlot(d.p[i])); if (!slots.some(Boolean)) return null;
+  return { v: 2, slots, hw: [0, 10, 20, 30].includes(+d.hw) ? +d.hw : null };
+}
+// 寫入：回傳 "ok"／"bad"（不是備份碼）／"fail"（寫不進瀏覽器，進度不變）
+// ZY1＝蓋掉目前這一位的貼紙、星星、朋友（舊版只備份這三樣）；ZY2＝備份裡「有進度」的那幾位整位蓋掉，空的那位不動
+function importCode(code) {
+  const r = readCode(code); if (!r) return "bad";
+  if (r.v === 1) { const c = r.slots[0]; save.stickers = c.stickers; save.stars = c.stars; save.eggs = c.eggs; return persist() ? "ok" : "fail"; }
+  const keys = ["stickers", "stars", "eggs", "best", "intro", "match_size", "resume", "hello"], snap = {};
+  for (let n = 1; n <= 3; n++) for (const k of keys) { try { snap[`zy${n}_${k}`] = localStorage.getItem(`zy${n}_${k}`); } catch (e) {} }
+  let ok = true;
+  r.slots.forEach((c, i) => {
+    if (!slotHasData(c)) return;
+    const n = i + 1, w = (k, v) => { ok = lsSet(`zy${n}_${k}`, v) && ok; };
+    w("stickers", c.stickers); w("stars", c.stars); w("eggs", c.eggs); w("best", c.best); w("intro", c.intro); w("match_size", c.matchSize); w("hello", 1);
+    try { localStorage.removeItem(`zy${n}_resume`); } catch (e) {}   // 這台平板上「沒玩完的那一回合」跟還原的進度對不上 → 丟掉
+  });
+  if (ok && r.hw !== null) { save.hintWait = r.hw; ok = lsSet("zy_hint_wait", r.hw); }
+  if (!ok) for (const [k, v] of Object.entries(snap)) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }   // 寫一半失敗：整批放回原狀
+  loadSlot(slot); return ok ? "ok" : "fail";
+}
+function clearSlot() { for (const k of ["stickers", "stars", "eggs", "intro", "last_mode", "resume", "match_size", "whack_up", "best", "hello"]) { try { localStorage.removeItem(K(k)); } catch (e) {} } loadSlot(slot); }
+// 新存檔第一次進來（B8）：貓頭鷹先自我介紹；已經有進度的舊存檔不會突然被介紹
+function helloText() {
+  if (lsGet(K("hello"), 0)) return null; lsSet(K("hello"), 1);
+  return stickerCount() === 0 && !save.stars ? "你好！我是貓頭鷹老師！" : null;
+}
 const stickerCount = () => Object.keys(save.stickers).length;
 const friends = () => FRIENDS.slice(0, Math.min(FRIENDS.length, 4 + save.eggs));
 
 // ---------- 音效 / 音樂 / 語音 ----------
-const SFX = {}; for (const n of ["ok", "ng", "tap", "select", "win", "pop", "flip", "sticker"]) { SFX[n] = new Audio(`MUSIC/zy_${n}.mp3`); }
+const SFX = {}; for (const n of ["ok", "ng", "tap", "select", "win", "pop", "flip", "sticker"]) { const a = SFX[n] = new Audio(`MUSIC/zy_${n}.mp3`); a.preservesPitch = a.mozPreservesPitch = a.webkitPreservesPitch = false; }   // A1：音效改 playbackRate 時音高真的跟著變（BGM 不改，保留音高）
+SFX.ng.volume = 0.5;                                    // A10：答錯音小聲一點（怪遊戲不怪小孩）
 SFX.party = new Audio(); SFX.party.preload = "none"; SFX.party.src = "MUSIC/zy_bgm_party.mp3"; SFX.party.volume = 0.45;   // 結算用 Suno 生的 7 秒慶祝 jingle
 // 背景音樂 preload="none"：開頁不下載，第一次播放才抓（之前開頁就吃掉 3.7MB，是載入慢的主因）
 const BGM = {}; for (const k of ["island", "calm"]) { const a = new Audio(); a.preload = "none"; a.src = `MUSIC/zy_bgm_${k}.mp3`; a.loop = true; a.volume = 0.3; BGM[k] = a; }
@@ -103,14 +464,24 @@ function play(name, rate = 1) { const a = SFX[name]; if (!a) return; try { a.__p
 function playBgm(key) {
   const b = BGM[key] || BGM.island;
   if (curBgm && curBgm !== b) { curBgm.pause(); }
-  curBgm = b; if (save.music) b.play().catch(() => {});
+  curBgm = b; b.playbackRate = 1; if (save.music) b.play().catch(() => {});   // 速度歸零：最後一題衝刺（A19）加快過
 }
-function toggleMusic() { save.music = save.music ? 0 : 1; persist(); if (save.music) { if (curBgm) curBgm.play().catch(() => {}); } else if (curBgm) curBgm.pause(); $("musicBtn").classList.toggle("off", !save.music); }
+function toggleMusic() {                               // B10：關掉＝白底＋紅斜線；切換時彈一下＋tap 音
+  save.music = save.music ? 0 : 1; persist(); if (save.music) { if (curBgm) curBgm.play().catch(() => {}); } else if (curBgm) curBgm.pause();
+  const b = $("musicBtn"); b.classList.toggle("off", !save.music); b.classList.remove("pop"); void b.offsetWidth; b.classList.add("pop"); play("tap");
+}
 function duck(on) { ducked = on; for (const b of Object.values(BGM)) b.volume = on ? 0.1 : 0.3; }   // TTS 講話時壓低音樂（聽力題的關鍵）
 let zhVoice = null;
 function loadVoice() { const vs = speechSynthesis.getVoices(); zhVoice = vs.find(v => /zh[-_]TW/i.test(v.lang)) || vs.find(v => /zh/i.test(v.lang)) || null; }
 if ("speechSynthesis" in window) { loadVoice(); speechSynthesis.onvoiceschanged = loadVoice; }
+// 先用 Gemini 預錄的真人語音（js/zhuyin-voice.js，阿葉 10-10「語調太像機械音」）；沒錄到的句子才退回瀏覽器語音
 function say(text, rate = 0.85, onEnd) {
+  voiceStop();                                         // 先停前一句預錄（它的 onEnd 會 duck(false)），之後才壓音樂
+  let vdone = false; const vfin = () => { if (vdone) return; vdone = true; duck(false); if (onEnd) onEnd(); };
+  if (voiceSay(text, { onEnd: vfin })) {               // 不傳 rate：預錄是自然語速，改 rate 連音高一起變
+    try { if ("speechSynthesis" in window) speechSynthesis.cancel(); } catch (e) {}
+    duck(true); return;
+  }
   if (!("speechSynthesis" in window)) { if (onEnd) setTimeout(onEnd, 300); return; }
   try {
     speechSynthesis.cancel(); duck(true); let done = false;
@@ -122,12 +493,13 @@ function say(text, rate = 0.85, onEnd) {
 }
 function queueSay(text) {                              // 等目前這句唸完再唸（稱讚不能蓋掉學習詞）；中途換畫面就作廢
   const tok = navToken; let tries = 0;
-  const t = setInterval(() => { tries++; if (tok !== navToken) { clearInterval(t); return; } if (!("speechSynthesis" in window) || !speechSynthesis.speaking || tries > 25) { clearInterval(t); say(text); } }, 200);
+  const t = setInterval(() => { tries++; if (tok !== navToken) { clearInterval(t); return; } if (((!("speechSynthesis" in window) || !speechSynthesis.speaking) && !voiceSpeaking()) || tries > 25) { clearInterval(t); say(text); } }, 200);
 }
-function stopSpeech() { try { if ("speechSynthesis" in window) speechSynthesis.cancel(); } catch (e) {} duck(false); }
+function stopSpeech() { voiceStop(); try { if ("speechSynthesis" in window) speechSynthesis.cancel(); } catch (e) {} duck(false); }
 // iOS Safari：語音與每個音效元件都要在「手指點擊當下」解鎖一次，之後等圖載完才出聲也不會被吞掉
 let audioUnlocked = false;
 function unlockAudio() {
+  voiceUnlock();                                       // 預錄語音的 AudioContext（每次都要能 resume：iOS 切背景後會被暫停）
   if (audioUnlocked) return; audioUnlocked = true;
   try { if ("speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } } catch (e) {}
   for (const a of Object.values(SFX)) {
@@ -144,11 +516,16 @@ function burst(target, n = 10, emoji = "⭐") {
     fx.appendChild(s); setTimeout(() => s.remove(), 1000);
   }
 }
-function confetti(n = 60) {
-  const fx = $("fx");
+// 彩帶（B2）：五色圓角紙片 3D 翻飛 2.2–3.2 秒。host＝放哪一層：結算放 #resultCf（在字後面、不蓋字），孵蛋放特效層
+const PAPER = ["#ff7a7a", "#ffc233", "#4fb0ff", "#5ccf6a", "#b07cff"];
+function confetti(n = 45, host = $("fx")) {
   for (let i = 0; i < n; i++) {
-    const s = el("span", "cf", pick(["🎉", "⭐", "🌟", "🎊", "💛", "💙"])); s.style.left = Math.random() * 100 + "vw"; s.style.top = "-8vh";
-    s.style.animationDelay = Math.random() * 1.2 + "s"; s.style.animationDuration = 2 + Math.random() * 1.5 + "s"; fx.appendChild(s); setTimeout(() => s.remove(), 4000);
+    const s = el("span", "paper"), dur = 2.2 + Math.random();
+    s.style.left = (Math.random() * 100).toFixed(1) + "%"; s.style.background = pick(PAPER);
+    s.style.setProperty("--ax", (Math.random() * 2 - 1).toFixed(2)); s.style.setProperty("--ay", (Math.random() * 2 - 1).toFixed(2));
+    s.style.setProperty("--sx", (Math.random() * 16 - 8).toFixed(1) + "vmin"); s.style.setProperty("--rt", ((Math.random() < 0.5 ? -1 : 1) * (540 + rnd(720))) + "deg");
+    s.style.animationDuration = dur.toFixed(2) + "s"; s.style.animationDelay = (Math.random() * 1.2).toFixed(2) + "s";
+    host.appendChild(s); setTimeout(() => s.remove(), (dur + 1.4) * 1000);
   }
 }
 
@@ -172,8 +549,11 @@ function preload(k) { for (const n of assetsOf(k)) loadImg(n); }                
 // 導覽代號：每次換畫面 +1。等圖片的非同步流程回來時代號不同＝小孩已經點去別的地方，這次作廢
 let navToken = 0, loadingOwner = 0;
 function nav() { const tok = ++navToken; qToken++; if (loadingOwner) { loadingOwner = 0; showLoading(false); } return tok; }   // qToken++：上一題「答對後自動下一題」的計時器一起作廢
+function setLoadProgress(f) { const i = $("ldFill"); if (i) i.style.width = Math.max(4, Math.min(100, f * 100)).toFixed(1) + "%"; }   // 讀取進度條（B12）
 async function ensure(k, tok) {                                                   // 要用了：沒抓完就顯示讀取動畫等它
   const prs = assetsOf(k).map(loadImg); if (prs.every(x => x.done)) return;
+  const tick = () => { if (tok === navToken) setLoadProgress(prs.filter(x => x.done).length / prs.length); };   // 進度＝這個畫面的圖已到幾張／共幾張
+  tick(); for (const x of prs) x.then(tick);
   const t = setTimeout(() => { if (tok === navToken) { loadingOwner = tok; showLoading(true); } }, 150);   // 150ms 內抓完就不閃讀取畫面
   await Promise.race([Promise.all(prs), new Promise(r => setTimeout(r, 6000))]);   // 網路再慢最多等 6 秒
   clearTimeout(t); if (loadingOwner === tok) { loadingOwner = 0; showLoading(false); }   // 只有自己打開的讀取畫面才由自己關
@@ -181,13 +561,16 @@ async function ensure(k, tok) {                                                 
 function showLoading(on) { $("loading").classList.toggle("hidden", !on); }
 
 // ---------- 3D 選單小島（js/zhuyin-hub3d.js）----------
+// 島上走的寵物：[{ id, glb, stage, name }]（獎勵系統做好後改讀存檔裡的 pets）
+const PET_GLB = { cust_bear: "bear", cust_rabbit: "bunny", cust_cat: "cat", cust_fox: "fox", cust_panda: "panda", cust_penguin: "penguin", cust_frog: "frog", cust_lion: "lion" };
+const hubPets = () => friends().map(f => ({ id: f.id, name: f.name, stage: 2, glb: `IMAGE/zy3d/models/${PET_GLB[f.id]}.glb` }));
 // 選單要用時才動態載入 Three.js＋模型；網址加 ?no3d、沒有 WebGL、載入失敗或 8 秒內沒好 → 退回原本卡片選單（遊戲照常玩）
 let hub = null;
 function hasWebGL() {                                 // Three.js r163 起只支援 WebGL2；探測完把 context 還回去（iPad 同時能開的 context 有限）
   try { const gl = document.createElement("canvas").getContext("webgl2"); if (!gl) return false; const x = gl.getExtension("WEBGL_lose_context"); if (x) x.loseContext(); return true; } catch (e) { return false; }
 }
 function importHub() {
-  const url = "./zhuyin-hub3d.js?v=2";
+  const url = "./zhuyin-hub3d.js?v=4";
   if (window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports("importmap")) return import(url);
   return new Promise((ok, no) => {                    // 舊 iPad（iOS 16.3 以前）不支援 importmap → 補 es-module-shims 再載
     const s = document.createElement("script"); s.src = "IMAGE/zy3d/vendor/es-module-shims/es-module-shims.js";
@@ -198,7 +581,9 @@ function hubFail(why) { console.warn("[hub3d] 退回卡片選單：", why); hub 
 function initHub() {
   if (/[?&]no3d\b/.test(location.search) || !hasWebGL()) { document.body.classList.add("hub-off"); return Promise.resolve(null); }   // hub-off：卡片選單才顯示背景圖
   let settled = false;                                 // （Three.js 已由 zhuyin.html 的 modulepreload 跟頁面一起開始抓）
-  const ready = importHub().then(m => m.createHub({ host: $("menu"), friends: () => friends(), onFriend: f => { play("tap"); say(f.name); }, onFail: hubFail, newbie: () => stickerCount() === 0 }))
+  const ready = importHub().then(m => m.createHub({ host: $("menu"), onFriend: f => { play("tap"); say(f.name); }, onFail: hubFail, newbie: () => stickerCount() === 0,
+    onGacha: () => { play("select"); guideSay("扭蛋機快要開張囉！"); },   // 獎勵系統（docs/zhuyin-rewards-spec.md）做好後改成開扭蛋畫面
+    labels: { gacha: { ico: "🎁", word: "扭蛋" } } }))
     .then(h => { if (settled) { h.dispose(); return null; } settled = true; hub = h; document.body.classList.add("hub3d"); return h; },
       e => { if (!settled) { settled = true; hubFail(e && e.message || e); } return null; });
   const late = new Promise(r => setTimeout(() => { if (!settled) { settled = true; hubFail("逾時"); } r(null); }, 8000));
@@ -240,7 +625,7 @@ function useHint() {
 let curOpts = null;                                    // 目前題目的選項（提示時找正解用）
 function drawProgress() {
   const p = $("progress"); p.innerHTML = ""; const n = MODES[mode].rounds; if (n <= 1) { p.classList.add("hidden"); return; } p.classList.remove("hidden");
-  for (let i = 0; i < n; i++) { const s = el("span"); if (results[i] === "gold") s.className = "gold"; else if (results[i] === "silver") s.className = "silver"; if (i === idx) s.classList.add("cur"); p.appendChild(s); }
+  for (let i = 0; i < n; i++) { const s = el("span"); if (results[i] === "gold") s.className = "gold"; else if (results[i] === "silver") s.className = "silver"; if (i === idx) s.classList.add("cur"); if (results[i] === "gold" && results[i - 1] === "gold") s.classList.add("link"); p.appendChild(s); }   // link：A5 連續金星用金色光帶連起來
 }
 
 // ---------- 出題 ----------
@@ -296,6 +681,7 @@ async function startMode(m, resume) {
   const tok = nav(); stopSpeech(); introUntil = 0; clearIdle(); locked = true;
   // 音樂與開場語在「點下去的當下」就開始（iOS 要求在點擊裡啟動聲音；圖片載入時也不會一片安靜）
   playBgm(MODES[m].bgm);
+  firstPlay = save.intro[m] ? null : m;                 // A20：第一次玩這個模式 → 第 1 題 6 秒沒動作就示範
   if (!save.intro[m]) { save.intro[m] = 1; persist(); introUntil = Date.now() + 6000; say(MODES[m].intro, 0.85, () => { introUntil = 0; }); }
   await ensure(m, tok);
   if (tok !== navToken) return;                        // 等圖的時候小孩已經點去別的地方
@@ -307,6 +693,8 @@ async function startMode(m, resume) {
     const rw = resume.words.map(([h, level]) => ({ word: findWord(h), level })).filter(q => q.word);
     if (rw.length === round.length) { round = rw; idx = resume.idx; results = resume.results || []; combo = resume.combo || 0; earned = (resume.earned || []).map(findWord).filter(Boolean); }
   }
+  voicePreload(round.flatMap(q => m === "order" ? ["我要" + q.word.h, q.word.h + "，謝謝你！"]   // 這回合的題目語音先抓
+    : m === "hunt" ? [q.word.h, "找到了，" + q.word.h] : [q.word.h]).concat(m === "hunt" ? PHRASES.flatMap(p => [p.h, "找到了，" + p.h]) : []));
   showScreen(m);
   nextQ();
   setTimeout(() => { preload("result"); try { SFX.party.load(); } catch (e) {} }, 2500);   // 玩的時候偷偷準備結算要用的
@@ -317,16 +705,20 @@ function nextQ() {
   saveResume();                                       // 每題開始前存一次：關掉平板也能從這題繼續
   wrongThisQ = 0; locked = false; curOpts = null; hintPulse(false); drawProgress();
   ({ fish: buildFish, order: buildOrder, build: buildBuild, hunt: buildHunt, match: buildMatch, tone: buildTone, whack: buildWhack, frog: buildFrog })[mode](round[idx]);
-  armIdle();
+  armIdle(); PZ(polishQ);
 }
-// 答對：金星（一次對）/ 銀星（錯過再對）；連對加速音效＋更多星星；每 3 連對隨機一句稱讚
-function correct(target, onDone, { tolerate = 0, holdMs = 500, autoMs = 1800 } = {}) {   // holdMs：多久後點一下可以跳下一題（打地鼠/青蛙拉長，免得連打把揭曉跳掉）
+// 答對：金星（一次對）/ 銀星（錯過再對）；連對音高照大調音階往上爬（A1）＋更多星星；連對 3、6 題、全對有分等級的稱讚（A12）
+function correct(target, onDone, { tolerate = 0, holdMs = 1200, autoMs = 1800 } = {}) {   // holdMs：多久後點一下可以跳下一題（A6：揭曉至少停 1.2 秒，免得連點把國字跳掉）
   locked = true; clearIdle(); hintPulse(false);
   const gold = wrongThisQ <= tolerate; results[idx] = gold ? "gold" : "silver";
   if (gold) { combo++; const w = round[idx]?.word; if (w && !save.stickers[w.h] && !PHRASES.includes(w)) { save.stickers[w.h] = 1; earned.push(w); persist(); } } else combo = 0;
-  play("ok", 1 + Math.min(combo, 3) * 0.08); burst(target, 10 + Math.min(combo, 4) * 5);
-  if (combo > 0 && combo % 3 === 0) setTimeout(() => queueSay(pick(PRAISE)), 800);
+  const n = MODES[mode].rounds, praise = !gold || n <= 1 ? "" : combo === n ? "全部都對！注音小天才！" : combo === 6 ? "哇，六題都對！" : combo === 3 ? "好棒！" : "";
+  if (praise) autoMs = Math.max(autoMs, 3000);          // 有稱讚的那題多停一下，稱讚不會被下一題的語音切掉
+  play("ok", gold ? stepRate(combo - 1) : 1); burst(target, 10 + Math.min(combo, 4) * 5, BURST[mode]);   // 錯過再對＝回到 Do
+  if (praise) setTimeout(() => queueSay(praise), 800);
+  const pre = PZ(promptBefore);
   if (onDone) onDone(); drawProgress();
+  PZ(() => polishCorrect(target, gold, pre));
   const token = ++qToken;                              // 這一題的代號：舊題的計時器不能跳過新題
   const adv = () => { document.removeEventListener("pointerdown", adv, true); if (token !== qToken) return; qToken++; idx++; nextQ(); };
   setTimeout(() => { if (locked && token === qToken) document.addEventListener("pointerdown", adv, true); }, holdMs);   // 鎖定中再點一下＝直接下一題
@@ -350,12 +742,12 @@ function buildFish(q) {
     z.style.fontSize = (o.syls.length >= 3 ? 3.8 : o.syls.length === 2 ? (maxLen >= 3 ? 4.2 : 4.8) : (maxLen >= 3 ? 5 : 6)) + "vmin"; lab.appendChild(z); b.appendChild(lab);
     let x, y; if (portrait) { x = (i % 2) * (W / 2) + (W / 2 - bw) / 2; y = Math.floor(i / 2) * (H / 2) + (H / 2 - bh) / 2; } else { x = i * (W / 4) + (W / 4 - bw) / 2; y = (H - bh) / 2 + (i % 2 ? 0.1 : -0.1) * H; }
     b.style.left = Math.max(0, x) + "px"; b.style.top = Math.max(0, y) + "px";
-    b.onclick = () => {
-      if (locked) return;
+    onTap(b, () => {                                   // A2：手指一碰就算；isConnected：同一下點擊已經換題（舊的魚被拿掉）就不算
+      if (locked || !b.isConnected) return;
       if (o.ok) { b.classList.add("ok"); correct(b, () => { p.appendChild(el("span", "han", q.word.h)); say(q.word.h); }); }
       else { wrong(b); if (o.toneFake) { const d = o.syls.diffAt ?? 0, t = b.querySelectorAll(".syl")[d]?.querySelector(".tone"); if (t) t.classList.add("hint"); } }
-    };
-    pond.appendChild(b);
+    });
+    pond.appendChild(b); PZ(() => fitZ(lab, z, 6.5));   // A15：標籤固定大小、字縮放
   });
   curOpts = opts; askSay(q.word.h);
 }
@@ -365,17 +757,17 @@ function hintCorrect(container, sel, opts) {         // 第二次錯：正解輕
 
 // ---------- 點餐（真正練「看注音→懂意思」：不自動唸，錯 1 次或閒置才唸）----------
 function buildOrder(q) {
-  const cust = $("customer"); cust.src = `IMAGE/zhuyin/${pick(friends()).id}.webp`; cust.className = "customer";
+  const cust = $("customer"); cust.src = `IMAGE/zhuyin/${pick(friends()).id}.webp`; cust.className = "customer enter";   // A8：下一位客人從右邊滑進來
   const bubble = $("bubble"); bubble.innerHTML = ""; bubble.appendChild(renderZ(parseZ(q.word.z)));
   const shelf = $("shelf"); shelf.innerHTML = "";
   const foods = WORDS.filter(w => w.c === "food"), opts = makeOptions(q.word, Math.min(q.level, 2), foods).filter(o => o.word);
   for (const o of opts) {
     const it = el("button", "item"); it.textContent = o.word.e;   // 只有圖：國字＋注音會直接洩漏答案，答對後泡泡才揭曉
-    it.onclick = () => {
-      if (locked) return;
-      if (o.ok) { it.classList.add("ok"); correct(it, () => { cust.classList.add("happy"); bubble.innerHTML = ""; bubble.appendChild(renderZ(parseZ(q.word.z), q.word.h)); say(q.word.h + "，謝謝你！"); }); }
-      else { wrong(it); cust.classList.remove("no"); void cust.offsetWidth; cust.classList.add("no"); }
-    };
+    onTap(it, () => {
+      if (locked || !it.isConnected) return;
+      if (o.ok) { it.classList.add("ok"); correct(it, () => { bubble.innerHTML = ""; bubble.appendChild(renderZ(parseZ(q.word.z), q.word.h)); say(q.word.h + "，謝謝你！"); }); }   // 客人吃東西的動作在 polishCorrect（食物飛到嘴邊才嚼）
+      else { wrong(it); cust.classList.remove("no", "enter", "chew"); void cust.offsetWidth; cust.classList.add("no"); PZ(() => fxMark(cust, "?", { cls: "qm", at: [0.5, 0.02], rise: 3, dur: 800 })); }   // A10：客人搖頭、頭上冒「?」
+    });
     shelf.appendChild(it);
   }
   curOpts = opts;
@@ -395,9 +787,9 @@ function buildBuild(q) {
     const ts = el("div", "slot toneSlot off"); g.appendChild(col); g.appendChild(ts); slotsEl.appendChild(g); bq.slots.push(arr); bq.toneSlots.push(ts);
   });
   const tray = $("tray"); tray.innerHTML = "";
-  for (const c of shuffle([...need.map(c => ({ t: "s", v: c })), ...pool.map(c => ({ t: "s", v: c }))])) { const b = el("button", "tile", c.v); b.dataset.v = c.v; b.onclick = () => placeSym(b); tray.appendChild(b); }
+  for (const c of shuffle([...need.map(c => ({ t: "s", v: c })), ...pool.map(c => ({ t: "s", v: c }))])) { const b = el("button", "tile", c.v); b.dataset.v = c.v; if (!PZ(() => dragTile(b, false))) b.onclick = () => placeSym(b); tray.appendChild(b); }   // A8：可以點、也可以拖
   const toneRow = $("toneRow"); toneRow.innerHTML = ""; toneRow.classList.add("hidden");
-  [0, 1, 2, 3, 4].forEach(t => { const b = el("button", "tile toneTile" + (t ? " tv" + (t + 1) : ""), TONE_TILE[t]); b.dataset.v = t; b.onclick = () => placeTone(b); toneRow.appendChild(b); });   // tv2~tv5：跟題目同一套向量聲調圖
+  [0, 1, 2, 3, 4].forEach(t => { const b = el("button", "tile toneTile" + (t ? " tv" + (t + 1) : ""), TONE_TILE[t]); b.dataset.v = t; if (!PZ(() => dragTile(b, true))) b.onclick = () => placeTone(b); toneRow.appendChild(b); });   // tv2~tv5：跟題目同一套向量聲調圖
   markCur(); askSay(q.word.h);
 }
 function buildHint() {                                // 按提示且已錯 2 次：晃「下一個該放的」積木
@@ -408,13 +800,14 @@ function buildHint() {                                // 按提示且已錯 2 �
 }
 function emptySlots() { const out = []; bq.syls.forEach((s, i) => bq.slots[i].forEach((d, j) => { if (!d.dataset.v) out.push([i, j, d]); })); return out; }
 function markCur() { document.querySelectorAll("#slots .slot.cur").forEach(d => d.classList.remove("cur")); const e = emptySlots()[0]; if (e) e[2].classList.add("cur"); }
-function placeSym(b) {
+function placeSym(b, pref) {                          // pref：拖曳放開時手指底下那一格（是這個符號的正解格就放那格；對錯判定規則不變）
   if (locked || b.classList.contains("used")) return;
   const empties = emptySlots(); if (!empties.length) return;
-  const hit = empties.find(([i, j]) => bq.syls[i].sym[j] === b.dataset.v);   // 放到任一空格的正解（小孩先拼第二個音節也算對）
-  if (hit) { const d = hit[2]; d.dataset.v = b.dataset.v; d.textContent = b.dataset.v; d.classList.remove("bad", "cur"); d.classList.add("good"); b.classList.add("used"); play("tap", 1.1); }
+  const fits = ([i, j]) => bq.syls[i].sym[j] === b.dataset.v;
+  const hit = empties.find(e => e[2] === pref && fits(e)) || empties.find(fits);   // 放到任一空格的正解（小孩先拼第二個音節也算對）
+  if (hit) { const d = hit[2]; d.dataset.v = b.dataset.v; d.textContent = b.dataset.v; d.classList.remove("bad", "cur"); d.classList.add("good"); b.classList.add("used"); play("tap", stepRate(pz.placed++)); PZ(() => tileLand(b, d)); }   // A8：每放對一格音高升一級、積木飛進格子
   else {
-    wrongThisQ++; combo = 0; play("ng"); b.classList.remove("bounce"); void b.offsetWidth; b.classList.add("bounce"); const d = empties[0][2]; d.classList.remove("bad"); void d.offsetWidth; d.classList.add("bad");
+    wrongThisQ++; combo = 0; play("ng"); b.classList.remove("bounce"); void b.offsetWidth; b.classList.add("bounce"); const d = pref && !pref.dataset.v ? pref : empties[0][2]; d.classList.remove("bad"); void d.offsetWidth; d.classList.add("bad");
     if (wrongThisQ >= 2) hintPulse(true);
   }
   markCur(); refreshToneRow(); armIdle();
@@ -429,7 +822,7 @@ function placeTone(b) {
   if (locked) return;
   const i = bq.syls.findIndex((s, k) => bq.toneSlots[k].classList.contains("open")); if (i < 0) return;
   const ts = bq.toneSlots[i], v = +b.dataset.v;
-  if (v === bq.syls[i].tone) { ts.dataset.v = v; ts.textContent = TONE_TILE[v]; if (v) ts.classList.add("tv" + (v + 1)); ts.classList.remove("bad"); ts.classList.add("good"); play("tap", 1.2); }
+  if (v === bq.syls[i].tone) { ts.dataset.v = v; ts.textContent = TONE_TILE[v]; if (v) ts.classList.add("tv" + (v + 1)); ts.classList.remove("bad"); ts.classList.add("good"); play("tap", stepRate(pz.placed++)); PZ(() => tileLand(b, ts)); }
   else { wrongThisQ++; combo = 0; play("ng"); b.classList.remove("bounce"); void b.offsetWidth; b.classList.add("bounce"); ts.classList.remove("bad"); void ts.offsetWidth; ts.classList.add("bad");
     if (wrongThisQ >= 2) hintPulse(true); }
   refreshToneRow(); armIdle();
@@ -442,7 +835,7 @@ function finishBuild() {
 // ---------- 尋寶（場景 8 個東西，泡泡只給注音、不唸；後段用「顏色＋東西」短語）----------
 function buildHunt(q) {
   const scene = $("scene"); scene.innerHTML = "";
-  const bubble = $("huntBubble"); bubble.innerHTML = "";
+  const bubble = $("huntBubble"); bubble.innerHTML = ""; $("bag").textContent = `🎒 ${results.filter(Boolean).length}/${MODES.hunt.rounds}`;   // A8：背包「找到幾個／共幾個」（答對時東西飛進去才加）
   let target = q.word, objs;
   if (q.level >= 3) {                                // 短語題：目標＋它的顏色配對＋6 個其他詞
     target = pick(PHRASES); q.word = target; const pairE = target.pair;
@@ -455,11 +848,11 @@ function buildHunt(q) {
     const b = el("button", "obj", o.e); const c = i % cols, r = Math.floor(i / cols);
     const portrait = innerHeight > innerWidth, jx = portrait ? 2 : 6;
     b.style.left = (5 + c * 23 + Math.random() * jx) + "%"; b.style.top = (8 + r * 44 + Math.random() * 12) + "%";
-    b.onclick = () => {
-      if (locked) return;
-      if (o.ok) { b.classList.add("ok"); correct(b, () => { bubble.innerHTML = ""; bubble.appendChild(renderZ(parseZ(target.z), target.h)); say("找到了，" + target.h); $("bag").textContent = "🎒 " + (results.filter(Boolean).length); }); }
+    onTap(b, () => {
+      if (locked || !b.isConnected) return;
+      if (o.ok) { b.classList.add("ok"); correct(b, () => { bubble.innerHTML = ""; bubble.appendChild(renderZ(parseZ(target.z), target.h)); say("找到了，" + target.h); }); }
       else wrong(b);
-    };
+    });
     scene.appendChild(b);
   });
   curOpts = objs;
@@ -482,6 +875,7 @@ function layoutBoard(n) {
   }
   board.style.setProperty("--cols", best.cols); board.style.setProperty("--cw", best.w + "px"); board.style.setProperty("--ch", best.h + "px"); board.style.setProperty("--gap", best.gap + "px");
   board.style.setProperty("--zf", best.zf + "px");
+  board.style.setProperty("--zf1", Math.min(best.h * 0.75 / 3.4, best.w * 0.82 / 1.8) + "px");   // A14：單音節卡只有一欄，字可以大很多（8 張約 70px）
   board.style.setProperty("--ef", Math.min(best.w, best.h) * 0.55 + "px");
 }
 function buildMatch() {
@@ -497,13 +891,15 @@ function buildMatch() {
   }
   const cards = shuffle(words.flatMap(w => [{ w, kind: "z" }, { w, kind: "e" }]));
   mq = { open: [], matched: 0, miss: 0, words, busy: false, pairs, hold: null };
+  voicePreload(words.map(w => w.h));                   // 配對成功會唸詞
   board.className = "board n" + cards.length; layoutBoard(cards.length);
   for (const c of cards) {
     const card = el("button", "card k" + c.kind); const inner = el("div", "inner"); const back = el("div", "face back"); const front = el("div", "face front");   // kz＝注音卡（藍背）、ke＝圖卡（橘背）
-    if (c.kind === "z") { const z = renderZ(parseZ(c.w.z)); front.appendChild(z); } else { front.appendChild(el("div", "em", c.w.e)); }
+    if (c.kind === "z") { const zs = parseZ(c.w.z); front.appendChild(renderZ(zs)); if (zs.length === 1) card.classList.add("one"); } else { front.appendChild(el("div", "em", c.w.e)); }
     inner.appendChild(back); inner.appendChild(front); card.appendChild(inner); card._c = c;
-    card.onclick = () => flip(card); board.appendChild(card);
+    onTap(card, () => { if (card.isConnected) flip(card); }); board.appendChild(card);   // A2：手指一碰就翻
   }
+  PZ(() => matchCount(false));                          // A14：頂上配對計數「0/4」
 }
 function flip(card) {
   if (mq.hold) { mq.hold(); return; }                 // 錯配停留中：點任何一張牌＝提早蓋回
@@ -519,14 +915,15 @@ function flip(card) {
   if (mq.open.length < 2) return;
   const [a, b] = mq.open; mq.busy = true;
   if (a._c.w === b._c.w && a._c.kind !== b._c.kind) {
-    setTimeout(() => { a.classList.add("done"); b.classList.add("done"); play("ok", 1 + Math.min(mq.matched, 6) * 0.06); burst(b, 12); say(a._c.w.h); mq.matched++; mq.open = []; mq.busy = false;
-      const pic = a._c.kind === "e" ? a : b; pic.querySelector(".front").appendChild(el("div", "han", a._c.w.h));   // 配對成功才揭曉國字（自動加注音）
+    setTimeout(() => { a.classList.add("done"); b.classList.add("done"); play("ok", stepRate(mq.matched)); burst(b, 12); say(a._c.w.h); mq.matched++; mq.open = []; mq.busy = false;
+      const pic = a._c.kind === "e" ? a : b, reveal = () => { if (!pic.querySelector(".front .han")) pic.querySelector(".front").appendChild(el("div", "han", a._c.w.h)); };   // 配對成功才揭曉國字（自動加注音）
+      if (!PZ(() => pairFx(a, b, reveal))) reveal();    // A3：兩張一起放大＋金框，閃光從注音卡飛到圖卡再揭曉
       const w = a._c.w; if (!save.stickers[w.h]) { save.stickers[w.h] = 1; earned.push(w); persist(); }   // 配對成功＝讀對了，直接貼貼紙
       if (mq.matched === mq.pairs) finishMatch(); }, 350);
   } else {
     mq.miss++;
     let done = false;                                  // 錯配：停 0.9 秒（16/24 張 1.2 秒，可以點一下提早蓋回）；蓋回的牌背留腳印
-    const back = () => { if (done) return; done = true; mq.hold = null; a.classList.remove("up"); b.classList.remove("up"); a.classList.add("seen"); b.classList.add("seen"); play("ng"); mq.open = []; mq.busy = false; };
+    const back = () => { if (done) return; done = true; mq.hold = null; a.classList.remove("up"); b.classList.remove("up"); a.classList.add("seen"); b.classList.add("seen"); play("flip", 0.85); mq.open = []; mq.busy = false; };   // A3：翻錯只是蓋回去，不播失敗音
     setTimeout(() => { if (!done && mq.pairs > 4) mq.hold = back; }, 450);
     setTimeout(back, mq.pairs > 4 ? 1200 : 900);
   }
@@ -551,11 +948,11 @@ function buildTone(q) {
     const b = el("button", "balloon c" + i); b.appendChild(el("div", "balloonImg")); b.appendChild(el("div", "bstring"));
     const lab = el("div", "zlabel"), z = renderZ(o.syls), ml = Math.max(...ts.map(x => x.sym.length)); z.style.fontSize = (ts.length >= 2 ? (ml >= 3 ? 4.2 : 5) : (ml >= 3 ? 5.4 : 6.5)) + "vmin"; lab.appendChild(z); b.appendChild(lab);
     b.style.left = (4 + i * 24) + "%"; b.style.animationDelay = (-i * 0.7) + "s";
-    b.onclick = () => {
-      if (locked) return;
+    onTap(b, () => {
+      if (locked || !b.isConnected) return;
       if (o.ok) { b.classList.add("ok"); play("pop"); correct(b, () => { p.appendChild(el("span", "han", q.word.h)); say(q.word.h); }); }
-      else wrong(b);
-    };
+      else { wrong(b); play("tap", 0.6); }               // A10：氣球漏氣扭一扭（CSS .balloon.ng）
+    });
     sky.appendChild(b);
   });
   curOpts = opts; askSay(q.word.h);
@@ -600,7 +997,7 @@ function buildWhack(q) {
   const ts = parseZ(q.word.z);
   const pic = $("whackPic"); pic.innerHTML = ""; pic.appendChild(el("div", "tem", q.word.e));
   const dots = $("whackDots"); dots.innerHTML = ""; for (let i = 0; i < WH.hits; i++) dots.appendChild(el("span"));
-  const field = $("field"); field.innerHTML = ""; const cells = [];
+  const field = $("field"); field.innerHTML = ""; field.classList.remove("lock"); const cells = [];
   for (let i = 0; i < WH.holes; i++) {
     const c = el("div", "wcell"); c.appendChild(el("div", "whole"));
     const win = el("div", "wwin"), m = el("button", "mole"), sign = el("div", "zlabel wsign");
@@ -625,6 +1022,7 @@ function whackLoop(now) {
   const frozen = paused ? dt : Math.max(0, dt - 100);
   if (frozen > 0) { for (const c of s.cells) if (c.state === "up") c.until += frozen; s.nextSpawn += frozen; s.lastOkSeen += frozen; s.lockUntil += frozen; s.pauseUntil += frozen; }
   if (paused) return;
+  const lk = now < s.lockUntil; if (lk !== !!s.lk) { s.lk = lk; $("field").classList.toggle("lock", lk); }   // A11：敲錯鎖定中注音牌變灰
   for (const c of s.cells) if (c.state === "up" && now >= c.until) moleDown(c, now, true);
   const vis = s.cells.filter(c => c.state === "up" || c.state === "hit"), okVis = vis.some(c => c.ok && c.state === "up");
   if (okVis) s.lastOkSeen = now;
@@ -648,7 +1046,8 @@ function moleDown(c, now, timeout) {
 function adjustUp(d) { const s = wq, k = s.upKey, [lo, hi] = k === "d" ? WH.upD : WH.upS; s.up[k] = Math.min(hi, Math.max(lo, Math.round((s.up[k] + d) * 100) / 100)); lsSet(K("whack_up"), s.up); }
 function whackTap(c) {
   const s = wq, now = performance.now();
-  if (!s || !c.mole.isConnected || s.done || locked || c.state !== "up" || now < s.lockUntil) return;   // isConnected：同一下點擊已經換題（舊地鼠被拿掉）就不算
+  if (!s || !c.mole.isConnected || s.done || locked || c.state !== "up") return;   // isConnected：同一下點擊已經換題（舊地鼠被拿掉）就不算
+  if (now < s.lockUntil) { play("tap", 0.7); c.mole.classList.remove("meh"); void c.mole.offsetWidth; c.mole.classList.add("meh"); return; }   // A11：敲錯鎖定中點了有回應（牌子是灰的），不算分也不算錯
   armIdle();
   if (c.ok) {
     s.missOk = 0; s.wrongRun = 0;
@@ -656,7 +1055,7 @@ function whackTap(c) {
     if (c.until - now >= 1500 && now - s.lastWrongAt > 2000) { if (++s.fast >= 2) { adjustUp(-0.2); s.fast = 0; } } else s.fast = 0;
     s.hits++; const gold = ++whackRun % 5 === 0;
     c.state = "hit"; c.mole.className = "mole up hit" + (gold ? " golden" : "");
-    if (gold) { play("sticker"); burst(c.mole, 22, "🌟"); } else { play("pop", 1 + s.hits * 0.1); burst(c.mole, 9); }
+    if (gold) { play("sticker"); burst(c.mole, 22, "🌟"); } else { play("pop", 1 + s.hits * 0.1); burst(c.mole, 6, "💫"); PZ(() => fxSpray(c.mole.querySelector(".mbody") || c.mole, 8, { colors: ["#8b5a2b", "#a0703c", "#6d4321", "#5c3a1a"], size: 2.6, dist: 9, grav: 12, dur: 600 })); }   // A7：地鼠＝土塊＋暈眩星
     $("whackDots").children[s.hits - 1]?.classList.add("on");
     setTimeout(() => { if (c.state === "hit") moleDown(c, performance.now(), false); }, 450);
     if (s.hits >= WH.hits) {
@@ -714,7 +1113,7 @@ function showPads() {
 function frogJump(lp, done) {
   const s = fq, f = s.frog; f.classList.remove("jump"); void f.offsetWidth; f.classList.add("jump"); f._lp = lp; fplace(f);
   f.classList.toggle("onstone", lp[0] === s.k + 1);
-  setTimeout(() => { if (!frogLive(s)) return; f.classList.remove("jump"); if (done) done(); }, 460);
+  setTimeout(() => { if (!frogLive(s)) return; f.classList.remove("jump"); PZ(() => fxRipple(lp)); if (done) done(); }, 460);   // A4：落地水波
 }
 function padTap(pad, o) {
   const s = fq, now = performance.now(); if (!s || !pad.isConnected || !frogLive(s) || locked || pad.classList.contains("sink")) return;   // 里維 10-10：「再點一下換題」跟荷葉同一下點擊時，舊荷葉不能推進新題
@@ -723,7 +1122,8 @@ function padTap(pad, o) {
   armIdle();
   if (o.ok) {
     s.busy = true; s.okAt = now; s.slapped = false; frogStreak = Math.min(8, frogStreak + 1); hintPulse(false);
-    frogJump(pad._lp, () => {
+    play("tap", 1.4); const sq = PZ(() => s.frog.animate([{ scale: "1 1" }, { scale: "1.08 0.8" }], { duration: 80, easing: "ease-out", fill: "forwards" }));   // A4：點下當下就出聲、青蛙先壓扁 80ms 再跳
+    setTimeout(() => { if (sq) sq.cancel(); if (frogLive(s)) frogJump(pad._lp, () => {
       pad.classList.remove("enter"); pad.classList.add("bloom"); play("pop", Math.pow(2, frogStreak / 12)); burst(pad, 16);   // 跳對特效要比掉水大很多（防故意跳水）
       for (const c of s.cols) if (c.pad !== pad) c.pad.classList.add("gone");
       setTimeout(() => {
@@ -732,7 +1132,7 @@ function padTap(pad, o) {
         s.step++;
         if (s.step >= s.k) frogJump([s.k + 1], finishFrog); else { s.busy = false; showPads(); }
       }, 350);
-    });
+    }); }, 80);
   } else {
     wrongThisQ++; combo = 0; frogStreak = 0; s.lockUntil = now + 800; play("ng"); burst(pad, 4, "💧"); pad.classList.add("sink");
     const rv = $("river"); rv.classList.add("hold"); setTimeout(() => rv.classList.remove("hold"), 800);
@@ -751,28 +1151,95 @@ function gameHint() {
   if (mode === "frog" && fq && !fq.busy) wiggle(fq.cols.find(c => c.o.ok)?.pad);
 }
 
-// ---------- 結算：先「啪」貼新貼紙，再給星，星星罐滿了孵蛋 ----------
+// ---------- 結算（B1）：星星一顆顆蓋章 → 新貼紙一張張貼 → 星星飛進星星罐 → 按鈕最後才淡入 ----------
+// 演出中點畫面＝快轉到最後（小孩不會卡住）；按鈕一直在 DOM 裡、只用透明度淡入（測試用 JS .click() 照常有效）
+let rs = null;                                        // 這次結算演出的狀態；換畫面（navToken 變）或快轉後作廢
+const RESULT_TEXT = any => mode === "match" ? "全部配對成功！" : mode === "fish" ? `釣到 ${any} 條魚！` : mode === "hunt" ? `找到 ${any} 個寶物！` : mode === "tone" ? `戳破 ${any} 顆氣球！` : mode === "whack" ? `敲到 ${any * WH.hits} 隻地鼠！` : mode === "frog" ? `青蛙過了 ${any} 條河！` : `完成 ${any} 題！`;
 function showResult() {
   clearIdle(); locked = false; lsSet(K("resume"), null);
+  voicePreload([`拿到 ${earned.length} 張新貼紙！`]);
   const n = MODES[mode].rounds, golds = results.filter(r => r === "gold").length, any = results.filter(Boolean).length;
   roundStars = mode === "match" ? (mq?.stars || 2) : golds >= n - 1 ? 3 : golds >= Math.ceil(n / 2) ? 2 : 1;
-  showScreen("result"); play("party"); duck(true); setTimeout(() => duck(false), 7000); confetti();
-  $("resultStars").innerHTML = ""; $("resultStickers").innerHTML = ""; $("resultText").textContent = mode === "match" ? "全部配對成功！" : mode === "fish" ? `釣到 ${any} 條魚！` : mode === "hunt" ? `找到 ${any} 個寶物！` : mode === "tone" ? `戳破 ${any} 顆氣球！` : mode === "whack" ? `敲到 ${any * WH.hits} 隻地鼠！` : mode === "frog" ? `青蛙過了 ${any} 條河！` : `完成 ${any} 題！`;
-  for (let i = 0; i < 3; i++) { const s = el("span", "star" + (i < roundStars ? " on" : ""), i < roundStars ? "⭐" : "☆"); s.style.animationDelay = (0.3 + i * 0.3) + "s"; $("resultStars").appendChild(s); }
-  earned.forEach((w, i) => { const st = stickerNode(w, true); st.style.animationDelay = (1.2 + i * 0.35) + "s"; $("resultStickers").appendChild(st); setTimeout(() => play("sticker"), 1200 + i * 350); });
-  if (earned.length) setTimeout(() => say(`拿到 ${earned.length} 張新貼紙！`), 1300);
-  save.stars += roundStars; persist(); updateJar();
-  $("hatchHint").classList.toggle("hidden", save.stars < (save.eggs + 1) * EGG_STARS || 4 + save.eggs >= FRIENDS.length);
+  const prevBest = save.best[mode] || 0, record = prevBest > 0 && roundStars > prevBest;   // 個人紀錄（B14）：第一次玩沒有紀錄可破
+  if (roundStars > prevBest) save.best[mode] = roundStars;
+  const jarFrom = Math.max(0, save.stars - save.eggs * EGG_STARS);
+  save.stars += roundStars; persist();
+  const st = rs = { tok: navToken, T: [], fly: [], done: false, said: false, record, stamped: false, jarFrom, t0: performance.now(), k: earned.length };
+  const at = (ms, fn) => st.T.push(setTimeout(() => { if (rs === st && !st.done && st.tok === navToken) fn(); }, ms));
+  showScreen("result"); play("party"); duck(true); setTimeout(() => duck(false), 7000);
+  $("resultCf").innerHTML = ""; confetti(45, $("resultCf"));
+  $("resultText").textContent = RESULT_TEXT(any);
+  // 星星：三格先放灰星，拿到的 0.5／0.9／1.3 秒蓋章，各配 Do-Mi-So；第 3 顆大爆＋整頁輕震
+  const starsEl = $("resultStars"); starsEl.innerHTML = ""; starsEl.classList.remove("done");
+  const stars = [0, 1, 2].map(i => { const s = el("span", "star" + (i < roundStars ? " on" : "")); s.style.setProperty("--d", (0.5 + i * 0.4) + "s"); starsEl.appendChild(s); return s; });
+  for (let i = 0; i < roundStars; i++) at(500 + i * 400, () => { play("ok", [1, 1.26, 1.5][i]); burst(stars[i], i === 2 ? 20 : 8); if (i === 2) quake(); });
+  if (record) at(1750, () => stampRecord(st));
+  // 貼紙：1.8 秒起每 0.45 秒一張、一張比一張高 2 個半音；最後一張後 0.3 秒唸「拿到 N 張」
+  const box = $("resultStickers"); box.innerHTML = ""; box.classList.remove("done"); box.classList.toggle("many", st.k > 6);
+  earned.forEach((w, i) => { const s = stickerNode(w, true); s.style.animationDelay = (1.8 + i * 0.45) + "s"; box.appendChild(s); at(1800 + i * 450, () => play("sticker", 2 ** (2 * i / 12))); });
+  const tVoice = st.k ? 1800 + (st.k - 1) * 450 + 300 : 1800;
+  at(tVoice, () => resultVoice(st));
+  if (!st.k) at(1800, () => showPracticed(st));
+  // 星星罐：右下常駐，先顯示加星前的數字；星星飛進去時一格一格跳
+  const jarBtn = $("hatchHint"); paintJar(jarBtn, jarFrom); jarBtn.classList.remove("ready");
+  const tFly = Math.max(tVoice + 400, 2400);
+  at(tFly, () => flyStarsToJar(st, stars.slice(0, roundStars)));
+  at(tFly + Math.max(0, roundStars - 1) * 150 + 800, () => finishResult(st, false));
+  $("resultBtns").classList.add("wait");
+}
+function quake() {                                    // 整頁輕震 0.2 秒（放大一點點再震，邊緣不會露出底色）
+  try { $("result").animate([{ transform: "none" }, { transform: "scale(1.025) translate(-0.7vmin, 0.4vmin)" }, { transform: "scale(1.02) translate(0.6vmin, -0.4vmin)" }, { transform: "scale(1.01) translate(-0.3vmin, 0.2vmin)" }, { transform: "none" }], { duration: 200 }); } catch (e) {}
+}
+function stampRecord(st) { if (st.stamped) return; st.stamped = true; $("resultStars").appendChild(el("div", "rec-stamp", "新紀錄！")); play("win"); }
+function resultVoice(st) {
+  if (st.said) return; st.said = true;
+  if (st.k) say(`拿到 ${st.k} 張新貼紙！`); else say(practicedWords().every(w => save.stickers[w.h]) ? "都收集過了，好厲害！" : "下次直接答對，就能拿到新貼紙喔！");
+}
+// 這回合練過的詞（貼紙詞庫裡有的、不重複）
+function practicedWords() { const ws = mode === "match" ? (mq?.words || []) : round.map(q => q.word); return [...new Map(ws.filter(w => w && !PHRASES.includes(w)).map(w => [w.h, w])).values()]; }
+function showPracticed(st) {                           // 沒有新貼紙：列出練過的詞（小貼紙、不 slap）＋一句話
+  const box = $("resultStickers"); if (st.shownPracticed) return; st.shownPracticed = true;
+  const ws = practicedWords(), all = ws.every(w => save.stickers[w.h]);
+  box.appendChild(el("div", "all-done", all ? "都收集過了，好厲害！" : "下次直接答對，就能拿到新貼紙喔！"));
+  const row = el("div", "mini-row"); for (const w of ws.slice(0, 12)) { const s = stickerNode(w); s.classList.add("mini"); row.appendChild(s); } box.appendChild(row);
+}
+// 星星從結算的星星位置畫弧線飛進右下的星星罐（0.6 秒、縮到 0.3），每到一顆罐子漲一點、數字跳一格
+function flyStarsToJar(st, from) {
+  const jarBtn = $("hatchHint"), jar = jarBtn.querySelector(".jar"), fx = $("fx");
+  from.forEach((s, j) => st.T.push(setTimeout(() => {
+    if (st.done || rs !== st) return;
+    const a = s.getBoundingClientRect(), b = jar.getBoundingClientRect(), f = el("div", "flystar", "⭐"); fx.appendChild(f); st.fly.push(f);
+    const half = parseFloat(getComputedStyle(f).fontSize) / 2, x0 = a.left + a.width / 2, y0 = a.top + a.height / 2, x1 = b.left + b.width / 2, y1 = b.top + b.height / 2;
+    const cx = (x0 + x1) / 2, cy = Math.min(y0, y1) - innerHeight * 0.12, frames = [];
+    for (let k = 0; k <= 8; k++) { const t = k / 8, u = 1 - t, x = u * u * x0 + 2 * u * t * cx + t * t * x1, y = u * u * y0 + 2 * u * t * cy + t * t * y1; frames.push({ transform: `translate(${(x - half).toFixed(1)}px, ${(y - half).toFixed(1)}px) scale(${(1 - 0.7 * t).toFixed(2)})` }); }
+    const an = f.animate(frames, { duration: 600, easing: "ease-in", fill: "forwards" });
+    an.onfinish = () => { f.remove(); if (st.done || rs !== st) return; paintJar(jarBtn, st.jarFrom + j + 1); const t = jarBtn.querySelector(".jarText"); t.classList.remove("tick"); void t.offsetWidth; t.classList.add("tick"); play("tap", 1.2 + j * 0.15); };
+  }, j * 150)));
+}
+// 收尾（自動演完或快轉）：所有東西直接到最後的樣子，按鈕淡入
+function finishResult(st, skipped) {
+  if (st.done) return; st.done = true; st.T.forEach(clearTimeout); st.fly.forEach(f => f.remove());
+  $("resultStars").classList.add("done"); $("resultStickers").classList.add("done");
+  if (!st.k) showPracticed(st);
+  if (st.record) stampRecord(st);
+  if (!st.said) resultVoice(st);
+  updateJar();
+  const btns = $("resultBtns"); btns.classList.add("arming"); btns.classList.remove("wait");
+  setTimeout(() => btns.classList.remove("arming"), skipped ? 350 : 0);   // 快轉那一下的手指不會順便按到「再玩」
 }
 // 貼紙：圖＋國字（國字旁邊自動加注音）
 function stickerNode(w, fresh) { const s = el("div", "sticker" + (fresh ? " fresh" : "") + (w.h.length >= 3 ? " long" : "")); s.appendChild(el("div", "em", w.e)); s.appendChild(el("div", "hz", w.h)); return s; }
 
 // ---------- 星星罐 / 孵蛋 ----------
+function paintJar(b, inJar) {                          // 一個星星罐按鈕畫成罐裡有 inJar 顆（B11：0 顆時罐裡兩顆虛線小星）
+  const f = b.querySelector(".jarFill"), t = b.querySelector(".jarText"), j = b.querySelector(".jar");
+  if (f) f.style.height = Math.min(100, inJar / EGG_STARS * 100) + "%";
+  if (t) t.textContent = `${Math.min(inJar, EGG_STARS)}/${EGG_STARS}`;
+  if (j) j.classList.toggle("empty", inJar <= 0);
+}
 function updateJar() {
   const inJar = save.stars - save.eggs * EGG_STARS, canHatch = inJar >= EGG_STARS && 4 + save.eggs < FRIENDS.length;
-  for (const j of document.querySelectorAll(".jarFill")) j.style.height = Math.min(100, inJar / EGG_STARS * 100) + "%";
-  for (const t of document.querySelectorAll(".jarText")) t.textContent = `${Math.min(inJar, EGG_STARS)}/${EGG_STARS}`;
-  for (const b of document.querySelectorAll(".jarBtn")) b.classList.toggle("ready", canHatch);
+  for (const b of document.querySelectorAll(".jarBtn")) { if (b.id === "hatchHint" && rs && !rs.done) continue; paintJar(b, inJar); b.classList.toggle("ready", canHatch); }   // 結算演出中的罐子由演出自己畫
 }
 let hatching = false;                                 // 孵蛋進行中：連點不會扣兩顆蛋
 async function tryHatch() {
@@ -784,12 +1251,40 @@ async function tryHatch() {
   await ensure("hatch", tok);
   if (tok !== navToken) { hatching = false; return; }   // 等圖時小孩離開了：蛋不扣
   const f = FRIENDS[4 + save.eggs]; save.eggs++; persist(); updateJar();
-  const ov = $("hatch"); ov.classList.remove("hidden"); $("hatchEgg").className = "hatchEgg shake"; $("hatchFriend").classList.add("hidden"); $("hatchName").textContent = ""; $("hatchClose").classList.add("hidden");
-  play("tap"); say("蛋要孵出來了！");
-  setTimeout(() => { $("hatchEgg").className = "hatchEgg gone"; const img = $("hatchFriend"); img.src = `IMAGE/zhuyin/${f.id}.webp`; img.classList.remove("hidden"); $("hatchName").textContent = f.name + "來了！"; $("hatchClose").classList.remove("hidden"); play("win"); confetti(40); say(f.name + "來了，會來店裡買東西喔！"); }, 2200);
+  voicePreload([f.name + "來了，會來店裡買東西喔！"]);
+  say("蛋要孵出來了！");
+  await playHatchShow(`IMAGE/zhuyin/${f.id}.webp`, f.name, { line: f.name + "來了，會來店裡買東西喔！" });
+  hatching = false; updateJar(); if (!(mode && !$("result").classList.contains("hidden"))) renderMenu();
+}
+// 孵蛋演出（B4）：晃三段漸強（±6°/0.6s → ±12°/0.5s×2 → ±18°/0.25s×3，tap 0.9/1.1/1.3）→ 第 2 段起畫裂痕 → 白光破殼 → 朋友＋背後放射光
+// 之後獎勵系統的孵蛋直接沿用：taps:3＝小孩自己點蛋 3 下（每下一段）才破殼；預設自動演。回傳 Promise，按「太棒了」關掉時 resolve
+let hatchDone = null;
+function playHatchShow(imgSrc, name, { taps = 0, line = "" } = {}) {
+  return new Promise(resolve => {
+    const ov = $("hatch"), box = ov.querySelector(".hatchBox"), egg = $("hatchEgg"), img = $("hatchFriend"), T = [];
+    const STAGES = [{ cls: "s1", ms: 600, rate: 0.9 }, { cls: "s2", ms: 1000, rate: 1.1, crack: ["ck1"] }, { cls: "s3", ms: 750, rate: 1.3, crack: ["ck2", "ck3"] }];
+    let stage = 0, out = false;
+    box.classList.remove("out"); egg.className = "hatchEgg" + (taps ? " tappable" : ""); img.classList.add("hidden"); img.src = imgSrc;
+    $("hatchName").textContent = ""; $("hatchClose").classList.add("hidden"); ov.classList.remove("hidden");
+    const shake = () => {
+      const s = STAGES[stage++]; egg.classList.remove("s1", "s2", "s3"); void egg.offsetWidth; egg.classList.add(s.cls, ...(s.crack || [])); play("tap", s.rate);
+      if (stage === STAGES.length) T.push(setTimeout(hatch, s.ms + 120));
+    };
+    const hatch = () => {
+      if (out) return; out = true; egg.onclick = null;
+      const fl = $("flash"); fl.classList.remove("go"); void fl.offsetWidth; fl.classList.add("go");
+      egg.className = "hatchEgg gone"; img.classList.remove("hidden"); box.classList.add("out");
+      $("hatchName").textContent = name + "來了！"; $("hatchClose").classList.remove("hidden");
+      play("win"); confetti(40); say(line || name + "來了！");
+    };
+    hatchDone = () => { T.forEach(clearTimeout); egg.onclick = null; box.classList.remove("out"); resolve(); };
+    if (taps) egg.onclick = () => { if (stage < STAGES.length && !out) shake(); };
+    else { T.push(setTimeout(shake, 250)); T.push(setTimeout(shake, 250 + 600 + 250)); T.push(setTimeout(shake, 250 + 600 + 250 + 1000 + 200)); }
+  });
 }
 
 // ---------- 貼紙圖鑑 ----------
+const stickerTilt = h => { let x = 0; for (const c of h) x = (x * 31 + c.charCodeAt(0)) % 997; return (x % 61) / 10 - 3; };   // -3°～+3°
 async function openAlbum(cat) {
   const tok = nav(); await ensure("album", tok); if (tok !== navToken) return;
   showScreen("album"); cat = cat || CATS[0].id;
@@ -797,7 +1292,7 @@ async function openAlbum(cat) {
   for (const c of CATS) { const got = WORDS.filter(w => w.c === c.id && save.stickers[w.h]).length, all = WORDS.filter(w => w.c === c.id).length; const t = el("button", "tab" + (c.id === cat ? " on" : ""), `${c.icon} ${got}/${all}`); t.onclick = () => { play("select"); openAlbum(c.id); }; tabs.appendChild(t); }
   const grid = $("albumGrid"); grid.innerHTML = "";
   for (const w of WORDS.filter(w => w.c === cat)) {
-    if (save.stickers[w.h]) { const s = stickerNode(w); s.onclick = () => say(w.h); grid.appendChild(s); }
+    if (save.stickers[w.h]) { const s = stickerNode(w); s.style.rotate = stickerTilt(w.h) + "deg"; s.onclick = () => say(w.h); grid.appendChild(s); }   // 每張歪一點點像真的貼上去（B7；同一個詞每次歪的角度一樣）
     else { const s = el("div", "sticker empty"); s.appendChild(el("div", "em", w.e)); grid.appendChild(s); }
   }
   $("albumCount").textContent = `${stickerCount()} / ${WORDS.length}`;
@@ -815,7 +1310,7 @@ function renderMenu() {
   rb.classList.toggle("hidden", !r);
   if (r) { const icon = document.querySelector(`.mode-card[data-mode=${r.mode}] .big`)?.textContent || "▶"; const label = document.querySelector(`.mode-card[data-mode=${r.mode}] .label`)?.textContent || ""; rb.textContent = `▶️ 繼續玩${label} ${icon} ${r.idx + 1}/${r.words.length}`; }
   const total = stickerCount(); guideSay(total === 0 ? "你好！快來選遊戲玩吧！" : total < 5 ? "再收集幾張貼紙，就能開新遊戲喔！" : pick(["今天要玩哪個呢？", "貼紙越來越多了！", "來釣魚還是去尋寶？"]), false);
-  if (hub) hub.refresh();                              // 3D 小島跟著卡片更新：鎖頭、朋友、鏡頭擺位
+  if (hub) { hub.refresh(); hub.setPets(hubPets()); }   // 3D 小島跟著更新：鎖頭、鏡頭擺位、島上走的寵物
 }
 let menuPrefetch = null;
 function goMenu() {
@@ -834,18 +1329,19 @@ function openPlayers() {
   SLOTS.forEach((p, i) => {
     const n = i + 1, s = slotSummary(n), b = el("button", "player" + (n === slot ? " on" : ""));
     b.appendChild(el("div", "pe", p.e)); b.appendChild(el("div", "pn", p.name)); b.appendChild(el("div", "ps", `📒 ${s.stickers}　⭐ ${s.stars}`));
-    b.onclick = () => { play("select"); loadSlot(n); $("players").classList.add("hidden"); goMenu(); guideSay(`${p.name}，歡迎回來！`); };
+    b.onclick = () => { play("select"); loadSlot(n); $("players").classList.add("hidden"); goMenu(); const hi = helloText(); guideSay(hi ? hi + "快來選遊戲玩吧！" : `${p.name}，歡迎回來！`); };   // 新存檔：貓頭鷹先自我介紹（B8）
     list.appendChild(b);
   });
   $("players").classList.remove("hidden");
 }
-// 翻牌：先選張數（阿葉 10-10：多一倍、兩倍以上的卡牌選難度）
+// 翻牌：先選張數（阿葉 10-10：多一倍、兩倍以上的卡牌選難度）；B9：1／2／3 張疊起來的牌圖示
 const MATCH_SIZES = [{ n: 8, label: "簡單", stars: "⭐" }, { n: 16, label: "普通", stars: "⭐⭐" }, { n: 24, label: "困難", stars: "⭐⭐⭐" }];
 function openMatchPick() {
   const box = $("matchSizes"); box.innerHTML = "";
-  for (const s of MATCH_SIZES) {
+  for (const [i, s] of MATCH_SIZES.entries()) {
     const b = el("button", "msize" + (s.n === save.matchSize ? " on" : ""));
-    b.appendChild(el("div", "mn", `🃏 ${s.n}`)); b.appendChild(el("div", "ml", s.label)); b.appendChild(el("div", "ms", s.stars));
+    const stack = el("div", "mstack c" + (i + 1)); for (let k = 0; k <= i; k++) stack.appendChild(el("i")); b.appendChild(stack);
+    b.appendChild(el("div", "mn", `${s.n} 張`)); b.appendChild(el("div", "ml", s.label)); b.appendChild(el("div", "ms", s.stars));
     b.onclick = () => { play("select"); save.matchSize = s.n; persist(); $("matchPick").classList.add("hidden"); startMode("match"); };
     box.appendChild(b);
   }
@@ -863,21 +1359,43 @@ $("confirmNo").onclick = () => { $("confirm").classList.add("hidden"); armIdle()
 $("confirmRestart").onclick = () => { $("confirm").classList.add("hidden"); play("select"); lsSet(K("resume"), null); startMode(mode); };
 $("resumeBtn").onclick = () => { const r = getResume(); if (!r) return; play("select"); if (r.mode === "match") startMode("match"); else startMode(r.mode, r); };
 $("playerBtn").onclick = () => { play("select"); openPlayers(); };
+$("playerTag").onclick = () => { play("select"); openPlayers(); };
 $("matchPickClose").onclick = () => { play("select"); $("matchPick").classList.add("hidden"); };
-// 家長設定：存檔（備份碼／還原／清除重來＝按兩次才清，避免小孩誤觸）
-let resetArmed = 0;
+// 家長設定：存檔（備份全部／還原／清除重來＝按兩次才清，避免小孩誤觸）
+let resetArmed = 0, restoreArmed = null, restoreTimer = 0;
 function saveMsg(t) { $("saveMsg").textContent = t; }
+const daysAgo = t => Math.floor((Date.now() - t) / 864e5);
+// 上次備份：N 天前；有進度卻超過 14 天沒備份（或從沒備份過）→ 家長畫面最上面提醒（B6）
+function renderBackupInfo() {
+  const t = +lsGet("zy_last_backup", 0) || 0, d = daysAgo(t), any = [1, 2, 3].some(n => { const s = slotSummary(n); return s.stickers > 0 || s.stars > 0; });
+  $("lastBackup").textContent = !t ? "上次備份：還沒備份過" : `上次備份：${d < 1 ? "今天" : d + " 天前"}`;
+  const late = any && (!t || d > 14), nag = $("backupNag"); nag.classList.toggle("hidden", !late);
+  if (late) nag.textContent = (t ? `⚠️ 已經 ${d} 天沒備份了。` : "⚠️ 還沒有備份過。") + "按下面的「📋 備份全部」，把備份碼存到 LINE 或備忘錄，換平板或瀏覽器被清掉也找得回進度。";
+}
+const slotLine = (i, c) => `${SLOTS[i].e} ${SLOTS[i].name}（貼紙 ${Object.keys(c.stickers).length} 張、星星 ${c.stars} 顆）`;
+function disarmRestore() { restoreArmed = null; clearTimeout(restoreTimer); const rb = $("restoreBtn"); rb.classList.remove("armed"); rb.textContent = "📥 還原"; }
 $("backupBtn").onclick = async () => {
-  const code = exportCode(), ta = $("saveCode"); ta.classList.remove("hidden"); ta.value = code; ta.select();
-  try { await navigator.clipboard.writeText(code); saveMsg("✅ 備份碼已複製，貼到 LINE 或備忘錄存起來。"); } catch (e) { saveMsg("請長按上面的備份碼，選「拷貝」存起來。"); }
+  const code = exportCode(), ta = $("saveCode"); ta.classList.remove("hidden"); ta.value = code; ta.select(); disarmRestore();
+  lsSet("zy_last_backup", Date.now()); renderBackupInfo();
+  try { await navigator.clipboard.writeText(code); saveMsg("✅ 三位（小熊、小兔、小貓）的備份碼已複製，貼到 LINE 或備忘錄存起來。"); } catch (e) { saveMsg("請長按上面的備份碼，選「拷貝」存起來（三位都在裡面）。"); }
 };
 $("restoreBtn").onclick = () => {
-  const ta = $("saveCode");
-  if (ta.classList.contains("hidden") || !ta.value.trim() || ta.value.trim() === exportCode()) { ta.classList.remove("hidden"); ta.value = ""; ta.focus(); saveMsg("把備份碼貼在上面的框框，再按一次「還原」。"); return; }
-  const r = importCode(ta.value);
-  if (r === "ok") { saveMsg(`✅ 已還原到 ${SLOTS[slot - 1].e} ${SLOTS[slot - 1].name}：貼紙 ${stickerCount()} 張、星星 ${save.stars} 顆。`); renderMenu(); }
-  else if (r === "fail") { loadSlot(slot); saveMsg("❌ 瀏覽器存不進去（可能是無痕模式或空間滿了），進度沒有改變。"); }
-  else saveMsg("❌ 這不是正確的備份碼（要以 ZY1: 開頭）。");
+  const ta = $("saveCode"), rb = $("restoreBtn"), v = ta.value.trim();
+  if (ta.classList.contains("hidden") || !v || v === exportCode()) { disarmRestore(); ta.classList.remove("hidden"); ta.value = ""; ta.focus(); saveMsg("把備份碼貼在上面的框框，再按一次「還原」。"); return; }
+  const r = readCode(v);
+  if (!r) { disarmRestore(); saveMsg("❌ 這不是正確的備份碼（要以 ZY2: 或 ZY1: 開頭）。"); return; }
+  const who = r.v === 2 ? r.slots.map((c, i) => slotHasData(c) ? slotLine(i, c) : null).filter(Boolean) : [];
+  if (r.v === 2 && restoreArmed !== v) {               // 三位一起的備份：先講清楚會蓋掉哪幾位，再按一次才真的還原
+    const skip = r.slots.map((c, i) => slotHasData(c) ? null : SLOTS[i].name).filter(Boolean);
+    restoreArmed = v; rb.classList.add("armed"); rb.textContent = "⚠️ 確定還原";
+    saveMsg(`這個備份碼會還原：${who.join("、")}。這台平板上這幾位現在的進度會被蓋掉${skip.length ? `（${skip.join("、")}的備份是空的，不會動）` : ""}。確定的話，再按一次「確定還原」。`);
+    clearTimeout(restoreTimer); restoreTimer = setTimeout(disarmRestore, 15000); return;
+  }
+  disarmRestore();
+  const res = importCode(v);
+  if (res === "ok") { saveMsg(r.v === 1 ? `✅ 舊版備份碼（只有一位）已還原到 ${SLOTS[slot - 1].e} ${SLOTS[slot - 1].name}：貼紙 ${stickerCount()} 張、星星 ${save.stars} 顆。` : `✅ 已還原：${who.join("、")}。`); renderSettings(); renderMenu(); }
+  else if (res === "fail") { loadSlot(slot); saveMsg("❌ 瀏覽器存不進去（可能是無痕模式或空間滿了），進度沒有改變。"); }
+  else saveMsg("❌ 這不是正確的備份碼（要以 ZY2: 或 ZY1: 開頭）。");
 };
 $("resetBtn").onclick = () => {
   const b = $("resetBtn");
@@ -888,7 +1406,34 @@ $("musicBtn").onclick = toggleMusic; $("musicBtn").classList.toggle("off", !save
 $("speakBtn").onclick = useHint;
 // 家長設定：提示等待時間
 function renderSettings() { for (const b of document.querySelectorAll("#hintOpts button")) b.classList.toggle("on", +b.dataset.v === save.hintWait); }
-$("settingsBtn").onclick = () => { play("select"); renderSettings(); $("setSlotName").textContent = `${SLOTS[slot - 1].e} ${SLOTS[slot - 1].name}`; $("saveCode").classList.add("hidden"); saveMsg(""); $("settings").classList.remove("hidden"); };
+function openSettings() {
+  play("select"); renderSettings(); renderBackupInfo(); disarmRestore(); $("lockTip").classList.add("hidden");
+  $("setSlotName").textContent = `${SLOTS[slot - 1].e} ${SLOTS[slot - 1].name}`; $("saveCode").classList.add("hidden"); saveMsg(""); $("settings").classList.remove("hidden");
+}
+// 家長鎖（B6）：⚙️ 按住 2 秒（進度環跑滿）才開；放開得太早＝只晃一下＋小字「家長請按住 2 秒」。
+// 網址帶 ?debug 時保留「點一下就開」（tools/zy-test 用 .click() 開設定）
+const DEBUG = /[?&]debug\b/.test(location.search), LOCK_MS = 2000;
+let lockHold = null, lockTipT = 0, lockOpenedAt = 0;
+function lockStart() {
+  if (lockHold) return; const b = $("settingsBtn"), t0 = performance.now(); b.classList.add("holding");
+  const step = now => { if (!lockHold) return; const p = Math.min(1, (now - t0) / LOCK_MS); b.style.setProperty("--p", p.toFixed(3));
+    if (p >= 1) { lockEnd(true); lockOpenedAt = Date.now(); openSettings(); return; } lockHold.raf = requestAnimationFrame(step); };
+  lockHold = { raf: requestAnimationFrame(step) };
+}
+function lockEnd(opened) {
+  const h = lockHold; if (!h) return; lockHold = null; cancelAnimationFrame(h.raf);
+  const b = $("settingsBtn"); b.classList.remove("holding"); b.style.setProperty("--p", 0);
+  if (opened) return;
+  play("tap", 0.8); b.classList.remove("nudge"); void b.offsetWidth; b.classList.add("nudge");
+  const tip = $("lockTip"); tip.classList.remove("hidden"); clearTimeout(lockTipT); lockTipT = setTimeout(() => tip.classList.add("hidden"), 1800);
+}
+{
+  const b = $("settingsBtn");
+  b.addEventListener("pointerdown", e => { if (e.button > 0) return; e.preventDefault(); lockStart(); });
+  for (const ev of ["pointerup", "pointercancel", "pointerleave"]) b.addEventListener(ev, () => lockEnd(false));
+  b.addEventListener("contextmenu", e => e.preventDefault());   // iPad 長按不要跳出選單
+  b.onclick = () => { if (DEBUG && Date.now() - lockOpenedAt > 800) openSettings(); };
+}
 for (const b of document.querySelectorAll("#hintOpts button")) b.onclick = () => { save.hintWait = +b.dataset.v; persist(); play("tap"); renderSettings(); };
 $("settingsClose").onclick = () => { play("select"); $("settings").classList.add("hidden"); };
 $("againBtn").onclick = () => { play("select"); startMode(mode); };
@@ -897,22 +1442,48 @@ $("albumBtn").onclick = () => { play("select"); openAlbum(); };
 $("resultAlbumBtn").onclick = () => { play("select"); openAlbum(); };
 $("albumBack").onclick = () => { play("select"); goMenu(); };
 for (const b of document.querySelectorAll(".jarBtn")) b.onclick = () => { play("select"); tryHatch(); };
-$("hatchClose").onclick = () => { hatching = false; $("hatch").classList.add("hidden"); if (mode && !$("result").classList.contains("hidden")) $("hatchHint").classList.add("hidden"); else renderMenu(); };
+$("hatchClose").onclick = () => { play("select"); $("hatch").classList.add("hidden"); const f = hatchDone; hatchDone = null; if (f) f(); else { hatching = false; updateJar(); } };   // 收尾交給 playHatchShow 的呼叫端
+// 結算演出中點畫面＝快轉到最後（開頭 0.7 秒內不算：最後一題連點的那幾下不會把整段演出跳掉）
+$("result").addEventListener("pointerdown", () => { if (rs && !rs.done && rs.tok === navToken && performance.now() - rs.t0 > 700) finishResult(rs, true); });
 $("guide").onclick = () => say($("guideText").textContent);
 // 第一次觸碰就起音樂。goMenu() 開頁時已經設好 curBgm，但那時瀏覽器擋自動播放 → 這裡要補播（原本 !curBgm 判斷讓它永遠不播）
 document.addEventListener("pointerdown", () => { if (!save.music) return; if (!curBgm) playBgm("island"); else if (curBgm.paused) curBgm.play().catch(() => {}); }, { once: true });
 for (const ev of ["touchend", "click"]) document.addEventListener(ev, unlockAudio, { capture: true, once: true });   // iOS：第一次點擊解鎖語音與音效
+document.addEventListener("pointerdown", voiceUnlock, { capture: true, passive: true });   // 常駐：iOS 切背景或接電話後 AudioContext 會被暫停，下一次點擊再 resume
+// 預錄語音預載（只下載＋解碼、不擋畫面）：等開頁的檔案都到了再抓開場語、稱讚、選單台詞，不跟開頁搶頻寬
+const startupVoice = () => voicePreload([...Object.values(MODES).map(m => m.intro), ...PRAISE, "找到了！", "暫停", "蛋要孵出來了！", "全部找到了！",
+  "你好！快來選遊戲玩吧！", "再收集幾張貼紙，就能開新遊戲喔！", "今天要玩哪個呢？", "貼紙越來越多了！", "來釣魚還是去尋寶？"]);
+{ const t = setInterval(() => { if ($("loading").classList.contains("hidden")) { clearInterval(t); setTimeout(startupVoice, 300); } }, 250); }   // 讀取畫面關了（3D 小島也好了）才開始抓
 window.addEventListener("resize", () => { if (mode === "fish" && !locked) buildFish(round[idx]); if (mode === "match" && mq) layoutBoard(mq.pairs * 2); if (mode === "whack") layoutField(); if (mode === "frog") relayoutFrog(); });
+// 開頁讀取進度（B12）：數「真的載入完」的檔案（圖、程式、3D 模型）÷ 預估總數（上次完整開頁數到幾個，第一次用 40）；開完記下這次的數量
+const boot = { n: 0, total: Math.max(10, +lsGet("zy_ld_total", 40) || 40), done: false, obs: null };
+try { boot.obs = new PerformanceObserver(l => { if (boot.done) return; boot.n += l.getEntries().length; setLoadProgress(Math.min(0.96, boot.n / boot.total)); }); boot.obs.observe({ type: "resource", buffered: true }); } catch (e) {}
 // 開頁：讀取畫面蓋著，等貓頭鷹＋3D 小島（小島最多等 8 秒）；3D 模式選單背景被小島蓋住 → 退回卡片選單時才等背景圖
 (async () => {
   const cap = p => Promise.race([p, new Promise(r => setTimeout(r, 6000))]), h = initHub();
   await Promise.all([h, cap(loadImg("guide_owl"))]);
   if (!hub) await cap(Promise.all(assetsOf("menu").map(loadImg)));
+  boot.done = true; try { boot.obs && boot.obs.disconnect(); } catch (e) {} if (boot.n >= 10) lsSet("zy_ld_total", boot.n); setLoadProgress(1);
   goMenu(); showLoading(false); $("startGate").classList.remove("hidden");
 })();
-$("startBtn").onclick = () => {                         // 開始玩：這一下點擊同時解鎖聲音、開音樂、貓頭鷹打招呼
-  $("startGate").classList.add("hidden"); play("select");
+$("startBtn").onclick = () => {                         // 開始玩：這一下點擊同時解鎖聲音、開音樂、貓頭鷹打招呼（新存檔：先自我介紹）
+  document.body.classList.remove("gate-on"); $("startGate").classList.add("hidden"); play("select");
   if (save.music && curBgm) curBgm.play().catch(() => {});
+  const hi = helloText(); if (hi) $("guideText").textContent = hi + "快來選遊戲玩吧！";
   setTimeout(() => say($("guideText").textContent), 300);
 };
+// 夜間（B15）：19:00–06:00 遊戲背景加藍紫色＋幾顆會閃的星星；網址 ?night=1／?night=0 可強制（測試、截圖用）
+const NIGHT_Q = (location.search.match(/[?&]night=([01])/) || [])[1];
+function applyNight() {
+  const h = new Date().getHours(), on = NIGHT_Q ? NIGHT_Q === "1" : (h >= 19 || h < 6);
+  document.body.classList.toggle("night", on); if (!on) return;
+  for (const id of Object.keys(MODES)) {
+    const s = $(id); if (!s || s.querySelector(":scope > .night-sky")) continue;
+    const sky = el("div", "night-sky");
+    for (let i = 0; i < 7; i++) { const t = el("i"), z = (2 + Math.random() * 1.6).toFixed(1) + "vmin"; t.style.left = (5 + i * 13 + Math.random() * 7).toFixed(1) + "%"; t.style.top = (3 + Math.random() * 28).toFixed(1) + "%"; t.style.width = t.style.height = z; t.style.animationDelay = -(Math.random() * 2.4).toFixed(2) + "s"; sky.appendChild(t); }
+    s.insertBefore(sky, s.firstChild);
+  }
+}
+applyNight(); setInterval(applyNight, 60000);
 if (location.search.includes("debug")) window.__zy = { renderZ, parseZ, WORDS, stickerNode, zMissing, get wq() { return wq; }, get fq() { return fq; }, get idx() { return idx; }, get results() { return results; }, get wrong() { return wrongThisQ; }, get mode() { return mode; }, get round() { return round; }, get curOpts() { return curOpts; }, toneVariant, pickDistractors, zToStr };   // 測試用（tools/zy-test）
+if (DEBUG) window.__zyB = { exportCode, readCode, importCode, playHatchShow, applyNight, get rs() { return rs; }, get best() { return save.best; }, get matchSize() { return save.matchSize; } };   // 外殼測試用（tools/zy-test/shell.js）

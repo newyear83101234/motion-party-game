@@ -38,7 +38,10 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 .round-btn { position: absolute; z-index: 20; width: 12vmin; height: 12vmin; border-radius: 50%; background: rgba(255,255,255,0.97); font-size: 6vmin; box-shadow: 0 3px 10px rgba(0,0,0,0.25); }
 #homeBtn { left: 2vmin; top: 2vmin; }
 #musicBtn { left: 16vmin; top: 2vmin; }
-#musicBtn.off { opacity: 0.45; }
+#musicBtn.off { background: #fff; }   /* 音樂關掉（B10）：白底不透明＋紅色斜線，一眼看得出來 */
+#musicBtn.off::after { content: ""; position: absolute; left: 50%; top: 50%; width: 9vmin; height: 0.8vmin; margin: -0.4vmin 0 0 -4.5vmin; border-radius: 0.4vmin; background: #e05050; transform: rotate(-45deg); box-shadow: 0 0 0 0.3vmin #fff; pointer-events: none; }
+#musicBtn.pop { animation: btnPop 0.3s cubic-bezier(.2,1.6,.4,1); }
+@keyframes btnPop { 0% { scale: 1; } 40% { scale: 1.18; } 100% { scale: 1; } }
 #settingsBtn { right: 2vmin; top: 2vmin; }
 .hint-btn { position: absolute; z-index: 20; right: 2vmin; top: 2vmin; height: 12vmin; padding: 0 3vmin 0 2vmin; border-radius: 6vmin; background: var(--yellow); box-shadow: 0 5px 0 var(--yellow-dk), 0 6px 12px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 1vmin; font-size: 5vmin; font-weight: bold; color: #333; }
 .hint-btn .ic { font-size: 6vmin; }
@@ -52,12 +55,12 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 /* ===== 嚮導 ===== */
 .guide { position: absolute; z-index: 15; right: 2vmin; bottom: 2vmin; display: flex; align-items: flex-end; gap: 1.5vmin; cursor: pointer; }
 .guide img { height: 26vmin; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25)); animation: bob 3s ease-in-out infinite; }
-.guideText { background: #fff; border-radius: 3vmin; padding: 2vmin 3vmin; font-size: 4.4vmin; line-height: 1.6; color: var(--blue); font-weight: bold; max-width: 46vmin; margin-bottom: 14vmin; box-shadow: 0 4px 12px rgba(0,0,0,0.2); position: relative; }
+.guideText { background: #fff; border-radius: 3vmin; padding: 2vmin 3vmin; font-size: 4.8vmin; line-height: 1.6; color: var(--blue); font-weight: bold; max-width: 46vmin; margin-bottom: 14vmin; box-shadow: 0 4px 12px rgba(0,0,0,0.2); position: relative; }
 .guideText::after { content: ""; position: absolute; right: -2vmin; bottom: 3vmin; border: 1.6vmin solid transparent; border-left-color: #fff; }
 @media (orientation: landscape) {
   .guide { flex-direction: column-reverse; align-items: flex-end; gap: 0; }
   .guide img { height: 22vmin; }
-  .guideText { max-width: 30vmin; margin-bottom: 3vmin; font-size: 4vmin; }
+  .guideText { max-width: 30vmin; margin-bottom: 3vmin; font-size: 4.6vmin; }
   .guideText::after { right: 5vmin; bottom: -3vmin; border: 1.6vmin solid transparent; border-top-color: #fff; }
   #menu > h1, #menu > .resume, #menu > .mode-cards, #menu > .menu-bottom { translate: -11vmin 0; }   /* 選單內容往左挪，讓出右下角給貓頭鷹的對話框 */
   #menu h1 { margin-top: 3vmin; }
@@ -90,16 +93,20 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 .save-code { width: 70vmin; font-size: max(16px, 3vmin); font-family: ui-monospace, Menlo, Consolas, monospace; border: 0.5vmin solid var(--blue); border-radius: 2vmin; padding: 1vmin; word-break: break-all; -webkit-user-select: text; user-select: text; }
 .dialog.settings { max-height: 94vh; max-width: 94vw; overflow-y: auto; touch-action: pan-y;
   background: linear-gradient(rgba(255,255,255,0), #fff 70%) center bottom / 100% 6vmin no-repeat local, radial-gradient(farthest-side at 50% 100%, rgba(0,0,0,0.22), rgba(0,0,0,0)) center bottom / 100% 2.4vmin no-repeat scroll, #fff; }   /* 下面還有東西時底部有陰影（捲到底就被白色蓋掉） */
-#hintOpts { flex-wrap: wrap; justify-content: center; }
+#hintOpts { flex-wrap: nowrap; }   /* 四格分段膠囊，直式也不斷行（B6） */
 .dialog { max-width: 94vw; }
 .mode-card.locked { filter: grayscale(0.7); }
 .mode-card.locked .lock { background: rgba(40,40,60,0.55); }
 .menu-bottom { display: flex; gap: 3vmin; margin-top: 3vmin; }
-.pill { display: flex; align-items: center; gap: 1.5vmin; background: #fff; border: 0.6vmin solid var(--blue); border-radius: 5vmin; padding: 1.5vmin 3vmin; font-size: 4.2vmin; font-weight: bold; color: var(--blue); box-shadow: 0 4px 0 #9bb7d8; }
+.pill { display: flex; align-items: center; gap: 1.5vmin; background: #fff; border: 0.6vmin solid var(--blue); border-radius: 5vmin; padding: 1.5vmin 3vmin; font-size: 4.6vmin; font-weight: bold; color: var(--blue); box-shadow: 0 4px 0 #9bb7d8; }
 .pill:active { transform: translateY(3px); box-shadow: none; }
 .pill b { background: var(--yellow); color: #333; border-radius: 3vmin; padding: 0.3vmin 1.8vmin; }
-.jar { position: relative; width: 5vmin; height: 7vmin; border: 0.5vmin solid var(--blue); border-radius: 1vmin 1vmin 2vmin 2vmin; overflow: hidden; background: rgba(255,255,255,0.6); }
+/* 星星罐（B11）：深藍蓋子、淡藍玻璃；0 顆時罐裡兩顆虛線小星＝等你來填 */
+.jar { position: relative; width: 5vmin; height: 7vmin; border: 0.5vmin solid var(--blue); border-top: 1.2vmin solid #163f80; border-radius: 0.8vmin 0.8vmin 2vmin 2vmin; overflow: hidden; background: rgba(200,230,255,0.6); }
+.jar.empty { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 50'%3E%3Cg fill='none' stroke='%231b4fa0' stroke-width='1.6' stroke-dasharray='2.2 1.8' stroke-linejoin='round'%3E%3Cpath d='M13 9l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z'/%3E%3Cpath d='M27 25l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z'/%3E%3C/g%3E%3C/svg%3E") center / 100% 100% no-repeat, rgba(200,230,255,0.6); }
 .jarFill { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: linear-gradient(180deg, #ffe58a, #ffb300); transition: height 0.8s; }
+.jarText { display: inline-block; font-variant-numeric: tabular-nums; }
+.jarText.tick { animation: btnPop 0.25s ease-out; }
 .jarBtn .egg { font-size: 5vmin; }
 .jarBtn.ready { border-color: var(--tone); background: #fff3c4; animation: pulse 1.2s ease-in-out infinite; }
 
@@ -118,14 +125,16 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 .prompt, .bubble, .slots, .zlabel, .sticker { position: relative; z-index: 19; }
 /* 白底圓角注音標籤：魚、氣球的注音都放這裡，跟圖片分開排 */
 .zlabel { background: #fff; border: 0.6vmin solid var(--blue); border-radius: 3vmin; padding: 1.8vmin 1.6vmin 1vmin 2vmin; box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; color: #222; }
-.syl { position: relative; display: flex; flex-direction: column; align-items: center; padding: 0.1em 0.75em 0.1em 0.1em; }
-.syl b { font-weight: 700; font-size: 1em; line-height: 1.05; }
+.syl { position: relative; display: flex; flex-direction: column; align-items: center; padding: 0.08em 0.62em 0.08em 0.08em; }
+.syl:has(.tone.light) { padding-top: 0.34em; }
+.syl:not(:has(.tone)) { padding-right: 0.08em; }   /* 一聲沒有聲調，不留右側空位（寧次 10-10：單一符號會偏左） */   /* 輕聲點在最上面，先留位置，不然會壓到白框 */
+.syl b { font-weight: 700; font-size: 1em; line-height: 0.86; }   /* 一格 0.86em：三個符號的直欄不會拉得太長（研究 10-10，比照教育部比例） */
 /* 聲調：照教育部《國語注音符號手冊》／W3C clreq——ˊˇˋ 標在「最後一個符號」右上方、往上突出半格；輕聲 ˙ 標在最前面（直排＝頂上）。
    符號字形各平台不同，聲調改用向量圖畫，iPad 跟測試看到的一樣；文字留著（透明）給程式與朗讀用 */
 .syl { --n: 1; }
 .syl.n2 { --n: 2; } .syl.n3 { --n: 3; } .syl.n4 { --n: 4; }
-.syl .tone { position: absolute; right: 0.02em; top: calc(0.1em + (var(--n) - 1) * 1.05em); transform: translateY(-50%); width: 0.62em; height: 0.62em; font-size: 1em; line-height: 1; text-indent: 200%; white-space: nowrap; overflow: hidden; }
-.syl .tone.light { right: auto; left: 0.43em; top: -0.08em; width: 0.34em; height: 0.34em; }
+.syl .tone { position: absolute; right: 0.05em; top: calc(0.08em + (var(--n) - 1) * 0.86em); transform: translateY(-50%); width: 0.5em; height: 0.5em; font-size: 1em; line-height: 1; text-indent: 200%; white-space: nowrap; overflow: hidden; }
+.syl .tone.light { right: auto; left: 0.45em; top: 0.06em; transform: none; width: 0.26em; height: 0.26em; }
 .syl .tone.hint { animation: toneHint 0.5s ease-in-out 3; }
 :root {
   --t2: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2.4 8.6 7.6 1.4' stroke='%23c2410c' stroke-width='2.4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
@@ -147,16 +156,20 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 .tv5::after { -webkit-mask-image: var(--t5); mask-image: var(--t5); inset: 38%; }
 
 /* ===== 國字旁的小注音（zhuyin-ann.js 自動加）=====
-   每個國字右邊一條直排注音欄（字的 0.36 倍），聲調畫在欄的右邊、對齊最後一個符號的上緣 */
-.ac { --zs: max(0.36em, 2.1vmin); position: relative; display: inline-block; line-height: 1; margin-right: calc(var(--zs) * 2.15); text-indent: 0; }   /* 2.15：聲調跟下一個字留空（寧次 10-10） */
-.sticker .ac { margin-right: calc(var(--zs) * 1.8); }   /* 圓貼紙三字詞塞不下，維持原間距 */
-.ac[data-z]::after { content: attr(data-z); position: absolute; left: calc(100% + 0.03em); top: 50%; transform: translateY(-50%);
-  writing-mode: vertical-rl; text-orientation: upright; font-size: var(--zs); line-height: 1.05; letter-spacing: 0; font-weight: 700; white-space: nowrap; }
-.ac { --n: 1; } .ac.n2 { --n: 2; } .ac.n3 { --n: 3; } .ac.n4 { --n: 4; }
-.ac.t2::before, .ac.t3::before, .ac.t4::before { content: ""; position: absolute; width: calc(var(--zs) * 0.68); height: calc(var(--zs) * 0.68); background-position: center; background-size: contain; background-repeat: no-repeat;
-  left: calc(100% + var(--zs) * 1.1); top: calc(50% + var(--n) * var(--zs) * 0.5 - var(--zs) - var(--zs) * 0.34); }
-.ac.t5::before { content: ""; position: absolute; width: calc(var(--zs) * 0.36); height: calc(var(--zs) * 0.36); background-size: contain; background-repeat: no-repeat;
-  left: calc(100% + var(--zs) * 0.34); top: calc(50% - var(--n) * var(--zs) * 0.5 - var(--zs) * 0.46); }
+   照教育部《國語注音符號手冊》／W3C clreq 5.5.3（阿葉 10-10「三個注音符號的大小位置怪怪的」，研究見 tools/zy-proto/zhuyin-compare.html）：
+   注音欄不超過國字高、上下置中；符號約國字 3/10；注音＋聲調約佔半個字寬；ˊˇˋ 在最後一個符號右上（聲調中心＝最後一格頂邊）；˙ 在最上面。
+   以前用 max(0.36em, 2.1vmin) 保底，小字的注音被放大成字高 1.25～1.74 倍才會怪 → 改固定比例，小字改成把整段字放大（≥4.6vmin） */
+.ac { --zs: 0.38em; --zp: 0.33em; --tw: 0.22em; --n: 1; position: relative; display: inline-block; line-height: 1; margin-right: 0.66em; text-indent: 0; }
+.sticker .ac { margin-right: 0.6em; }   /* 圓貼紙三字詞要塞得下 */
+.ac.n2 { --n: 2; } .ac.n3 { --n: 3; } .ac.n4 { --n: 4; }
+.ac[data-z]::after { content: attr(data-z); position: absolute; left: calc(100% + 0.08em); top: calc(50% - 0.066em); transform: translateY(-50%);
+  writing-mode: vertical-rl; text-orientation: upright; font-size: var(--zs); line-height: 1;
+  letter-spacing: -0.132em;   /* 每格 0.33em（國字 em）÷ 注音字級 0.38 → 負字距壓緊，三個符號 ≤ 一個字高 */
+  font-weight: 700; white-space: nowrap; }
+.ac.t2::before, .ac.t3::before, .ac.t4::before { content: ""; position: absolute; width: var(--tw); height: var(--tw);
+  left: calc(100% + 0.03em + var(--zs) * 0.88); top: calc(50% + var(--n) * var(--zp) * 0.5 - var(--zp) - var(--tw) * 0.5); }
+.ac.t5::before { content: ""; position: absolute; width: 0.13em; height: 0.13em;
+  left: calc(100% + 0.03em + var(--zs) * 0.5 - 0.065em); top: calc(50% - var(--n) * var(--zp) * 0.5 - 0.14em); }
 @keyframes toneHint { 50% { transform: translateY(-50%) scale(1.6); } }
 .zy.hz { gap: 0.6em; align-items: flex-end; }   /* 國字排在同一條線（注音長短不同時不會像樓梯） */
 .zy.hz .syl { padding-bottom: 0; }
@@ -244,7 +257,7 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 .card .back { background: url("../IMAGE/zhuyin/card_back.webp") center / cover no-repeat, #1b4fa0; }
 .card .front { background: #fff; transform: rotateY(180deg); border: 0.6vmin solid var(--blue); gap: 0.6vmin; }
 .card .front .em { font-size: var(--ef, 11vmin); line-height: 1; }
-.card .front .han { font-size: calc(var(--cw, 24vmin) * 0.17); font-weight: bold; color: var(--blue); line-height: 1.2; }
+.card .front .han { font-size: max(4.6vmin, calc(var(--cw, 24vmin) * 0.17)); font-weight: bold; color: var(--blue); line-height: 1.2; }
 .card .front .zy { font-size: var(--zf, 5vmin); }
 .card .front { padding: 0 1vmin; overflow: hidden; }
 .card.done .front { background: #c8f7c5; border-color: #3cb043; }
@@ -321,25 +334,35 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 #result::before { content: ""; position: absolute; inset: 0; background: rgba(20,60,90,0.35); pointer-events: none; }   /* 暗層：成績和按鈕跳出來 */
 #result > * { position: relative; z-index: 1; }
 .result-text { font-size: 7vmin; color: var(--blue); font-weight: bold; text-align: center; background: rgba(255,255,255,0.9); padding: 2vmin 5vmin; border-radius: 4vmin; }
-.stars { font-size: 15vmin; display: flex; gap: 1vmin; }
-.stars .star { opacity: 0.35; transform: scale(0.6); }
-.stars .star.on { animation: starIn 0.5s ease forwards; }
-@keyframes starIn { to { opacity: 1; transform: scale(1); } }
+/* 三顆星（B1）：格子先放灰星，拿到的星依序「蓋章」上去；沒拿到的就是同一顆星灰階半透明 */
+.stars { font-size: 15vmin; display: flex; gap: 1vmin; line-height: 1; }
+.stars .star { position: relative; display: inline-block; }
+.stars .star::before { content: "⭐"; filter: grayscale(1) brightness(1.35); opacity: 0.42; }
+.stars .star.on::after { content: "⭐"; position: absolute; left: 0; top: 0; animation: starStamp 0.5s ease-out var(--d, 0s) both; }
+.stars.done .star.on::after { animation: none; }   /* 快轉 */
+@keyframes starStamp { 0% { transform: scale(0) rotate(-25deg); } 55% { transform: scale(1.35) rotate(-4deg); } 100% { transform: scale(1) rotate(0); } }
 .result-stickers { display: flex; gap: 2vmin; flex-wrap: wrap; justify-content: center; min-height: 18vmin; }
-.result-btns { display: flex; gap: 3vmin; flex-wrap: wrap; justify-content: center; }
+.result-stickers.many { gap: 1.4vmin; }
+.result-stickers.many .sticker { width: 18vmin; height: 18vmin; } .result-stickers.many .sticker .em { font-size: 6.5vmin; } .result-stickers.many .sticker.long { width: 19vmin; height: 19vmin; }
+.result-stickers .all-done { text-align: center; font-size: 5vmin; font-weight: bold; color: var(--blue); background: rgba(255,255,255,0.9); border-radius: 3vmin; padding: 1vmin 3vmin; width: auto; animation: zyFadeIn 0.4s both; }
+.result-stickers .mini-row { display: flex; gap: 1.6vmin; flex-wrap: wrap; justify-content: center; width: 100%; }
+.result-btns { display: flex; gap: 3vmin; flex-wrap: wrap; justify-content: center; transition: opacity 0.4s; }
+.result-btns.wait { opacity: 0; pointer-events: none; }   /* 演出中：看不到也點不到（點到的是畫面＝快轉）；JS 的 .click() 照常有效 */
 .big-btn { font-size: 6vmin; padding: 2.5vmin 5vmin; border-radius: 4vmin; background: var(--yellow); color: #333; box-shadow: 0 5px 0 var(--yellow-dk); font-weight: bold; }
 .big-btn.alt { background: #fff; box-shadow: 0 5px 0 #b9d7f0; border: 0.6vmin solid var(--blue); }
 .big-btn.small { font-size: 5vmin; padding: 1.5vmin 3vmin; }
 .big-btn:active { transform: translateY(3px); box-shadow: none; }
 
 /* ===== 貼紙 ===== */
-.sticker { width: 20vmin; height: 20vmin; border-radius: 50%; background: #fff; border: 0.7vmin solid var(--yellow); box-shadow: 0 4px 8px rgba(0,0,0,0.2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; }
-.sticker .em { font-size: 4.8vmin; line-height: 1; }
-.sticker.long .em { font-size: 4.2vmin; } .sticker.long .hz { font-size: 2.9vmin; }   /* 三個字的詞（長頸鹿…）縮小才塞得進圓貼紙 */
-.sticker .hz { font-size: 4vmin; font-weight: bold; color: var(--blue); margin-top: 0.6vmin; padding-left: 0.6vmin; }
+/* 貼紙主角是圖（B7）：大圖、白邊外加一圈米色細線＝像實體貼紙；圖鑑裡每張隨機歪 ±3° */
+.sticker { width: 20vmin; height: 20vmin; border-radius: 50%; background: #fff; border: 0.9vmin solid #fff; box-shadow: 0 0 0 0.3vmin #e8d9a8, 0 4px 8px rgba(0,0,0,0.2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; }
+.sticker .em { font-size: 8.5vmin; line-height: 1; }
+.sticker.long { width: 25vmin; height: 25vmin; } .sticker.long .em { font-size: 7.5vmin; } .sticker.long .hz { font-size: 4.6vmin; } .sticker.long .ac { margin-right: 0.5em; }   /* 三個字的詞（長頸鹿…）縮小才塞得進圓貼紙 */
+.sticker.mini { width: 18vmin; height: 18vmin; } .sticker.mini .em { font-size: 6.5vmin; } .sticker.mini.long { width: 21vmin; height: 21vmin; }   /* 這回合練過的詞（沒有新貼紙時列出來，不 slap） */
+.sticker .hz { white-space: nowrap; font-size: 4.8vmin; font-weight: bold; color: var(--blue); margin-top: 0.6vmin; padding-left: 0.6vmin; }
 .sticker.fresh { opacity: 0; animation: slap 0.5s cubic-bezier(.2,1.6,.4,1) forwards; }
 @keyframes slap { 0% { opacity: 0; transform: scale(2.2) rotate(-15deg); } 100% { opacity: 1; transform: scale(1) rotate(-6deg); } }
-.sticker.empty { background: rgba(255,255,255,0.45); border: 0.6vmin dashed #9aa; }
+.sticker.empty { background: rgba(255,255,255,0.45); border: 0.6vmin dashed #9aa; box-shadow: none; }
 .sticker.empty .em { filter: grayscale(1); opacity: 0.3; font-size: 6.5vmin; }
 
 /* ===== 圖鑑 ===== */
@@ -350,6 +373,7 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 .tabs { display: flex; gap: 1.5vmin; margin-top: 1.5vmin; flex-wrap: wrap; justify-content: center; }
 .tab { font-size: 3.8vmin; font-weight: bold; padding: 1.2vmin 2.4vmin; border-radius: 3vmin; background: rgba(255,255,255,0.8); color: var(--blue); border: 0.5vmin solid transparent; }
 .tab.on { background: var(--yellow); border-color: var(--tone); }
+@media (orientation: portrait) { .tabs { flex-wrap: nowrap; gap: 1vmin; } .tab { font-size: 3.4vmin; padding: 1vmin 1.8vmin; white-space: nowrap; } }   /* 直式五個分頁排同一行（B7） */
 .album-grid { display: flex; flex-wrap: wrap; gap: 2vmin; justify-content: center; align-content: flex-start; padding: 2vmin 4vmin; overflow-y: auto; flex: 1; width: 100%; touch-action: pan-y; }
 
 /* ===== 覆蓋層 ===== */
@@ -357,16 +381,44 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 .dialog { background: #fff; border-radius: 5vmin; padding: 4vmin 6vmin; display: flex; flex-direction: column; align-items: center; gap: 3vmin; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
 .dialog .q { font-size: 6.5vmin; font-weight: bold; color: var(--blue); }
 .dialog .row { display: flex; gap: 3vmin; }
-.hatchEgg { width: 26vmin; height: 32vmin; background: url("../IMAGE/zhuyin/egg.webp") center / contain no-repeat; }
-.hatchEgg.shake { animation: eggShake 0.5s ease-in-out 4; }
+/* 孵蛋演出（B4，js playHatchShow 共用）：沒有白方框，蛋底是圓形光暈；晃三段漸強 → 裂痕畫出來 → 白光 → 朋友＋背後放射光 */
+.dialog.hatchBox { background: transparent; box-shadow: none; padding: 0; gap: 2.4vmin; }
+.hatchStage { position: relative; width: 54vmin; height: 54vmin; display: flex; align-items: center; justify-content: center; border-radius: 50%;
+  background: radial-gradient(closest-side, #fff8dc 0%, #fff 70%, rgba(255,255,255,0) 100%); }
+.hatchRays { position: absolute; inset: -14vmin; border-radius: 50%; opacity: 0; transition: opacity 0.5s; pointer-events: none;
+  background: repeating-conic-gradient(#fff3c4 0deg 30deg, #ffd54a 30deg 60deg);
+  -webkit-mask: radial-gradient(closest-side, #000 30%, rgba(0,0,0,0) 100%); mask: radial-gradient(closest-side, #000 30%, rgba(0,0,0,0) 100%); animation: raySpin 8s linear infinite; }
+.hatchBox.out .hatchRays { opacity: 1; }
+@keyframes raySpin { to { transform: rotate(1turn); } }
+.hatchEgg { position: relative; width: 26vmin; height: 32vmin; background: url("../IMAGE/zhuyin/egg.webp") center / contain no-repeat; transform-origin: 50% 88%; filter: drop-shadow(0 1vmin 1.2vmin rgba(120,90,30,0.25)); }
+.hatchEgg.tappable { cursor: pointer; }
+.hatchEgg.s1 { animation: eggS1 0.6s ease-in-out 1; }
+.hatchEgg.s2 { animation: eggS2 0.5s ease-in-out 2; }
+.hatchEgg.s3 { animation: eggS3 0.25s ease-in-out 3; }
+@keyframes eggS1 { 25% { transform: rotate(-6deg); } 75% { transform: rotate(6deg); } }
+@keyframes eggS2 { 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); } }
+@keyframes eggS3 { 25% { transform: rotate(-18deg); } 75% { transform: rotate(18deg); } }
+.hatchCrack { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.hatchCrack path { fill: none; stroke: #6b4a2b; stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 0.45s ease-out; }
+.hatchEgg.ck1 .ck1, .hatchEgg.ck2 .ck2, .hatchEgg.ck3 .ck3 { stroke-dashoffset: 0; }
 .hatchEgg.gone { display: none; }
-@keyframes eggShake { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); } }
-.hatchFriend { height: 36vmin; animation: slap 0.6s cubic-bezier(.2,1.6,.4,1); }
+.hatchFriend { position: relative; height: 36vmin; animation: slap 0.6s cubic-bezier(.2,1.6,.4,1); filter: drop-shadow(0 1vmin 1.4vmin rgba(0,0,0,0.25)); }
+.hatchBox .q { background: #fff; border-radius: 4vmin; padding: 1vmin 4vmin; box-shadow: 0 6px 16px rgba(0,0,0,0.2); }
+.hatchBox .q:empty { visibility: hidden; }
+.flash { position: fixed; inset: 0; z-index: 52; background: #fff; opacity: 0; pointer-events: none; }
+.flash.go { animation: flashGo 0.3s ease-out; }
+@keyframes flashGo { 0% { opacity: 0; } 35% { opacity: 0.9; } 100% { opacity: 0; } }
 
 /* ===== 特效層 ===== */
 .fx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 50; }
 .fx span { position: absolute; font-size: 6vmin; animation: pop 0.9s ease-out forwards; }
-.fx span.cf { font-size: 5vmin; animation: fall linear forwards; }
+/* 彩帶（B2）：圓角紙片 3D 翻飛；結算的放在 #result 內容後面（.cf-layer，不蓋字），孵蛋的在特效層 */
+.paper, .fx span.paper { position: absolute; top: -4vmin; width: 1.2vmin; height: 2vmin; border-radius: 0.35vmin; font-size: 0; animation: paperFall linear forwards; will-change: transform; }
+.cf-layer, #result > .cf-layer { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+@keyframes paperFall {
+  0% { transform: translate3d(0, 0, 0) rotate3d(var(--ax), var(--ay), 0.3, 0deg); }
+  50% { transform: translate3d(calc(var(--sx) * -0.6), 56vh, 0) rotate3d(var(--ax), var(--ay), 0.3, calc(var(--rt) * 0.5)); }
+  100% { transform: translate3d(var(--sx), 112vh, 0) rotate3d(var(--ax), var(--ay), 0.3, var(--rt)); } }
 @keyframes pop { 0% { transform: translate(0,0) scale(0.5); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(1.2); opacity: 0; } }
 @keyframes fall { to { transform: translateY(120vh) rotate(360deg); } }
 
@@ -391,7 +443,7 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
   .balloon { position: relative; left: auto !important; bottom: auto; width: 34vmin; animation-name: floatS; } .balloonImg { width: 13vmin; height: 16vmin; }
   .sky .balloon:nth-child(-n+2) { align-self: start; } .sky .balloon:nth-child(n+3) { align-self: end; }   /* 上列貼頂、下列貼底：空間都留在兩列之間，標籤不會像是下一顆的 */
   .obj { width: 18vmin; height: 18vmin; font-size: 11vmin; }
-  .guide img { height: 17vmin; } .guideText { max-width: 40vmin; font-size: 3.8vmin; line-height: 1.9; margin-bottom: 9vmin; }
+  .guide img { height: 17vmin; } .guideText { max-width: 44vmin; font-size: 4.6vmin; line-height: 1.7; margin-bottom: 9vmin; }
   .guideText::after { right: auto; left: -3.2vmin; border-left-color: transparent; border-right-color: #fff; }   /* 直式貓頭鷹在左邊，尾巴指左 */
   .album-head { margin-left: 4vmin; width: calc(100% - 8vmin); margin-top: 14vmin; }
 }
@@ -404,16 +456,145 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 @keyframes ldHop { 0%,100% { transform: translateY(0) rotate(0); } 40% { transform: translateY(-5vmin) rotate(-8deg); } 60% { transform: translateY(-5vmin) rotate(8deg); } }
 .ld-text { font-size: 6vmin; font-weight: bold; color: var(--blue); }
 .ld-bar { width: 44vmin; height: 2.4vmin; border-radius: 2vmin; background: rgba(255,255,255,0.7); overflow: hidden; }
-.ld-bar i { display: block; width: 30%; height: 100%; border-radius: 2vmin; background: var(--yellow); animation: ldBar 1.1s ease-in-out infinite; }
-@keyframes ldBar { 0% { transform: translateX(-100%); } 100% { transform: translateX(340%); } }
+.ld-bar i { display: block; width: 4%; height: 100%; border-radius: 2vmin; background: var(--yellow); transition: width 0.35s ease-out; }   /* 寬度＝已載入幾個／共幾個（B12） */
+.ld-owl { height: 30vmin; display: none; filter: drop-shadow(0 6px 10px rgba(0,0,0,0.2)); animation: ldOwl 1.2s ease-in-out infinite; transform-origin: 50% 100%; }
+.loading.owl-ok .ld-owl { display: block; } .loading.owl-ok .ld-blocks { display: none; }   /* 貓頭鷹圖到了才換掉ㄅㄆㄇ積木 */
+@keyframes ldOwl { 0%,100% { transform: translateY(0) scale(1, 1); } 30% { transform: translateY(0) scale(1.06, 0.94); } 60% { transform: translateY(-3.5vmin) scale(0.97, 1.03); } }
 
 /* ===== 家長設定 ===== */
-.dialog.settings { max-width: min(94vw, 112vmin); }   /* 國字旁加了注音後字變寬，橫式放寬 */
+/* 家長看的（B6）：不加注音、4vmin 靠左、段落之間細分隔線；秒數是一條四格分段膠囊 */
+.dialog.settings { max-width: min(94vw, 104vmin); width: 104vmin; align-items: stretch; gap: 2.4vmin; padding: 4vmin 5vmin 3vmin; }
+.dialog.settings > .q, .dialog.settings > #settingsClose { align-self: center; }
 .nw { white-space: nowrap; }
-.set-label { font-size: 4.2vmin; font-weight: bold; color: #333; text-align: center; }
-.set-note { font-size: 3.2vmin; color: #556; text-align: center; line-height: 1.5; }
+.set-sec { display: flex; flex-direction: column; align-items: flex-start; gap: 1.6vmin; border-top: 1px solid #e3e8f0; padding-top: 2.4vmin; }
+.set-label { font-size: 4vmin; font-weight: bold; color: #333; text-align: left; }
+.set-note { font-size: 3.4vmin; color: #556; text-align: left; line-height: 1.55; }
+.set-note:empty { display: none; }
+.set-note.strong { color: #333; font-weight: bold; }
+.set-row { justify-content: flex-start !important; }
+.set-nag { font-size: 3.6vmin; font-weight: bold; color: #8a4b00; background: #fff3c4; border: 0.4vmin solid #f0c24a; border-radius: 2.4vmin; padding: 1.6vmin 2.4vmin; line-height: 1.5; }
+.seg { display: inline-flex; flex-wrap: nowrap; border: 0.5vmin solid var(--blue); border-radius: 5vmin; overflow: hidden; box-shadow: 0 4px 0 #9bb7d8; }
+.seg .opt { min-width: 0; border: 0; border-radius: 0; box-shadow: none; padding: 1.6vmin 3.4vmin; font-size: 4vmin; }
+.seg .opt + .opt { border-left: 0.4vmin solid var(--blue); }
+.seg .opt.on { background: var(--yellow); color: #333; }
+.dialog.settings .opt { font-size: 4vmin; }
+.save-code { width: 100%; }
 .opt { white-space: nowrap; min-width: 17vmin; font-size: 4.6vmin; font-weight: bold; padding: 2vmin 3vmin; border-radius: 3vmin; background: #fff; color: var(--blue); border: 0.6vmin solid var(--blue); box-shadow: 0 4px 0 #9bb7d8; }
 .opt.on { background: var(--yellow); border-color: var(--tone); color: #333; }
+
+/* ===== 拋光 A 組：遊戲手感（docs/zhuyin-polish-backlog.md A1–A20）=====
+   純表現：答對／答錯／星星／提示的規則都在 zhuyin.js 沒動。縮放一律用獨立的 scale／translate 屬性，不會跟原本用 transform 的漂浮動畫打架 */
+/* A2 每一下點擊立刻有反應 */
+button { transition: scale 0.1s; }
+.fishBtn:active, .balloon:active, .obj:active, .card:active, .pad:active, .tab:active, .player:active, .msize:active, .opt:active, .item:active, .tile:active, .round-btn:active { scale: 0.92; }
+.round-btn:active { transform: none; }
+/* 特效層的小零件（用 <i>，不吃 .fx span 的星星動畫） */
+.fx i { position: absolute; font-style: normal; line-height: 1; pointer-events: none; }
+.fx i.mark { font-size: 7vmin; }
+.fx i.mark.crown { font-size: 10vmin; }
+.fx i.mark.qm { font-size: 9vmin; font-weight: 900; color: #e05050; text-shadow: 0 0 0.5vmin #fff, 0 0 0.5vmin #fff, 0 0.4vmin 0.8vmin rgba(0,0,0,0.25); }
+.fx i.ring { border-radius: 50%; border: 1.1vmin solid #fff; }
+.fx i.goldflash { left: 0; top: 0; width: 100%; height: 100%; background: radial-gradient(circle at 50% 50%, rgba(255,246,190,0.95), rgba(255,206,60,0.6) 45%, rgba(255,180,0,0) 85%); }
+.fx .flyer { position: fixed !important; margin: 0 !important; z-index: 51; pointer-events: none; animation: none !important; transition: none !important; translate: none !important; scale: none !important; rotate: none !important; visibility: visible !important; }
+.fx .flyer.txt { display: flex; align-items: center; justify-content: center; line-height: 1; }
+.fx .flyer.ghost { opacity: 0.75; }
+/* A3 翻牌配對：兩張一起放大＋金框；頂上配對計數 */
+.card.done.pairHit { animation: pairHit 0.5s cubic-bezier(.2,1.5,.4,1); position: relative; z-index: 2; }
+@keyframes pairHit { 0% { scale: 1; } 45% { scale: 1.15; } 100% { scale: 1; } }
+.card.pairHit .front { border-color: #ffd54a; box-shadow: 0 0 0 0.7vmin #ffd54a, 0 0 3.5vmin 0.8vmin rgba(255,213,74,0.85); }
+.mcount { position: absolute; z-index: 18; top: 3.2vmin; left: 50%; transform: translateX(-50%); background: rgba(27,79,160,0.85); color: #fff; font-size: 5vmin; font-weight: bold; padding: 1vmin 3vmin; border-radius: 5vmin; white-space: nowrap; }
+.mcount.bump { animation: mcBump 0.4s cubic-bezier(.2,1.6,.4,1); }
+@keyframes mcBump { 40% { scale: 1.22; background: #e0a800; } }
+/* A14 翻牌：單音節卡的注音放大、雙音節整組置中 */
+.card.one .front .zy { font-size: var(--zf1, var(--zf, 5vmin)); }
+.card .front .zy { justify-content: center; }
+/* A4 跳跳蛙：點下先壓扁（JS）、落地水波 */
+.frog { transform-origin: 50% 100%; }
+.river > .ripple { width: 22vmin; height: 9vmin; border: 0.7vmin solid rgba(255,255,255,0.9); border-radius: 50%; pointer-events: none; z-index: 1; animation: ripple 0.5s ease-out forwards; }
+@keyframes ripple { from { scale: 0.3; opacity: 1; } to { scale: 1.6; opacity: 0; } }
+.pad.goldpad { filter: sepia(1) saturate(4) hue-rotate(5deg) brightness(1.12) drop-shadow(0 0 2.2vmin #ffd54a); }
+/* A5 進度點：答對當下就變金／銀＋回彈；連續金星用金色光帶連起來；A19 最後一題那格閃；A12 連對時膠囊亮金 */
+.progress span { position: relative; }
+.progress span.cur.gold { background: var(--yellow); border-color: var(--tone); animation: dotPop 0.35s ease-out; }
+.progress span.cur.silver { background: #e6e6e6; border-color: #9aa; animation: dotPop 0.35s ease-out; }
+@keyframes dotPop { from { transform: scale(1.7); } to { transform: scale(1.3); } }
+.progress span.link::before { content: ""; position: absolute; z-index: -1; right: calc(100% - 1px); top: 50%; width: calc(1.4vmin + 6px); height: 1.2vmin; translate: 0 -50%; border-radius: 1vmin; background: linear-gradient(180deg, #fff3a8, #ffc400); box-shadow: 0 0 1.2vmin #ffd54a; }
+.progress span.cur.final { animation: finalFlash 0.55s ease-in-out infinite alternate; }
+@keyframes finalFlash { from { transform: scale(1.3); box-shadow: 0 0 0 0 rgba(255,213,74,0); } to { transform: scale(1.5); background: #fff3c4; box-shadow: 0 0 0 1vmin rgba(255,213,74,0.75); } }
+.progress.glow { animation: capGlow 0.6s ease-out; }
+@keyframes capGlow { 30% { background: #e0a800; box-shadow: 0 0 0 0.8vmin rgba(255,213,74,0.6), 0 0 4vmin #ffd54a; } }
+/* A6 揭曉國字：彈入；題目卡框轉綠 0.8 秒 */
+.prompt > .han, .wpic > .zy, .bubble .zy.hz .han, .card .front .han { animation: hanIn 0.4s cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes hanIn { 0% { opacity: 0; scale: 2.2; } 100% { opacity: 1; scale: 1; } }
+.solved { border-color: #3cb043 !important; box-shadow: 0 0 0 0.6vmin rgba(60,176,67,0.35), 0 4px 14px rgba(0,0,0,0.18) !important; transition: border-color 0.15s, box-shadow 0.15s; }
+/* A7 氣球：氣球破掉、注音牌受重力掉下去；驚喜題＝彩虹氣球／金魚 */
+.sky .balloon.ok { animation: float 3.2s ease-in-out infinite paused; }
+.balloon.ok .balloonImg { animation: popB 0.25s ease-out forwards; }
+.balloon.ok .zlabel { animation: labelFall 0.6s cubic-bezier(.55,0,1,.45) forwards; }
+@keyframes labelFall { to { transform: translateY(45vmin) rotate(16deg); opacity: 0.2; } }
+.balloon.ok.rainbow .balloonImg { animation: rainbow 0.3s linear infinite, popB 0.25s ease-out 0.55s forwards; }
+@keyframes rainbow { from { filter: hue-rotate(0deg) saturate(1.6); } to { filter: hue-rotate(360deg) saturate(1.6); } }
+.fishBtn.golden .fishImg { filter: sepia(1) saturate(5) hue-rotate(-10deg) brightness(1.15) drop-shadow(0 0 2.2vmin #ffd54a); }
+/* A8 答對的東西有去處：客人吃東西、下一位客人滑進來；背包收東西；積木拖曳／飛進格子 */
+.customer.enter { animation: custIn 0.4s cubic-bezier(.2,1.2,.4,1); }
+@keyframes custIn { from { transform: translateX(45vmin); opacity: 0; } }
+.customer.chew { transform-origin: 50% 100%; animation: chew 0.6s ease-in-out; }
+@keyframes chew { 0%,100% { transform: scale(1, 1); } 20% { transform: scale(1.04, 0.9); } 42% { transform: scale(0.97, 1.08); } 64% { transform: scale(1.04, 0.9); } 84% { transform: scale(0.97, 1.08); } }
+.bag.got { animation: bagPop 0.45s cubic-bezier(.2,1.6,.4,1); }
+@keyframes bagPop { 40% { scale: 1.25; } }
+.tray .tile { touch-action: none; }
+.tile.lifted { position: relative; z-index: 30; scale: 1.15; box-shadow: 0 10px 0 var(--yellow-dk), 0 16px 24px rgba(0,0,0,0.3); transition: none; }
+.tile.toneTile.lifted { box-shadow: 0 10px 0 #3a8fd0, 0 16px 24px rgba(0,0,0,0.3); }
+.slots .slot.landing { color: transparent !important; }
+.slots .slot.landing::after { opacity: 0; }
+.slots .slot.pop { animation: slotPop 0.28s ease-out; }
+@keyframes slotPop { 0% { scale: 1.15; } 100% { scale: 1; } }
+.slots .slot.hop2 { animation: slotHop 0.38s ease-out; }
+@keyframes slotHop { 40% { translate: 0 -2.6vmin; scale: 1.08; } }
+/* A10 答錯怪遊戲不怪小孩：魚潛下水再浮上（變淡由 .dim 接手）、氣球漏氣扭一扭 */
+.fishBtn.ng { animation: dive 0.45s ease-in-out; }
+@keyframes dive { 45% { transform: translateY(6vmin) scale(0.94); opacity: 0.25; } 100% { transform: translateY(0); opacity: 1; } }
+.balloon.ng { animation: deflate 0.5s ease-in-out; }
+@keyframes deflate { 20% { transform: scale(1.05, 0.85) rotate(-5deg); } 45% { transform: scale(0.98, 0.88) rotate(5deg); } 70% { transform: scale(1.03, 0.92) rotate(-3deg); } 100% { transform: none; } }
+/* A11 打地鼠：敲錯鎖定中注音牌變灰、點了晃一下；目標卡下面是淡星星外框，敲中變亮星 */
+.field.lock .mole.up:not(.hit) .wsign { filter: grayscale(1); opacity: 0.6; }
+.wsign { transition: filter 0.15s, opacity 0.15s; }
+.mole.meh { animation: meh 0.3s ease-in-out; }
+@keyframes meh { 25% { rotate: -6deg; } 75% { rotate: 6deg; } }
+.wdots span, .wdots span.on { background: none; border: 0; box-shadow: none; width: 7vmin; height: 7vmin; font-size: 6.4vmin; }
+.wdots span::after { content: "★"; color: rgba(255,255,255,0.55); -webkit-text-stroke: 0.35vmin rgba(27,79,160,0.6); }
+.wdots span.on::after { content: "⭐"; color: inherit; -webkit-text-stroke: 0; }
+/* A12 連對徽章 */
+.combo-badge { position: absolute; z-index: 30; left: 50%; top: 0; background: var(--yellow); color: #5a3200; font-size: 6vmin; font-weight: bold; padding: 1.2vmin 4.5vmin; border-radius: 4vmin; box-shadow: 0 0.7vmin 0 var(--yellow-dk), 0 1.4vmin 3vmin rgba(0,0,0,0.25); pointer-events: none; white-space: nowrap; }
+/* A13 積木畫面填滿 */
+#build { justify-content: center; }
+@media (orientation: landscape) {
+  .tile { width: 14vmin; height: 14vmin; font-size: 8.6vmin; }
+  .tile.toneTile { font-size: 10vmin; }
+  .slot { width: 11.5vmin; height: 11.5vmin; font-size: 8vmin; }
+  .slot.toneSlot { width: 10vmin; height: 10vmin; font-size: 7.2vmin; }
+}
+/* A15 魚的注音卡大小一致：固定寬高，字由程式縮放塞進去 */
+.fishBtn .zlabel { width: 24vmin; height: 12.5vmin; min-width: 0; flex-shrink: 0; padding: 1vmin 1.2vmin; }
+/* A16 尋寶圈底實心白＋淡陰影 */
+.obj { background: #fff; box-shadow: 0 0.6vmin 1.6vmin rgba(0,0,0,0.2); }
+/* A18 可以戳的場景小生物（不擋選項；戳了叫一聲翻一圈，不算答錯） */
+.critter { position: absolute; z-index: 17; width: 11vmin; height: 11vmin; display: flex; align-items: center; justify-content: center; font-size: 8vmin; line-height: 1; cursor: pointer; touch-action: none; filter: drop-shadow(0 0.5vmin 0.6vmin rgba(0,0,0,0.25)); animation: critIn 0.45s cubic-bezier(.2,1.6,.4,1) both, critBob 2.4s ease-in-out 0.45s infinite; }
+.critter.bye { animation: critOut 0.5s ease-in forwards; pointer-events: none; }
+@keyframes critIn { from { scale: 0; opacity: 0; } }
+@keyframes critBob { 0%,100% { translate: 0 0; } 50% { translate: 0 -1.6vmin; } }
+@keyframes critOut { to { scale: 0.2; opacity: 0; } }
+/* A20 第一次玩的示範手指（照 .hub-finger／fingerTap 另做一份，不動選單那兩條） */
+.fx .demo-finger { position: absolute; z-index: 52; pointer-events: none; font-size: 9vmin; line-height: 1; filter: drop-shadow(0 0.6vmin 0.8vmin rgba(0,0,0,0.35)); }
+.fx .demo-finger > span { position: static; display: block; font-size: inherit; animation: demoTap 3.2s ease-in-out forwards; }
+.fx .demo-finger.drag > span { animation: demoFade 2.6s ease-in-out forwards; }
+@keyframes demoTap { 0% { opacity: 0; translate: 5vmin 7vmin; } 18% { opacity: 1; translate: 0 0; scale: 1; } 30% { scale: 0.82; translate: 0 -0.8vmin; } 38% { scale: 1; translate: 0 0; } 52% { scale: 0.82; translate: 0 -0.8vmin; } 60% { scale: 1; translate: 0 0; } 85% { opacity: 1; } 100% { opacity: 0; translate: 0 1vmin; } }
+@keyframes demoFade { 0% { opacity: 0; } 12%, 85% { opacity: 1; } 100% { opacity: 0; } }
+@media (orientation: portrait) {
+  .mcount { top: 15vmin; }
+  .sky .balloon.ok { animation-name: floatS; }
+  .fishBtn .zlabel { width: 28vmin; height: 12vmin; }
+}
 
 /* ===== 舊 iPad 備援（Safari 14.0 以前不認 translate 屬性；新瀏覽器不會套用這段）===== */
 @supports not (translate: 0) {
@@ -450,17 +631,19 @@ body.hub3d #menu > .menu-bottom { position: absolute; left: 50%; bottom: 2.4vmin
 body.hub3d #menu .pill { border-color: #fff; color: #24515c; box-shadow: 0 0.6vmin 0 rgba(36,81,92,0.22), 0 1vmin 2.4vmin rgba(20,50,80,0.25); }
 /* 浮標：白色圓角小牌（模式圖示＋兩個字），跟著建築在螢幕上的位置移動 */
 .hub-tag { position: absolute; left: 0; top: 0; pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 0.5vmin;
-  background: #fff; color: #24515c; font-weight: bold; border-radius: 2.4vmin; padding: 0.6vmin 0.6vmin 0.6vmin 1.2vmin; will-change: transform; touch-action: none;
+  background: #fff; color: #24515c; font-weight: bold; border-radius: 2.4vmin; padding: 0.4vmin 0.5vmin 0.4vmin 0.6vmin; will-change: transform; touch-action: none;
   box-shadow: 0 0.6vmin 0 rgba(36,81,92,0.22), 0 1vmin 2.4vmin rgba(20,50,80,0.25); }
-.hub-tag::before { content: ""; position: absolute; inset: -0.8vmin -0.6vmin; }   /* 隱形點擊區：實際可點高度 ≥ 9vmin */
-.hub-tag::after { content: ""; position: absolute; left: 50%; bottom: -1.3vmin; margin-left: -1.3vmin; border: 1.3vmin solid transparent; border-top-color: #fff; border-bottom: 0; }
-.hub-tag .ht-row { display: flex; align-items: center; gap: 0.5vmin; }
-.hub-tag .ht-ico { font-size: 3.8vmin; line-height: 1; }
-.hub-tag .ht-word { font-size: 3.3vmin; line-height: 1; white-space: nowrap; padding: 1.5vmin 0; }   /* 三個符號的注音比字高，上下留空才不會超出框 */
-.hub-tag .ht-lock { display: none; font-size: 2.8vmin; line-height: 1; white-space: nowrap; color: #fff; background: #4a5568; border-radius: 2vmin; padding: 0.5vmin 1.3vmin; }
+.hub-tag::before { content: ""; position: absolute; inset: -1.6vmin -0.6vmin; }   /* 隱形點擊區：實際可點高度 ≥ 9vmin（浮標本身約 5.8vmin） */
+.hub-tag::after { content: ""; position: absolute; left: calc(50% + var(--tx, 0px)); bottom: -1.3vmin; margin-left: -1.3vmin; border: 1.3vmin solid transparent; border-top-color: #fff; border-bottom: 0; }
+.hub-tag .ht-row { display: flex; align-items: center; gap: 0.3vmin; }
+.hub-tag .ht-ico { font-size: 4vmin; line-height: 1; width: 1.08em; text-align: center; }   /* 表情符號字寬比字大：收窄一點（浮標總面積 ≤ 島的 20%） */
+.hub-tag .ht-word { font-size: 4.8vmin; line-height: 1; white-space: nowrap; padding: 0.1vmin 0; }   /* 有注音的字至少 4.6vmin（注音＝字的 0.38，太小看不清） */
+.hub-tag .ht-lock { display: none; font-size: 3.2vmin; line-height: 1; white-space: nowrap; color: #fff; background: #4a5568; border-radius: 2vmin; padding: 0.6vmin 1.2vmin; }
 .hub-tag.locked { background: #eef1f5; } .hub-tag.locked::after { border-top-color: #eef1f5; }
 .hub-tag.locked .ht-row { opacity: 0.8; }   /* 對比 ≥ 4.5:1（寧次 10-10） */
 .hub-tag.locked .ht-lock { display: block; }
+.hub-tag.locked .ht-word { display: none; }   /* 鎖住的浮標只留「圖示＋🔒數字」，面積減半（寧次 10-10） */
+.hub-tag.first { box-shadow: 0 0 0 0.6vmin #ffd54a, 0 0.6vmin 0 0.6vmin rgba(36,81,92,0.22), 0 1vmin 2.4vmin rgba(20,50,80,0.25); }   /* 新玩家唯一能玩的釣魚：常駐黃框 */
 .hub-tag:active { filter: brightness(0.95); }
 .hub-tag.pop { animation: tagPop 0.45s cubic-bezier(.2,1.6,.4,1); }
 @keyframes tagPop { 0% { scale: 1; } 35% { scale: 1.15; } 100% { scale: 1; } }
@@ -474,10 +657,95 @@ body.hub3d #menu .pill { border-color: #fff; color: #24515c; box-shadow: 0 0.6vm
   body.hub3d #menu h1 { margin-top: 13vmin; }
   body.hub3d #menu > .menu-bottom { position: relative; left: auto; bottom: auto; transform: none; margin-top: 2vmin; }
 }
-body.hub3d #menu > .resume { font-size: 3.6vmin; padding: 1.1vmin 3vmin; margin-top: 1.4vmin; }   /* 3D 小島要空間：繼續玩按鈕縮小一點 */
+body.hub3d #menu > .resume { font-size: 4.6vmin; padding: 1.1vmin 3vmin; margin-top: 1.4vmin; }   /* 有注音的字 ≥4.6vmin（寧次 10-10） */
+
+/* 3D 選單的固定介面放四角，中間整片留給小島：
+   橫式＝標題在 🎵 右邊、繼續玩在標題下、貼紙／星星罐在左下、貓頭鷹＋寬對話框在右下（一句話約兩行）
+   直式＝標題、膠囊在上（原樣），貓頭鷹對話框加寬 */
+body.hub3d #menu > h1 { display: none; }   /* 阿葉 10-10「注音小島一直顯示太占位置」：3D 選單不放標題（開始畫面已有大標題） */
+@media (orientation: landscape) {
+  body.hub3d #menu > .resume { position: absolute; left: 30vmin; top: 2.4vmin; margin: 0; translate: none; }   /* 繼續玩放在 🎵 右邊 */
+  body.hub3d #menu > .menu-bottom { left: 2vmin; bottom: 2.4vmin; transform: none; translate: none; }
+  body.hub3d .guide { flex-direction: row-reverse; align-items: flex-end; gap: 1.5vmin; }   /* 貓頭鷹在最右、對話框在牠左邊 */
+  body.hub3d .guideText { max-width: min(60vmin, calc(100vw - 86vmin)); margin-bottom: 14vmin; font-size: 4.6vmin; line-height: 1.6; }   /* 底比左下膠囊頂（約 13.4vmin）高，不會蓋到星星罐 */
+  body.hub3d .guideText::after { right: -2vmin; bottom: 3vmin; border: 1.6vmin solid transparent; border-left-color: #fff; }
+}
+@media (orientation: portrait) {
+  body.hub3d .guideText { max-width: 72vmin; }
+  body.hub3d #menu { padding-top: 15vmin; }   /* 沒有標題：繼續玩／膠囊直接接在圓鈕下面 */
+  body.hub3d #menu > .resume { margin-top: 0; }
+}
 
 /* ===== 開始畫面（點一下＝開音樂＋打招呼）===== */
-.start-gate { position: fixed; inset: 0; z-index: 55; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3vmin; background: rgba(20,60,90,0.45); }
-.start-gate img { height: 30vmin; filter: drop-shadow(0 6px 10px rgba(0,0,0,0.3)); animation: bob 3s ease-in-out infinite; }
-.sg-title { font-size: 9vmin; font-weight: bold; color: #fff; text-shadow: 0 3px 0 #1b4fa0, 0 6px 16px rgba(0,0,0,0.35); }
-.sg-btn { font-size: 8vmin; padding: 3vmin 8vmin; border-radius: 6vmin; animation: pulse 1.4s ease-in-out infinite; }
+/* B5：只留一個標題（從上滑入）、貓頭鷹在中間、開始鈕在下緣（晚 0.2 秒彈入）；遮罩 .6＋毛玻璃 */
+.start-gate { position: fixed; inset: 0; z-index: 55; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2vmin; padding-bottom: 16vmin;
+  background: rgba(20,60,90,0.6); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.start-gate .sg-owl { height: 32vmin; filter: drop-shadow(0 6px 10px rgba(0,0,0,0.3)); animation: bob 3s ease-in-out infinite; }
+.sg-title { font-size: 10vmin; font-weight: bold; color: #fff; text-shadow: 0 0.5vmin 0 #1b4fa0, 0 1vmin 2.4vmin rgba(0,0,0,0.35); animation: sgDrop 0.4s cubic-bezier(.2,1.3,.4,1) both; }
+.sg-btn { position: absolute; left: 50%; bottom: max(6vmin, env(safe-area-inset-bottom)); translate: -50% 0; white-space: nowrap; font-size: 6.2vmin; padding: 2.2vmin 6.4vmin; border-radius: 6vmin;
+  animation: sgPop 0.4s cubic-bezier(.2,1.6,.4,1) 0.2s both, pulse 1.4s ease-in-out 1.2s infinite; }
+@keyframes sgDrop { from { opacity: 0; transform: translateY(-14vmin); } to { opacity: 1; transform: none; } }
+@keyframes sgPop { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: scale(1); } }
+@supports not (translate: 0) { .sg-btn { left: 0; right: 0; margin: 0 auto; width: max-content; } }
+/* 開始畫面還沒按「開始玩」（body.gate-on）：藏起小島浮標、右下嚮導、圓鈕、卡片選單的重複標題 */
+body.gate-on .hub-tags, body.gate-on #guide, body.gate-on #menu > h1, body.gate-on .round-btn, body.gate-on .player-tag, body.gate-on .hint-btn { visibility: hidden; }
+
+/* ===== B 組：外殼共用（轉場／題目卡／夜間／家長鎖／換人／選張數／新紀錄章／結算星星罐）===== */
+/* B3 換畫面、開彈窗有轉場：只動 opacity（#menu 裡有 3D 畫布，對它 transform 會讓 3D 點擊座標算錯） */
+.screen:not(.hidden) { animation: zyFadeIn 0.28s ease-out; }
+.overlay:not(.hidden) { animation: zyFadeIn 0.2s ease-out; }
+.overlay:not(.hidden) > .dialog { animation: dlgIn 0.3s cubic-bezier(.2,1.6,.4,1); }
+@keyframes zyFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dlgIn { from { transform: scale(0.85); } to { transform: scale(1); } }
+
+/* B13 題目卡統一一套樣式：不能點的題目卡＝淡藍框＋柔和陰影；實心深藍框只給「可以點的答案」 */
+.prompt, .bubble, .wpic, .river > .fword { border-radius: 4.5vmin; border: 0.6vmin solid rgba(27,79,160,0.35); box-shadow: 0 6px 16px rgba(0,0,0,0.2); }
+
+/* B15 夜間（19:00–06:00，js 加 body.night）：遊戲背景上疊藍紫色＋幾顆會閃的星星；疊在背景與遊戲物件之間（isolation 讓 z-index:-1 落在背景上） */
+body.night #fish, body.night #order, body.night #build, body.night #hunt, body.night #match, body.night #tone, body.night #whack, body.night #frog { isolation: isolate; }
+.night-sky { position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(180deg, rgba(36,24,118,0.52) 0%, rgba(66,46,160,0.34) 50%, rgba(66,46,160,0.22) 100%); }
+body:not(.night) .night-sky { display: none; }
+.night-sky i { position: absolute; width: 2.8vmin; height: 2.8vmin; background: #fff6c8; clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%); animation: twinkle 2.4s ease-in-out infinite; }
+@keyframes twinkle { 0%, 100% { opacity: 0.2; transform: scale(0.6); } 50% { opacity: 1; transform: scale(1.1); } }
+
+/* B6 家長鎖：按住時圓圈進度環跑 2 秒；點一下只晃一下＋小字提示家長 */
+#settingsBtn { -webkit-touch-callout: none; }
+#settingsBtn .ic { display: inline-block; pointer-events: none; }
+.lock-ring { position: absolute; inset: -1.3vmin; border-radius: 50%; pointer-events: none; opacity: 0; transition: opacity 0.15s;
+  background: conic-gradient(var(--tone) calc(var(--p, 0) * 1turn), rgba(255,255,255,0.85) 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 1.2vmin), #000 calc(100% - 1.1vmin)); mask: radial-gradient(farthest-side, transparent calc(100% - 1.2vmin), #000 calc(100% - 1.1vmin)); }
+#settingsBtn.holding .lock-ring { opacity: 1; }
+#settingsBtn.nudge .ic { animation: nudge 0.45s ease-in-out; }
+@keyframes nudge { 20% { transform: rotate(-18deg); } 50% { transform: rotate(14deg); } 80% { transform: rotate(-6deg); } }
+.lock-tip { position: absolute; z-index: 21; right: 2vmin; top: 15.5vmin; background: #fff; color: #333; font-size: 3.4vmin; font-weight: bold; border-radius: 2vmin; padding: 1vmin 2vmin; box-shadow: 0 4px 12px rgba(0,0,0,0.22); pointer-events: none; animation: zyFadeIn 0.2s; }
+
+/* B8 換人：頭像下方小字「換人」（跟著頭像一起顯示／隱藏） */
+.player-tag { position: absolute; z-index: 20; top: 14.8vmin; right: 22vmin; translate: 50% 0; background: #fff; color: var(--blue); font-size: 4.6vmin; font-weight: bold; line-height: 1; white-space: nowrap;
+  border-radius: 3vmin; padding: 0.7vmin 1.2vmin 0.7vmin 1.6vmin; box-shadow: 0 3px 8px rgba(0,0,0,0.22); cursor: pointer; }
+#playerBtn.hidden ~ #playerTag { display: none; }
+@media (orientation: portrait) { .player-tag { top: 5.2vmin; right: 29vmin; translate: none; } }   /* 直式頭像下方是貼紙／星星罐膠囊 → 改放頭像左邊 */
+
+/* B9 翻牌選張數：1／2／3 張疊起來的牌、字大一點 */
+.msize { width: 26vmin; gap: 0.6vmin; }
+.msize .mstack { position: relative; width: 14vmin; height: 12vmin; margin-bottom: 0.6vmin; }
+.msize .mstack i { position: absolute; left: 3.5vmin; top: 1.2vmin; width: 7vmin; height: 9.4vmin; border-radius: 1.2vmin; border: 0.5vmin solid #fff; background: url("../IMAGE/zhuyin/card_back.webp") center / cover no-repeat, #1b4fa0; box-shadow: 0 0.4vmin 0.9vmin rgba(0,0,0,0.3); }
+.msize .mstack.c2 i:nth-child(1) { transform: translateX(-1.4vmin) rotate(-9deg); } .msize .mstack.c2 i:nth-child(2) { transform: translateX(1.4vmin) rotate(7deg); }
+.msize .mstack.c3 i:nth-child(1) { transform: translateX(-2.6vmin) rotate(-14deg); } .msize .mstack.c3 i:nth-child(2) { transform: translateY(-0.6vmin); } .msize .mstack.c3 i:nth-child(3) { transform: translateX(2.6vmin) rotate(12deg); }
+.msize .mn { font-size: 7vmin; font-weight: bold; line-height: 1; color: #333; } .msize .ml { font-size: 5.6vmin; font-weight: bold; color: var(--blue); } .msize .ms { font-size: 4vmin; line-height: 1; }
+
+/* B14 個人紀錄：破紀錄蓋「新紀錄！」章 */
+.rec-stamp { position: absolute; right: -12vmin; top: -1.5vmin; z-index: 2; font-size: 5vmin; font-weight: 900; line-height: 1; color: #d2302f; background: rgba(255,255,255,0.94);
+  border: 0.7vmin solid #d2302f; border-radius: 2vmin; padding: 1.2vmin 1.4vmin 1.2vmin 2vmin; rotate: 12deg; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.2); animation: stampIn 0.45s cubic-bezier(.2,1.6,.4,1) both; }
+.stars.done .rec-stamp { animation: none; }
+@keyframes stampIn { 0% { opacity: 0; transform: scale(2.6); } 100% { opacity: 1; transform: scale(1); } }
+
+/* B1 結算的星星罐：常駐在右下，星星飛進去、數字一格一格跳；可以孵蛋時才出現「孵蛋！」 */
+#result > #hatchHint { position: absolute; right: 3vmin; bottom: 3vmin; z-index: 2; }
+.result-btns .big-btn { font-size: 5.4vmin; padding: 2vmin 4vmin; }   /* 三顆按鈕排一行（4:3 也不換行），不會壓到右下的星星罐 */
+@media (orientation: landscape) { #result { padding-bottom: 7vmin; } }
+.resJar:not(.ready) .eggGo { display: none; }
+.resJar .eggGo { margin-left: 0.8vmin; }
+.flystar { position: absolute; left: 0; top: 0; font-size: 7vmin; line-height: 1; pointer-events: none; will-change: transform; }
+.result-stickers.done .sticker.fresh { animation: none; opacity: 1; transform: rotate(-6deg); }   /* 快轉：貼紙直接貼好 */
+.result-btns.arming { pointer-events: none; }
+#restoreBtn.armed { background: #c0392b; border-color: #c0392b; color: #fff; }
