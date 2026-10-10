@@ -13,7 +13,7 @@ const { launch, URL } = require("./lib");
     cdp.on("Network.responseReceived", e => { const u = e.response.url; if (e.response.encodedDataLength > 0) big.push(u); });
     const t0 = Date.now();
     await p.goto(URL, { waitUntil: "commit" });
-    await p.waitForFunction(() => document.getElementById("loading").classList.contains("hidden"), null, { timeout: 30000 });
+    await p.waitForFunction(() => document.getElementById("loading")?.classList.contains("hidden"), null, { timeout: 30000 });
     const t = Date.now() - t0, hub = await p.evaluate(() => document.body.classList.contains("hub3d"));
     const atReady = bytes;
     await p.waitForTimeout(6000);                       // 背景再抓的（朋友模型等）

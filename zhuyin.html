@@ -20,6 +20,13 @@
     }
   }
   </script>
+  <!-- 自己的程式一開頁就同時抓（高優先）：不然要等 zhuyin.js 下載完才知道要抓 ann/words/ui，再等它跑起來才抓 hub3d，
+       一層等一層，線上 4Mbps 實測多卡約 3 秒（tools/zy-test/loadprofile.js）。網址要跟實際 import 的完全一樣（含 ?v=） -->
+  <link rel="modulepreload" href="js/zhuyin.js?v=13" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-words.js" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-ann.js" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-ui.js" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=2" fetchpriority="high">
   <!-- Three.js 跟頁面一起開始抓（4Mbps 開頁快 0.6 秒）；?no3d 不抓。這裡不先測 WebGL2（建 context 會拖慢開頁），沒有 WebGL2 的極少數機器只是白抓 -->
   <script>
     (function () {
