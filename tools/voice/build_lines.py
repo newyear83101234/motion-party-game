@@ -74,14 +74,14 @@ for i, t, c, s in [("sys_pause", "暫停", "system", "zhuyin.js:829 確認離開
     if f'say("{t}")' not in SRC and f'talk("{t}")' not in SRC: must(f'say("{t}")')   # 10-11 說明類改用 talk()
     add(i, t, c, s)
 
-# ---- 4b. 10-11 新增：再試一次、一聲提示、泡泡救援灣、天氣、新市區 ----
+# ---- 4b. 10-11 新增：再試一次、一聲提示、泡泡救援灣、天氣、歸仁區 ----
 BSRC = (ROOT / "js" / "zhuyin-bubble.js").read_text(encoding="utf-8")
 for i, t, c in [("retry_banner", "剛剛卡住的，再試一次！", "system"), ("tone1_tip", "第一聲不用加符號，按這個空白格就好", "system"),
                 ("bubble_win", "小企鵝都救出來了，好厲害！", "result"), ("bubble_full", "泡泡太多了，我們再試一次！", "system"),
                 ("wx_sunny", "今天是晴天，太陽好溫暖！", "guide"), ("wx_cloudy", "今天是陰天，雲好多喔！", "guide"), ("wx_rain", "下雨了！滴答滴答！", "guide"),
                 ("wx_storm", "打雷了！轟隆隆！", "guide"), ("wx_typhoon", "颱風來了！大家要待在家裡喔！", "guide"), ("wx_rainbow", "雨停了！看，天上有彩虹！", "guide"),
                 ("town_police", "警察局！警車出動巡邏囉！", "guide"), ("town_fire", "消防局！消防車出動囉！", "guide"), ("town_hospital", "醫院！救護車出發囉！", "guide"),
-                ("town_school", "學校！叮噹叮噹，上課囉！", "guide"), ("town_here", "這裡是新市區！", "guide"), ("town_locked", "收集更多貼紙，就能蓋好囉！", "guide"),
+                ("town_school", "學校！叮噹叮噹，上課囉！", "guide"), ("town_here", "這裡是歸仁區！", "guide"), ("town_locked", "收集更多貼紙，就能蓋好囉！", "guide"),
                 ("fire_start", "失火了！快叫消防車！", "guide"), ("fire_tap", "消防車馬上來！", "guide"), ("fire_out", "火熄滅了，謝謝消防員！", "guide"),
                 ("ph_dusk1", "太陽要下山囉！", "guide"), ("ph_dusk2", "天空變成橘色了！", "guide"), ("ph_night1", "天黑了，路燈亮起來了！", "guide"),   # 10-11 日夜時鐘（PHASE_LINES）
                 ("ph_night2", "月亮出來了，好漂亮！", "guide"), ("ph_dawn1", "天快亮了，早安！", "guide"), ("ph_dawn2", "太陽公公要起床囉！", "guide")]:
@@ -99,10 +99,10 @@ PETS28 = re.findall(r'\["(\w+)", "([^"]+)"\]|\{ id: "(\w+)", name: "([^"]+)"', P
 PET_NAMES = [b or d for a, b, c, d in PETS28]
 assert len(PET_NAMES) == 28, f"寵物名單解析失敗：{len(PET_NAMES)}"
 for i, t in [("gacha_open", "投一枚扭蛋幣，轉一轉！"), ("gacha_nocoin", "收集星星，就能拿到扭蛋幣喔！"), ("gacha_dup", "換成點心囉！"),
-             ("gacha_decor", "小島多了一個新裝飾！"), ("gacha_treats", "拿到點心了！"), ("town_open", "橋蓋好了！新市區開放囉！")]:
+             ("gacha_decor", "小島多了一個新裝飾！"), ("gacha_treats", "拿到點心了！"), ("town_open", "橋蓋好了！歸仁區開放囉！")]:
     must(t); add(i, t, "guide", "zhuyin.js 扭蛋機（10-11）")
 for k, nm in enumerate(["警察局", "消防局", "醫院", "學校"]):
-    add(f"town_built_{k + 1}", f"新市區的{nm}蓋好了！", "guide", "zhuyin.js civicEvent built")
+    add(f"town_built_{k + 1}", f"歸仁區的{nm}蓋好了！", "guide", "zhuyin.js civicEvent built")
 must('p.name + "來了！"'); must('`${p.name}${g.fed.grew === 3 ? "變成超級" : "長大"}了！`')
 word_set0 = {w["h"] for w in WORDS}
 for k, nm in enumerate(PET_NAMES):
@@ -112,7 +112,7 @@ for k, nm in enumerate(PET_NAMES):
     if nm not in word_set0 and nm not in FRIENDS:
         add(f"pet_name_{k + 1}", nm, "friend", "zhuyin.js 動物朋友圖鑑／小島點寵物")
 
-# 寵物不舒服／好了（新市區救護車）：每位朋友各一句
+# 寵物不舒服／好了（歸仁區救護車）：每位朋友各一句
 must('who + "不舒服，救護車來了！"'); must('who + "好了，謝謝醫生！"')
 for i, nm in enumerate(FRIENDS):
     add(f"sick_{i + 1}", nm + "不舒服，救護車來了！", "guide", "zhuyin.js civicEvent")

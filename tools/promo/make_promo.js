@@ -210,8 +210,8 @@ async function preview(dir) {
   const snap = async (name, fn, wait) => { await pg.evaluate(() => __promo.clear()); await pg.evaluate(fn); await pg.waitForTimeout(wait); await pg.screenshot({ path: path.join(dir, name + ".jpg"), quality: 85, type: "jpeg" }); };
   await snap("1-kin", () => { __promo.vig(true); __promo.kin("還在逼孩子背注音？", "navy", { left: -3, top: 16, rot: -4 }, [2]); }, 120);
   await snap("2-kin-done", () => { __promo.vig(true); __promo.kin("不如蓋一座小島", "yel", { left: -2, top: 44, rot: 3 }, [3]); }, 1300);
-  await snap("3-logo-mid", () => __promo.logo("新市區開幕・扭蛋機・日夜天氣"), 700);
-  await snap("4-logo", () => __promo.logo("新市區開幕・扭蛋機・日夜天氣"), 2600);
+  await snap("3-logo-mid", () => __promo.logo("歸仁區開幕・扭蛋機・日夜天氣"), 700);
+  await snap("4-logo", () => __promo.logo("歸仁區開幕・扭蛋機・日夜天氣"), 2600);
   await snap("5-wipe", () => __promo.wipe(), 500);
   await snap("6-cbig", () => { __promo.cbig(1, "九個小遊戲", "聽一聽、點一點"); __promo.chap(1, "九個小遊戲"); __promo.pill("🎣", "釣魚", "聽聲音，點對的魚"); __promo.ff("19:40"); }, 900);
   await snap("7-soon", () => { __promo.soon([["pets/bunny", "寵物換裝"], ["cust_penguin", "更多泡泡關卡"], ["em:🏝️", "新的小島"]]); __promo.stamp("敬請期待！"); }, 1800);
@@ -307,7 +307,7 @@ if (require.main === module) (async () => {
 
   // ===== 1 標題揭幕：放射光＋底板＋逐字彈出＋道具 =====
   await rec(105, async i => {
-    if (i === 0) { await E(() => { __promo.vig(false); __promo.logo("新市區開幕・扭蛋機・日夜天氣"); }); sfx("pop", 0, 0.9); sfx("sparkle", 0.35); sfx("pop", 0.95, 0.6); sfx("pop", 1.7, 0.8); }
+    if (i === 0) { await E(() => { __promo.vig(false); __promo.logo("歸仁區開幕・扭蛋機・日夜天氣"); }); sfx("pop", 0, 0.9); sfx("sparkle", 0.35); sfx("pop", 0.95, 0.6); sfx("pop", 1.7, 0.8); }
   });
   await wipeIn();
   await E(() => { __promo.clear(".stage"); __promo.clean(false); window.__hub3d.cam(1, 0, 0); }); await prep(null, null, 4);
@@ -400,16 +400,16 @@ if (require.main === module) (async () => {
   await E(() => { __promo.clear(); window.__zy.setWeather("sunny"); if (window.__zy.clock) window.__zy.clock.set("day"); document.body.classList.remove("night"); if (window.__zy.weatherFx && window.__zy.weatherFx.setLight) window.__zy.weatherFx.setLight({ night: 0, dusk: 0, dawn: 0 }, { instant: true }); });
   lap("天氣日夜");
 
-  // ===== 5 海洋與新市區：小魚跳出水面、海鷗飛過 → 鏡頭飛過橋，消防車、警車出動 =====
+  // ===== 5 海洋與歸仁區：小魚跳出水面、海鷗飛過 → 鏡頭飛過橋，消防車、警車出動 =====
   await wipeIn();
   const canOcean = await has(() => !!(window.__zy.oceanFx && window.__zy.oceanFx.jump));
   await E(() => window.__hub3d.focus("lighthouse", 1.6)); await prep(null, null, 6);
   await wipeOut();
   await rec(230, async i => {
     if (i < 80) await E(z => window.__hub3d.focus("lighthouse", z), 1.6 + i * 0.003);
-    if (i === 0) { await E(() => __promo.cbig(4, "海洋與新市區", "小魚、海鷗、消防車")); sfx("pop"); }
+    if (i === 0) { await E(() => __promo.cbig(4, "海洋與歸仁區", "小魚、海鷗、消防車")); sfx("pop"); }
     if (i === 30) await E(() => __promo.cbigOut());
-    if (i === 38) await E(() => { __promo.clear(".cbig"); __promo.chap(4, "海洋與新市區"); __promo.pill("🐟", "海裡有小魚", "海鷗在天上飛", true); });
+    if (i === 38) await E(() => { __promo.clear(".cbig"); __promo.chap(4, "海洋與歸仁區"); __promo.pill("🐟", "海裡有小魚", "海鷗在天上飛", true); });
     if (canOcean && (i === 24 || i === 52)) { await E(() => window.__zy.oceanFx.jump()); sfx("pop", 0.5, 0.5); }
     if (i === 82) { await E(() => { __promo.clear(".pill"); window.__hub3d.goPlace("town"); }); sfx("whoosh", 0, 0.7); }
     if (i === 130) { await E(() => window.__hub3d.tapCivic("police")); }
@@ -417,7 +417,7 @@ if (require.main === module) (async () => {
     if (i === 146) { await E(() => __promo.banner("警察局・消防局・醫院・學校", "收集貼紙，小鎮越蓋越大")); sfx("pop", 0, 0.8); }
     if (i === 216) await E(() => __promo.bannerOut());
   });
-  await E(() => { __promo.clear(); window.__hub3d.goPlace("main"); }); lap("海洋新市區");
+  await E(() => { __promo.clear(); window.__hub3d.goPlace("main"); }); lap("海洋歸仁區");
 
   // ===== 6 扭蛋機：星星換扭蛋幣 → 轉一轉 → 膠囊 → 點蛋孵出新朋友 =====
   await wipeIn();

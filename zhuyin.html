@@ -22,11 +22,11 @@
   </script>
   <!-- 自己的程式一開頁就同時抓（高優先）：不然要等 zhuyin.js 下載完才知道要抓 ann/words/ui，再等它跑起來才抓 hub3d，
        一層等一層，線上 4Mbps 實測多卡約 3 秒（tools/zy-test/loadprofile.js）。網址要跟實際 import 的完全一樣（含 ?v=） -->
-  <link rel="modulepreload" href="js/zhuyin.js?v=24" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin.js?v=25" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-words.js" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-ann.js?v=4" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-ui.js?v=4" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-voice.js?v=3" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-ann.js?v=5" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-ui.js?v=5" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-voice.js?v=4" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=8" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-weather.js?v=3">
   <link rel="modulepreload" href="js/zhuyin-clock.js?v=1">
@@ -63,11 +63,11 @@
     <button id="startBtn" class="big-btn sg-btn">▶️ 開始玩</button>
   </div>
 
-  <!-- 常駐按鈕（10-11 阿葉「上面左邊跟右邊的選項可以做收放」）：左上一排＝🏙️新市區（小孩用）＋「⋯」把手＋🏠🎵；右上一排＝🐻換人／⚙️家長設定＋「⋯」把手。
+  <!-- 常駐按鈕（10-11 阿葉「上面左邊跟右邊的選項可以做收放」）：左上一排＝🏙️歸仁區（小孩用）＋「⋯」把手＋🏠🎵；右上一排＝🐻換人／⚙️家長設定＋「⋯」把手。
        選單上 🏠🎵🐻⚙️（.fold）收在把手裡；遊戲裡把手不見、🏠🎵 跟以前一樣在左上 -->
   <div id="hudL" class="hud hud-l">
-    <button id="townBtn" class="round-btn hidden" title="新市區" aria-label="新市區"><span class="nav-ico">🏙️</span></button>
-    <div id="townTag" class="player-tag town-tag hidden"><span class="nav-word">新市區</span></div>
+    <button id="townBtn" class="round-btn hidden" title="歸仁區" aria-label="歸仁區"><span class="nav-ico">🏙️</span></button>
+    <div id="townTag" class="player-tag town-tag hidden"><span class="nav-word">歸仁區</span></div>
     <button id="hudLBtn" class="hud-handle" aria-label="更多按鈕" aria-expanded="false"><i></i><i></i><i></i></button>
     <button id="homeBtn" class="round-btn fold" title="回首頁">🏠</button>
     <button id="musicBtn" class="round-btn fold" title="音樂">🎵</button>
@@ -270,6 +270,6 @@
   <div id="flash" class="flash"></div>
 
   <div id="fx" class="fx"></div>
-  <script type="module" src="js/zhuyin.js?v=24"></script>
+  <script type="module" src="js/zhuyin.js?v=25"></script>
 </body>
 </html>

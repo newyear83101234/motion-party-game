@@ -297,7 +297,7 @@
   },
   {
    "id": "town_here",
-   "text": "這裡是新市區！",
+   "text": "這裡是歸仁區！",
    "cat": "guide",
    "src": "zhuyin.js（10-11）"
   },
@@ -426,31 +426,31 @@
   },
   {
    "id": "town_open",
-   "text": "橋蓋好了！新市區開放囉！",
+   "text": "橋蓋好了！歸仁區開放囉！",
    "cat": "guide",
    "src": "zhuyin.js 扭蛋機（10-11）"
   },
   {
    "id": "town_built_1",
-   "text": "新市區的警察局蓋好了！",
+   "text": "歸仁區的警察局蓋好了！",
    "cat": "guide",
    "src": "zhuyin.js civicEvent built"
   },
   {
    "id": "town_built_2",
-   "text": "新市區的消防局蓋好了！",
+   "text": "歸仁區的消防局蓋好了！",
    "cat": "guide",
    "src": "zhuyin.js civicEvent built"
   },
   {
    "id": "town_built_3",
-   "text": "新市區的醫院蓋好了！",
+   "text": "歸仁區的醫院蓋好了！",
    "cat": "guide",
    "src": "zhuyin.js civicEvent built"
   },
   {
    "id": "town_built_4",
-   "text": "新市區的學校蓋好了！",
+   "text": "歸仁區的學校蓋好了！",
    "cat": "guide",
    "src": "zhuyin.js civicEvent built"
   },

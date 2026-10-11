@@ -1,7 +1,7 @@
 {
  "how": "每句由 Gemini 3.8 Flash 盲聽寫（不給答案），拼音跟正確讀音比對；詞庫詞以遊戲注音為準。AI 聽寫本身也會錯，所以這份是『請人耳確認』清單，不代表一定唸錯。",
- "count": 47,
- "suspicious": 47,
+ "count": 46,
+ "suspicious": 46,
  "items": [
   {
    "text": "第一聲不用加符號，按這個空白格就好",
@@ -232,44 +232,6 @@
      "why": [
       "漂 應 piao1 聽到 piao4",
       "亮 應 liang4 唸成輕聲"
-     ]
-    }
-   ]
-  },
-  {
-   "text": "橋蓋好了！新市區開放囉！",
-   "file": "guide_bc86c23e.mp3",
-   "level": "可疑",
-   "why": [
-    "新 應 xin1 聽到 xing2"
-   ],
-   "heard": "橋蓋好了，行駛區開放囉",
-   "pinyin": "qiao2 gai4 hao3 le5 xing2 shi4 qu1 kai1 fang4 luo5",
-   "correct": "qiao2 gai4 hao3 le5 xin1 shi4 qu1 kai1 fang4 luo5",
-   "zhuyin": null,
-   "tries": 3,
-   "all_takes": [
-    {
-     "sent": "橋蓋好了！新市區開放囉！",
-     "pinyin": "qiao2 gai4 hao3 le5 xing2 shi4 qu1 kai1 fang4 luo5",
-     "why": [
-      "新 應 xin1 聽到 xing2"
-     ]
-    },
-    {
-     "sent": "橋蓋好了！新市區開放囉！",
-     "pinyin": "qiao2 gai4 hao3 le5 xing2 shi3 qu1 kai1 fang4 luo5",
-     "why": [
-      "新 應 xin1 聽到 xing2",
-      "市 應 shi4 聽到 shi3"
-     ]
-    },
-    {
-     "sent": "橋蓋好了！新市區開放囉！",
-     "pinyin": "qiao2 gai4 hao3 le5 xing2 shi3 qu1 kai1 fang4 lou5",
-     "why": [
-      "新 應 xin1 聽到 xing2",
-      "市 應 shi4 聽到 shi3"
      ]
     }
    ]

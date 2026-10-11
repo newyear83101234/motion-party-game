@@ -3,8 +3,8 @@
 // 八個模式：釣魚 / 點餐 / 積木 / 尋寶 / 翻牌 / 聲調氣球 / 打地鼠 / 跳跳蛙（後兩個 2026-10-10 加）。長期動力：貼紙圖鑑（每個詞一張貼紙）＋星星罐孵蛋（解鎖朋友）。
 // 設計依據：櫻木花道（遊戲設計）＋寧次（UI/UX）2026-09-09 審查報告；規格見 memory project-zhuyin-game.md
 import { WORDS, PHRASES, CATS, FRIENDS } from "./zhuyin-words.js";
-import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js?v=4";
-import { voiceUnlock, voiceSay, voiceStop, voiceSpeaking, voicePreload, voiceCtx } from "./zhuyin-voice.js?v=3";
+import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js?v=5";
+import { voiceUnlock, voiceSay, voiceStop, voiceSpeaking, voicePreload, voiceCtx } from "./zhuyin-voice.js?v=4";
 import * as RW from "./zhuyin-rewards.js?v=1";   // 獎勵系統（扭蛋機）純邏輯
 import { createClock } from "./zhuyin-clock.js?v=1";   // 日夜時鐘（真實 30 分鐘＝小島一天）
 startAnnotate();                                      // 畫面上每個國字自動加注音（阿葉 10-10）
@@ -607,7 +607,7 @@ function initHub() {
   let settled = false;                                 // （Three.js 已由 zhuyin.html 的 modulepreload 跟頁面一起開始抓）
   const ready = importHub().then(m => m.createHub({ host: $("menu"), onFriend: f => { play("tap"); say(f.name); }, onFail: hubFail, newbie: () => stickerCount() === 0,
     onGacha: () => { play("select"); openGacha(); },   // 獎勵系統（docs/zhuyin-rewards-spec.md）
-    stickers: stickerCount, onCivic: (k, info) => PZ(() => civicEvent(k, info)), onPlace: (p, open) => { $("townBtn").querySelector(".nav-ico").textContent = p === "main" ? "🏙️" : "🏝️"; $("townTag").querySelector(".nav-word").textContent = p === "main" ? (open ? "新市區" : "新市區 🔒") : "回小島"; $("townBtn").setAttribute("aria-label", p === "main" ? "新市區" : "回小島"); $("townBtn").classList.toggle("back", p !== "main"); },
+    stickers: stickerCount, onCivic: (k, info) => PZ(() => civicEvent(k, info)), onPlace: (p, open) => { $("townBtn").querySelector(".nav-ico").textContent = p === "main" ? "🏙️" : "🏝️"; $("townTag").querySelector(".nav-word").textContent = p === "main" ? (open ? "歸仁區" : "歸仁區 🔒") : "回小島"; $("townBtn").setAttribute("aria-label", p === "main" ? "歸仁區" : "回小島"); $("townBtn").classList.toggle("back", p !== "main"); },
     labels: { gacha: { ico: "🎁", word: "扭蛋" } } }))
     .then(h => { if (settled) { h.dispose(); return null; } settled = true; hub = h; document.body.classList.add("hub3d"); initWeather(); return h; },
       e => { if (!settled) { settled = true; hubFail(e && e.message || e); } return null; });
@@ -670,16 +670,16 @@ function wxAudio() {
 document.addEventListener("visibilitychange", () => wxAudio());
 document.addEventListener("pointerdown", () => setTimeout(wxAudio, 50), { capture: true, passive: true });
 
-// 新市區（hub3d 的城市設施與事件）：唸設施名字、警笛／鐘聲、救火、救護；還沒蓋好 → 說還差幾張貼紙（阿葉 10-11）
+// 歸仁區（hub3d 的城市設施與事件）：唸設施名字、警笛／鐘聲、救火、救護；還沒蓋好 → 說還差幾張貼紙（阿葉 10-11）
 function civicEvent(k, info = {}) {
   if (mode) return;                                    // 只在選單（3D 小島）
   const who = info.name || "小動物";
   const LINES = { police: "警察局！警車出動巡邏囉！", fire: "消防局！消防車出動囉！", hospital: "醫院！救護車出發囉！", school: "學校！叮噹叮噹，上課囉！",
-    town: "這裡是新市區！", main: "", fireStart: "失火了！快叫消防車！", fireTap: "消防車馬上來！", fireOut: "火熄滅了，謝謝消防員！",
+    town: "這裡是歸仁區！", main: "", fireStart: "失火了！快叫消防車！", fireTap: "消防車馬上來！", fireOut: "火熄滅了，謝謝消防員！",
     sick: who + "不舒服，救護車來了！", healed: who + "好了，謝謝醫生！" };
-  if (k === "locked" || k === "townLocked") { play("select"); guideSay(`再收集 ${Math.max(1, info.need - stickerCount())} 張貼紙，${k === "locked" ? info.name : "新市區"}就蓋好囉！`, false); talk("收集更多貼紙，就能蓋好囉！"); return; }
+  if (k === "locked" || k === "townLocked") { play("select"); guideSay(`再收集 ${Math.max(1, info.need - stickerCount())} 張貼紙，${k === "locked" ? info.name : "歸仁區"}就蓋好囉！`, false); talk("收集更多貼紙，就能蓋好囉！"); return; }
   if (k === "spray") { play("pop", 0.7); return; }
-  if (k === "built" || k === "townOpen") { play("win"); $("townBtn").classList.add("news"); guideSay(k === "townOpen" ? "橋蓋好了！新市區開放囉！" : `新市區的${info.name}蓋好了！`); return; }
+  if (k === "built" || k === "townOpen") { play("win"); $("townBtn").classList.add("news"); guideSay(k === "townOpen" ? "橋蓋好了！歸仁區開放囉！" : `歸仁區的${info.name}蓋好了！`); return; }
   if (k === "town") $("townBtn").classList.remove("news");
   const line = LINES[k]; if (line === undefined) return;
   if (k === "police" || k === "fire" || k === "hospital" || k === "fireTap" || k === "sick") siren(k === "fireTap" ? "fire" : k === "sick" ? "hospital" : k);
@@ -717,7 +717,7 @@ function showScreen(id) {
   const inGame = id in MODES; $("speakBtn").classList.toggle("hidden", !inGame || id === "match");   // 泡泡：「再聽」＝再唸一次目前這顆的符號
   $("speakLabel").textContent = READING.has(id) ? "提示" : "再聽"; $("speakBtn").classList.remove("pulse");
   $("settingsBtn").classList.toggle("hidden", id !== "menu"); $("playerBtn").classList.toggle("hidden", id !== "menu");
-  $("townBtn").classList.toggle("hidden", id !== "menu" || !hub); $("townTag").classList.toggle("hidden", id !== "menu" || !hub);   // 新市區按鈕：只在 3D 小島選單
+  $("townBtn").classList.toggle("hidden", id !== "menu" || !hub); $("townTag").classList.toggle("hidden", id !== "menu" || !hub);   // 歸仁區按鈕：只在 3D 小島選單
   $("progress").classList.toggle("hidden", !inGame || BOARD(id));
   $("guide").classList.toggle("hidden", id !== "menu");
   document.body.classList.toggle("on-menu", id === "menu"); hudOpen("L", false); hudOpen("R", false);   // 換畫面：上方家長按鈕一律收起來（遊戲裡 🏠🎵 照常顯示）

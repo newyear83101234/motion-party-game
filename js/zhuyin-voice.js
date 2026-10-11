@@ -9,7 +9,7 @@ const GAP = 0.12;                 // 兩段句（「找到了，」＋詞）中�
 const OFF = /[?&]novoice(=|&|$)/.test(location.search);   // 網址加 ?novoice → 全部退回 speechSynthesis（除錯／比較用）
 
 let man = null;
-const manP = fetch(BASE + "manifest.json?v=20261011").then(r => (r.ok ? r.json() : null)).then(j => (man = j)).catch(() => null);
+const manP = fetch(BASE + "manifest.json?v=20261011b").then(r => (r.ok ? r.json() : null)).then(j => (man = j)).catch(() => null);
 let ctx = null;
 const raw = new Map();            // 檔名 → Promise<ArrayBuffer>（還沒解鎖聲音前先下載）
 const dec = new Map();            // 檔名 → Promise<AudioBuffer>（解碼後快取）

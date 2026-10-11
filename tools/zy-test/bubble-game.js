@@ -1,6 +1,6 @@
 // 泡泡救援灣接進主程式的測試：node tools/zy-test/bubble-game.js
 // 驗：從選單（3D 小島）進得去、第 1 關一發過關 → 結算「救出 N 隻小企鵝」＋「下一關」、存檔 lv 前進、下一關接著玩、
-//     暫停時不能發射、回選單再點＝先選關（過過的有星星、沒到的鎖著）、新市區按鈕／小島浮標數、沒有錯誤
+//     暫停時不能發射、回選單再點＝先選關（過過的有星星、沒到的鎖著）、歸仁區按鈕／小島浮標數、沒有錯誤
 const { launch, openGame, enterMode } = require("./lib");
 const results = []; const ok = (name, cond, info = "") => { results.push(`${cond ? "PASS" : "FAIL"}  ${name}${info ? "  — " + info : ""}`); };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -14,7 +14,7 @@ async function bestFire(p) {
   {
     const { ctx, p, errs } = await openGame(browser, { stickers: 40, query: "debug" });
     ok("小島上有 10 個遊戲浮標（多了泡泡）", (await p.evaluate(() => document.querySelectorAll(".hub-tag:not(.civic)").length)) === 10);
-    ok("🏙️ 新市區按鈕在選單上", await vis(p, "townBtn"));
+    ok("🏙️ 歸仁區按鈕在選單上", await vis(p, "townBtn"));
     await enterMode(p, "bubble");
     const ready = await p.waitForFunction(() => window.__zy.bubble && window.__zy.bubble.state() && window.__zy.bubble.state().level === 0, null, { timeout: 15000 }).then(() => true, () => false);
     ok("從選單進得去、是第 1 關", ready && await vis(p, "bubble"));
@@ -58,7 +58,7 @@ async function bestFire(p) {
     const { ctx, p, errs } = await openGame(browser, { stickers: 10, query: "debug" });
     await p.evaluate(() => document.querySelector(".mode-card[data-mode=bubble]").click()); await sleep(500);
     ok("貼紙不夠（10 張）：泡泡進不去", await p.evaluate(() => !document.getElementById("menu").classList.contains("hidden") && document.getElementById("bubble").classList.contains("hidden")));
-    ok("新市區沒開：按鈕寫「新市區 🔒」", (await p.evaluate(() => document.getElementById("townTag").textContent)).includes("🔒"));
+    ok("歸仁區沒開：按鈕寫「歸仁區 🔒」", (await p.evaluate(() => document.getElementById("townTag").textContent)).includes("🔒"));
     allErrs.push(...errs); await ctx.close();
   }
   await browser.close();
