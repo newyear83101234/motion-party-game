@@ -2,7 +2,7 @@
 //   斜色塊掃過的轉場＋大章節號、▶▶ 快轉看日夜、片尾「即將推出」預告；參考影片 IMAGE/_src/iso/ref/videos/）
 // 用法：node tools/promo/make_promo.js [輸出.mp4] [--keep] [--portrait＝直式 720×1280（IG Reels／Shorts）]
 //       偶發「截圖卡死」會直接失敗 → 重跑：for i in 1 2 3 4; do node tools/promo/make_promo.js && break; done
-// 做法：headless Chromium 1280×720 ＋ CDP 虛擬時間逐格截圖 30fps（3D 算得慢也一樣順）
+// 做法：headless Chromium 1280×720（PROMO_SCALE=1.5＝1080p）＋ CDP 虛擬時間＋逐格下令畫面（beginFrame）截圖 30fps（3D 算得慢也一樣順）
 //       → 疊字用頁面裡的 DOM（#promo，class noann＝不自動加注音）→ ffmpeg 合成：背景音樂＋音效（咻、啵、答對、蓋章…照事件時間點疊上）
 // 需要：本機伺服器 python -m http.server 8765（專案根目錄）、ffmpeg
 const fs = require("fs"), path = require("path"), os = require("os"), { spawnSync } = require("child_process");
@@ -219,11 +219,14 @@ async function preview(dir) {
   await browser.close(); console.log("預覽：" + dir);
 }
 
-(async () => {
+module.exports = { CSS, OVERLAY };   // 測試／除錯用（被 require 時不錄）
+if (require.main === module) (async () => {
   const pv = process.argv.indexOf("--preview"); if (pv > 0) return preview(path.resolve(process.argv[pv + 1] || "promo-preview"));
   fs.rmSync(FR, { recursive: true, force: true }); fs.mkdirSync(FR, { recursive: true }); fs.mkdirSync(path.dirname(OUTMP4), { recursive: true });
-  const browser = await launch();
-  const ctx = await browser.newContext({ viewport: { width: VW, height: VH }, deviceScaleFactor: 1.5 });
+  // 10-11 改錄法：--enable-begin-frame-control＝瀏覽器不自己出畫面，由這支程式每一格下令畫（HeadlessExperimental.beginFrame 直接回傳截圖）
+  //   舊錄法（Page.captureScreenshot＋虛擬時間）會偶發等不到新畫面而卡死，加了海洋／介面收合後幾乎每次第 0 格就卡
+  const browser = await launch(["--enable-begin-frame-control", "--run-all-compositor-stages-before-draw", "--disable-threaded-animation", "--disable-threaded-scrolling", "--disable-checker-imaging", "--disable-new-content-rendering-timeout"]);
+  const ctx = await browser.newContext({ viewport: { width: VW, height: VH }, deviceScaleFactor: +process.env.PROMO_SCALE || 1 });
   await ctx.addInitScript(() => {
     const fake = { speaking: false, cancel() {}, getVoices() { return []; }, onvoiceschanged: null, speak(u) { setTimeout(() => u.onend && u.onend(), 300); } };
     Object.defineProperty(window, "speechSynthesis", { value: fake, configurable: true });
@@ -234,6 +237,10 @@ async function preview(dir) {
   const p = await ctx.newPage(); const errs = [];
   p.on("pageerror", e => errs.push("PAGEERR " + e.message));
   p.on("console", m => { if (m.type() === "error" && !/favicon/.test(m.text())) errs.push("CONSOLE " + m.text().slice(0, 160)); });
+  const within = (pr, ms) => Promise.race([pr, new Promise(r => setTimeout(() => r("TIMEOUT"), ms))]);
+  const cdp = await ctx.newCDPSession(p);
+  const bf = shot => within(cdp.send("HeadlessExperimental.beginFrame", shot ? { interval: DT, screenshot: { format: "jpeg", quality: 92 } } : { interval: DT }), 15000);
+  let pumping = true; const pump = (async () => { while (pumping) { await bf(false).catch(() => {}); await new Promise(r => setTimeout(r, 40)); } })();   // 準備階段：一直打幀（不然 rAF 不會跑、3D 不會畫）
   await p.goto(URL); await p.waitForTimeout(400);
   await p.evaluate(() => {
     localStorage.clear();
@@ -247,44 +254,32 @@ async function preview(dir) {
       localStorage.setItem("zy1_hello", "1"); localStorage.setItem("zy_hint_wait", "0"); localStorage.setItem("zy1_tone1tip", "1");
     });
   });
-  await p.reload(); await p.waitForFunction(() => document.getElementById("loading").classList.contains("hidden"), null, { timeout: 30000 });
+  await p.reload(); await p.waitForFunction(() => document.getElementById("loading").classList.contains("hidden"), null, { timeout: 60000, polling: 200 });
   await p.evaluate(() => document.getElementById("startBtn").click());
-  await p.waitForFunction(() => window.__hub3d && window.__hub3d.ready && window.__zy.weather, null, { timeout: 30000 });
+  await p.waitForFunction(() => window.__hub3d && window.__hub3d.ready && window.__zy.weather, null, { timeout: 60000, polling: 200 });
   await p.waitForTimeout(2500);
   await p.addStyleTag({ content: CSS }); await p.evaluate(OVERLAY);
   await p.evaluate(() => { window.__hub3d.events(false); document.getElementById("guide").style.visibility = "hidden"; });
   // 預先載入宣傳片用到的圖（不然揭幕那一格圖還沒到）
   await p.evaluate(() => Promise.all(["guide_owl", "egg_rare", "balloon", "pets/bunny", "pets/penguin", "coin_gold", "pets/cat", "cust_penguin"].map(n => new Promise(r => { const i = new Image(); i.onload = i.onerror = r; i.src = `IMAGE/zhuyin/${n}.webp`; }))));
 
-  const cdp = await ctx.newCDPSession(p);
+  pumping = false; await pump;
   await cdp.send("Emulation.setVirtualTimePolicy", { policy: "pause" });
-  const within = (pr, ms) => Promise.race([pr, new Promise(r => setTimeout(() => r("TIMEOUT"), ms))]);
   const step = ms => within(new Promise(res => { cdp.once("Emulation.virtualTimeBudgetExpired", () => res("ok")); cdp.send("Emulation.setVirtualTimePolicy", { policy: "advance", budget: ms }); }), 15000);
-  // CDP 截圖不吃 deviceScaleFactor：PROMO_SCALE=1.5 才是 1080p，但帶 clip 在虛擬時間下常卡到逾時 → 預設 720p 不帶 clip
-  let F = 0, last = null, diag = false; const SC = +process.env.PROMO_SCALE || 1;
-  const SHOT = SC > 1 ? { format: "jpeg", quality: 92, clip: { x: 0, y: 0, width: VW, height: VH, scale: SC } } : { format: "jpeg", quality: 92 };
-  // 心跳點：左上角 2px、幾乎透明，每格換一點點顏色 → 畫面一定有東西要重畫
+  let F = 0, last = null;
+  // 心跳點：左上角 2px、幾乎透明，每格換一點點顏色 → 每一格一定有東西要重畫（beginFrame 沒變化就不給截圖）
   const beat = () => p.evaluate(f => { let d = document.getElementById("promoBeat"); if (!d) { d = document.createElement("div"); d.id = "promoBeat"; d.style.cssText = "position:fixed;left:0;top:0;width:2px;height:2px;z-index:100001;pointer-events:none"; document.body.appendChild(d); } d.style.background = `rgba(${f % 2 ? 1 : 0},0,0,0.01)`; }, F);
   const shot = async () => {
     await beat();
-    const pr = cdp.send("Page.captureScreenshot", SHOT);
-    let s = await within(pr, 8000);
-    if (s === "TIMEOUT" && !diag) {   // 第一次卡住：記錄頁面活著沒
-      diag = true;
-      const probe = () => within(p.evaluate(() => ({ now: Math.round(performance.now()), anims: document.getAnimations().length, mode: window.__zy.mode, idx: window.__zy.idx })), 4000);
-      const a = await probe(), st = await step(16), b = await probe();
-      console.log("診斷", F, JSON.stringify({ a, step: st, b }));
-    }
-    for (let k = 0; s === "TIMEOUT" && k < 5; k++) { await p.evaluate(k => { document.getElementById("promoBeat").style.background = `rgba(0,${k % 2},0,0.01)`; }, k); await step(16); s = await within(pr, 1000); if (s !== "TIMEOUT") console.log(`截圖卡住，放行 ${k + 1} 小步後出來`, F); }
-    // 偶發卡死（10-11 實測：同一支腳本有時整片順、有時卡在不同場景，一卡就救不回）→ 直接失敗，外面重跑一次通常就過
-    if (s === "TIMEOUT") throw new Error(`截圖卡死在第 ${F} 格，請重跑`);
-    const buf = s && s.data ? Buffer.from(s.data, "base64") : last; if (!buf) throw new Error("截圖失敗");
+    const r = await bf(true);
+    if (r === "TIMEOUT") throw new Error(`畫面卡死在第 ${F} 格，請重跑`);
+    const buf = r && r.screenshotData ? Buffer.from(r.screenshotData, "base64") : last; if (!buf) throw new Error("第一格沒有畫面");
     last = buf; fs.writeFileSync(path.join(FR, `f${String(F++).padStart(5, "0")}.jpg`), buf);
   };
   const rec = async (n, each) => { for (let i = 0; i < n; i++) { if (each) await each(i); await step(DT); await shot(); } };
   const E = (fn, arg) => p.evaluate(fn, arg);
   // 不錄的準備時間：虛擬時間往前走、真實時間也等一下（讓圖片／模型下載完）
-  const prep = async (cond, arg, max = 60) => { for (let i = 0; i < max; i++) { await step(250); await p.waitForTimeout(60); if (!cond || await p.evaluate(cond, arg)) return true; } return false; };
+  const prep = async (cond, arg, max = 60) => { for (let i = 0; i < max; i++) { await step(250); await bf(false); await p.waitForTimeout(40); if (!cond || await p.evaluate(cond, arg)) return true; } return false; };
   const hideGuide = () => E(() => { window.__hub3d.events(false); const g = document.getElementById("guide"); if (g) g.style.visibility = "hidden"; });
   const toMenu = async () => { await E(() => { if (!document.getElementById("menu").classList.contains("hidden")) return; document.getElementById("homeBtn").click(); document.getElementById("confirmYes")?.click(); }); await prep(() => !document.getElementById("menu").classList.contains("hidden")); await hideGuide(); await prep(null, null, 4); };
   const tapOk = (sel) => E(sel => { const o = window.__zy.curOpts || []; const i = o.findIndex(x => x.ok); const b = document.querySelectorAll(sel)[i]; b && b.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true })); }, sel);
@@ -371,47 +366,47 @@ async function preview(dir) {
 
   // ===== 4 天氣與日夜：▶▶ 快轉看一天（真實 30 分鐘＝小島一天） =====
   await wipeIn();
-  const canLight = await has(() => !!(window.__zy.weatherFx && window.__zy.weatherFx.setLight));
   await E(() => { window.__hub3d.cam(1.02, 0, 0); window.__zy.setWeather("sunny"); });
   await prep(null, null, 6);
   await wipeOut();
-  // 日夜曲線（0＝白天 → 黃昏 → 晚上 → 清晨 → 白天），搭配天氣
-  const lightAt = u => {   // u：0–1
-    const ramp = (a, b) => Math.max(0, Math.min(1, (u - a) / (b - a)));
-    const dusk = ramp(0.22, 0.34) * (1 - ramp(0.4, 0.5));
-    const night = ramp(0.36, 0.48) * (1 - ramp(0.7, 0.8));
-    const dawn = ramp(0.68, 0.76) * (1 - ramp(0.84, 0.92));
-    const h = (8 + u * 24) % 24, hh = Math.floor(h), mm = Math.floor((h - hh) * 60 / 10) * 10;
-    return { dusk, night, dawn, clock: `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}` };
-  };
-  const N4 = 240;
+  // 日夜：直接撥遊戲的時鐘（遊戲每秒會照時鐘推光線，宣傳片自己 setLight 會被蓋回白天——10-11 第一版就是這樣整段沒變暗）
+  //   每格：clock.set(比例) → 同一格再推一次 instant，畫面馬上跟上；說明膠囊跟著「真的換了時段」出現
+  const canClock = await has(() => !!(window.__zy.clock && window.__zy.weatherFx && window.__zy.weatherFx.setLight));
+  const N4 = 260, F0 = 0.36, SPAN = 0.68;   // 白天後段（0.36）→ 黃昏 → 晚上 → 清晨 → 隔天白天（1.04）
+  const PH = { dusk: ["🌇", "黃昏", "天空變橘色"], night: ["🌙", "晚上", "路燈亮了、螢火蟲飛"], dawn: ["🌅", "清晨", "早安！"], day: ["☀️", "又是新的一天", ""] };
+  let lastPh = "day";
   await rec(N4, async i => {
-    const u = i / N4, L = lightAt(u);
     await E(z => window.__hub3d.cam(z, 0, 0), 1.02 + i * 0.0004);
     if (i === 0) { await E(() => __promo.cbig(3, "天氣與日夜", "真實 30 分鐘＝小島一天")); sfx("pop"); }
     if (i === 30) await E(() => __promo.cbigOut());
     if (i === 38) await E(() => { __promo.clear(".cbig"); __promo.chap(3, "天氣與日夜"); });
-    if (canLight) await E(([L]) => { window.__zy.weatherFx.setLight({ night: L.night, dusk: L.dusk, dawn: L.dawn }); document.body.classList.toggle("night", L.night > 0.5); }, [L]);
-    else if (i === 100 || i === 190) await E(n => window.__zy.weatherFx && window.__zy.weatherFx.setNight(n), i === 100);
-    if (i % 3 === 0 && i >= 40) await E(c => __promo.ff(c), L.clock);
-    if (i === 40) sfx("whoosh", 0, 0.5);
-    if (i === 40) { await E(() => { window.__zy.setWeather("rain"); __promo.pill("🌧️", "下雨了", "滴答滴答", true); }); }
-    if (i === 78) await E(() => __promo.pill("🌇", "黃昏", "天空變橘色", true));
-    if (i === 100) await E(() => window.__zy.setWeather("cloudy"));
-    if (i === 112) await E(() => __promo.pill("🌙", "晚上", "路燈亮了、螢火蟲飛", true));
-    if (i === 172) await E(() => __promo.pill("🌅", "清晨", "早安！", true));
-    if (i === 196) { await E(() => { window.__zy.setWeather("sunny"); __promo.pill("☀️", "又是新的一天", "", true); }); sfx("sparkle", 0, 0.6); }
+    if (canClock) {
+      const st = await E(f => {
+        const c = window.__zy.clock; c.set(f); const s = c.get();
+        window.__zy.weatherFx.setLight(s, { instant: true }); document.body.classList.toggle("night", s.night > 0.5);
+        const hh = Math.floor(s.hour), mm = Math.floor((s.hour - hh) * 6) * 10;
+        return { ph: s.phase, clk: `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}` };
+      }, (F0 + (i / N4) * SPAN) % 1);
+      if (i % 3 === 0 && i >= 40) await E(c => __promo.ff(c), st.clk);
+      if (st.ph !== lastPh && i >= 40) {
+        lastPh = st.ph; await E(a => __promo.pill(a[0], a[1], a[2], true), PH[st.ph]);
+        if (st.ph === "dusk") await E(() => window.__zy.setWeather("cloudy"));
+        if (st.ph === "dawn") await E(() => window.__zy.setWeather("sunny"));
+        if (st.ph === "day") sfx("sparkle", 0, 0.6);
+      }
+    }
+    if (i === 40) { sfx("whoosh", 0, 0.5); await E(() => { window.__zy.setWeather("rain"); __promo.pill("🌧️", "下雨了", "滴答滴答", true); }); }
   });
-  await E(() => { __promo.clear(); document.body.classList.remove("night"); if (window.__zy.weatherFx && window.__zy.weatherFx.setLight) window.__zy.weatherFx.setLight({ night: 0, dusk: 0, dawn: 0 }); else if (window.__zy.weatherFx) window.__zy.weatherFx.setNight(false, { instant: true }); });
+  await E(() => { __promo.clear(); window.__zy.setWeather("sunny"); if (window.__zy.clock) window.__zy.clock.set("day"); document.body.classList.remove("night"); if (window.__zy.weatherFx && window.__zy.weatherFx.setLight) window.__zy.weatherFx.setLight({ night: 0, dusk: 0, dawn: 0 }, { instant: true }); });
   lap("天氣日夜");
 
   // ===== 5 海洋與新市區：小魚跳出水面、海鷗飛過 → 鏡頭飛過橋，消防車、警車出動 =====
   await wipeIn();
   const canOcean = await has(() => !!(window.__zy.oceanFx && window.__zy.oceanFx.jump));
-  await E(() => window.__hub3d.focus("fish", 1.75)); await prep(null, null, 6);
+  await E(() => window.__hub3d.focus("lighthouse", 1.6)); await prep(null, null, 6);
   await wipeOut();
   await rec(230, async i => {
-    if (i < 80) await E(z => window.__hub3d.focus("fish", z), 1.75 + i * 0.003);
+    if (i < 80) await E(z => window.__hub3d.focus("lighthouse", z), 1.6 + i * 0.003);
     if (i === 0) { await E(() => __promo.cbig(4, "海洋與新市區", "小魚、海鷗、消防車")); sfx("pop"); }
     if (i === 30) await E(() => __promo.cbigOut());
     if (i === 38) await E(() => { __promo.clear(".cbig"); __promo.chap(4, "海洋與新市區"); __promo.pill("🐟", "海裡有小魚", "海鷗在天上飛", true); });
@@ -463,7 +458,7 @@ async function preview(dir) {
   lap("片尾");
   await browser.close();
   if (errs.length) console.log("頁面錯誤：\n" + errs.join("\n"));
-  console.log("功能：日夜光線", canLight ? "新版" : "舊版退回", "／海洋外掛", canOcean ? "有" : "沒有");
+  console.log("功能：日夜時鐘", canClock ? "有" : "沒有（日夜那段不會變暗）", "／海洋外掛", canOcean ? "有" : "沒有");
 
   // ===== 合成：30fps 影格＋背景音樂（淡入淡出）＋音效 =====
   const dur = F / FPS, bgm = path.join(ROOT, "music", "zy_bgm_island.mp3"), SD = path.join(FR, "sfx");

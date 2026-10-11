@@ -11,7 +11,7 @@ function findShell() {
 }
 const URL = process.env.ZY_URL || "http://127.0.0.1:8765/zhuyin.html";
 const STICK20 = ["貓","狗","魚","鳥","牛","馬","羊","豬","雞","鴨","兔子","老虎","獅子","大象","猴子","熊","蛇","青蛙","蝴蝶","蜜蜂"];
-async function launch() { return chromium.launch({ headless: true, executablePath: findShell() }); }
+async function launch(args = []) { return chromium.launch({ headless: true, executablePath: findShell(), args }); }   // args：宣傳片用 --enable-begin-frame-control 等
 // 開一頁、清存檔、塞進度（n 張貼紙＝詞庫前 n 個詞）、聽過全部開場語
 async function openGame(browser, { w = 1180, h = 820, stickers = 20, stars = 0, eggs = 0, query = "", fakeSpeech = true } = {}) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h } });
