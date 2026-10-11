@@ -22,7 +22,7 @@
   </script>
   <!-- 自己的程式一開頁就同時抓（高優先）：不然要等 zhuyin.js 下載完才知道要抓 ann/words/ui，再等它跑起來才抓 hub3d，
        一層等一層，線上 4Mbps 實測多卡約 3 秒（tools/zy-test/loadprofile.js）。網址要跟實際 import 的完全一樣（含 ?v=） -->
-  <link rel="modulepreload" href="js/zhuyin.js?v=22" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin.js?v=23" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-words.js" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-ann.js?v=3" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-ui.js?v=3" fetchpriority="high">
@@ -261,6 +261,6 @@
   <div id="flash" class="flash"></div>
 
   <div id="fx" class="fx"></div>
-  <script type="module" src="js/zhuyin.js?v=22"></script>
+  <script type="module" src="js/zhuyin.js?v=23"></script>
 </body>
 </html>

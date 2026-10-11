@@ -102,10 +102,12 @@ const OVERLAY = () => {
   await cdp.send("Emulation.setVirtualTimePolicy", { policy: "pause" });
   const within = (pr, ms) => Promise.race([pr, new Promise(r => setTimeout(() => r("TIMEOUT"), ms))]);
   const step = ms => within(new Promise(res => { cdp.once("Emulation.virtualTimeBudgetExpired", () => res("ok")); cdp.send("Emulation.setVirtualTimePolicy", { policy: "advance", budget: ms }); }), 15000);
-  let F = 0, last = null; const CLIP = { x: 0, y: 0, width: VW, height: VH, scale: 1.5 };   // CDP 截圖不吃 deviceScaleFactor：要用 clip.scale 才是 1080p
+  // CDP 截圖不吃 deviceScaleFactor：PROMO_SCALE=1.5 才是 1080p，但帶 clip 在虛擬時間下常卡到逾時 → 預設 720p 不帶 clip
+  let F = 0, last = null; const SC = +process.env.PROMO_SCALE || 1;
+  const SHOT = SC > 1 ? { format: "jpeg", quality: 92, clip: { x: 0, y: 0, width: VW, height: VH, scale: SC } } : { format: "jpeg", quality: 92 };
   const shot = async () => {
-    let s = await within(cdp.send("Page.captureScreenshot", { format: "jpeg", quality: 92, clip: CLIP }), 20000);
-    if (s === "TIMEOUT") { console.log("截圖逾時，重試", F); await step(5); s = await within(cdp.send("Page.captureScreenshot", { format: "jpeg", quality: 92, clip: CLIP }), 30000); }
+    let s = await within(cdp.send("Page.captureScreenshot", SHOT), 20000);
+    if (s === "TIMEOUT") { console.log("截圖逾時，重試", F); await step(5); s = await within(cdp.send("Page.captureScreenshot", SHOT), 30000); }
     const buf = s && s.data ? Buffer.from(s.data, "base64") : last; if (!buf) throw new Error("截圖失敗");
     last = buf; fs.writeFileSync(path.join(FR, `f${String(F++).padStart(5, "0")}.jpg`), buf);
   };

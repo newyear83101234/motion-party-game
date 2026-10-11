@@ -615,15 +615,15 @@ function initHub() {
 }
 
 // 天氣（阿葉 10-11：隨機晴天／陰天／下雨／雷雨／颱風）：js/zhuyin-weather.js 掛在 3D 小島上（只在選單跑）；
-// 每 2.5～5 分鐘有一半機會換天氣；雨停轉晴會出彩虹；雨聲／雷聲是程式合成的，跟「背景音樂」開關一起開關、進遊戲就靜音
-let weather = null, wxMod = null, wxSound = null, wxKind = null, wxTimer = 0, wxAudioOn = false;
+// 打開一律晴天，之後每 2～4 分鐘有六成機會換天氣（玩遊戲時也會換，回小島貓頭鷹再說）；雨停轉晴會出彩虹；雨聲／雷聲是程式合成的，跟「背景音樂」開關一起開關、進遊戲就靜音
+let weather = null, wxMod = null, wxSound = null, wxKind = null, wxTimer = 0, wxAudioOn = false, wxPending = "";   // wxPending：遊戲中天氣變了 → 記玩家最後看到的天氣，回小島時貓頭鷹說新天氣
 const WX_LINES = { sunny: "今天是晴天，太陽好溫暖！", cloudy: "今天是陰天，雲好多喔！", rain: "下雨了！滴答滴答！", storm: "打雷了！轟隆隆！", typhoon: "颱風來了！大家要待在家裡喔！" };
 async function initWeather() {
   if (!hub || weather) return;
   try {
     const m = wxMod = await import("./zhuyin-weather.js?v=2"); if (!hub) return;
     const q = (location.search.match(/[?&]weather=(\w+)/) || [])[1];   // 網址 ?weather=rain 可指定（截圖、宣傳片用）
-    wxKind = m.WEATHERS[q] ? q : m.pickWeather();
+    wxKind = m.WEATHERS[q] ? q : "sunny";             // 阿葉 10-11：打開一律晴天，玩的過程中再變
     wxSound = m.createWeatherSound(); if (wxSound.setDuck) wxSound.setDuck(() => engineTalking());   // 講話時雷聲小一點
     weather = hub.use(c => m.weatherPlugin(c, { kind: wxKind, sound: wxSound }));
     if (weather && weather.setNight) PZ(() => weather.setNight(document.body.classList.contains("night"), { instant: true }));
@@ -633,13 +633,16 @@ async function initWeather() {
 }
 function scheduleWeather() {
   clearTimeout(wxTimer);
-  wxTimer = setTimeout(() => { if (weather && !mode && !talking() && Math.random() < 0.5) setWeather(wxMod.pickWeather()); scheduleWeather(); }, 150000 + Math.random() * 150000);
+  wxTimer = setTimeout(() => { if (weather && (mode || !talking()) && Math.random() < 0.6) setWeather(wxMod.pickWeather()); scheduleWeather(); }, 120000 + Math.random() * 120000);   // 每 2～4 分鐘可能換一次（玩遊戲時也會換）
 }
 function setWeather(k) {
   if (!weather || !wxMod.WEATHERS[k] || k === wxKind) return;
-  const wet = ["rain", "storm", "typhoon"].includes(wxKind); wxKind = k; weather.set(k);
-  if (!mode) { const t = wet && k === "sunny" ? "雨停了！看，天上有彩虹！" : WX_LINES[k]; $("guideText").textContent = t; queueTalk(t); }   // 排隊：不切斷正在講的話
+  const from = wxKind; wxKind = k; weather.set(k);
+  if (mode) { if (!wxPending) wxPending = from; return; }   // 在遊戲裡換的 → 記住玩家最後看到的天氣，回小島再說
+  const t = wxLine(from); $("guideText").textContent = t; queueTalk(t);   // 排隊：不切斷正在講的話
 }
+// 從 from 變成現在的天氣要說的話（真的看過下雨才說彩虹）
+function wxLine(from) { return ["rain", "storm", "typhoon"].includes(from) && wxKind === "sunny" ? "雨停了！看，天上有彩虹！" : WX_LINES[wxKind]; }
 // 雨聲：聲音解鎖後才能開；選單＋背景音樂開＝有聲音，其他時候靜音
 function wxAudio() {
   if (!wxSound) return;
@@ -1586,7 +1589,10 @@ function renderMenu() {
   const r = getResume(), rb = $("resumeBtn");          // 上次沒玩完 → 大大的「▶ 繼續」
   rb.classList.toggle("hidden", !r);
   if (r) { const icon = document.querySelector(`.mode-card[data-mode=${r.mode}] .big`)?.textContent || "▶"; const label = document.querySelector(`.mode-card[data-mode=${r.mode}] .label`)?.textContent || ""; rb.textContent = `▶️ 繼續玩${label} ${icon} ${r.idx + 1}/${r.words.length}`; }
-  const total = stickerCount(); guideSay(total === 0 ? "你好！快來選遊戲玩吧！" : total < 5 ? "再收集幾張貼紙，就能開新遊戲喔！" : pick(["今天要玩哪個呢？", "貼紙越來越多了！", "來釣魚還是去尋寶？", ...(wxKind ? [WX_LINES[wxKind]] : [])]), false);
+  const wxFrom = hub && $("settings").classList.contains("hidden") ? wxPending : "";   // 設定頁開著（還原備份／清除）先不說
+  if (wxFrom) wxPending = "";
+  if (wxFrom && wxFrom !== wxKind) { const t = wxLine(wxFrom); $("guideText").textContent = t; setTimeout(() => { if (!mode) queueTalk(t); }, 600); }   // 玩遊戲時天氣變了：回小島先說天氣（變回原樣就不說）
+  else { const total = stickerCount(); guideSay(total === 0 ? "你好！快來選遊戲玩吧！" : total < 5 ? "再收集幾張貼紙，就能開新遊戲喔！" : pick(["今天要玩哪個呢？", "貼紙越來越多了！", "來釣魚還是去尋寶？", ...(wxKind ? [WX_LINES[wxKind]] : [])]), false); }
   if (hub) { hub.refresh(); hub.setPets(hubPets()); hub.setDecor(hubDecor()); }   // 3D 小島跟著更新：鎖頭、鏡頭擺位、島上走的寵物、扭蛋抽到的裝飾
 }
 let menuPrefetch = null;
