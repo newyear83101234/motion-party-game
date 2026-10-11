@@ -36,13 +36,15 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 
 /* ===== 圓形常駐按鈕 ===== */
 .round-btn { position: absolute; z-index: 20; width: 12vmin; height: 12vmin; border-radius: 50%; background: rgba(255,255,255,0.97); font-size: 6vmin; box-shadow: 0 3px 10px rgba(0,0,0,0.25); }
-#homeBtn { left: 2vmin; top: 2vmin; }
-#musicBtn { left: 16vmin; top: 2vmin; }
+/* 上方兩排（10-11 收合）：按鈕排在 #hudL／#hudR 兩個橫排容器裡（遊戲裡只剩 🏠🎵＝跟以前一樣在左上 2vmin、16vmin） */
+.hud { position: absolute; z-index: 20; top: 2vmin; display: flex; align-items: center; gap: 2vmin; pointer-events: none; }
+.hud-l { left: 2vmin; } .hud-r { right: 2vmin; }
+.hud > * { pointer-events: auto; }
+.hud > .round-btn { position: relative; flex: none; }
 #musicBtn.off { background: #fff; }   /* 音樂關掉（B10）：白底不透明＋紅色斜線，一眼看得出來 */
 #musicBtn.off::after { content: ""; position: absolute; left: 50%; top: 50%; width: 9vmin; height: 0.8vmin; margin: -0.4vmin 0 0 -4.5vmin; border-radius: 0.4vmin; background: #e05050; transform: rotate(-45deg); box-shadow: 0 0 0 0.3vmin #fff; pointer-events: none; }
 #musicBtn.pop { animation: btnPop 0.3s cubic-bezier(.2,1.6,.4,1); }
 @keyframes btnPop { 0% { scale: 1; } 40% { scale: 1.18; } 100% { scale: 1; } }
-#settingsBtn { right: 2vmin; top: 2vmin; }
 .hint-btn { position: absolute; z-index: 20; right: 2vmin; top: 2vmin; height: 12vmin; padding: 0 3vmin 0 2vmin; border-radius: 6vmin; background: var(--yellow); box-shadow: 0 5px 0 var(--yellow-dk), 0 6px 12px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 1vmin; font-size: 5vmin; font-weight: bold; color: #333; }
 .hint-btn .ic { font-size: 6vmin; }
 .hint-btn:active { transform: translateY(3px); box-shadow: none; }
@@ -78,8 +80,10 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 .mode-card .big { font-size: 11vmin; line-height: 1; }
 .mode-card .label { font-size: 4.6vmin; font-weight: bold; color: var(--blue); }
 .mode-card .lock { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 1vmin; font-size: 3.6vmin; font-weight: bold; color: #fff; border-radius: 3vmin; }
-#playerBtn { right: 16vmin; top: 2vmin; font-size: 7vmin; }
-.resume { margin-top: 2vmin; font-size: 4.6vmin; font-weight: bold; color: #333; background: var(--yellow); border-radius: 5vmin; padding: 1.6vmin 4vmin; box-shadow: 0 5px 0 var(--yellow-dk), 0 6px 14px rgba(0,0,0,0.2); animation: pulse 1.6s ease-in-out infinite; }
+#playerBtn { font-size: 7vmin; }
+/* 繼續玩：以前整顆放大縮小（字會一直重畫、看起來在抖）→ 每 3 秒輕輕往上跳一下（只移動不縮放） */
+.resume { margin-top: 2vmin; font-size: 4.6vmin; font-weight: bold; color: #333; background: var(--yellow); border-radius: 5vmin; padding: 1.6vmin 4vmin; box-shadow: 0 5px 0 var(--yellow-dk), 0 6px 14px rgba(0,0,0,0.2); animation: softHop 3s ease-in-out infinite; }
+@keyframes softHop { 0%, 70%, 100% { transform: none; } 78% { transform: translateY(-1.2vmin); } 86% { transform: none; } 92% { transform: translateY(-0.4vmin); } }   /* 用 transform：卡片選單橫式的 translate:-11vmin 不會被蓋掉 */
 .resume:active { transform: translateY(3px); box-shadow: none; animation: none; }
 .dialog .row.wrap { flex-wrap: wrap; justify-content: center; }
 .player { width: 26vmin; padding: 2vmin; border-radius: 4vmin; background: #fff; border: 0.7vmin solid #b9d7f0; box-shadow: 0 5px 0 #b9d7f0; display: flex; flex-direction: column; align-items: center; gap: 1vmin; }
@@ -108,7 +112,10 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 .jarText { display: inline-block; font-variant-numeric: tabular-nums; }
 .jarText.tick { animation: btnPop 0.25s ease-out; }
 .jarBtn .egg { font-size: 5vmin; }
-.jarBtn.ready { border-color: var(--tone); background: #fff3c4; animation: pulse 1.2s ease-in-out infinite; }
+.jarBtn .eg-ico { display: inline-block; font-style: normal; }
+/* 有扭蛋幣（ready）：以前整顆罐子 1.2 秒放大一次（星星、數字一直跳、iPad 上卡卡的）→ 固定的柔和光暈，只有幣／蛋的小圖示每 2.6 秒輕跳一下 */
+.jarBtn.ready { border-color: var(--tone); background: #fff3c4; box-shadow: 0 0 0 0.7vmin rgba(255,213,74,0.5), 0 4px 0 #e0b84a, 0 0 3vmin 0.4vmin rgba(255,190,40,0.45); }
+.jarBtn.ready .eg-ico { animation: softHop 2.6s ease-in-out infinite; }
 
 /* ===== 頂列 / 進度點 ===== */
 .topbar { width: 100%; height: 14vmin; flex-shrink: 0; }
@@ -631,6 +638,7 @@ body.hub3d #menu h1 { pointer-events: none; font-size: 6vmin; color: #24515c; te
   box-shadow: 0 0.6vmin 0 rgba(36,81,92,0.18), 0 1.2vmin 3vmin rgba(20,60,90,0.25); }
 body.hub3d #menu > .menu-bottom { position: absolute; left: 50%; bottom: 2.4vmin; margin: 0; width: max-content; transform: translateX(-50%); }
 body.hub3d #menu .pill { border-color: #fff; color: #24515c; box-shadow: 0 0.6vmin 0 rgba(36,81,92,0.22), 0 1vmin 2.4vmin rgba(20,50,80,0.25); }
+body.hub3d #menu .jarBtn.ready { border-color: #ffd54a; box-shadow: 0 0 0 0.6vmin rgba(255,213,74,0.45), 0 0.6vmin 0 rgba(36,81,92,0.22), 0 0 3vmin 0.4vmin rgba(255,190,40,0.5); }   /* 有幣：固定光暈（不動） */
 /* 浮標：白色圓角小牌（模式圖示＋兩個字），跟著建築在螢幕上的位置移動 */
 .hub-tag { position: absolute; left: 0; top: 0; pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 0.5vmin;
   background: #fff; color: #24515c; font-weight: bold; border-radius: 2.4vmin; padding: 0.4vmin 0.5vmin 0.4vmin 0.6vmin; will-change: transform; touch-action: none;
@@ -666,15 +674,15 @@ body.hub3d #menu > .resume { font-size: 4.6vmin; padding: 1.1vmin 3vmin; margin-
    直式＝標題、膠囊在上（原樣），貓頭鷹對話框加寬 */
 body.hub3d #menu > h1 { display: none; }   /* 阿葉 10-10「注音小島一直顯示太占位置」：3D 選單不放標題（開始畫面已有大標題） */
 @media (orientation: landscape) {
-  body.hub3d #menu > .resume { position: absolute; left: 30vmin; top: 2.4vmin; margin: 0; translate: none; }   /* 繼續玩放在 🎵 右邊 */
+  body.hub3d #menu > .resume { position: absolute; left: 2vmin; top: 16vmin; margin: 0; translate: none; }   /* 繼續玩放在左上第二排（以前在 30vmin 會跟 🏙️ 疊在一起；第一排留給 🏙️／⋯／🏠🎵） */
   body.hub3d #menu > .menu-bottom { left: 2vmin; bottom: 2.4vmin; transform: none; translate: none; }
   body.hub3d .guide { flex-direction: row-reverse; align-items: flex-end; gap: 1.5vmin; }   /* 貓頭鷹在最右、對話框在牠左邊 */
-  body.hub3d .guideText { max-width: min(60vmin, calc(100vw - 86vmin)); margin-bottom: 14vmin; font-size: 4.6vmin; line-height: 1.6; }   /* 底比左下膠囊頂（約 13.4vmin）高，不會蓋到星星罐 */
+  body.hub3d .guideText { max-width: min(52vmin, calc(100vw - 98vmin)); margin-bottom: 14vmin; font-size: 4.6vmin; line-height: 1.6; }   /* 底比左下膠囊頂（約 13.4vmin）高，不會蓋到星星罐 */
   body.hub3d .guideText::after { right: -2vmin; bottom: 3vmin; border: 1.6vmin solid transparent; border-left-color: #fff; }
 }
 @media (orientation: portrait) {
   body.hub3d .guideText { max-width: 72vmin; }
-  body.hub3d #menu { padding-top: 15vmin; }   /* 沒有標題：繼續玩／膠囊直接接在圓鈕下面 */
+  body.hub3d #menu { padding-top: 22vmin; }   /* 沒有標題：繼續玩／膠囊接在圓鈕下面（讓出 🐻 下面「換人」小字的位置） */
   body.hub3d #menu > .resume { margin-top: 0; }
 }
 
@@ -691,6 +699,7 @@ body.hub3d #menu > h1 { display: none; }   /* 阿葉 10-10「注音小島一直�
 @supports not (translate: 0) { .sg-btn { left: 0; right: 0; margin: 0 auto; width: max-content; } }
 /* 開始畫面還沒按「開始玩」（body.gate-on）：藏起小島浮標、右下嚮導、圓鈕、卡片選單的重複標題 */
 body.gate-on .hub-tags, body.gate-on #guide, body.gate-on #menu > h1, body.gate-on .round-btn, body.gate-on .player-tag, body.gate-on .hint-btn { visibility: hidden; }
+body.gate-on .hud-handle, body.gate-on #owlPeek { visibility: hidden !important; }
 
 /* ===== B 組：外殼共用（轉場／題目卡／夜間／家長鎖／換人／選張數／新紀錄章／結算星星罐）===== */
 /* B3 換畫面、開彈窗有轉場：只動 opacity（#menu 裡有 3D 畫布，對它 transform 會讓 3D 點擊座標算錯） */
@@ -722,10 +731,12 @@ body:not(.night) .night-sky { display: none; }
 .lock-tip { position: absolute; z-index: 21; right: 2vmin; top: 15.5vmin; background: #fff; color: #333; font-size: 3.4vmin; font-weight: bold; border-radius: 2vmin; padding: 1vmin 2vmin; box-shadow: 0 4px 12px rgba(0,0,0,0.22); pointer-events: none; animation: zyFadeIn 0.2s; }
 
 /* B8 換人：頭像下方小字「換人」（跟著頭像一起顯示／隱藏） */
-.player-tag { position: absolute; z-index: 20; top: 14.8vmin; right: 22vmin; translate: 50% 0; background: #fff; color: var(--blue); font-size: 4.6vmin; font-weight: bold; line-height: 1; white-space: nowrap;
+.player-tag { position: absolute; z-index: 20; background: #fff; color: var(--blue); font-size: 4.6vmin; font-weight: bold; line-height: 1; white-space: nowrap;
   border-radius: 3vmin; padding: 0.7vmin 1.2vmin 0.7vmin 1.6vmin; box-shadow: 0 3px 8px rgba(0,0,0,0.22); cursor: pointer; }
 #playerBtn.hidden ~ #playerTag { display: none; }
-@media (orientation: portrait) { .player-tag { top: 5.2vmin; right: 29vmin; translate: none; } }   /* 直式頭像下方是貼紙／星星罐膠囊 → 改放頭像左邊 */
+/* 「換人」在 🐻 正下方（🐻 是右上那排的第一顆，中心＝容器左邊 + 6vmin）；卡片選單直式（上面有大標題）改放 🐻 左邊 */
+.hud-r > #playerTag { top: calc(100% + 0.8vmin); left: 6vmin; transform: translateX(-50%); }
+@media (orientation: portrait) { body:not(.hub3d) .hud-r > #playerTag { top: 50%; left: auto; right: calc(100% + 1vmin); transform: translateY(-50%); } }
 
 /* B9 翻牌選張數：1／2／3 張疊起來的牌、字大一點 */
 .msize { width: 26vmin; gap: 0.6vmin; }
@@ -780,12 +791,12 @@ body:not(.night) .night-sky { display: none; }
 /* 10-11 新市區（hub3d 的城市設施）：設施浮標換顏色、右邊的「新市區／回小島」按鈕、失火 🔥、寵物不舒服 🤕 */
 .hub-tag.civic { background: #fff7e6; } .hub-tag.civic::after { border-top-color: #fff7e6; }
 .hub-tag.civic.locked { background: #eef1f5; } .hub-tag.civic.locked::after { border-top-color: #eef1f5; }
-#townBtn { left: 30vmin; top: 2vmin; background: #f6c445; }
-#townBtn.back { background: rgba(255,255,255,0.97); }
-#townBtn .nav-ico { display: inline-block; animation: navNudge 2.8s ease-in-out infinite; }
-#townBtn.back .nav-ico { animation: none; }
+/* 🏙️ 新市區鈕（10-11 改）：跟其他圓鈕一樣白底、圖示不常駐晃動；有新東西（.news）才出現 NEW 小紅標＋圖示輕跳。「新市區」小字黏在圓鈕右邊 */
+#townBtn { z-index: 2; }
+#townBtn .nav-ico { display: inline-block; }
+#townBtn.news .nav-ico { animation: navNudge 2.8s ease-in-out infinite; }
 @keyframes navNudge { 0%, 72%, 100% { rotate: 0deg; scale: 1; } 80% { rotate: -8deg; scale: 1.12; } 88% { rotate: 5deg; scale: 1.05; } }
-.town-tag { top: 14.8vmin; left: 36vmin; right: auto; translate: -50% 0; cursor: pointer; }
+.hud > .town-tag { position: relative; z-index: 1; flex: none; margin-left: -6vmin; padding: 1.3vmin 1.8vmin 1.3vmin 6.4vmin; cursor: pointer; }
 #townBtn.news::after { content: "NEW"; position: absolute; right: -1.6vmin; top: -1.2vmin; background: #ff5d5d; color: #fff; font-size: 2.6vmin; font-weight: 900; border-radius: 2vmin; padding: 0.4vmin 1.2vmin; border: 0.4vmin solid #fff; animation: tagHop 1.2s ease-in-out infinite; }
 .school-card { position: absolute; left: 50%; top: 18%; translate: -50% 0; z-index: 30; background: #fff; border-radius: 4vmin; padding: 2.4vmin 4vmin 3vmin; box-shadow: 0 1.4vmin 4vmin rgba(20,50,80,0.35);
   display: flex; flex-direction: column; align-items: center; gap: 1.6vmin; animation: tipIn 0.4s cubic-bezier(.2,1.5,.4,1) both; pointer-events: none; }
@@ -793,7 +804,7 @@ body:not(.night) .night-sky { display: none; }
 .school-card .sticker { transform: none; }
 .school-card.bye { opacity: 0; transition: opacity 0.4s; }
 .town-tag.hidden { display: none; }
-@media (orientation: portrait) { .town-tag { display: none; } }   /* 直式上方沒位子：只留 🌉 圓鈕 */
+@media (orientation: portrait) { .hud-l > #townTag { position: absolute; top: calc(100% + 0.8vmin); left: 0; transform: none; margin-left: 0; padding: 1.3vmin 1.8vmin; } }   /* 直式：「新市區」小字放 🏙️ 正下方（跟右邊「換人」同一排，用掉上排下面那條空帶——寧次 10-11） */
 .hub-tags.in-town .hub-tag:not(.civic) { visibility: hidden; }   /* 在新市區：主島浮標收起來；在主島：設施浮標收起來 */
 .hub-tags:not(.in-town) .hub-tag.civic { display: none; }
 .hub-fire { position: absolute; left: 0; top: 0; pointer-events: auto; font-size: 5.6vmin; line-height: 1; background: #fff; border-radius: 50%; width: 9vmin; height: 9vmin; display: grid; place-items: center;
@@ -857,3 +868,34 @@ body:not(.night) .night-sky { display: none; }
 .pet-card.none .pc-img { filter: brightness(0) opacity(0.22); }
 .pet-card .pc-n { font-size: 4vmin; font-weight: 900; color: #24515c; }
 .pet-card .pc-s { font-size: 2.8vmin; font-weight: 700; color: #667; }
+
+/* ===== 10-11 選單變清爽：上方家長按鈕收合、貓頭鷹收起來 ===== */
+/* 「⋯」把手：只在選單出現；展開時變深色＝再點一次收起來 */
+.hud-handle { display: none; flex: none; position: relative; width: 9vmin; height: 9vmin; border-radius: 50%; background: rgba(255,255,255,0.88); box-shadow: 0 3px 10px rgba(0,0,0,0.22);
+  align-items: center; justify-content: center; gap: 0.9vmin; transition: background 0.2s, scale 0.1s; }
+.hud-handle::before { content: ""; position: absolute; inset: -1.5vmin; }   /* 點擊區比外觀大一圈 */
+.hud-handle i { width: 1.3vmin; height: 1.3vmin; border-radius: 50%; background: #24515c; transition: background 0.2s; }
+.hud-handle:active { scale: 0.9; }
+body.on-menu .hud-handle { display: flex; }
+.hud.open > .hud-handle { background: #24515c; } .hud.open > .hud-handle i { background: #fff; }
+/* 收起來＝看不到也點不到，但位置照樣佔著（3D 小島擺浮標會避開，展開不會蓋到東西）；只用淡入淡出，不縮放（不改變量到的大小） */
+.hud .fold { transition: opacity 0.2s, visibility 0s, scale 0.1s; }
+body.on-menu .hud:not(.open) .fold { opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0s 0.2s; }
+/* 貓頭鷹收起來：對話框和大貓頭鷹淡出（位置照樣佔著），右下角換成探頭的小貓頭鷹 */
+.guide > img, .guideText { transition: opacity 0.3s, visibility 0s; }
+.guide.fold { pointer-events: none; }
+.guide.fold > img, .guide.fold > .guideText { opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0s 0.3s; }
+.owl-peek { position: absolute; right: -2vmin; bottom: -2vmin; width: max(17vmin, 64px); height: max(12vmin, 48px); padding: 0; border-radius: 50% 50% 0 0; background: none; overflow: hidden;
+  visibility: hidden; pointer-events: none; }
+.owl-peek img { position: absolute; left: 50%; top: 0.6vmin; width: 86%; height: auto; margin-left: -43%; animation: none; filter: drop-shadow(0 0.4vmin 0.8vmin rgba(0,0,0,0.3)); }
+.guide.fold .owl-peek { visibility: visible; pointer-events: auto; }
+.guide.fold .owl-peek img { animation: peekUp 0.45s cubic-bezier(.2,1.4,.4,1) 0.25s both, peekNod 5s ease-in-out 1.5s infinite; }
+@keyframes peekUp { from { transform: translateY(100%); } to { transform: none; } }
+@media (orientation: portrait) { .owl-peek { right: auto; left: -1vmin; } }
+body.night .owl-peek img { filter: drop-shadow(0 0 0.8vmin rgba(255,255,255,0.8)) drop-shadow(0 0.4vmin 0.8vmin rgba(0,0,0,0.3)); }   /* 晚上：深色學士帽跟深藍海融在一起 → 加一圈白光 */
+@media (max-width: 500px) { .owl-peek { width: 76px; height: 60px; } }   /* 手機：眼睛整個露出來、小手指好點 */
+.owl-peek { margin-bottom: env(safe-area-inset-bottom, 0px); }   /* iPhone 加到主畫面：別被底部手勢條壓住 */
+.hud-l { left: max(2vmin, env(safe-area-inset-left, 0px)); } .hud-r { right: max(2vmin, env(safe-area-inset-right, 0px)); }   /* iPhone 橫拿：避開瀏海 */
+.guideText { text-wrap: balance; }   /* 斷行不要只剩「了！」掉到下一行 */
+.jarBtn .egg.zero { opacity: 0.45; }   /* 沒有幣：淡淡的 0（不然看起來像少了東西） */   /* 直式貓頭鷹在對話框左邊 → 探頭也在左邊（收起前後同一個位置，小孩找得到） */
+@keyframes peekNod { 0%, 84%, 100% { transform: none; } 88% { transform: translateY(-1.2vmin) rotate(-6deg); } 94% { transform: translateY(-0.4vmin) rotate(4deg); } }

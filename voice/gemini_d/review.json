@@ -1,7 +1,7 @@
 {
  "how": "每句由 Gemini 3.8 Flash 盲聽寫（不給答案），拼音跟正確讀音比對；詞庫詞以遊戲注音為準。AI 聽寫本身也會錯，所以這份是『請人耳確認』清單，不代表一定唸錯。",
- "count": 46,
- "suspicious": 46,
+ "count": 47,
+ "suspicious": 47,
  "items": [
   {
    "text": "第一聲不用加符號，按這個空白格就好",
@@ -192,6 +192,46 @@
      "why": [
       "噹 應 dang1 聽到 dong1",
       "噹 應 dang1 聽到 dong1"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "月亮出來了，好漂亮！",
+   "file": "guide_99653919.mp3",
+   "level": "可疑",
+   "why": [
+    "漂 應 piao1 聽到 piao4",
+    "亮 應 liang4 唸成輕聲"
+   ],
+   "heard": "月亮出來了，好漂亮",
+   "pinyin": "yue4 liang5 chu1 lai2 le5 hao3 piao4 liang4",
+   "correct": "yue4 liang4 chu1 lai2 le5 hao3 piao1 liang4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "月亮出來了，好漂亮！",
+     "pinyin": "yue4 liang5 chu1 lai2 le5 hao3 piao4 liang5",
+     "why": [
+      "漂 應 piao1 聽到 piao4",
+      "亮 應 liang4 唸成輕聲",
+      "亮 應 liang4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "月亮出來了，好漂亮！",
+     "pinyin": "yue4 liang5 chu1 lai2 le5 hao3 piao4 liang5 o5",
+     "why": [
+      "音節數不同：應 8（yue4 liang4 chu1 lai2 le5 hao3 piao1 liang4），聽到 9（yue4 liang5 chu1 lai2 le5 hao3 piao4 liang5 o5）"
+     ]
+    },
+    {
+     "sent": "月亮出來了，好漂亮！",
+     "pinyin": "yue4 liang5 chu1 lai2 le5 hao3 piao4 liang4",
+     "why": [
+      "漂 應 piao1 聽到 piao4",
+      "亮 應 liang4 唸成輕聲"
      ]
     }
    ]

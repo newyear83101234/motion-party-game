@@ -50,4 +50,9 @@ async function enterMode(p, m, size) {
   await p.waitForFunction(mm => !document.getElementById(mm).classList.contains("hidden") && document.getElementById("loading").classList.contains("hidden"), m, { timeout: 15000 });
   await p.waitForTimeout(500);
 }
-module.exports = { launch, openGame, enterMode, URL, STICK20 };
+// 選單上方的家長按鈕（左＝🏠🎵、右＝🐻換人⚙️）平常收在「⋯」把手裡（10-11）：要量它們、用滑鼠點它們之前先展開（已展開就不動）
+async function hudOpen(p, side) {
+  await p.evaluate(s => { const b = document.getElementById("hud" + s); if (b && !b.classList.contains("open")) document.getElementById("hud" + s + "Btn").click(); }, side);
+  await p.waitForTimeout(300);   // 淡入 0.2 秒
+}
+module.exports = { launch, openGame, enterMode, hudOpen, URL, STICK20 };

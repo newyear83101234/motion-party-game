@@ -82,7 +82,9 @@ for i, t, c in [("retry_banner", "剛剛卡住的，再試一次！", "system"),
                 ("wx_storm", "打雷了！轟隆隆！", "guide"), ("wx_typhoon", "颱風來了！大家要待在家裡喔！", "guide"), ("wx_rainbow", "雨停了！看，天上有彩虹！", "guide"),
                 ("town_police", "警察局！警車出動巡邏囉！", "guide"), ("town_fire", "消防局！消防車出動囉！", "guide"), ("town_hospital", "醫院！救護車出發囉！", "guide"),
                 ("town_school", "學校！叮噹叮噹，上課囉！", "guide"), ("town_here", "這裡是新市區！", "guide"), ("town_locked", "收集更多貼紙，就能蓋好囉！", "guide"),
-                ("fire_start", "失火了！快叫消防車！", "guide"), ("fire_tap", "消防車馬上來！", "guide"), ("fire_out", "火熄滅了，謝謝消防員！", "guide")]:
+                ("fire_start", "失火了！快叫消防車！", "guide"), ("fire_tap", "消防車馬上來！", "guide"), ("fire_out", "火熄滅了，謝謝消防員！", "guide"),
+                ("ph_dusk1", "太陽要下山囉！", "guide"), ("ph_dusk2", "天空變成橘色了！", "guide"), ("ph_night1", "天黑了，路燈亮起來了！", "guide"),   # 10-11 日夜時鐘（PHASE_LINES）
+                ("ph_night2", "月亮出來了，好漂亮！", "guide"), ("ph_dawn1", "天快亮了，早安！", "guide"), ("ph_dawn2", "太陽公公要起床囉！", "guide")]:
     must(t); add(i, t, c, "zhuyin.js（10-11）")
 for i, t in [("bubble_swap", "點一下泡泡，可以換一顆喔！"), ("bubble_intro1", "三個一樣的連在一起，就會破掉喔！把小企鵝救出來！")]:
     if t.split("！")[0] not in BSRC: sys.exit(f"zhuyin-bubble.js 找不到：{t}")

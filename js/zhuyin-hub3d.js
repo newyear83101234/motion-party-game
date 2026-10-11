@@ -1938,10 +1938,10 @@ const baseCam = new THREE.OrthographicCamera();
 function setCamDir(cam, az) { cam.position.set(Math.sin(az) * Math.cos(CAM_EL), Math.sin(CAM_EL), Math.cos(az) * Math.cos(CAM_EL)).multiplyScalar(60); cam.lookAt(0, 0, 0); cam.updateMatrixWorld(); }
 function obstacles() {
   const out = [];
-  for (const sel of ["#menu > h1", "#resumeBtn", "#townBtn", "#townTag", "#menu > .menu-bottom", "#guide img", "#guideText", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#speakBtn", "#settingsBtn"]) {
+  for (const sel of ["#menu > h1", "#resumeBtn", "#townBtn", "#townTag", "#menu > .menu-bottom", "#guide img", "#guideText", "#owlPeek", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#speakBtn", "#settingsBtn", "#hudLBtn", "#hudRBtn"]) {   // 收起來的按鈕／貓頭鷹只是 visibility:hidden，照樣量得到＝照樣避開
     const e = document.querySelector(sel); if (!e || !e.offsetParent) continue;
     const r = e.getBoundingClientRect(); if (r.width < 2 || r.height < 2) continue;
-    const pad = sel === "#resumeBtn" ? 24 : 14;          // 繼續玩按鈕會閃動、鏡頭會漂：多留一點
+    const pad = sel === "#resumeBtn" ? 24 : 14;          // 繼續玩按鈕會閃動、鏡頭會漂：多留一點（10-11 試過貼紙那排多留 2vmin：取景變擠、iPad 橫式反而碰到，撤回）
     out.push({ x0: r.left - pad, x1: r.right + pad, y0: r.top - pad, y1: r.bottom + pad });   // display:none（例如 3D 選單的標題）量不到 → 上面就略過了
   }
   return out;

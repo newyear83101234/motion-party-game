@@ -3,9 +3,10 @@
 // 八個模式：釣魚 / 點餐 / 積木 / 尋寶 / 翻牌 / 聲調氣球 / 打地鼠 / 跳跳蛙（後兩個 2026-10-10 加）。長期動力：貼紙圖鑑（每個詞一張貼紙）＋星星罐孵蛋（解鎖朋友）。
 // 設計依據：櫻木花道（遊戲設計）＋寧次（UI/UX）2026-09-09 審查報告；規格見 memory project-zhuyin-game.md
 import { WORDS, PHRASES, CATS, FRIENDS } from "./zhuyin-words.js";
-import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js?v=3";
-import { voiceUnlock, voiceSay, voiceStop, voiceSpeaking, voicePreload, voiceCtx } from "./zhuyin-voice.js?v=2";
+import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js?v=4";
+import { voiceUnlock, voiceSay, voiceStop, voiceSpeaking, voicePreload, voiceCtx } from "./zhuyin-voice.js?v=3";
 import * as RW from "./zhuyin-rewards.js?v=1";   // 獎勵系統（扭蛋機）純邏輯
+import { createClock } from "./zhuyin-clock.js?v=1";   // 日夜時鐘（真實 30 分鐘＝小島一天）
 startAnnotate();                                      // 畫面上每個國字自動加注音（阿葉 10-10）
 
 const TONES = ["", "ˊ", "ˇ", "ˋ", "˙"];
@@ -592,7 +593,7 @@ function hasWebGL() {                                 // Three.js r163 起只支
   try { const gl = document.createElement("canvas").getContext("webgl2"); if (!gl) return false; const x = gl.getExtension("WEBGL_lose_context"); if (x) x.loseContext(); return true; } catch (e) { return false; }
 }
 function importHub() {
-  const url = "./zhuyin-hub3d.js?v=7";
+  const url = "./zhuyin-hub3d.js?v=8";
   if (window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports("importmap")) return import(url);
   return new Promise((ok, no) => {                    // 舊 iPad（iOS 16.3 以前）不支援 importmap → 補 es-module-shims 再載
     const s = document.createElement("script"); s.src = "IMAGE/zy3d/vendor/es-module-shims/es-module-shims.js";
@@ -600,7 +601,7 @@ function importHub() {
   });
 }
 function hubFail(why) { console.warn("[hub3d] 退回卡片選單：", why); hub = null; document.body.classList.remove("hub3d"); document.body.classList.add("hub-off"); $("townBtn").classList.add("hidden"); $("townTag").classList.add("hidden");
-  clearTimeout(wxTimer); weather = null; wxKind = null; if (wxSound) { try { wxSound.stop(); } catch (e) {} wxSound = null; wxAudioOn = false; } }   // 天氣跟著 3D 小島一起收（卡片選單不報天氣）
+  clearTimeout(wxTimer); weather = null; ocean = null; wxKind = null; if (wxSound) { try { wxSound.stop(); } catch (e) {} wxSound = null; wxAudioOn = false; } }   // 天氣跟著 3D 小島一起收（卡片選單不報天氣）
 function initHub() {
   if (/[?&]no3d\b/.test(location.search) || !hasWebGL()) { document.body.classList.add("hub-off"); return Promise.resolve(null); }   // hub-off：卡片選單才顯示背景圖
   let settled = false;                                 // （Three.js 已由 zhuyin.html 的 modulepreload 跟頁面一起開始抓）
@@ -616,20 +617,37 @@ function initHub() {
 
 // 天氣（阿葉 10-11：隨機晴天／陰天／下雨／雷雨／颱風）：js/zhuyin-weather.js 掛在 3D 小島上（只在選單跑）；
 // 打開一律晴天，之後每 2～4 分鐘有六成機會換天氣（玩遊戲時也會換，回小島貓頭鷹再說）；雨停轉晴會出彩虹；雨聲／雷聲是程式合成的，跟「背景音樂」開關一起開關、進遊戲就靜音
-let weather = null, wxMod = null, wxSound = null, wxKind = null, wxTimer = 0, wxAudioOn = false, wxPending = "";   // wxPending：遊戲中天氣變了 → 記玩家最後看到的天氣，回小島時貓頭鷹說新天氣
+let weather = null, ocean = null, wxMod = null, wxSound = null, wxKind = null, wxTimer = 0, wxAudioOn = false, wxPending = "";   // wxPending：遊戲中天氣變了 → 記玩家最後看到的天氣，回小島時貓頭鷹說新天氣
 const WX_LINES = { sunny: "今天是晴天，太陽好溫暖！", cloudy: "今天是陰天，雲好多喔！", rain: "下雨了！滴答滴答！", storm: "打雷了！轟隆隆！", typhoon: "颱風來了！大家要待在家裡喔！" };
+// 日夜（阿葉 10-11 選 B：遊戲內加速，真實 30 分鐘＝一天：白天 17 分、黃昏 3 分、晚上 7 分、清晨 3 分）：js/zhuyin-clock.js
+// 時間存 localStorage「zy_clock」（全家共用），只在畫面看得到時前進；網址 ?clock=day|dusk|night|dawn|0.62 或 ?night=1|0 → 固定不走
+const clock = createClock();
+const PHASE_LINES = { dusk: ["太陽要下山囉！", "天空變成橘色了！"], night: ["天黑了，路燈亮起來了！", "月亮出來了，好漂亮！"], dawn: ["天快亮了，早安！", "太陽公公要起床囉！"] };
+let phasePending = "";                                 // 玩遊戲時換了時段 → 回小島貓頭鷹再說
+const envObj = { night: 0, dusk: 0, dawn: 0, kind: "sunny" };   // 給海洋外掛每格讀的環境（同一個物件，每秒 applyNight／換天氣時更新，不每格新建）
+clock.onPhase(ph => {
+  if (!PHASE_LINES[ph]) { phasePending = ""; return; }  // 白天不特別說
+  if (mode || !hub) { phasePending = ph; return; }
+  const t = pick(PHASE_LINES[ph]); $("guideText").textContent = t; queueTalk(t);   // 排隊：不切斷正在講的話
+});
 async function initWeather() {
   if (!hub || weather) return;
   try {
-    const m = wxMod = await import("./zhuyin-weather.js?v=2"); if (!hub) return;
+    const m = wxMod = await import("./zhuyin-weather.js?v=3"); if (!hub) return;
     const q = (location.search.match(/[?&]weather=(\w+)/) || [])[1];   // 網址 ?weather=rain 可指定（截圖、宣傳片用）
     wxKind = m.WEATHERS[q] ? q : "sunny";             // 阿葉 10-11：打開一律晴天，玩的過程中再變
     wxSound = m.createWeatherSound(); if (wxSound.setDuck) wxSound.setDuck(() => engineTalking());   // 講話時雷聲小一點
     weather = hub.use(c => m.weatherPlugin(c, { kind: wxKind, sound: wxSound }));
-    if (weather && weather.setNight) PZ(() => weather.setNight(document.body.classList.contains("night"), { instant: true }));
+    if (weather && weather.setLight) PZ(() => weather.setLight(clock.get(), { instant: true }));   // 一打開就是時鐘現在的光線
     if (!q) scheduleWeather();
     wxAudio();
   } catch (e) { console.warn("[weather]", e); }
+  // 海（阿葉 10-11：海浪要會動、有雲、小魚、海鷗）：js/zhuyin-ocean.js；跟著日夜時鐘與天氣變（颱風浪大、晚上沒海鷗）
+  try {
+    const om = await import("./zhuyin-ocean.js?v=1"); if (!hub || ocean) return;
+    const s = clock.get(); envObj.night = s.night; envObj.dusk = s.dusk; envObj.dawn = s.dawn; envObj.kind = wxKind || "sunny";
+    ocean = hub.use(c => om.oceanPlugin(c, { env: () => envObj }));
+  } catch (e) { console.warn("[ocean]", e); }
 }
 function scheduleWeather() {
   clearTimeout(wxTimer);
@@ -637,7 +655,7 @@ function scheduleWeather() {
 }
 function setWeather(k) {
   if (!weather || !wxMod.WEATHERS[k] || k === wxKind) return;
-  const from = wxKind; wxKind = k; weather.set(k);
+  const from = wxKind; wxKind = k; weather.set(k); envObj.kind = k;   // 海也跟著換（颱風浪大、沒海鷗）
   if (mode) { if (!wxPending) wxPending = from; return; }   // 在遊戲裡換的 → 記住玩家最後看到的天氣，回小島再說
   const t = wxLine(from); $("guideText").textContent = t; queueTalk(t);   // 排隊：不切斷正在講的話
 }
@@ -702,10 +720,58 @@ function showScreen(id) {
   $("townBtn").classList.toggle("hidden", id !== "menu" || !hub); $("townTag").classList.toggle("hidden", id !== "menu" || !hub);   // 新市區按鈕：只在 3D 小島選單
   $("progress").classList.toggle("hidden", !inGame || BOARD(id));
   $("guide").classList.toggle("hidden", id !== "menu");
+  document.body.classList.toggle("on-menu", id === "menu"); hudOpen("L", false); hudOpen("R", false);   // 換畫面：上方家長按鈕一律收起來（遊戲裡 🏠🎵 照常顯示）
   if (hub) { if (id === "menu") hub.show(); else hub.hide(); }   // 3D 小島只在選單畫面渲染（省電）
   setTimeout(wxAudio, 0);                              // 天氣聲：只有選單有
 }
-function guideSay(text, speak = true) { $("guideText").textContent = text; if (speak) talk(text); }
+function guideSay(text, speak = true) { owl.selfText = text; $("guideText").textContent = text; owlShow(speak); if (speak) talk(text); setTimeout(() => { owl.selfText = null; }, 0); }   // 標記只管這一次（下次別處寫一樣的字也要彈出）
+
+// ---------- 選單上方按鈕收合（阿葉 10-11「上面左邊跟右邊的選項可以做收放，不然畫面太雜亂了」）----------
+// 家長用的 🏠🎵（左）、🐻換人⚙️（右）收在兩個「⋯」把手裡：點把手展開，8 秒沒碰自動收回；開始玩後第一次進選單先展開 4 秒，讓家長知道在哪。
+// 收起來只是 visibility:hidden（位置還在）→ 3D 小島擺鏡頭時照樣避開它們：展開時不會蓋到浮標，小島也不會因為收放而跳動。
+const HUD_IDLE = 8000, HUD_TOUR = 4000, hudT = { L: 0, R: 0 };
+let hudToured = false;
+function hudOpen(side, on, ms = HUD_IDLE) {
+  const box = $("hud" + side), btn = $("hud" + side + "Btn"); if (!box) return;
+  box.classList.toggle("open", on); btn.setAttribute("aria-expanded", on ? "true" : "false");
+  clearTimeout(hudT[side]); if (on) hudT[side] = setTimeout(() => hudIdle(side), ms);
+}
+function hudIdle(side) {                               // 閒置時間到：家長還按著 ⚙️（2 秒家長鎖）就再等一下
+  if (lockHold) { hudT[side] = setTimeout(() => hudIdle(side), 1000); return; }
+  hudOpen(side, false);
+}
+function hudTour() { if (hudToured || !document.body.classList.contains("on-menu")) return; hudToured = true; hudOpen("L", true, HUD_TOUR); hudOpen("R", true, HUD_TOUR); }
+for (const side of ["L", "R"]) {
+  $("hud" + side + "Btn").onclick = () => { play("tap"); hudOpen(side, !$("hud" + side).classList.contains("open")); };
+  $("hud" + side).addEventListener("pointerdown", () => { if ($("hud" + side).classList.contains("open")) hudOpen(side, true); }, { capture: true, passive: true });   // 有在用：重新算 8 秒
+}
+document.addEventListener("pointerdown", e => {        // 點畫面其他地方（小島、膠囊、貓頭鷹）＝收起來；彈窗裡的點擊不算
+  if (!document.body.classList.contains("on-menu") || e.target.closest?.(".overlay")) return;
+  for (const side of ["L", "R"]) if ($("hud" + side).classList.contains("open") && !$("hud" + side).contains(e.target)) hudOpen(side, false);
+}, { capture: true, passive: true });
+
+// ---------- 貓頭鷹收起來（阿葉 10-11「貓頭鷹可以點選隱藏，或者提示完多久就消失，或者點一下就消失」）----------
+// 有新的話 → 彈出來；唸完再 4 秒（不出聲的話＝看字 4 秒＋每字 0.15 秒，再 4 秒）→ 對話框淡出、貓頭鷹縮成右下角的探頭。
+// 顯示中點貓頭鷹或對話框＝馬上收；點探頭＝彈出來再講一次。#guideText 的字一直留著（只用 class 藏），測試和重講都讀它。
+// 看不到的時候（開始畫面、遊戲中、彈窗開著）不算時間。
+const owl = { t0: 0, read: 0, quiet: 0, last: performance.now(), selfText: null };
+function owlShow(speak) {
+  $("guide").classList.remove("fold"); owl.t0 = owl.quiet = performance.now();
+  owl.read = speak && save.talk ? 0 : 4000 + 150 * $("guideText").textContent.length;
+}
+function owlFold() { $("guide").classList.add("fold"); }
+setInterval(() => {
+  const now = performance.now(), dt = Math.min(1000, now - owl.last), g = $("guide"); owl.last = now;
+  if (g.classList.contains("fold")) return;
+  if (document.hidden || document.body.classList.contains("gate-on") || g.classList.contains("hidden") || document.querySelector(".overlay:not(.hidden)")) { owl.t0 += dt; owl.quiet += dt; return; }
+  if (talking()) owl.quiet = now;
+  if (now - owl.t0 >= owl.read + 4000 && now - owl.quiet >= 4000) owlFold();
+}, 250);
+// 別的地方直接改 #guideText（天氣播報、開場自我介紹）也算新的話；guideSay 自己寫的那次跳過（它已經處理過了）
+new MutationObserver(ms => { for (const m of ms) {
+  const n = m.addedNodes; if (n.length !== 1 || n[0].nodeType !== 3) continue;   // 注音模組把字拆成小 span 的那次不算
+  if (n[0].nodeValue === owl.selfText) owl.selfText = null; else owlShow(false);
+} }).observe($("guideText"), { childList: true });
 function armIdle() {                                   // 家長設定秒數沒動作 → 只讓「🔊 提示」閃，不出聲
   clearIdle(); if (!save.hintWait || BOARD(mode)) return;
   idleTimer = setTimeout(() => { if (locked || !mode) return; hintPulse(true); }, save.hintWait * 1000);
@@ -1451,7 +1517,7 @@ function updateJar() {
   for (const b of document.querySelectorAll(".jarBtn")) {
     if (b.id === "hatchHint" && rs && !rs.done) continue;   // 結算演出中的罐子由演出自己畫
     paintJar(b, inJar); b.classList.toggle("ready", coins > 0);
-    const e = b.querySelector(".egg"); if (e && !b.id) e.textContent = coins > 0 ? `🪙${coins}` : "🪙";
+    const e = b.querySelector(".egg"); if (e && !b.id) { const n = String(coins); e.classList.toggle("zero", coins === 0); if (e.textContent !== "🪙" + n) { e.textContent = ""; e.append(el("i", "eg-ico", "🪙"), n); } }   // 幣圖示單獨一個 <i>：只有它會輕跳，數字不動
   }
 }
 // 星星罐（舊的「孵蛋」）→ 扭蛋機：有扭蛋幣就打開扭蛋機，沒有就說還差幾顆星
@@ -1591,7 +1657,9 @@ function renderMenu() {
   if (r) { const icon = document.querySelector(`.mode-card[data-mode=${r.mode}] .big`)?.textContent || "▶"; const label = document.querySelector(`.mode-card[data-mode=${r.mode}] .label`)?.textContent || ""; rb.textContent = `▶️ 繼續玩${label} ${icon} ${r.idx + 1}/${r.words.length}`; }
   const wxFrom = hub && $("settings").classList.contains("hidden") ? wxPending : "";   // 設定頁開著（還原備份／清除）先不說
   if (wxFrom) wxPending = "";
-  if (wxFrom && wxFrom !== wxKind) { const t = wxLine(wxFrom); $("guideText").textContent = t; setTimeout(() => { if (!mode) queueTalk(t); }, 600); }   // 玩遊戲時天氣變了：回小島先說天氣（變回原樣就不說）
+  const phFrom = hub && $("settings").classList.contains("hidden") && phasePending === clock.get().phase ? phasePending : "";
+  if (wxFrom && wxFrom !== wxKind) { phasePending = ""; const t = wxLine(wxFrom); $("guideText").textContent = t; setTimeout(() => { if (!mode) queueTalk(t); }, 600); }   // 玩遊戲時天氣變了：回小島先說天氣（變回原樣就不說；同時換了時段只說天氣）
+  else if (phFrom) { phasePending = ""; const t = pick(PHASE_LINES[phFrom]); $("guideText").textContent = t; setTimeout(() => { if (!mode) queueTalk(t); }, 600); }   // 玩遊戲時天黑了／天亮了：回小島說一句
   else { const total = stickerCount(); guideSay(total === 0 ? "你好！快來選遊戲玩吧！" : total < 5 ? "再收集幾張貼紙，就能開新遊戲喔！" : pick(["今天要玩哪個呢？", "貼紙越來越多了！", "來釣魚還是去尋寶？", ...(wxKind ? [WX_LINES[wxKind]] : [])]), false); }
   if (hub) { hub.refresh(); hub.setPets(hubPets()); hub.setDecor(hubDecor()); }   // 3D 小島跟著更新：鎖頭、鏡頭擺位、島上走的寵物、扭蛋抽到的裝飾
 }
@@ -1749,7 +1817,9 @@ for (const b of document.querySelectorAll(".jarBtn")) b.onclick = () => { play("
 $("hatchClose").onclick = () => { play("select"); $("hatch").classList.add("hidden"); const f = hatchDone; hatchDone = null; if (f) f(); else updateJar(); };   // 收尾交給 playHatchShow 的呼叫端
 // 結算演出中點畫面＝快轉到最後（開頭 0.7 秒內不算：最後一題連點的那幾下不會把整段演出跳掉）
 $("result").addEventListener("pointerdown", () => { if (rs && !rs.done && rs.tok === navToken && performance.now() - rs.t0 > 700) finishResult(rs, true); });
-$("guide").onclick = () => say($("guideText").textContent);
+$("guide").onclick = e => {                             // 點探頭＝貓頭鷹彈出來再講一次；顯示中點貓頭鷹／對話框＝收起來
+  if (e.target.closest("#owlPeek")) { play("tap"); owlShow(true); say($("guideText").textContent); } else { owlFold(); if (!mode) stopSpeech(); }   // 收起來就閉嘴（排隊中的下一句照講）
+};
 $("gachaGo").onclick = () => spinGacha(false); $("gachaGoGold").onclick = () => spinGacha(true);
 $("gachaClose").onclick = () => { if (gachaBusy) return; play("select"); $("gacha").classList.add("hidden"); updateJar(); };
 // 第一次觸碰就起音樂。goMenu() 開頁時已經設好 curBgm，但那時瀏覽器擋自動播放 → 這裡要補播（原本 !curBgm 判斷讓它永遠不播）
@@ -1777,21 +1847,27 @@ $("startBtn").onclick = () => {                         // 開始玩：這一下
   if (save.music && curBgm) curBgm.play().catch(() => {});
   const hi = helloText(); if (hi) $("guideText").textContent = hi + "快來選遊戲玩吧！";
   setTimeout(() => talk($("guideText").textContent), 300);
+  hudTour();                                           // 上方家長按鈕先展開 4 秒，讓家長知道收在「⋯」裡
 };
-// 夜間（B15）：19:00–06:00 遊戲背景加藍紫色＋幾顆會閃的星星；網址 ?night=1／?night=0 可強制（測試、截圖用）
-const NIGHT_Q = (location.search.match(/[?&]night=([01])/) || [])[1];
+// 夜間（B15）：晚上遊戲背景加藍紫色＋幾顆會閃的星星；時間由日夜時鐘決定（night > 0.5 才算晚上），3D 小島每秒推一次連續光線
+let nightShown = null;
 function applyNight() {
-  const h = new Date().getHours(), on = NIGHT_Q ? NIGHT_Q === "1" : (h >= 19 || h < 6);
-  document.body.classList.toggle("night", on);
-  if (weather && weather.setNight) PZ(() => weather.setNight(on));   // 3D 小島也跟著變夜景
-  if (!on) return;
-  for (const id of Object.keys(MODES)) {
-    const s = $(id); if (!s || s.querySelector(":scope > .night-sky")) continue;
-    const sky = el("div", "night-sky");
-    for (let i = 0; i < 7; i++) { const t = el("i"), z = (2 + Math.random() * 1.6).toFixed(1) + "vmin"; t.style.left = (5 + i * 13 + Math.random() * 7).toFixed(1) + "%"; t.style.top = (3 + Math.random() * 28).toFixed(1) + "%"; t.style.width = t.style.height = z; t.style.animationDelay = -(Math.random() * 2.4).toFixed(2) + "s"; sky.appendChild(t); }
-    s.insertBefore(sky, s.firstChild);
+  const s = clock.tick();                                // 只在畫面看得到時前進；切背景／鎖螢幕＝時間停
+  const on = s.night > 0.5;
+  if (on !== nightShown) {
+    nightShown = on; document.body.classList.toggle("night", on);
+    if (on) for (const id of Object.keys(MODES)) {
+      const sc = $(id); if (!sc || sc.querySelector(":scope > .night-sky")) continue;
+      const sky = el("div", "night-sky");
+      for (let i = 0; i < 7; i++) { const t = el("i"), z = (2 + Math.random() * 1.6).toFixed(1) + "vmin"; t.style.left = (5 + i * 13 + Math.random() * 7).toFixed(1) + "%"; t.style.top = (3 + Math.random() * 28).toFixed(1) + "%"; t.style.width = t.style.height = z; t.style.animationDelay = -(Math.random() * 2.4).toFixed(2) + "s"; sky.appendChild(t); }
+      sc.insertBefore(sky, sc.firstChild);
+    }
   }
+  if (weather && weather.setLight) PZ(() => weather.setLight(s, { fade: 1.5 }));   // 3D 小島：黃昏、晚上、清晨連續變化
+  envObj.night = s.night; envObj.dusk = s.dusk; envObj.dawn = s.dawn; envObj.kind = wxKind || "sunny";   // 海：跟著日夜與天氣
+  return s;
 }
-applyNight(); setInterval(applyNight, 60000);
-if (location.search.includes("debug")) window.__zy = { renderZ, parseZ, WORDS, stickerNode, zMissing, get wq() { return wq; }, get fq() { return fq; }, get idx() { return idx; }, get results() { return results; }, get wrong() { return wrongThisQ; }, get mode() { return mode; }, get round() { return round; }, get curOpts() { return curOpts; }, get bubble() { return bubbleGame; }, get bubbleSave() { return save.bubble; }, setWeather, get weather() { return wxKind; }, toneVariant, pickDistractors, zToStr };   // 測試用（tools/zy-test）
+applyNight(); setInterval(applyNight, 1000);
+document.addEventListener("visibilitychange", () => applyNight());   // 回到前景馬上對一次（背景的時間不補算）
+if (location.search.includes("debug")) window.__zy = { renderZ, parseZ, WORDS, stickerNode, zMissing, get wq() { return wq; }, get fq() { return fq; }, get idx() { return idx; }, get results() { return results; }, get wrong() { return wrongThisQ; }, get mode() { return mode; }, get round() { return round; }, get curOpts() { return curOpts; }, get bubble() { return bubbleGame; }, get bubbleSave() { return save.bubble; }, setWeather, get weather() { return wxKind; }, get weatherFx() { return weather; }, get clock() { return clock; }, get oceanFx() { return ocean; }, toneVariant, pickDistractors, zToStr };   // 測試用（tools/zy-test）
 if (DEBUG) window.__zyB = { exportCode, readCode, importCode, playHatchShow, applyNight, get rs() { return rs; }, get best() { return save.best; }, get matchSize() { return save.matchSize; } };   // 外殼測試用（tools/zy-test/shell.js）

@@ -4,7 +4,7 @@
 //     新存檔翻牌預設 8 張；個人紀錄章（第一次玩不蓋、破紀錄才蓋）；開始畫面藏浮標／嚮導、新存檔貓頭鷹自我介紹；
 //     孵蛋演出三段；夜間模式；畫面上沒有漏注音的國字。加 --shots 會順便拍截圖。
 const path = require("path");
-const { launch, openGame, enterMode, URL } = require("./lib");
+const { launch, openGame, enterMode, hudOpen, URL } = require("./lib");
 const out = []; const ok = (name, cond, info = "") => out.push(`${cond ? "PASS" : "FAIL"}  ${name}${info !== "" ? "  — " + info : ""}`);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const si = process.argv.indexOf("--shots"), SHOTS = si > 0 ? process.argv[si + 1] : null;
@@ -84,6 +84,7 @@ const btnState = p => p.evaluate(() => { const b = document.getElementById("resu
   // ===== 3. 家長鎖（不帶 ?debug：真的要按住）=====
   {
     const { ctx, p, errs } = await openGame(browser, { stickers: 20, query: "" });
+    await hudOpen(p, "R");   // ⚙️ 平常收在右上「⋯」裡：先展開才按得到
     const c = await p.evaluate(() => { const r = document.getElementById("settingsBtn").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
     await p.evaluate(() => document.getElementById("settingsBtn").click()); await sleep(200);
     ok("家長鎖：程式 click 一下（非 debug）不會開", !(await visible(p, "settings")));
@@ -174,6 +175,7 @@ const btnState = p => p.evaluate(() => { const b = document.getElementById("resu
     await shot(p, "L-matchpick");
     ok("選張數：沒有漏注音的國字", (await bareHan(p)).length === 0, (await bareHan(p)).join("、"));
     await p.evaluate(() => document.getElementById("matchPick").classList.add("hidden"));
+    await hudOpen(p, "R");   // 🐻／「換人」平常收在右上「⋯」裡：先展開
     const tag = await p.evaluate(() => { const t = document.getElementById("playerTag"), b = document.getElementById("playerBtn"), r = t.getBoundingClientRect(), q = b.getBoundingClientRect(); return { shown: getComputedStyle(t).display !== "none" && getComputedStyle(t).visibility !== "hidden", below: r.top >= q.top + q.height * 0.6, cx: Math.abs((r.left + r.right) / 2 - (q.left + q.right) / 2) < 4 }; });
     ok("換人：頭像下方有「換人」小字", tag.shown && tag.below && tag.cx, JSON.stringify(tag));
     await p.evaluate(() => document.getElementById("playerTag").click()); await sleep(200);
@@ -193,6 +195,7 @@ const btnState = p => p.evaluate(() => { const b = document.getElementById("resu
     await shot(p, "P-menu");
     await p.setViewportSize({ width: 1180, height: 820 }); await sleep(600);
     // 音樂關掉看得出來
+    await hudOpen(p, "L");   // 🎵 平常收在左上「⋯」裡：先展開
     await p.evaluate(() => document.getElementById("musicBtn").click()); await sleep(350);
     const mu = await p.evaluate(() => { const b = document.getElementById("musicBtn"); return { off: b.classList.contains("off"), op: getComputedStyle(b).opacity, slash: getComputedStyle(b, "::after").backgroundColor, bg: getComputedStyle(b).backgroundColor }; });
     ok("音樂關掉：白底不透明＋紅斜線", mu.off && mu.op === "1" && mu.slash === "rgb(224, 80, 80)" && mu.bg === "rgb(255, 255, 255)", JSON.stringify(mu));

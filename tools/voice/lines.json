@@ -1,12 +1,12 @@
 {
  "meta": {
   "generated_by": "tools/voice/build_lines.py",
-  "total_lines": 447,
-  "total_chars": 2356,
+  "total_lines": 453,
+  "total_chars": 2400,
   "by_cat": {
    "intro": 9,
    "praise": 5,
-   "guide": 104,
+   "guide": 110,
    "system": 4,
    "result": 2,
    "word": 139,
@@ -322,6 +322,42 @@
   {
    "id": "fire_out",
    "text": "火熄滅了，謝謝消防員！",
+   "cat": "guide",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "ph_dusk1",
+   "text": "太陽要下山囉！",
+   "cat": "guide",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "ph_dusk2",
+   "text": "天空變成橘色了！",
+   "cat": "guide",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "ph_night1",
+   "text": "天黑了，路燈亮起來了！",
+   "cat": "guide",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "ph_night2",
+   "text": "月亮出來了，好漂亮！",
+   "cat": "guide",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "ph_dawn1",
+   "text": "天快亮了，早安！",
+   "cat": "guide",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "ph_dawn2",
+   "text": "太陽公公要起床囉！",
    "cat": "guide",
    "src": "zhuyin.js（10-11）"
   },

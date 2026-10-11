@@ -22,13 +22,15 @@
   </script>
   <!-- 自己的程式一開頁就同時抓（高優先）：不然要等 zhuyin.js 下載完才知道要抓 ann/words/ui，再等它跑起來才抓 hub3d，
        一層等一層，線上 4Mbps 實測多卡約 3 秒（tools/zy-test/loadprofile.js）。網址要跟實際 import 的完全一樣（含 ?v=） -->
-  <link rel="modulepreload" href="js/zhuyin.js?v=23" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin.js?v=24" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-words.js" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-ann.js?v=3" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-ui.js?v=3" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-voice.js?v=2" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=7" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-weather.js?v=2">
+  <link rel="modulepreload" href="js/zhuyin-ann.js?v=4" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-ui.js?v=4" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-voice.js?v=3" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=8" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-weather.js?v=3">
+  <link rel="modulepreload" href="js/zhuyin-clock.js?v=1">
+  <link rel="modulepreload" href="js/zhuyin-ocean.js?v=1">
   <link rel="modulepreload" href="js/zhuyin-rewards.js?v=1" fetchpriority="high">
   <!-- 開頁要等貓頭鷹：圖片預設優先序最低，線上實測 24KB 會排在 three.js 後面最晚才到 → 提高優先序 -->
   <link rel="preload" as="image" href="IMAGE/zhuyin/guide_owl.webp" fetchpriority="high">
@@ -42,7 +44,7 @@
     })();
   </script>
   <!-- 樣式表放在上面兩段 script 後面：classic script 會等前面的樣式表下載完才執行，放前面會卡住整頁解析 -->
-  <link rel="stylesheet" href="css/zhuyin.css?v=20">
+  <link rel="stylesheet" href="css/zhuyin.css?v=21">
   <link rel="stylesheet" href="css/zhuyin-bubble.css?v=1">
 </head>
 <body class="gate-on">
@@ -61,20 +63,27 @@
     <button id="startBtn" class="big-btn sg-btn">▶️ 開始玩</button>
   </div>
 
-  <!-- 常駐按鈕：首頁 / 音樂 / 提示（右上）/ 家長設定（選單右上） -->
-  <button id="homeBtn" class="round-btn" title="回首頁">🏠</button>
-  <button id="musicBtn" class="round-btn" title="音樂">🎵</button>
-  <button id="townBtn" class="round-btn hidden" title="新市區" aria-label="新市區"><span class="nav-ico">🏙️</span></button>
-  <div id="townTag" class="player-tag town-tag hidden"><span class="nav-word">新市區</span></div>
+  <!-- 常駐按鈕（10-11 阿葉「上面左邊跟右邊的選項可以做收放」）：左上一排＝🏙️新市區（小孩用）＋「⋯」把手＋🏠🎵；右上一排＝🐻換人／⚙️家長設定＋「⋯」把手。
+       選單上 🏠🎵🐻⚙️（.fold）收在把手裡；遊戲裡把手不見、🏠🎵 跟以前一樣在左上 -->
+  <div id="hudL" class="hud hud-l">
+    <button id="townBtn" class="round-btn hidden" title="新市區" aria-label="新市區"><span class="nav-ico">🏙️</span></button>
+    <div id="townTag" class="player-tag town-tag hidden"><span class="nav-word">新市區</span></div>
+    <button id="hudLBtn" class="hud-handle" aria-label="更多按鈕" aria-expanded="false"><i></i><i></i><i></i></button>
+    <button id="homeBtn" class="round-btn fold" title="回首頁">🏠</button>
+    <button id="musicBtn" class="round-btn fold" title="音樂">🎵</button>
+  </div>
   <button id="speakBtn" class="hint-btn hidden" title="提示"><span class="ic">🔊</span><span id="speakLabel">提示</span></button>
-  <!-- 家長鎖：⚙️ 要按住 2 秒（進度環跑滿）才開；小孩點一下只會晃 -->
-  <button id="settingsBtn" class="round-btn hidden" title="家長設定（按住 2 秒）"><span class="ic">⚙️</span><i class="lock-ring"></i></button>
+  <div id="hudR" class="hud hud-r">
+    <button id="playerBtn" class="round-btn hidden fold" title="換人玩">🐻</button>
+    <div id="playerTag" class="player-tag fold">換人</div>
+    <!-- 家長鎖：⚙️ 要按住 2 秒（進度環跑滿）才開；小孩點一下只會晃 -->
+    <button id="settingsBtn" class="round-btn hidden fold" title="家長設定（按住 2 秒）"><span class="ic">⚙️</span><i class="lock-ring"></i></button>
+    <button id="hudRBtn" class="hud-handle" aria-label="家長按鈕" aria-expanded="false"><i></i><i></i><i></i></button>
+  </div>
   <div id="lockTip" class="lock-tip noann hidden">家長請按住 2 秒</div>
-  <button id="playerBtn" class="round-btn hidden" title="換人玩">🐻</button>
-  <div id="playerTag" class="player-tag">換人</div>
 
-  <!-- 嚮導貓頭鷹（只在選單出現） -->
-  <div id="guide" class="guide hidden"><img src="IMAGE/zhuyin/guide_owl.webp" alt=""><div id="guideText" class="guideText"></div></div>
+  <!-- 嚮導貓頭鷹（只在選單出現）：講完一陣子就縮成右下角的「探頭」（#owlPeek），點探頭再出來講一次；點貓頭鷹或對話框＝馬上收起來 -->
+  <div id="guide" class="guide hidden"><img src="IMAGE/zhuyin/guide_owl.webp" alt=""><div id="guideText" class="guideText"></div><button id="owlPeek" class="owl-peek" aria-label="貓頭鷹，點一下再聽一次"><img src="IMAGE/zhuyin/guide_owl.webp" alt=""></button></div>
 
   <!-- ===== 選單（注音小島） ===== -->
   <section id="menu" class="screen bg-map">
@@ -93,7 +102,7 @@
     </div>
     <div class="menu-bottom">
       <button id="albumBtn" class="pill"><span>📒 貼紙</span><b id="menuStickers">0</b></button>
-      <button class="pill jarBtn"><span class="jar"><span class="jarFill"></span></span><span>⭐ <span class="jarText">0/10</span></span><span class="egg">🥚</span></button>
+      <button class="pill jarBtn"><span class="jar"><span class="jarFill"></span></span><span>⭐ <span class="jarText">0/10</span></span><span class="egg"><i class="eg-ico">🪙</i></span></button>
     </div>
   </section>
 
@@ -178,7 +187,7 @@
       <button id="resultAlbumBtn" class="big-btn alt">📒 貼紙</button>
       <button id="menuBtn" class="big-btn alt">🏝️ 回小島</button>
     </div>
-    <button id="hatchHint" class="pill jarBtn resJar"><span class="jar"><span class="jarFill"></span></span><span>⭐ <span class="jarText">0/10</span></span><span class="egg">🥚<span class="eggGo">孵蛋！</span></span></button>
+    <button id="hatchHint" class="pill jarBtn resJar"><span class="jar"><span class="jarFill"></span></span><span>⭐ <span class="jarText">0/10</span></span><span class="egg"><i class="eg-ico">🥚</i><span class="eggGo">孵蛋！</span></span></button>
   </section>
 
   <!-- ===== 貼紙圖鑑 ===== -->
@@ -261,6 +270,6 @@
   <div id="flash" class="flash"></div>
 
   <div id="fx" class="fx"></div>
-  <script type="module" src="js/zhuyin.js?v=23"></script>
+  <script type="module" src="js/zhuyin.js?v=24"></script>
 </body>
 </html>
