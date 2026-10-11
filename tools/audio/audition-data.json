@@ -1,0 +1,864 @@
+{
+ "bgm": [
+  {
+   "key": "island",
+   "use": "主島選單＋多數遊戲（明亮輕快）",
+   "final": "../../audio/bgm/island.mp3",
+   "cands": [
+    {
+     "name": "island_1",
+     "chosen": true,
+     "file": "candidates/loops/island_1.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 62.199183673469385,
+     "source": "Lyria 3.5",
+     "bpm": 105.0,
+     "score": 59.89,
+     "overall": 10,
+     "voice": 10,
+     "seam": 10,
+     "comment": "活潑的熱帶島嶼風格烏克麗麗背景音樂。",
+     "energy_diff_db": 0.93
+    },
+    {
+     "name": "island_2",
+     "chosen": false,
+     "file": "candidates/loops/island_2.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 62.213854875283445,
+     "source": "Lyria 3.5",
+     "bpm": 70.0,
+     "score": 59.35,
+     "overall": 10,
+     "voice": 9,
+     "seam": 10,
+     "comment": "這是一段充滿熱帶島嶼風情的輕快背景音樂。",
+     "energy_diff_db": 1.19
+    },
+    {
+     "name": "island_s1",
+     "chosen": false,
+     "file": "candidates/loops/island_s1.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 63.11315192743764,
+     "source": "Suno v6",
+     "bpm": 103.4,
+     "score": 57.21,
+     "overall": 10,
+     "voice": 9,
+     "seam": 10,
+     "comment": "一首充滿熱帶島嶼風情的輕快活潑音樂循環。",
+     "energy_diff_db": 0.81
+    },
+    {
+     "name": "island_3",
+     "chosen": false,
+     "file": "candidates/loops/island_3.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 65.95471655328798,
+     "source": "Lyria 3.5",
+     "bpm": 110.0,
+     "score": 56.3,
+     "overall": 10,
+     "voice": 8,
+     "seam": 10,
+     "comment": "這是一首充滿熱帶風情、節奏活潑的歡快背景音樂。",
+     "energy_diff_db": 1.14
+    },
+    {
+     "name": "island_s2",
+     "chosen": false,
+     "file": "candidates/loops/island_s2.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 62.66056689342403,
+     "source": "Suno v6",
+     "bpm": 139.0,
+     "score": 51.12,
+     "overall": 9,
+     "voice": 6,
+     "seam": 10,
+     "comment": "這是一首帶有烏克麗麗和鋼鼓的活潑熱帶島嶼音樂。",
+     "energy_diff_db": 0.12
+    }
+   ]
+  },
+  {
+   "key": "calm",
+   "use": "積木／翻牌／青蛙（溫和思考）",
+   "final": "../../audio/bgm/calm.mp3",
+   "cands": [
+    {
+     "name": "calm_3",
+     "chosen": true,
+     "file": "candidates/loops/calm_3.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 62.715873015873015,
+     "source": "Lyria 3.5",
+     "bpm": 81.0,
+     "score": 58.15,
+     "overall": 10,
+     "voice": 9,
+     "seam": 10,
+     "comment": "一首溫暖平和的管弦樂，旋律清晰，適合安靜的益智遊戲。",
+     "energy_diff_db": 1.9
+    },
+    {
+     "name": "calm_2",
+     "chosen": false,
+     "file": "candidates/loops/calm_2.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 63.50800453514739,
+     "source": "Lyria 3.5",
+     "bpm": 80.0,
+     "score": 45.23,
+     "overall": 6,
+     "voice": 9,
+     "seam": 3,
+     "comment": "溫暖柔和的鋼琴與弦樂，適合益智遊戲，但循環接點不順暢。",
+     "energy_diff_db": 1.15
+    },
+    {
+     "name": "calm_1",
+     "chosen": false,
+     "file": "candidates/loops/calm_1.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 63.498979591836736,
+     "source": "Lyria 3.5",
+     "bpm": 80.0,
+     "score": 40.9,
+     "overall": 3,
+     "voice": 9,
+     "seam": 10,
+     "comment": "溫馨的兒童音樂，但音檔中段有人聲浮水印，無法使用。",
+     "energy_diff_db": 0.2
+    }
+   ]
+  },
+  {
+   "key": "town",
+   "use": "歸仁區選單",
+   "final": "../../audio/bgm/town.mp3",
+   "cands": [
+    {
+     "name": "town_3",
+     "chosen": true,
+     "file": "candidates/loops/town_3.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 65.95453514739229,
+     "source": "Lyria 3.5",
+     "bpm": 110.0,
+     "score": 59.06,
+     "overall": 10,
+     "voice": 9,
+     "seam": 10,
+     "comment": "這是一首節奏輕快、帶有放克風格的背景音樂。",
+     "energy_diff_db": 1.57
+    },
+    {
+     "name": "town_2",
+     "chosen": false,
+     "file": "candidates/loops/town_2.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 65.36505668934241,
+     "source": "Lyria 3.5",
+     "bpm": 111.0,
+     "score": 58.33,
+     "overall": 10,
+     "voice": 9,
+     "seam": 10,
+     "comment": "這是一首節奏穩定、氛圍輕鬆愉快的輕放克風格樂曲。",
+     "energy_diff_db": 0.54
+    },
+    {
+     "name": "town_1",
+     "chosen": false,
+     "file": "candidates/loops/town_1.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 65.92517006802721,
+     "source": "Lyria 3.5",
+     "bpm": 110.0,
+     "score": 55.48,
+     "overall": 9,
+     "voice": 10,
+     "seam": 7,
+     "comment": "這是一首輕鬆愉快的放克音樂，節奏穩定，非常適合當作背景音樂。",
+     "energy_diff_db": 0.55
+    }
+   ]
+  },
+  {
+   "key": "rainbow",
+   "use": "彩虹島選單",
+   "final": "../../audio/bgm/rainbow.mp3",
+   "cands": [
+    {
+     "name": "rainbow_3",
+     "chosen": true,
+     "file": "candidates/loops/rainbow_3.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 67.98882086167801,
+     "source": "Lyria 3.5",
+     "bpm": 96.0,
+     "score": 55.62,
+     "overall": 10,
+     "voice": 9,
+     "seam": 10,
+     "comment": "這是一首夢幻溫柔的管弦樂，帶有豎琴與鐘聲，非常適合奇幻遊戲的選單畫面。",
+     "energy_diff_db": 0.2
+    },
+    {
+     "name": "rainbow_1",
+     "chosen": false,
+     "file": "candidates/loops/rainbow_1.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 61.131247165532876,
+     "source": "Lyria 3.5",
+     "bpm": 95.0,
+     "score": 52.73,
+     "overall": 9,
+     "voice": 6,
+     "seam": 10,
+     "comment": "這是一首夢幻而愉快的管弦樂，非常適合魔法主題的遊戲選單。",
+     "energy_diff_db": 0.63
+    },
+    {
+     "name": "rainbow_2",
+     "chosen": false,
+     "file": "candidates/loops/rainbow_2.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 67.31569160997732,
+     "source": "Lyria 3.5",
+     "bpm": 97.0,
+     "score": 50.23,
+     "overall": 9,
+     "voice": 6,
+     "seam": 9,
+     "comment": "這是一首夢幻快樂的魔法風管弦樂，帶有豎琴與鐘聲，非常適合奇幻主題。",
+     "energy_diff_db": 0.71
+    }
+   ]
+  },
+  {
+   "key": "night",
+   "use": "晚上的選單（搖籃曲感）",
+   "final": "../../audio/bgm/night.mp3",
+   "cands": [
+    {
+     "name": "night_1",
+     "chosen": true,
+     "file": "candidates/loops/night_1.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 60.46995464852608,
+     "source": "Lyria 3.5",
+     "bpm": 72.0,
+     "score": 57.38,
+     "overall": 10,
+     "voice": 9,
+     "seam": 10,
+     "comment": "這是一首溫柔祥和、充滿夢幻感的管弦樂搖籃曲。",
+     "energy_diff_db": 0.8
+    },
+    {
+     "name": "night_3",
+     "chosen": false,
+     "file": "candidates/loops/night_3.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 65.11310657596371,
+     "source": "Lyria 3.5",
+     "bpm": 78.0,
+     "score": 56.92,
+     "overall": 10,
+     "voice": 9,
+     "seam": 10,
+     "comment": "這是一首溫柔夢幻、氣氛祥和的管弦搖籃曲。",
+     "energy_diff_db": 1.21
+    },
+    {
+     "name": "night_2",
+     "chosen": false,
+     "file": "candidates/loops/night_2.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 60.49925170068027,
+     "source": "Lyria 3.5",
+     "bpm": 72.0,
+     "score": 40.66,
+     "overall": 5,
+     "voice": 9,
+     "seam": 3,
+     "comment": "這是一首溫柔夢幻的搖籃曲，但循環的接點非常明顯。",
+     "energy_diff_db": 0.8
+    }
+   ]
+  },
+  {
+   "key": "road",
+   "use": "彩虹配送站（配送）",
+   "final": "../../audio/bgm/road.mp3",
+   "cands": [
+    {
+     "name": "road_2",
+     "chosen": true,
+     "file": "candidates/loops/road_2.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 65.9543537414966,
+     "source": "Lyria 3.5",
+     "bpm": 110.0,
+     "score": 58.38,
+     "overall": 10,
+     "voice": 9,
+     "seam": 10,
+     "comment": "這是一首充滿活力的民謠風木吉他音樂，節奏輕快。",
+     "energy_diff_db": 0.17
+    },
+    {
+     "name": "road_3",
+     "chosen": false,
+     "file": "candidates/loops/road_3.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 65.3166439909297,
+     "source": "Lyria 3.5",
+     "bpm": 111.0,
+     "score": 57.35,
+     "overall": 10,
+     "voice": 9,
+     "seam": 9,
+     "comment": "輕快活潑的旋律，適合開車兜風的遊戲場景。",
+     "energy_diff_db": 0.53
+    },
+    {
+     "name": "road_1",
+     "chosen": false,
+     "file": "candidates/loops/road_1.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 65.95453514739229,
+     "source": "Lyria 3.5",
+     "bpm": 110.0,
+     "score": 53.43,
+     "overall": 9,
+     "voice": 6,
+     "seam": 10,
+     "comment": "這是一首充滿活力與歡快感的背景音樂，節奏輕快，非常適合兒童遊戲。",
+     "energy_diff_db": 0.24
+    }
+   ]
+  },
+  {
+   "key": "dress",
+   "use": "寵物換裝",
+   "final": "../../audio/bgm/dress.mp3",
+   "cands": [
+    {
+     "name": "dress_3",
+     "chosen": true,
+     "file": "candidates/loops/dress_3.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 63.10040816326531,
+     "source": "Lyria 3.5",
+     "bpm": 115.0,
+     "score": 53.45,
+     "overall": 9,
+     "voice": 9,
+     "seam": 7,
+     "comment": "輕快俏皮的旋律，充滿童趣的氛圍。",
+     "energy_diff_db": 0.03
+    },
+    {
+     "name": "dress_1",
+     "chosen": false,
+     "file": "candidates/loops/dress_1.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 66.49950113378685,
+     "source": "Lyria 3.5",
+     "bpm": 120.0,
+     "score": 51.91,
+     "overall": 9,
+     "voice": 6,
+     "seam": 10,
+     "comment": "這是一段活潑俏皮、充滿時尚感的電子流行音樂。",
+     "energy_diff_db": 0.01
+    },
+    {
+     "name": "dress_2",
+     "chosen": false,
+     "file": "candidates/loops/dress_2.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 66.53968253968254,
+     "source": "Lyria 3.5",
+     "bpm": 120.0,
+     "score": 35.31,
+     "overall": 4,
+     "voice": 5,
+     "seam": 2,
+     "comment": "這是一首活潑可愛的電子童趣音樂，但循環的接縫處非常明顯。",
+     "energy_diff_db": 0.13
+    }
+   ]
+  },
+  {
+   "key": "bubble",
+   "use": "泡泡遊戲",
+   "final": "../../audio/bgm/bubble.mp3",
+   "cands": [
+    {
+     "name": "bubble_1",
+     "chosen": true,
+     "file": "candidates/loops/bubble_1.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 64.50009070294784,
+     "source": "Lyria 3.5",
+     "bpm": 90.0,
+     "score": 61.39,
+     "overall": 10,
+     "voice": 10,
+     "seam": 10,
+     "comment": "這是一首輕鬆愉快的背景音樂，非常適合水底世界的氛圍。",
+     "energy_diff_db": 1.6
+    },
+    {
+     "name": "bubble_2",
+     "chosen": false,
+     "file": "candidates/loops/bubble_2.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 66.53895691609978,
+     "source": "Lyria 3.5",
+     "bpm": 120.0,
+     "score": 57.86,
+     "overall": 10,
+     "voice": 9,
+     "seam": 10,
+     "comment": "旋律溫和悅耳，充滿夢幻的水中氣氛。",
+     "energy_diff_db": 1.49
+    },
+    {
+     "name": "bubble_3",
+     "chosen": false,
+     "file": "candidates/loops/bubble_3.mp3",
+     "loopStart": 0.5,
+     "loopEnd": 64.50002267573696,
+     "source": "Lyria 3.5",
+     "bpm": 90.0,
+     "score": 53.54,
+     "overall": 9,
+     "voice": 6,
+     "seam": 10,
+     "comment": "這是一段帶有夢幻水感的愉快電子流行樂循環。",
+     "energy_diff_db": 1.76
+    }
+   ]
+  }
+ ],
+ "party": [
+  {
+   "name": "synth_fanfare",
+   "chosen": true,
+   "file": "candidates/party/synth_fanfare.mp3",
+   "comment": "這段音效活潑可愛，非常適合勝利畫面。"
+  },
+  {
+   "name": "lyria_clip1_cut",
+   "chosen": false,
+   "file": "candidates/party/lyria_clip1_cut.mp3",
+   "comment": "這段音樂非常歡快，很適合勝利畫面。"
+  },
+  {
+   "name": "lyria_clip2_cut",
+   "chosen": false,
+   "file": "candidates/party/lyria_clip2_cut.mp3",
+   "comment": "這段音樂充滿了歡樂的慶祝氣氛。"
+  },
+  {
+   "name": "Freesound 415504",
+   "chosen": false,
+   "file": "candidates/sfx/party/415504.mp3",
+   "comment": "Freesound CC0 候選：Tadaa.wav"
+  },
+  {
+   "name": "Freesound 456966",
+   "chosen": false,
+   "file": "candidates/sfx/party/456966.mp3",
+   "comment": "Freesound CC0 候選：Success Fanfare Trumpets.mp3"
+  },
+  {
+   "name": "Freesound 521949",
+   "chosen": false,
+   "file": "candidates/sfx/party/521949.mp3",
+   "comment": "Freesound CC0 候選：Success Jingle"
+  },
+  {
+   "name": "Freesound 607407",
+   "chosen": false,
+   "file": "candidates/sfx/party/607407.mp3",
+   "comment": "Freesound CC0 候選：Fanfare 3 - Rpg"
+  },
+  {
+   "name": "Freesound lyria_clip1_cut",
+   "chosen": false,
+   "file": "candidates/sfx/party/lyria_clip1_cut.mp3",
+   "comment": "Freesound CC0 候選："
+  },
+  {
+   "name": "Freesound lyria_clip2_cut",
+   "chosen": false,
+   "file": "candidates/sfx/party/lyria_clip2_cut.mp3",
+   "comment": "Freesound CC0 候選："
+  }
+ ],
+ "sfx": [
+  {
+   "name": "boat_horn",
+   "use": "船笛",
+   "file": "../../audio/sfx/boat_horn.mp3",
+   "dur": 1.8,
+   "loop": false,
+   "check": ""
+  },
+  {
+   "name": "bridge",
+   "use": "吊橋放下",
+   "file": "../../audio/sfx/bridge.mp3",
+   "dur": 2.4,
+   "loop": false,
+   "check": ""
+  },
+  {
+   "name": "capsule_open",
+   "use": "扭蛋殼打開",
+   "file": "../../audio/sfx/capsule_open.mp3",
+   "dur": 0.6,
+   "loop": false,
+   "check": "A quick pop followed by a magical, shimmering sparkle sound."
+  },
+  {
+   "name": "coin",
+   "use": "得幣",
+   "file": "../../audio/sfx/coin.mp3",
+   "dur": 0.57,
+   "loop": false,
+   "check": "A magical, sparkly chime sound, like a video game coin pickup."
+  },
+  {
+   "name": "deliver_ok",
+   "use": "送達成功",
+   "file": "../../audio/sfx/deliver_ok.mp3",
+   "dur": 1.3,
+   "loop": false,
+   "check": ""
+  },
+  {
+   "name": "ding",
+   "use": "訂單到／叮咚",
+   "file": "../../audio/sfx/ding.mp3",
+   "dur": 1.8,
+   "loop": false,
+   "check": ""
+  },
+  {
+   "name": "door",
+   "use": "開門",
+   "file": "../../audio/sfx/door.mp3",
+   "dur": 0.708,
+   "loop": false,
+   "check": "A wooden door creaks open and the latch clicks loudly."
+  },
+  {
+   "name": "flip",
+   "use": "翻牌／翻頁",
+   "file": "../../audio/sfx/flip.mp3",
+   "dur": 0.406,
+   "loop": false,
+   "check": "A quick, crisp whoosh and snap of a page turning."
+  },
+  {
+   "name": "gacha_crank",
+   "use": "扭蛋機轉把手",
+   "file": "../../audio/sfx/gacha_crank.mp3",
+   "dur": 1.367,
+   "loop": false,
+   "check": "A very fast, sharp, mechanical ratchet crank turning quickly."
+  },
+  {
+   "name": "hatch",
+   "use": "孵蛋",
+   "file": "../../audio/sfx/hatch.mp3",
+   "dur": 1.8,
+   "loop": false,
+   "check": "A cartoon pop, rapid bird chirps, and a final positive chime."
+  },
+  {
+   "name": "horn",
+   "use": "可愛叭叭",
+   "file": "../../audio/sfx/horn.mp3",
+   "dur": 0.446,
+   "loop": false,
+   "check": ""
+  },
+  {
+   "name": "lever",
+   "use": "拉桿",
+   "file": "../../audio/sfx/lever.mp3",
+   "dur": 0.246,
+   "loop": false,
+   "check": "A sharp latch click followed by a solid mechanical clunk."
+  },
+  {
+   "name": "load",
+   "use": "箱子放上車",
+   "file": "../../audio/sfx/load.mp3",
+   "dur": 0.37,
+   "loop": false,
+   "check": "A short, sharp thud of a heavy object being dropped."
+  },
+  {
+   "name": "ng",
+   "use": "答錯（溫和）",
+   "file": "../../audio/sfx/ng.mp3",
+   "dur": 0.76,
+   "loop": false,
+   "check": "A soft, two-note descending marimba or xylophone sound."
+  },
+  {
+   "name": "ok",
+   "use": "答對",
+   "file": "../../audio/sfx/ok.mp3",
+   "dur": 0.811,
+   "loop": false,
+   "check": "A short, happy, ascending synth chime for a correct answer."
+  },
+  {
+   "name": "pop",
+   "use": "泡泡／彈出",
+   "file": "../../audio/sfx/pop.mp3",
+   "dur": 0.3,
+   "loop": false,
+   "check": ""
+  },
+  {
+   "name": "seagull",
+   "use": "海鷗",
+   "file": "../../audio/sfx/seagull.mp3",
+   "dur": 1.3,
+   "loop": false,
+   "check": ""
+  },
+  {
+   "name": "select",
+   "use": "選取／切換",
+   "file": "../../audio/sfx/select.mp3",
+   "dur": 0.2,
+   "loop": false,
+   "check": "A short, clean, descending synthesized blip or select sound."
+  },
+  {
+   "name": "splash",
+   "use": "水花",
+   "file": "../../audio/sfx/splash.mp3",
+   "dur": 1.0,
+   "loop": false,
+   "check": ""
+  },
+  {
+   "name": "star",
+   "use": "得星",
+   "file": "../../audio/sfx/star.mp3",
+   "dur": 0.8,
+   "loop": false,
+   "check": ""
+  },
+  {
+   "name": "sticker",
+   "use": "貼紙閃亮",
+   "file": "../../audio/sfx/sticker.mp3",
+   "dur": 0.77,
+   "loop": false,
+   "check": "A magical, sparkly, shimmering chime sound effect for a reward."
+  },
+  {
+   "name": "tap",
+   "use": "一般點按",
+   "file": "../../audio/sfx/tap.mp3",
+   "dur": 0.09,
+   "loop": false,
+   "check": "A soft, gentle, slightly bubbly user interface tap or click."
+  },
+  {
+   "name": "truck_drive",
+   "use": "卡車行駛（可接，loop）",
+   "file": "../../audio/sfx/truck_drive.mp3",
+   "dur": 1.35,
+   "loop": true,
+   "check": ""
+  },
+  {
+   "name": "truck_start",
+   "use": "卡車發動",
+   "file": "../../audio/sfx/truck_start.mp3",
+   "dur": 1.8,
+   "loop": false,
+   "check": ""
+  },
+  {
+   "name": "truck_stop",
+   "use": "卡車停下",
+   "file": "../../audio/sfx/truck_stop.mp3",
+   "dur": 1.3,
+   "loop": false,
+   "check": ""
+  },
+  {
+   "name": "unload",
+   "use": "箱子卸下",
+   "file": "../../audio/sfx/unload.mp3",
+   "dur": 0.397,
+   "loop": false,
+   "check": "A short, sharp thud of a wooden crate being set down."
+  },
+  {
+   "name": "unlock",
+   "use": "解鎖",
+   "file": "../../audio/sfx/unlock.mp3",
+   "dur": 1.291,
+   "loop": false,
+   "check": "A click followed by a short, rising, synthesized chime melody."
+  },
+  {
+   "name": "wear",
+   "use": "穿上衣服",
+   "file": "../../audio/sfx/wear.mp3",
+   "dur": 0.825,
+   "loop": false,
+   "check": "A quick cloth rustle followed by a magical sparkle chime."
+  },
+  {
+   "name": "whoosh",
+   "use": "揮動／轉場",
+   "file": "../../audio/sfx/whoosh.mp3",
+   "dur": 0.533,
+   "loop": false,
+   "check": "A fast, clean whoosh or swoosh sound effect."
+  },
+  {
+   "name": "win",
+   "use": "新紀錄／完成",
+   "file": "../../audio/sfx/win.mp3",
+   "dur": 2.0,
+   "loop": false,
+   "check": ""
+  }
+ ],
+ "compare": [
+  {
+   "name": "boat_horn",
+   "old": "candidates/sfx/boat_horn/cur.mp3",
+   "new": "../../audio/sfx/boat_horn.mp3",
+   "note": "Freesound CC0：Staten Island Ferry Horn.mp3 by nathanvladimirovich｜決賽 Pro 正反都選新版｜Clip A has a warm, realistic resonance that is gentle on the ears, making it much better suited for a children's game."
+  },
+  {
+   "name": "bridge",
+   "old": "candidates/sfx/bridge/cur.mp3",
+   "new": "../../audio/sfx/bridge.mp3",
+   "note": "Freesound CC0：Gate door drawbridge wooden creaky opens closes hinge.wav by WavJunction.com｜決賽 Pro 正反都選新版｜Clip A features a realistic mechanical creaking sound that perfectly fits a heavy drawbridge, whereas Clip B sounds like a fake, cartoonish synthesizer."
+  },
+  {
+   "name": "coin",
+   "old": "candidates/sfx/coin/cur.mp3",
+   "new": null,
+   "note": "維持舊版（沒有候選在正反順序都贏）"
+  },
+  {
+   "name": "deliver_ok",
+   "old": "candidates/sfx/deliver_ok/cur.mp3",
+   "new": "../../audio/sfx/deliver_ok.mp3",
+   "note": "Freesound CC0：Congrats by Fupicat｜決賽 Pro 正反都選新版｜Clip A features a bright, magical chime that feels much more rewarding and cheerful for a children's game compared to the generic doorbell sound of Clip B."
+  },
+  {
+   "name": "ding",
+   "old": "candidates/sfx/ding/cur.mp3",
+   "new": "../../audio/sfx/ding.mp3",
+   "note": "Freesound CC0：DoorBell Shortened by jwheeler91｜決賽 Pro 正反都選新版｜Clip A features a softer, more realistic chime that is pleasant and gentle for young children."
+  },
+  {
+   "name": "door",
+   "old": "candidates/sfx/door/cur.mp3",
+   "new": null,
+   "note": "維持舊版（沒有候選在正反順序都贏）"
+  },
+  {
+   "name": "horn",
+   "old": "candidates/sfx/horn/cur.mp3",
+   "new": "../../audio/sfx/horn.mp3",
+   "note": "Freesound CC0：Squeaky Toy #1 by Breviceps｜決賽 Pro 正反都選新版｜Clip A sounds like a cute, playful squeaky toy that is perfect for children, while Clip B is a harsh and grating electronic buzzer."
+  },
+  {
+   "name": "ng",
+   "old": "candidates/sfx/ng/cur.mp3",
+   "new": null,
+   "note": "維持舊版（沒有候選在正反順序都贏）"
+  },
+  {
+   "name": "ok",
+   "old": "candidates/sfx/ok/cur.mp3",
+   "new": null,
+   "note": "維持舊版（沒有候選在正反順序都贏）"
+  },
+  {
+   "name": "pop",
+   "old": "candidates/sfx/pop/cur.mp3",
+   "new": "../../audio/sfx/pop.mp3",
+   "note": "Freesound CC0：Pop (made by DuffyBro) by DuffyBro｜決賽 Pro 正反都選新版｜Clip A has a rounder, more satisfying pop that is gentle on the ears and perfectly fits a children's game."
+  },
+  {
+   "name": "seagull",
+   "old": "candidates/sfx/seagull/cur.mp3",
+   "new": "../../audio/sfx/seagull.mp3",
+   "note": "Freesound CC0：sea gulls.wav by Snapper4298｜決賽 Pro 正反都選新版｜Clip A sounds like a natural, realistic seagull at the beach, whereas Clip B sounds artificial and overly squeaky."
+  },
+  {
+   "name": "splash",
+   "old": "candidates/sfx/splash/cur.mp3",
+   "new": "../../audio/sfx/splash.mp3",
+   "note": "Freesound CC0：Tiny Splash by dslrguide｜決賽 Pro 正反都選新版｜Clip A sounds like a real, gentle water splash, whereas Clip B sounds like a harsh, fake retro video game noise."
+  },
+  {
+   "name": "star",
+   "old": "candidates/sfx/star/cur.mp3",
+   "new": "../../audio/sfx/star.mp3",
+   "note": "Freesound CC0：Signal-Ring 1 by Vendarro｜決賽 Pro 正反都選新版｜Clip A features a magical, shimmering chime that perfectly captures the bright feeling of collecting a star, whereas Clip B sounds like a generic electronic beep."
+  },
+  {
+   "name": "sticker",
+   "old": "candidates/sfx/sticker/cur.mp3",
+   "new": null,
+   "note": "維持舊版（沒有候選在正反順序都贏）"
+  },
+  {
+   "name": "truck_drive",
+   "old": "candidates/sfx/truck_drive/cur.mp3",
+   "new": "../../audio/sfx/truck_drive.mp3",
+   "note": "Freesound CC0：Motor Loop.wav by soundjoao｜決賽 Pro 正反都選新版｜Clip A sounds like a real, pleasant engine rumble, while Clip B is just a harsh, artificial buzzing noise."
+  },
+  {
+   "name": "truck_start",
+   "old": "candidates/sfx/truck_start/cur.mp3",
+   "new": "../../audio/sfx/truck_start.mp3",
+   "note": "Freesound CC0：Car Start by snakebarney｜決賽 Pro 正反都選新版｜Clip A features a clear, realistic ignition and engine start sound that kids will instantly recognize, whereas Clip B is just a muffled, fake-sounding thump."
+  },
+  {
+   "name": "truck_stop",
+   "old": "candidates/sfx/truck_stop/cur.mp3",
+   "new": "../../audio/sfx/truck_stop.mp3",
+   "note": "Freesound CC0：Air Brake Applied by chungus43A｜決賽 Pro 正反都選新版｜Clip A provides a clear, gentle, and highly recognizable air-brake hiss, while Clip B sounds like muffled microphone noise."
+  },
+  {
+   "name": "whoosh",
+   "old": "candidates/sfx/whoosh/cur.mp3",
+   "new": null,
+   "note": "維持舊版（沒有候選在正反順序都贏）"
+  },
+  {
+   "name": "win",
+   "old": "candidates/sfx/win/cur.mp3",
+   "new": "../../audio/sfx/win.mp3",
+   "note": "Freesound CC0：WinFantasia.wav by Fupicat｜決賽 Pro 正反都選新版｜Clip A features a bright, ascending musical melody that perfectly captures a joyful, celebratory feeling, whereas Clip B sounds like an abrupt, basic notification beep."
+  }
+ ]
+}

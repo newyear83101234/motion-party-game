@@ -22,16 +22,17 @@
   </script>
   <!-- 自己的程式一開頁就同時抓（高優先）：不然要等 zhuyin.js 下載完才知道要抓 ann/words/ui，再等它跑起來才抓 hub3d，
        一層等一層，線上 4Mbps 實測多卡約 3 秒（tools/zy-test/loadprofile.js）。網址要跟實際 import 的完全一樣（含 ?v=） -->
-  <link rel="modulepreload" href="js/zhuyin.js?v=25" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin.js?v=26" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-words.js" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-ann.js?v=5" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-ui.js?v=5" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-voice.js?v=4" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=8" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-weather.js?v=3">
+  <link rel="modulepreload" href="js/zhuyin-ann.js?v=6" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-ui.js?v=6" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-voice.js?v=5" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=9" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-weather.js?v=4">
   <link rel="modulepreload" href="js/zhuyin-clock.js?v=1">
-  <link rel="modulepreload" href="js/zhuyin-ocean.js?v=1">
-  <link rel="modulepreload" href="js/zhuyin-rewards.js?v=1" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-ocean.js?v=2">
+  <link rel="modulepreload" href="js/zhuyin-rewards.js?v=2" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-audio.js?v=1" fetchpriority="high">
   <!-- 開頁要等貓頭鷹：圖片預設優先序最低，線上實測 24KB 會排在 three.js 後面最晚才到 → 提高優先序 -->
   <link rel="preload" as="image" href="IMAGE/zhuyin/guide_owl.webp" fetchpriority="high">
   <!-- Three.js 跟頁面一起開始抓（4Mbps 開頁快 0.6 秒）；?no3d 不抓。這裡不先測 WebGL2（建 context 會拖慢開頁），沒有 WebGL2 的極少數機器只是白抓 -->
@@ -44,8 +45,10 @@
     })();
   </script>
   <!-- 樣式表放在上面兩段 script 後面：classic script 會等前面的樣式表下載完才執行，放前面會卡住整頁解析 -->
-  <link rel="stylesheet" href="css/zhuyin.css?v=21">
-  <link rel="stylesheet" href="css/zhuyin-bubble.css?v=1">
+  <link rel="stylesheet" href="css/zhuyin.css?v=22">
+  <link rel="stylesheet" href="css/zhuyin-bubble.css?v=2">
+  <link rel="stylesheet" href="css/zhuyin-dress.css?v=1">
+  <link rel="stylesheet" href="css/zhuyin-deliver.css?v=1">
 </head>
 <body class="gate-on">
   <!-- body.gate-on：開始畫面還沒按「開始玩」→ CSS 藏起小島浮標、嚮導、圓鈕（開始畫面只留一個標題、一顆按鈕） -->
@@ -66,8 +69,11 @@
   <!-- 常駐按鈕（10-11 阿葉「上面左邊跟右邊的選項可以做收放」）：左上一排＝🏙️歸仁區（小孩用）＋「⋯」把手＋🏠🎵；右上一排＝🐻換人／⚙️家長設定＋「⋯」把手。
        選單上 🏠🎵🐻⚙️（.fold）收在把手裡；遊戲裡把手不見、🏠🎵 跟以前一樣在左上 -->
   <div id="hudL" class="hud hud-l">
-    <button id="townBtn" class="round-btn hidden" title="歸仁區" aria-label="歸仁區"><span class="nav-ico">🏙️</span></button>
+    <button id="townBtn" class="round-btn hidden" title="歸仁區" aria-label="歸仁區"><span class="nav-ico">🏙️</span><span class="nav-new" aria-hidden="true">新</span></button>
     <div id="townTag" class="player-tag town-tag hidden"><span class="nav-word">歸仁區</span></div>
+    <!-- 10-12 第二顆地點鈕：🌈 彩虹島（在 🏙️ 下面一排；人在彩虹島時變 🏝️ 回小島） -->
+    <button id="rainbowBtn" class="round-btn hidden" title="彩虹島" aria-label="彩虹島"><span class="nav-ico">🌈</span><span class="nav-new" aria-hidden="true">新</span></button>
+    <div id="rainbowTag" class="player-tag town-tag hidden"><span class="nav-word">彩虹島</span></div>
     <button id="hudLBtn" class="hud-handle" aria-label="更多按鈕" aria-expanded="false"><i></i><i></i><i></i></button>
     <button id="homeBtn" class="round-btn fold" title="回首頁">🏠</button>
     <button id="musicBtn" class="round-btn fold" title="音樂">🎵</button>
@@ -99,6 +105,7 @@
       <button class="mode-card" data-mode="whack"><span class="big">🔨</span><span class="label">地鼠</span><span class="lock"></span></button>
       <button class="mode-card" data-mode="frog"><span class="big">🐸</span><span class="label">青蛙</span><span class="lock"></span></button>
       <button class="mode-card" data-mode="bubble"><span class="big">🐧</span><span class="label">泡泡</span><span class="lock"></span></button>
+      <button class="mode-card" data-mode="deliver"><span class="big">🚚</span><span class="label">彩虹配送站</span><span class="lock"></span></button>
     </div>
     <div class="menu-bottom">
       <button id="albumBtn" class="pill"><span>📒 貼紙</span><b id="menuStickers">0</b></button>
@@ -175,6 +182,12 @@
     <div id="bubbleRoot" class="bubble-root"></div>
   </section>
 
+  <!-- ===== 彩虹配送站（10-12，彩虹島；引擎 js/zhuyin-deliver.js 自己在 #deliverRoot 裡建畫面，右上自己有 💡／🔊）===== -->
+  <section id="deliver" class="screen hidden">
+    <div class="topbar"></div>
+    <div id="deliverRoot"></div>
+  </section>
+
   <!-- ===== 結算 ===== -->
   <!-- 結算演出（B1）：星星一顆顆蓋章 → 貼紙一張張貼 → 星星飛進右下的星星罐 → 按鈕最後才淡入；演出中點畫面＝快轉到最後 -->
   <section id="result" class="screen bg-map hidden">
@@ -192,10 +205,13 @@
 
   <!-- ===== 貼紙圖鑑 ===== -->
   <section id="album" class="screen bg-album hidden">
-    <div class="album-head"><button id="albumBack" class="hidden" aria-hidden="true"></button><h2>📒 我的貼紙 <span id="albumCount" class="nw"></span></h2></div>
+    <div class="album-head"><button id="albumBack" class="hidden" aria-hidden="true"></button><h2>📒 我的貼紙 <span id="albumCount" class="nw"></span></h2><button id="dressBtn" class="dress-open hidden" aria-label="換裝">👗 換裝</button></div>
     <div id="albumTabs" class="tabs"></div>
     <div id="albumGrid" class="album-grid"></div>
   </section>
+
+  <!-- ===== 寵物換裝（10-12；js/zhuyin-dress.js 自己在這裡建畫面；入口＝彩虹島服裝店、圖鑑動物朋友的 👗）===== -->
+  <section id="dress" class="screen hidden"></section>
 
   <!-- ===== 覆蓋層：回家確認 / 孵蛋 ===== -->
   <div id="confirm" class="overlay hidden"><div class="dialog"><div class="q">⏸️ 暫停</div><div class="row wrap"><button id="confirmNo" class="big-btn">▶️ 繼續玩</button><button id="confirmRestart" class="big-btn alt">🔄 重新開始</button><button id="confirmYes" class="big-btn alt">🏝️ 回小島</button></div></div></div>
@@ -211,7 +227,9 @@
     <div class="row wrap"><button id="gachaGo" class="big-btn">🪙 轉一轉</button><button id="gachaGoGold" class="big-btn alt hidden">🌟 用金幣（一定稀有）</button></div>
     <button id="gachaClose" class="big-btn alt small">↩️ 回去</button>
   </div></div>
-  <div id="bubblePick" class="overlay hidden"><div class="dialog"><div class="q">🐧 要玩第幾關？</div><div id="bubbleLevels" class="bb-levels"></div><button id="bubblePickClose" class="big-btn alt small">↩️ 回去</button></div></div>
+  <div id="bubblePick" class="overlay hidden"><div class="dialog"><div class="q">🫧 要玩第幾關？</div><div id="bubbleZones" class="bb-zones"></div><div id="bubbleLevels" class="bb-levels"></div><button id="bubblePickClose" class="big-btn alt small">↩️ 回去</button></div></div>
+  <!-- 彩虹配送站選關（10-12）：8 關一條線解鎖，過過的關有星星、下一關黃框、還沒到的鎖著 -->
+  <div id="deliverPick" class="overlay hidden"><div class="dialog"><div class="q">🚚 要玩第幾關？</div><div id="deliverLevels" class="bb-levels dv-levels"></div><button id="deliverPickClose" class="big-btn alt small">↩️ 回去</button></div></div>
   <div id="matchPick" class="overlay hidden"><div class="dialog"><div class="q">🃏 要翻幾張牌？</div><div id="matchSizes" class="row wrap"></div><button id="matchPickClose" class="big-btn alt small">↩️ 回去</button></div></div>
   <!-- 家長設定（B6）：整頁給家長看 → noann 不加注音、靠左、分段 -->
   <div id="settings" class="overlay hidden"><div class="dialog settings noann">
@@ -230,7 +248,9 @@
     </div>
     <div class="set-sec">
       <div class="set-label">🎁 扭蛋機（不用花錢，只能靠學習拿到）</div>
-      <div class="set-note">每 10 顆星星換 1 枚扭蛋幣；貼紙一個分類集滿也送 1 枚；集章卡（每天第一局蓋 1 格）集滿 7 格送 1 枚金幣（保證稀有）。<br>機率：普通（藍色膠囊，小島裝飾或點心）70%、稀有（紫色，稀有寵物）25%、超稀有（金色，小恐龍／小鯨魚／彩虹小龍）5%。<br>保底：連續 4 次沒拿到稀有，第 5 次一定稀有以上；連續 14 次沒拿到超稀有，第 15 次一定超稀有。寵物優先給還沒有的，重複的換成點心。點心會餵給夥伴，讓牠從寶寶長大、變超級（永遠不會倒退）。</div>
+      <div class="set-note">每 10 顆星星換 1 枚扭蛋幣；貼紙一個分類集滿也送 1 枚；集章卡（每天第一局蓋 1 格）集滿 7 格送 1 枚金幣（保證稀有）。點心會餵給夥伴，讓牠從寶寶長大、變超級（永遠不會倒退）。</div>
+      <!-- 機率與保底：js 用 RW.oddsText() 產生（js/zhuyin-rewards.js 的 RATES／PITY／GACHA_WEAR 改了這裡自動跟著變，不要寫死） -->
+      <div id="rwOdds" class="set-note"></div>
       <div id="rwStats" class="set-note strong"></div>
     </div>
     <div class="set-sec">
@@ -270,6 +290,6 @@
   <div id="flash" class="flash"></div>
 
   <div id="fx" class="fx"></div>
-  <script type="module" src="js/zhuyin.js?v=25"></script>
+  <script type="module" src="js/zhuyin.js?v=26"></script>
 </body>
 </html>

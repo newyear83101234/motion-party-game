@@ -171,6 +171,15 @@ def kenney_palette():
 
 
 PALETTE.update(kenney_palette())
+PALETTE.update({   # 10-12 寵物換裝的新配件（接在最後面：舊色票的位置不變）
+    "hat_blue_dk":  ("#5aa6f5", "#3a7ed6"),
+    "flower_lilac": ("#dcc4ff", "#b48cf0"),
+    "flower_coral": ("#ff8f8f", "#ef5f6c"),
+    "wing_white":   ("#ffffff", "#c2d6f6"),
+    "wing_pink":    ("#ffe4f1", "#f6b4d2"),
+    "pack_red":     ("#ff6670", "#d9404d"),
+    "pack_red_dk":  ("#d9404d", "#b8303c"),
+})
 NAMES = list(PALETTE)
 INDEX = {n: i for i, n in enumerate(NAMES)}
 IMG = 512          # 貼圖邊長
@@ -1233,13 +1242,39 @@ def build_bow():
 
 
 def build_hat():
-    """派對帽：原點在底部中心（head 掛點）；藍黃條紋圓錐＋白色毛球"""
-    h = Part("hat_cone")
-    Hh, R0 = 0.5, 0.22
-    for k in range(4):
-        z1, z2 = k * Hh / 4, (k + 1) * Hh / 4
-        h.add(p_cyl(R0 * (1 - z1 / (Hh * 1.06)), Hh / 4, 16, r2=R0 * (1 - z2 / (Hh * 1.06))), "hat_blue" if k % 2 == 0 else "hat_yellow", T(0, 0, (z1 + z2) / 2), grad=False)
-    h.add(p_ico(0.075, 1), "white", T(0, 0, Hh + 0.02))
+    """帽子（小禮帽）：原點在底部中心（head 掛點）；藍色帽身＋黃色帽帶＋前面一顆小星星
+       10-12 寵物換裝：原本的藍黃條紋圓錐改名 party_hat（派對帽），帽子改成真的帽子，兩件才不會長得一樣"""
+    h = Part("hat_top")
+    h.add(p_cyl(0.335, 0.05, 22), "hat_blue_dk", T(0, 0, 0.025), grad=False)                    # 帽簷
+    h.add(p_cyl(0.30, 0.03, 22, r2=0.235), "hat_blue_dk", T(0, 0, 0.06), grad=False)             # 帽簷往帽身收的斜邊（圓潤一點）
+    h.add(p_cyl(0.205, 0.29, 18, r2=0.228), "hat_blue", T(0, 0, 0.05 + 0.145))                 # 帽身（上面寬一點點）
+    h.add(p_cyl(0.228, 0.035, 18, r2=0.19), "hat_blue", T(0, 0, 0.352), grad=False)           # 帽頂斜邊
+    h.add(p_cyl(0.19, 0.012, 18), "hat_blue", T(0, 0, 0.375), grad=False)
+    h.add(p_cyl(0.213, 0.075, 18, r2=0.218), "hat_yellow", T(0, 0, 0.05 + 0.045), grad=False)   # 帽帶
+    h.add(p_star(0.075, 0.034, 0.035), "white", T(0, -0.226, 0.095) @ FRONT, grad=False)      # 帽帶前面的小星星
+    return [h]
+
+
+def build_party_hat():
+    """派對帽：原點在底部中心（head 掛點）；粉紫條紋圓錐＋彩色圓點＋底下一圈小毛球＋頂上黃毛球"""
+    h = Part("party_cone")
+    Hh, R0 = 0.52, 0.215
+    rr = lambda z: R0 * (1 - z / (Hh * 1.06))
+    for k in range(5):
+        z1, z2 = k * Hh / 5, (k + 1) * Hh / 5
+        h.add(p_cyl(rr(z1), Hh / 5, 16, r2=rr(z2)), "cap_pink" if k % 2 == 0 else "cap_purple", T(0, 0, (z1 + z2) / 2), grad=False)
+    rnd = random.Random(12)
+    dots = ["rb_yellow", "rb_green", "rb_blue", "white"]
+    for k, (a, z) in enumerate([(-80, 0.12), (-35, 0.25), (-120, 0.3), (10, 0.15), (-60, 0.4), (40, 0.32), (95, 0.2), (150, 0.12), (-160, 0.22), (200, 0.36)]):
+        r = rr(z) - 0.004
+        h.add(p_ico(0.03 + rnd.uniform(0, 0.006), 1), dots[k % 4], T(r * math.cos(math.radians(a)), r * math.sin(math.radians(a)), z) @ S(1, 1, 1), grad=False)
+    for k in range(14):                                                                            # 底下一圈白色小毛球
+        a = 2 * math.pi * k / 14
+        h.add(p_ico(0.045, 1), "white", T(0.225 * math.cos(a), 0.225 * math.sin(a), 0.035))
+    h.add(p_ico(0.085, 1), "rb_yellow", T(0, 0, Hh + 0.035))
+    for k in range(5):                                                                             # 毛球蓬一點
+        a = 2 * math.pi * k / 5
+        h.add(p_ico(0.05, 1), "rb_yellow", T(0.05 * math.cos(a), 0.05 * math.sin(a), Hh + 0.055))
     return [h]
 
 
@@ -1251,6 +1286,124 @@ def build_baby_tuft():
     for sx in (1, -1):
         t.add(p_sphere(0.09, 10, 6), "sprout", T(sx * 0.08, 0, 0.23) @ R(0, sx * -32, 0) @ S(1.35, 0.35, 0.75))
     return [t]
+
+
+# ----- 10-12 寵物換裝：新配件（原點＝掛點，尺寸跟皇冠／披風／蝴蝶結差不多） -----
+def blossom(part, M, r, petal, center, n=5, cup=16, seg=(8, 5)):
+    """一朵小花：M 的區域座標裡面朝 +Z；花瓣是壓扁的圓球繞一圈、外緣往上翹 cup 度，中間一顆花心"""
+    for k in range(n):
+        part.add(p_sphere(r * 0.6, *seg), petal, M @ R(0, 0, 360.0 * k / n + 90) @ T(r * 0.62, 0, 0) @ R(0, -cup, 0) @ S(1.0, 0.8, 0.36))
+    part.add(p_sphere(r * 0.42, *seg), center, M @ T(0, 0, r * 0.14) @ S(1, 1, 0.62), grad=False)
+
+
+def build_flower_crown():
+    """花圈：原點在底部中心（head 掛點）；一圈綠藤＋7 朵小花（朝上、往外翹）＋花之間的小葉子"""
+    c = Part("flower_ring")
+    R0, N = 0.25, 16
+    pts = [(R0 * math.cos(2 * math.pi * k / N), R0 * math.sin(2 * math.pi * k / N), 0.04) for k in range(N)]
+    for k in range(N):
+        seg_cyl(c, pts[k], pts[(k + 1) % N], 0.036, "leaf", n=6, extra=0.03)
+    cols = ["flower_pink", "white", "flower_yellow", "flower_lilac", "flower_pink", "flower_yellow", "flower_lilac"]
+    nf = len(cols)
+    for k in range(nf):                                                               # 花往外翻 62 度：從旁邊、低角度看也看得到花面
+        a = 2 * math.pi * k / nf - math.pi / 2
+        blossom(c, T(R0 * math.cos(a), R0 * math.sin(a), 0.085) @ R(0, 0, math.degrees(a)) @ R(0, 62, 0), 0.105,
+                cols[k], "rb_orange" if cols[k] == "flower_yellow" else "rb_yellow", seg=(7, 4))
+        b = a + math.pi / nf                                                              # 兩朵花中間一片葉子
+        c.add(p_sphere(0.06, 7, 4), "leaf", T(R0 * 1.12 * math.cos(b), R0 * 1.12 * math.sin(b), 0.05) @ R(0, 0, math.degrees(b)) @ R(0, -35, 0) @ S(1.5, 0.75, 0.35))
+    return [c]
+
+
+def build_flower():
+    """小花（頭側，跟蝴蝶結同一個 head_side 掛點）：原點在底部中心；一朵面朝前的大花＋兩片葉子"""
+    f = Part("flower_clip")
+    blossom(f, T(0, 0, 0.17) @ FRONT, 0.15, "flower_coral", "rb_yellow", n=5, cup=12, seg=(10, 6))
+    for sx in (1, -1):
+        f.add(p_sphere(0.075, 8, 5), "leaf", T(sx * 0.13, 0.035, 0.05) @ R(0, sx * 40, 0) @ S(1.55, 0.35, 0.7))
+    return [f]
+
+
+def _wing_outline():
+    """翅膀底片輪廓（翅膀平面座標 u＝往外、v＝往上；根部在原點）：圓圓的水滴形，上緣弧到翅尖再圓圓地繞回根部"""
+    return [(0.0, 0.0), (0.05, 0.2), (0.2, 0.38), (0.42, 0.52), (0.66, 0.6), (0.86, 0.6), (0.98, 0.52), (1.0, 0.4),
+            (0.93, 0.28), (0.79, 0.17), (0.6, 0.07), (0.4, 0.0), (0.2, -0.05), (0.06, -0.05)]
+
+
+def _wing(part, sx, color, inner):
+    """一片天使翅膀：水滴形底片加厚度＋下緣 3 片圓圓的大羽毛（往外下方垂）＋根部一片粉紅小內層；翅膀面往後斜 20 度、往上翹"""
+    beta = math.radians(20)
+    h = Vector((sx * math.cos(beta), math.sin(beta), 0.0))       # 水平往外（＋一點往後）
+    up = Vector((0.0, 0.0, 1.0))
+    N = up.cross(h).normalized()                                  # 翅膀面的法線（統一朝後）
+    if N.y < 0:
+        N = -N
+    in_plane = lambda phi: (h * math.cos(math.radians(phi)) + up * math.sin(math.radians(phi))).normalized()
+    U, V = in_plane(22), in_plane(112)
+    K = 1.12
+    root = Vector((sx * 0.1, 0.07, -0.12))
+    at = lambda u, v, off=0.0: root + N * off + (U * u + V * v) * K
+    for col, k, off, th in ((color, 1.0, 0.0, 0.065), (inner, 0.55, 0.045, 0.05)):
+        bm = bmesh.new()
+        vs = [bm.verts.new(root + N * off + (U * u + V * v) * K * k) for (u, v) in _wing_outline()]
+        bm.faces.new(vs)
+        bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=th)
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+        bmesh.ops.triangulate(bm, faces=bm.faces[:])
+        part.add(bm, col)
+    for k, (u, v, ang, L, w) in enumerate([(0.86, 0.26, -55, 0.42, 0.24), (0.62, 0.1, -70, 0.42, 0.25), (0.38, 0.0, -84, 0.36, 0.24)]):
+        X = (U * math.cos(math.radians(ang)) + V * math.sin(math.radians(ang))).normalized()   # 羽毛往外下方垂
+        part.add(p_sphere(1.0, 10, 6), color if k else inner, T(*at(u, v, -0.012 - 0.004 * k)) @ frame(X, N, X.cross(N)) @ T(L * 0.3, 0, 0) @ S(L / 2, 0.034, w / 2))
+    part.add(p_ico(0.09, 1), color, T(*root))
+
+
+def build_wings():
+    """翅膀：原點在上緣中間、貼著寵物背面（back 掛點，跟披風一樣，+Y＝背後）；左右兩片白色天使翅膀"""
+    w = Part("wings_pair")
+    for sx in (1, -1):
+        _wing(w, sx, "wing_white", "wing_pink")
+    w.add(p_box(0.3, 0.06, 0.12, 0.03), "wing_white", T(0, 0.05, -0.08))                  # 中間的小扣子（把兩片連起來）
+    return [w]
+
+
+def build_backpack():
+    """背包：原點在上緣中間、貼著寵物背面（back 掛點，+Y＝背後）；紅色包身＋黃色蓋子＋前口袋＋提把"""
+    b = Part("backpack_body")
+    W, D, H, y0, top = 0.56, 0.25, 0.54, 0.02, 0.05
+    b.add(p_box(W, D, H, 0.08), "pack_red", T(0, y0 + D / 2, top - H / 2))                        # 包身
+    b.add(p_box(W + 0.02, D + 0.03, 0.08, 0.035), "hat_yellow", T(0, y0 + D / 2 + 0.01, top - 0.02))   # 蓋子頂
+    b.add(p_box(W - 0.02, 0.06, 0.24, 0.035), "hat_yellow", T(0, y0 + D + 0.01, top - 0.15))           # 蓋子垂下來的那片
+    b.add(p_box(0.1, 0.035, 0.07, 0.012), "white", T(0, y0 + D + 0.05, top - 0.25))                    # 扣子
+    b.add(p_box(0.36, 0.07, 0.17, 0.035), "hat_yellow", T(0, y0 + D + 0.01, top - 0.42))               # 前口袋
+    b.add(p_star(0.045, 0.021, 0.025), "white", T(0, y0 + D + 0.05, top - 0.42) @ R(-90, 0, 0), grad=False)   # 口袋上的小星星（面朝後）
+    arc = [(0.09 * math.cos(math.radians(t)), y0 + D / 2, top + 0.035 + 0.075 * math.sin(math.radians(t))) for t in range(0, 181, 30)]
+    for p1, p2 in zip(arc, arc[1:]):                                                                    # 提把
+        seg_cyl(b, p1, p2, 0.018, "pack_red", n=6, extra=0.012)
+    for sx in (1, -1):                                                                                   # 兩條肩帶的頭（從包包上緣往前接到寵物背上）
+        b.add(p_box(0.08, 0.06, 0.1, 0.02), "pack_red_dk", T(sx * 0.17, y0 + 0.01, top - 0.04))
+    return [b]
+
+
+def _cape_strip(part, w0, w1, color):
+    """披風的一條橫帶（w＝0 上緣、1 下襬）；形狀跟 build_cape 一模一樣"""
+    bm = bmesh.new()
+    bmesh.ops.create_grid(bm, x_segments=6, y_segments=1, size=1.0)
+    for v in bm.verts:
+        u, t = v.co.x, (1.0 - v.co.y) / 2
+        w = w0 + (w1 - w0) * t
+        v.co = Vector((u * (0.36 + 0.2 * w), 0.02 + 0.16 * w * w - 0.06 * u * u, -w * 0.92))
+    bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=0.035)
+    part.add(bm, color)
+
+
+def build_cape_rainbow():
+    """彩虹披風：跟 cape 同形狀（原點在上緣中間、貼著寵物背面），紅橙黃綠藍紫六條橫帶＋金色領扣＋星星扣"""
+    c = Part("cape_cloth")
+    cols = ["rb_red", "rb_orange", "rb_yellow", "rb_green", "rb_blue", "rb_purple"]
+    for k, col in enumerate(cols):
+        _cape_strip(c, k / 6, (k + 1) / 6, col)
+    c.add(p_box(0.78, 0.07, 0.08, 0.03), "gold", T(0, 0.0, -0.02))
+    c.add(p_star(0.085, 0.04, 0.05), "gold_light", T(0, -0.045, -0.02) @ FRONT, grad=False)
+    return [c]
 
 
 # ----- 扭蛋 -----
@@ -1483,6 +1636,8 @@ def set_object_material(obname, m, smooth=False):
 CUSTOM = {   # 名稱 → (建模函式, 建好後的處理)
     "dino": (build_dino, None), "whale": (build_whale, None), "dragon": (build_dragon, None),
     "crown": (build_crown, None), "cape": (build_cape, None), "bow": (build_bow, None), "hat": (build_hat, None), "baby_tuft": (build_baby_tuft, None),
+    "flower_crown": (build_flower_crown, None), "party_hat": (build_party_hat, None), "flower": (build_flower, None),   # 10-12 寵物換裝
+    "wings": (build_wings, None), "backpack": (build_backpack, None), "cape_rainbow": (build_cape_rainbow, None),
     "coin": (build_coin, None),
     "capsule": (build_capsule, lambda: (set_object_material("capsule_top", solid_material("capsule_top", (0.28, 0.6, 1.0, 1.0))), set_object_material("capsule_bottom", bpy.data.objects["capsule_bottom"].data.materials[0], smooth=True), [setattr(p, "use_smooth", True) for p in bpy.data.objects["capsule_top"].data.polygons])),
     "gacha_machine": (build_gacha, lambda: set_object_material("dome", solid_material("glass", (0.82, 0.94, 1.0, 1.0), alpha=0.28, rough=0.1), smooth=True)),
@@ -1654,7 +1809,7 @@ def main():
         elif name in CUSTOM:
             fn, post = CUSTOM[name]
             parts = fn()
-            if name not in ("cape", "crown", "bow", "hat", "baby_tuft"):   # 配件的原點＝掛點，不要重新貼地
+            if name not in ("cape", "crown", "bow", "hat", "baby_tuft", "flower_crown", "party_hat", "flower", "wings", "backpack", "cape_rainbow"):   # 配件的原點＝掛點，不要重新貼地
                 ground_parts(parts)
             parts_to_scene(name, parts, m)
             if post:

@@ -78,6 +78,8 @@ for i, t, c, s in [("sys_pause", "暫停", "system", "zhuyin.js:829 確認離開
 BSRC = (ROOT / "js" / "zhuyin-bubble.js").read_text(encoding="utf-8")
 for i, t, c in [("retry_banner", "剛剛卡住的，再試一次！", "system"), ("tone1_tip", "第一聲不用加符號，按這個空白格就好", "system"),
                 ("bubble_win", "小企鵝都救出來了，好厲害！", "result"), ("bubble_full", "泡泡太多了，我們再試一次！", "system"),
+                ("bubble_win_2", "小螃蟹都救出來了，好厲害！", "result"), ("bubble_win_3", "小鯨魚都救出來了，好厲害！", "result"),   # 泡泡第 2、3 區（10-11）
+                ("bubble_zone_locked", "先把前面的關卡都過完，才能來這裡喔！", "guide"),
                 ("wx_sunny", "今天是晴天，太陽好溫暖！", "guide"), ("wx_cloudy", "今天是陰天，雲好多喔！", "guide"), ("wx_rain", "下雨了！滴答滴答！", "guide"),
                 ("wx_storm", "打雷了！轟隆隆！", "guide"), ("wx_typhoon", "颱風來了！大家要待在家裡喔！", "guide"), ("wx_rainbow", "雨停了！看，天上有彩虹！", "guide"),
                 ("town_police", "警察局！警車出動巡邏囉！", "guide"), ("town_fire", "消防局！消防車出動囉！", "guide"), ("town_hospital", "醫院！救護車出發囉！", "guide"),
@@ -86,11 +88,17 @@ for i, t, c in [("retry_banner", "剛剛卡住的，再試一次！", "system"),
                 ("ph_dusk1", "太陽要下山囉！", "guide"), ("ph_dusk2", "天空變成橘色了！", "guide"), ("ph_night1", "天黑了，路燈亮起來了！", "guide"),   # 10-11 日夜時鐘（PHASE_LINES）
                 ("ph_night2", "月亮出來了，好漂亮！", "guide"), ("ph_dawn1", "天快亮了，早安！", "guide"), ("ph_dawn2", "太陽公公要起床囉！", "guide")]:
     must(t); add(i, t, c, "zhuyin.js（10-11）")
-for i, t in [("bubble_swap", "點一下泡泡，可以換一顆喔！"), ("bubble_intro1", "三個一樣的連在一起，就會破掉喔！把小企鵝救出來！")]:
+for i, t in [("bubble_swap", "點一下泡泡，可以換一顆喔！"), ("bubble_intro1", "三個一樣的連在一起，就會破掉喔！把小企鵝救出來！"),
+             ("bubble_zone2", "這次要救小螃蟹喔！"), ("bubble_zone3", "這次要救小鯨魚喔！")]:
     if t.split("！")[0] not in BSRC: sys.exit(f"zhuyin-bubble.js 找不到：{t}")
     add(i, t, "guide", "zhuyin-bubble.js（10-11）")
 # 泡泡上的注音符號：唸符號的名稱（台灣念法：ㄅ＝玻、ㄆ＝坡、ㄇ＝摸）
-for i, (sym, rd) in enumerate([("ㄅ", "玻"), ("ㄆ", "坡"), ("ㄇ", "摸")]):
+# 第 2 區 ㄉㄊㄋㄌ（得特訥勒）、第 3 區 ㄍㄎㄏ（哥科喝）：台灣念法，tts 用讀音字（順序＝zhuyin-bubble.js 的 SYMS）
+BSYMS = re.search(r'export const SYMS = \[(.*?)\];', BSRC).group(1)
+BSYMS = re.findall(r'"(.)"', BSYMS)
+SYM_READ = {"ㄅ": "玻", "ㄆ": "坡", "ㄇ": "摸", "ㄉ": "得", "ㄊ": "特", "ㄋ": "訥", "ㄌ": "勒", "ㄍ": "哥", "ㄎ": "科", "ㄏ": "喝"}
+assert BSYMS == list(SYM_READ), f"SYMS 跟讀音表不一致：{BSYMS}"
+for i, (sym, rd) in enumerate((k, SYM_READ[k]) for k in BSYMS):
     add(f"sym_{i + 1}", sym, "word", "zhuyin-bubble.js SYMS", tts=rd)
 # ---- 4c. 10-11 扭蛋機與 28 隻寵物 ----
 RWSRC = (ROOT / "js" / "zhuyin-rewards.js").read_text(encoding="utf-8")
@@ -117,6 +125,71 @@ must('who + "不舒服，救護車來了！"'); must('who + "好了，謝謝醫�
 for i, nm in enumerate(FRIENDS):
     add(f"sick_{i + 1}", nm + "不舒服，救護車來了！", "guide", "zhuyin.js civicEvent")
     add(f"healed_{i + 1}", nm + "好了，謝謝醫生！", "guide", "zhuyin.js civicEvent")
+
+# ---- 10-12 寵物換裝 ----
+# 換裝畫面的台詞在 js/zhuyin-dress.js 的 LINES；配件名與「拿到 X 了！」在 js/zhuyin-rewards.js 的 WEAR／wearGotLine
+DSRC = (ROOT / "js" / "zhuyin-dress.js").read_text(encoding="utf-8")
+WEAR_BLOCK = RWSRC.split("export const WEAR = [")[1].split("];")[0]
+WEAR_ITEMS = re.findall(r'\{ id: "(\w+)", slot: "\w+", name: "([^"]+)"', WEAR_BLOCK)
+assert len(WEAR_ITEMS) == 10, f"配件目錄解析失敗：{len(WEAR_ITEMS)}"
+for i, t in [("dress_intro", "幫寵物換衣服吧！"), ("dress_idle", "點一下衣服，幫牠穿上！"), ("dress_again", "換一件試試看！"),
+             ("dress_praise_1", "好可愛！"), ("dress_praise_2", "好漂亮喔！"), ("dress_praise_3", "好帥喔！"),
+             ("dress_lock_deliver", "去送貨，就可以拿到喔！"), ("dress_lock_both", "送貨或扭蛋，都可以拿到喔！")]:
+    if f'"{t}"' not in DSRC: sys.exit(f"zhuyin-dress.js 找不到：{t}（LINES 改過了，請更新 build_lines.py）")
+    add(i, t, "guide", "zhuyin-dress.js LINES（10-12）")
+if 'export const wearGotLine = id => "拿到" + WEAR_BY_ID[id].name + "了！"' not in RWSRC: sys.exit("zhuyin-rewards.js 的 wearGotLine 改過了，請更新 build_lines.py")
+have_text = {l["text"] for l in lines} | {w["h"] for w in WORDS}   # 詞庫的詞（第 6 段才加進來）也算
+for wid, nm in WEAR_ITEMS:
+    if nm not in have_text:                                  # 配件名（穿上時唸；「帽子」詞庫已有就不重錄）
+        add(f"wear_name_{wid}", nm, "word", "zhuyin-dress.js 穿上配件（say）",
+            tts={"皇冠": "皇官"}.get(nm))                   # 10-12 實測：單獨唸「皇冠」TTS 兩次都讀 guan4，送「皇官」才是 ㄍㄨㄢ
+    add(f"wear_got_{wid}", f"拿到{nm}了！", "guide", "zhuyin-rewards.js wearGotLine（扭蛋／配送站拿到配件）")
+# 10-12 換裝接進主程式：沒拿到的格子改成角落小圖示（🚚／🎰），點了說 LINES.lockDeliver／lockBoth（上面已登記）；扭蛋抽到配件說 wearGotLine（上面已登記）
+must('RW.wearGotLine(prize.id)')
+for i, t in [("dress_load_fail", "服裝店現在打不開，等一下再試試看！")]:   # 換裝模組載入失敗（從小島服裝店點進來時貓頭鷹說）
+    must(t); add(i, t, "guide", "zhuyin.js openDress（10-12）")
+
+# ---- 10-12 彩虹島 ----
+# 彩虹島解鎖宣告、到了彩虹島、還沒開（「再收集 N 張貼紙，彩虹島就開放囉！」只顯示字不唸，唸的是下面這句不帶數字的）、
+# 配送站／服裝店還沒做好的暫代句（之後換成真的遊戲／換裝畫面就拿掉）；配送站開場語由 MODES.deliver.intro 自動收
+for i, t in [("rb_open", "彩虹橋接好了！彩虹島開放囉！"), ("rb_here", "這裡是彩虹島！"), ("rb_locked", "收集更多貼紙，就能去彩虹島囉！"),
+             ]:   # 10-12 服裝店、配送站都接上真的畫面了，「…快要開張囉！」兩句暫代句拿掉
+    must(t); add(i, t, "guide", "zhuyin.js 彩虹島（10-12）")
+
+# ---- 10-12 彩虹配送站 ----
+# 台詞都在 js/zhuyin-deliver.js 的 LINES 與 TASKS[].intro；商品名在 GOODS、禮物名在 GIFTS（跟 zhuyin-rewards.js 的 WEAR 同名）。
+# 「我要X！」「這是X，不是我要的喔！」用 say()（題目／答案類，不受說明語音開關影響）；其餘用 talk()。
+DLSRC = (ROOT / "js" / "zhuyin-deliver.js").read_text(encoding="utf-8")
+
+
+def dl_must(snippet):
+    if snippet not in DLSRC:
+        sys.exit(f"zhuyin-deliver.js 找不到：{snippet}（台詞改過了，請更新 build_lines.py）")
+
+
+DL_GOODS = re.findall(r'^\s+(\w+): \{ h: "([^"]+)", img: "goods_', DLSRC, re.M)
+assert len(DL_GOODS) == 6, f"配送站商品解析失敗：{len(DL_GOODS)}"
+DL_GIFTS = re.findall(r'(\w+): \{ h: "([^"]+)", emoji:', DLSRC.split("export const GIFTS = {")[1].split("};")[0])
+assert len(DL_GIFTS) == 8, f"配送站禮物解析失敗：{len(DL_GIFTS)}"
+dl_must("want: h => `我要${h}！`"); dl_must("wrong: h => `這是${h}，不是我要的喔！`"); dl_must("gift: h => `送你${h}！`")
+for gid, h in DL_GOODS:
+    add(f"dlv_want_{gid}", f"我要{h}！", "order", "zhuyin-deliver.js LINES.want（前 3 關開場、🔊 再聽，say）")
+for gid, h in DL_GOODS:
+    add(f"dlv_wrong_{gid}", f"這是{h}，不是我要的喔！", "order", "zhuyin-deliver.js LINES.wrong（送錯：說孩子給的那個，say）")
+for wid, h in DL_GIFTS:
+    add(f"dlv_gift_{wid}", f"送你{h}！", "guide", "zhuyin-deliver.js LINES.gift（任務第一次過關，居民送換裝）")
+for i, key, t in [("dlv_thanks", "thanks", "謝謝你！"), ("dlv_none", "none", "車上沒有我要的東西耶，回倉庫拿吧！"), ("dlv_got", "got", "我已經收到囉，謝謝！"),
+                  ("dlv_noorder", "noOrder", "我沒有訂東西喔！"), ("dlv_full", "full", "車子裝滿了！"), ("dlv_unloadtip", "unloadTip", "點車上的東西可以拿下來喔！"), ("dlv_loadfirst", "loadFirst", "先把貨裝上車吧！"),
+                  ("dlv_bridge", "bridge", "橋還沒放下來喔！"), ("dlv_cone", "cone", "前面在施工，車子沒辦法過去喔！"), ("dlv_oneway", "oneway", "這是單行道，要繞路喔！"),
+                  ("dlv_hello", "hello", "嗨！麻煩你囉！"), ("dlv_t1go", "t1go", "點小兔家，卡車就會出發！"), ("dlv_t1give", "t1give", "點車廂裡的帽子，交給小兔！")]:
+    dl_must(f'{key}: "{t}"'); add(i, t, "guide", f"zhuyin-deliver.js LINES.{key}")
+DL_INTROS = re.findall(r'intro: "([^"]+)"', DLSRC.split("export const TASKS = [")[1].split("].map(")[0])
+assert len(DL_INTROS) == 7, f"配送站任務開場語解析失敗：{len(DL_INTROS)}"
+for k, t in enumerate(DL_INTROS):
+    add(f"dlv_intro_{k + 1}", t, "guide", "zhuyin-deliver.js TASKS[].intro（該任務第一次玩）")
+# 主程式接線（10-12）：結算語音（沒拿到新貼紙時；有新貼紙唸「拿到 N 張新貼紙！」）、引擎／3D 場景打不開時回小島貓頭鷹說
+for i, t in [("dlv_win", "東西都送到了，好厲害！"), ("dlv_fail", "配送站現在打不開，等一下再試試看！")]:
+    must(t); add(i, t, "guide", "zhuyin.js 彩虹配送站接線（DELIVER_WIN_TALK／DELIVER_FAIL）")
 
 # ---- 5. 動態句：全部展開成完整句子 ----
 DYNAMIC = []

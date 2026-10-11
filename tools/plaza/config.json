@@ -1,0 +1,10 @@
+{
+  "note": "小島同樂廣場後端（Google Apps Script 網頁應用程式）。網址不是秘密，前端會用。重新部署請用同一個 deploymentId（clasp deploy -i），網址就不會變。",
+  "webAppUrl": "https://script.google.com/macros/s/AKfycbxhCOnt4XBkdl7zkXbF6gH8jrl7Yx1U7I_xPNy9ByGkIc8u6BQG0jE2ZBNCqEVB3R5qtg/exec",
+  "deploymentId": "AKfycbxhCOnt4XBkdl7zkXbF6gH8jrl7Yx1U7I_xPNy9ByGkIc8u6BQG0jE2ZBNCqEVB3R5qtg",
+  "scriptId": "1vvdZUzWn4IUuwfmw_fuK294mp8a17P7SHMnvtPZv2u-jpXZ0pxXlG5Bs",
+  "scriptEditorUrl": "https://script.google.com/d/1vvdZUzWn4IUuwfmw_fuK294mp8a17P7SHMnvtPZv2u-jpXZ0pxXlG5Bs/edit",
+  "spreadsheetId": "1NEctJcl4y_zvyFQ5l0GbMYc_GZTrDRmoK2B8LR7SZkw",
+  "spreadsheetUrl": "https://docs.google.com/spreadsheets/d/1NEctJcl4y_zvyFQ5l0GbMYc_GZTrDRmoK2B8LR7SZkw/edit",
+  "createdAt": "2026-10-11"
+}

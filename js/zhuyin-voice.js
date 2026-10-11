@@ -9,14 +9,24 @@ const GAP = 0.12;                 // 兩段句（「找到了，」＋詞）中�
 const OFF = /[?&]novoice(=|&|$)/.test(location.search);   // 網址加 ?novoice → 全部退回 speechSynthesis（除錯／比較用）
 
 let man = null;
-const manP = fetch(BASE + "manifest.json?v=20261011b").then(r => (r.ok ? r.json() : null)).then(j => (man = j)).catch(() => null);
+const manP = fetch(BASE + "manifest.json?v=20261012").then(r => (r.ok ? r.json() : null)).then(j => (man = j)).catch(() => null);
 let ctx = null;
 const raw = new Map();            // 檔名 → Promise<ArrayBuffer>（還沒解鎖聲音前先下載）
-const dec = new Map();            // 檔名 → Promise<AudioBuffer>（解碼後快取）
-let cur = null;                   // 目前這句：{ srcs, onEnd, done, timer }
-export const voiceStats = { played: 0, ended: 0, timeouts: 0, failed: 0, decoded: 0 };   // 除錯／測試用
+const dec = new Map();            // 檔名 → Promise<AudioBuffer>（解碼後快取；Map 的順序＝最近用過的排最後＝LRU）
+const decBytes = new Map();       // 檔名 → 解碼後佔多少 bytes（PCM float32：長度×聲道×4）
+let decTotal = 0, decMax = 40 * 1024 * 1024;   // 解碼快取上限約 40MB（539 句全解碼約 190MB，iPad 會被系統收掉分頁）
+let cur = null;                   // 目前這句：{ files, srcs, onEnd, done, timer }
+export const voiceStats = { played: 0, ended: 0, timeouts: 0, failed: 0, decoded: 0, evicted: 0 };   // 除錯／測試用
+// 測試用：看快取現況（bytes、句數、由舊到新的檔名）、暫時改上限
+export function voiceCache(max) { if (max > 0) { decMax = max; trimDec(null); } return { bytes: decTotal, max: decMax, n: dec.size, files: [...dec.keys()] }; }
 
+// 音訊引擎（js/zhuyin-audio.js）接進來：用它的 AudioContext、接它的 voice bus（全程只有一個 AudioContext）
+// voiceBind({ ctx: () => AudioContext, out: () => AudioNode })；沒接的話自己開一個 context、直接接喇叭（舊行為，測試頁用）
+let bind = null;
+export function voiceBind(b) { bind = b || null; }
+const outNode = () => { try { return (bind && bind.out && bind.out()) || ctx.destination; } catch (e) { return ctx.destination; } };
 function getCtx() {
+  if (!ctx && bind && bind.ctx) { try { ctx = bind.ctx() || null; } catch (e) { ctx = null; } }
   if (!ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; ctx = new AC(); }
   return ctx;
 }
@@ -51,15 +61,31 @@ function fetchRaw(f) {
   return raw.get(f);
 }
 function decode(f) {
-  if (dec.has(f)) return dec.get(f);
+  if (dec.has(f)) { const hit = dec.get(f); dec.delete(f); dec.set(f, hit); return hit; }   // 命中：移到最後（最近用過）
   const c = getCtx();
   const p = fetchRaw(f).then(ab => new Promise((ok, no) => {
     const r = c.decodeAudioData(ab.slice(0), ok, no);        // 舊 Safari 只有 callback 版；新版回傳 Promise（兩邊都接，resolve 只會算一次）
     if (r && r.then) r.then(ok, no);
   }));
   dec.set(f, p);
-  p.then(() => { voiceStats.decoded++; raw.delete(f); }, () => { dec.delete(f); raw.delete(f); });
+  p.then(b => {
+    voiceStats.decoded++; raw.delete(f);
+    if (dec.get(f) !== p || decBytes.has(f)) return;
+    const n = (b && b.length * b.numberOfChannels * 4) || 0; decBytes.set(f, n); decTotal += n;
+    trimDec(f);
+  }, () => { dec.delete(f); raw.delete(f); });
   return p;
+}
+// 超過上限：從最久沒用的開始丟，但不丟剛解碼的這句、也不丟正在播／等著播的句子（還在解碼中的沒佔記憶體，跳過）
+// 丟掉只是從 Map 拿掉；正在播的 AudioBufferSourceNode 自己抓著 buffer，不受影響
+function trimDec(keep) {
+  if (decTotal <= decMax) return;
+  const busy = cur && cur.files ? cur.files : [];
+  for (const k of dec.keys()) {
+    if (decTotal <= decMax) break;
+    if (k === keep || !decBytes.has(k) || busy.includes(k)) continue;
+    decTotal -= decBytes.get(k); decBytes.delete(k); dec.delete(k); voiceStats.evicted++;
+  }
 }
 
 function finish(my, how) {
@@ -75,7 +101,7 @@ export function voiceSay(text, { onEnd, rate = 1 } = {}) {
   const files = OFF ? null : filesFor(text);
   if (!files || !ctx) return false;
   while (cur) voiceStop();                               // 跟 speechSynthesis.cancel() 一樣：前一句被打斷時也呼叫它的 onEnd（onEnd 裡又開新句也一併停掉）
-  const my = { srcs: [], onEnd, done: false, timer: 0 };
+  const my = { files, srcs: [], onEnd, done: false, timer: 0 };
   cur = my; voiceStats.played++;
   if (window.__spoken) window.__spoken.push({ t: Math.round(performance.now()), text });   // 跟 tools/zy-test 的假語音同格式
   if (ctx.state !== "running") ctx.resume().catch(() => {});
@@ -83,7 +109,7 @@ export function voiceSay(text, { onEnd, rate = 1 } = {}) {
     if (my.done || cur !== my) return;                   // 解碼期間被打斷了
     let t = ctx.currentTime + 0.03;
     bufs.forEach((b, i) => {
-      const s = ctx.createBufferSource(); s.buffer = b; s.playbackRate.value = rate; s.connect(ctx.destination);
+      const s = ctx.createBufferSource(); s.buffer = b; s.playbackRate.value = rate; s.connect(outNode());
       s.start(t); my.srcs.push(s);
       t += b.duration / rate + (i < bufs.length - 1 ? GAP : 0);
       if (i === bufs.length - 1) s.onended = () => finish(my, "ended");

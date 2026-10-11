@@ -47,8 +47,7 @@
     paused: () => paused,
     onWin: info => { calls.win.push(info); log("onWin", JSON.stringify(info)); if (Q.get("clean") === "1") return; const r = document.getElementById("labResult"); r.firstElementChild.textContent = `過關！第 ${info.level + 1} 關　發射 ${info.shots}（par ${info.par}）　${"★".repeat(info.stars)}`; r.classList.remove("hidden"); },
     onFull: info => { calls.full.push(info); log("onFull", JSON.stringify(info)); },
-    animalImg: "../../IMAGE/zhuyin/cust_penguin.webp",
-    animalName: "小企鵝",
+    animalImgs: { penguin: "../../IMAGE/zhuyin/cust_penguin.webp", crab: "../../IMAGE/zhuyin/pets/crab.webp", whale: "../../IMAGE/zhuyin/pets/whale.webp" },
   };
   if (Q.has("seed")) api.seed = +Q.get("seed");
   const game = mod.createBubbleGame(document.getElementById("bbRoot"), api);

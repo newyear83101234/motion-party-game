@@ -1,0 +1,179 @@
+/* ===================== 注音小島：彩虹配送站（js/zhuyin-deliver.js） =====================
+   版面數字（--u＝1vmin、--card、--gs、--btn、--pin）由 JS 的 relayout() 算好寫在 .dlv-wrap 上；
+   所有選擇器都以 .dlv- 開頭，不影響全站。 */
+.dlv-root { overflow: hidden; }
+.dlv-wrap { position: absolute; inset: 0; --u: 8px; --card: 120px; --gs: 96px; --btn: 64px; --pin: 64px; --gap: 10px;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+/* 重設用 :where()＝0 權重，不會蓋掉下面各按鈕自己的底色、字級 */
+:where(.dlv-wrap) button { font: inherit; color: inherit; border: 0; padding: 0; margin: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+:where(.dlv-wrap) img { -webkit-user-drag: none; user-select: none; pointer-events: none; }
+
+/* ---------- 3D 場景 ---------- */
+.dlv-stage { position: absolute; inset: 0; background: #3f97c9; }
+.dlv-stage canvas { display: block; width: 100%; height: 100%; opacity: 0; transition: opacity 0.45s ease; }
+.dlv-stage.dlv-on canvas { opacity: 1; }
+.dlv-loading { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: calc(var(--u) * 12); animation: dlvBob 0.6s ease-in-out infinite alternate; transition: opacity 0.3s; }
+.dlv-stage.dlv-on .dlv-loading { opacity: 0; }
+
+/* ---------- 地圖上的目的地圖釘（3D 座標投影到螢幕） ---------- */
+.dlv-pins { position: absolute; inset: 0; pointer-events: none; }
+.dlv-pin { position: absolute; left: 0; top: 0; width: var(--pin); height: calc(var(--pin) * 1.22); pointer-events: auto; transform-origin: 50% 100%; transition: opacity 0.25s; }
+.dlv-pin-b { position: absolute; left: 0; top: 0; width: var(--pin); height: var(--pin); border-radius: 50%; background: #fff; box-shadow: 0 0 0 calc(var(--u) * 0.7) var(--c, #ffb03b), 0 calc(var(--u) * 0.8) calc(var(--u) * 1.4) rgba(0, 0, 0, 0.3);
+  display: flex; align-items: center; justify-content: center; overflow: hidden; font-size: calc(var(--pin) * 0.52); line-height: 1; }
+.dlv-pin-b img { width: 92%; height: 92%; object-fit: contain; margin-top: 8%; }
+.dlv-pin::after { content: ""; position: absolute; left: 50%; bottom: 0; width: calc(var(--pin) * 0.34); height: calc(var(--pin) * 0.34); margin-left: calc(var(--pin) * -0.17); transform: rotate(45deg); transform-origin: 50% 50%;
+  background: var(--c, #ffb03b); border-radius: 0 0 calc(var(--u) * 0.6) 0; z-index: -1; }
+.dlv-pin.dlv-here, .dlv-pin.dlv-off { opacity: 0; pointer-events: none; }   /* 只有倉庫的圖釘會在「卡車在這裡」時收起來；人家的圖釘到站後還在（點它＝交貨） */
+.dlv-pin.dlv-at .dlv-pin-in { animation: dlvPinAt 1.1s ease-in-out infinite; }
+.dlv-pin.dlv-switch .dlv-pin-b { background: #fff6e8; }
+/* 居民、房子、吊橋的點擊區（看不見；疊到圖釘時圖釘在上面） */
+.dlv-hits { position: absolute; inset: 0; pointer-events: none; }
+.dlv-hit { position: absolute; left: 0; top: 0; pointer-events: auto; border-radius: 30%; }
+.dlv-hit.dlv-off { display: none; }
+.dlv-pin.dlv-busy { opacity: 0.55; }
+.dlv-pin .dlv-pin-in { position: absolute; inset: 0; animation: dlvPinBob 1.8s ease-in-out infinite; }
+.dlv-pin.dlv-glow .dlv-pin-b { animation: dlvPinGlow 0.7s ease-in-out infinite alternate; }
+.dlv-pin:active .dlv-pin-in { transform: scale(0.92); }
+
+.dlv-truckhit { position: absolute; left: 0; top: 0; width: 80px; height: 60px; border-radius: 40%; transform: translate(-50%, -50%); }
+.dlv-truckhit.dlv-hintglow { box-shadow: 0 0 0 calc(var(--u) * 0.8) rgba(255, 213, 74, 0.95), 0 0 calc(var(--u) * 4) rgba(255, 213, 74, 0.9); }
+
+/* ---------- 上方：訂單卡 ---------- */
+.dlv-orders { position: absolute; left: 0; top: 0; display: flex; gap: var(--gap); pointer-events: none; }
+.dlv-card { position: relative; width: calc(var(--card) * 0.92); height: var(--card); border-radius: calc(var(--card) * 0.14); background: #fffdf7; pointer-events: auto;
+  box-shadow: 0 calc(var(--u) * 0.6) 0 var(--cd, #e3a63a), 0 calc(var(--u) * 1) calc(var(--u) * 2) rgba(0, 0, 0, 0.22); border: calc(var(--u) * 0.55) solid var(--c, #ffb03b);
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: calc(var(--card) * 0.05); box-sizing: border-box; }
+.dlv-card.dlv-in { animation: dlvCardIn 0.55s cubic-bezier(.2, 1.4, .4, 1) both; }
+.dlv-card-av { position: absolute; left: calc(var(--card) * -0.1); top: calc(var(--card) * -0.1); width: calc(var(--card) * 0.4); height: calc(var(--card) * 0.4); border-radius: 50%; background: var(--c, #ffb03b);
+  box-shadow: 0 0 0 calc(var(--u) * 0.45) #fff, 0 calc(var(--u) * 0.4) calc(var(--u) * 0.8) rgba(0, 0, 0, 0.25); display: flex; align-items: center; justify-content: center; overflow: hidden; z-index: 2; }
+.dlv-card-av img { width: 96%; height: 96%; object-fit: contain; margin-top: 10%; }
+.dlv-card-pic { position: relative; flex: 1; width: 82%; min-height: 0; display: flex; align-items: center; justify-content: center; perspective: 300px; }
+.dlv-card-pic img { max-width: 100%; max-height: 100%; object-fit: contain; filter: drop-shadow(0 calc(var(--u) * 0.4) calc(var(--u) * 0.3) rgba(0, 0, 0, 0.2)); }
+.dlv-card-pic .dlv-emoji { font-size: calc(var(--card) * 0.42); line-height: 1; }
+.dlv-mystery { width: 70%; aspect-ratio: 1; max-height: 100%; border-radius: calc(var(--u) * 1); background: linear-gradient(#d9a066, #c4874d); box-shadow: inset 0 calc(var(--u) * -0.6) 0 rgba(0, 0, 0, 0.12);
+  position: relative; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 900; font-size: calc(var(--card) * 0.3); text-shadow: 0 2px 0 rgba(120, 70, 20, 0.6); }
+.dlv-mystery::before { content: ""; position: absolute; left: 42%; right: 42%; top: 0; bottom: 0; background: rgba(255, 240, 200, 0.55); }
+.dlv-mystery span { position: relative; }
+.dlv-card-pic.dlv-flip > * { animation: dlvFlip 0.5s ease both; }
+/* 訂單名稱 ×0.25（寧次 10-12：藏圖關只能讀這行字；原本 ×0.16 注音才 7.9px）：iPad 國字 ≥35px、注音 ≥13.4px；兩個字＋注音＝0.8 張卡寬，放得進卡片 */
+.dlv-card-name { font-size: calc(var(--card) * 0.25); font-weight: 900; color: #3a3a3a; line-height: 1.15; white-space: nowrap; }
+.dlv-card-name .ac { margin-right: 0.6em; }
+.dlv-card-ok { position: absolute; right: calc(var(--card) * -0.08); top: calc(var(--card) * -0.08); width: calc(var(--card) * 0.38); height: calc(var(--card) * 0.38); border-radius: 50%; background: #3fc06b; color: #fff;
+  display: flex; align-items: center; justify-content: center; font-size: calc(var(--card) * 0.26); font-weight: 900; box-shadow: 0 0 0 calc(var(--u) * 0.45) #fff, 0 2px 6px rgba(0, 0, 0, 0.25); transform: scale(0); z-index: 3; }
+.dlv-card.dlv-done .dlv-card-ok { animation: dlvStamp 0.45s cubic-bezier(.2, 1.6, .4, 1) both; }
+.dlv-card.dlv-done { background: #f1fbf3; }
+.dlv-card.dlv-done .dlv-card-pic, .dlv-card.dlv-done .dlv-card-name { opacity: 0.55; }
+.dlv-card.dlv-flash { animation: dlvShake 0.5s ease; border-color: #ff6b6b; }
+.dlv-card.dlv-hintglow { box-shadow: 0 0 0 calc(var(--u) * 0.9) #ffd54a, 0 0 calc(var(--u) * 4) #ffd54a; }
+
+/* ---------- 右上：💡 提示、🔊 再聽 ---------- */
+.dlv-tools { position: absolute; top: 0; right: 0; display: flex; gap: var(--gap); }
+.dlv-btn { width: var(--btn); height: var(--btn); border-radius: 50%; background: #fff; box-shadow: 0 calc(var(--u) * 0.6) 0 #c9c2b4, 0 calc(var(--u) * 0.9) calc(var(--u) * 1.6) rgba(0, 0, 0, 0.22);
+  font-size: calc(var(--btn) * 0.5); line-height: 1; display: flex; align-items: center; justify-content: center; }
+.dlv-btn:active { transform: translateY(3px); box-shadow: none; }
+.dlv-hint { background: #ffd54a; box-shadow: 0 calc(var(--u) * 0.6) 0 #d9a520, 0 calc(var(--u) * 0.9) calc(var(--u) * 1.6) rgba(0, 0, 0, 0.22); }
+.dlv-hint.dlv-pulse { animation: dlvHintPulse 0.9s ease-in-out infinite; }
+.dlv-btn.dlv-hide { display: none; }
+
+/* ---------- 下方：貨架（只在倉庫出現）＋吊橋開關 ---------- */
+.dlv-shelf { position: absolute; left: 0; top: 0; display: flex; align-items: flex-end; gap: var(--gap); padding: calc(var(--u) * 1.2) calc(var(--u) * 1.4) calc(var(--u) * 1.6);
+  border-radius: calc(var(--u) * 2.2); background: linear-gradient(#f6e3c3, #ecd2a6); box-shadow: 0 calc(var(--u) * 0.8) 0 #b98a52, 0 calc(var(--u) * 1.2) calc(var(--u) * 2.4) rgba(0, 0, 0, 0.25);
+  transition: transform 0.38s cubic-bezier(.3, 1.3, .5, 1), opacity 0.3s; box-sizing: border-box; flex-wrap: nowrap; }
+.dlv-shelf::after { content: ""; position: absolute; left: calc(var(--u) * 1); right: calc(var(--u) * 1); bottom: calc(var(--u) * 0.8); height: calc(var(--u) * 1.1); border-radius: calc(var(--u) * 0.6); background: #c99a5e; z-index: 0; }
+.dlv-shelf.dlv-off { transform: translateY(150%); opacity: 0; pointer-events: none; }
+.dlv-good { position: relative; z-index: 1; width: var(--gs); display: flex; flex-direction: column; align-items: center; transition: transform 0.2s cubic-bezier(.3, 1.6, .5, 1); }
+.dlv-good-pic { width: var(--gs); height: var(--gs); border-radius: calc(var(--gs) * 0.2); background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 calc(var(--u) * 0.5) 0 #d8c39f; }
+.dlv-good-pic img { width: 80%; height: 80%; object-fit: contain; }
+.dlv-good-pic .dlv-emoji { font-size: calc(var(--gs) * 0.55); }
+.dlv-good-name { margin-top: calc(var(--u) * 0.5); font-size: calc(var(--gs) * 0.24); font-weight: 900; color: #5a3a1a; line-height: 1.1; white-space: nowrap; padding-right: 0.2em; }
+.dlv-good-name .ac { margin-right: 0.62em; }
+.dlv-good.dlv-sel { transform: translateY(-22%) scale(1.06); }
+.dlv-good.dlv-sel .dlv-good-pic { box-shadow: 0 0 0 calc(var(--u) * 0.8) #ffd54a, 0 0 calc(var(--u) * 3.5) #ffcf33; animation: dlvSel 0.8s ease-in-out infinite alternate; }
+.dlv-good.dlv-jump { animation: dlvJump 0.4s ease; }
+.dlv-good.dlv-hintglow .dlv-good-pic { box-shadow: 0 0 0 calc(var(--u) * 0.8) #ffd54a, 0 0 calc(var(--u) * 4) #ffd54a; }
+
+/* ---------- 右下：車廂（容量＝格數） ---------- */
+.dlv-cargo { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: var(--gap); padding: calc(var(--u) * 1.2) calc(var(--u) * 1.4); border-radius: calc(var(--u) * 2.2);
+  background: linear-gradient(#ff9a4f, #f07a33); box-shadow: 0 calc(var(--u) * 0.8) 0 #c05a1d, 0 calc(var(--u) * 1.2) calc(var(--u) * 2.4) rgba(0, 0, 0, 0.25); box-sizing: border-box; }
+.dlv-cargo-ic { flex: none; width: calc(var(--gs) * 0.55); text-align: center; font-size: calc(var(--gs) * 0.46); line-height: 1; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.15)); }   /* 寬度固定＝JS relayout 估的 gs×0.55（不然面板右邊貼螢幕邊） */
+.dlv-slot { position: relative; width: var(--gs); display: flex; flex-direction: column; align-items: center; }
+.dlv-slot .dlv-good-pic { box-shadow: 0 calc(var(--u) * 0.5) 0 #c25e22; }
+.dlv-slot.dlv-empty .dlv-good-pic { background: rgba(255, 255, 255, 0.3); box-shadow: inset 0 0 0 calc(var(--u) * 0.45) rgba(255, 255, 255, 0.7); }
+/* 車廂裡的國字：白底膠囊＋深咖啡字（寧次 10-12：白字配橘底只有 2.1–2.8:1 → 現在 11:1）；空格不顯示白底 */
+.dlv-slot .dlv-good-name { color: #5a3a1a; background: #fff; border-radius: 1em; padding: 0 0.3em; text-shadow: none; min-height: 1.1em; }
+.dlv-slot .dlv-good-name:empty { background: none; }
+.dlv-slot.dlv-ghost .dlv-good-pic img, .dlv-slot.dlv-ghost .dlv-emoji { opacity: 0.25; }
+.dlv-slot.dlv-pop .dlv-good-pic { animation: dlvPop 0.35s cubic-bezier(.2, 1.6, .4, 1); }
+.dlv-slot.dlv-wiggle .dlv-good-pic { animation: dlvShake 0.45s ease; }
+.dlv-slot.dlv-hintglow .dlv-good-pic { box-shadow: 0 0 0 calc(var(--u) * 0.8) #ffd54a, 0 0 calc(var(--u) * 4) #ffd54a; }
+.dlv-cargo.dlv-shake { animation: dlvShake 0.45s ease; }
+.dlv-cargo.dlv-hintglow { box-shadow: 0 0 0 calc(var(--u) * 0.9) #ffd54a, 0 0 calc(var(--u) * 4) #ffd54a; }
+/* 矮的橫式（手機）：貨架＝左邊一欄格子、車廂＝右邊直的一欄 */
+.dlv-side .dlv-shelf { flex-wrap: wrap; align-content: flex-start; align-items: flex-start; }
+.dlv-side .dlv-shelf::after { display: none; }
+.dlv-side .dlv-shelf.dlv-off { transform: translateX(-130%); }
+.dlv-side .dlv-cargo { flex-direction: column; justify-content: flex-start; }
+.dlv-side .dlv-cargo-ic { font-size: calc(var(--gs) * 0.5); }
+
+/* ---------- 示範手指、特效、過關、禮物 ---------- */
+.dlv-finger { position: absolute; left: 0; top: 0; width: calc(var(--btn) * 1.1); height: calc(var(--btn) * 1.1); margin: calc(var(--btn) * -0.12) 0 0 calc(var(--btn) * -0.42); font-size: calc(var(--btn) * 0.95); line-height: 1;
+  pointer-events: none; opacity: 0; z-index: 30; transition: left 0.5s cubic-bezier(.4, 0, .2, 1), top 0.5s cubic-bezier(.4, 0, .2, 1), opacity 0.25s; filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.35)); }
+.dlv-finger.dlv-on { opacity: 1; }
+.dlv-finger.dlv-press { animation: dlvPress 0.6s ease 2; }
+.dlv-finger::before { content: ""; position: absolute; left: 30%; top: -6%; width: calc(var(--btn) * 0.55); height: calc(var(--btn) * 0.55); margin: calc(var(--btn) * -0.27); border-radius: 50%;
+  border: calc(var(--u) * 0.6) solid #ffd54a; opacity: 0; }
+.dlv-finger.dlv-press::before { animation: dlvRing 0.6s ease-out 2; }
+.dlv-fx { position: absolute; inset: 0; pointer-events: none; z-index: 40; overflow: hidden; }
+.dlv-fly { position: absolute; left: 0; top: 0; width: var(--gs); height: var(--gs); display: flex; align-items: center; justify-content: center; font-size: calc(var(--gs) * 0.55); will-change: transform; }
+.dlv-fly img { width: 80%; height: 80%; object-fit: contain; filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.3)); }
+.dlv-coin { position: absolute; left: 0; top: 0; font-size: calc(var(--u) * 7); line-height: 1; will-change: transform; }
+.dlv-say { position: absolute; left: 0; top: 0; transform: translate(-50%, -100%); padding: calc(var(--u) * 1) calc(var(--u) * 1.8); border-radius: calc(var(--u) * 2); background: #fff; color: #333; font-weight: 900;
+  font-size: calc(var(--u) * 4); white-space: nowrap; box-shadow: 0 calc(var(--u) * 0.6) calc(var(--u) * 1.4) rgba(0, 0, 0, 0.25); animation: dlvSay 1.9s ease both; }
+.dlv-say::after { content: ""; position: absolute; left: 50%; bottom: calc(var(--u) * -1); margin-left: calc(var(--u) * -1); border: calc(var(--u) * 1) solid transparent; border-bottom: 0; border-top-color: #fff; }
+.dlv-say.dlv-bad { color: #d23c3c; }
+.dlv-banner { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); padding: calc(var(--u) * 3) calc(var(--u) * 6) calc(var(--u) * 2.4); border-radius: calc(var(--u) * 4); background: #fff;
+  box-shadow: 0 calc(var(--u) * 1) 0 #e3a63a, 0 calc(var(--u) * 2) calc(var(--u) * 5) rgba(0, 0, 0, 0.3); text-align: center; animation: dlvBanner 0.6s cubic-bezier(.2, 1.5, .4, 1) both; }
+.dlv-banner-t { font-size: calc(var(--u) * 8); font-weight: 900; color: #ff7a3d; white-space: nowrap; }
+/* 沒拿到的星星：空心描邊星（寧次 10-12：#ddd 實心配白底幾乎看不見） */
+.dlv-banner-s { font-size: calc(var(--u) * 9); letter-spacing: 0.08em; color: transparent; -webkit-text-stroke: calc(var(--u) * 0.45) #a08a6a; line-height: 1.1; }   /* 描邊對白底 3.3:1 */
+.dlv-banner-s .dlv-on { color: #ffc93c; -webkit-text-stroke: 0; text-shadow: 0 3px 0 #e09a1a; }
+.dlv-banner-s span { display: inline-block; transform: scale(0); }
+.dlv-banner-s span.dlv-pop { animation: dlvStarPop 0.45s cubic-bezier(.2, 1.8, .4, 1) both; }
+.dlv-badge { display: inline-block; margin-top: calc(var(--u) * 0.8); padding: calc(var(--u) * 0.6) calc(var(--u) * 2); border-radius: calc(var(--u) * 3); background: #eaf7ff; color: #2b7bc4;
+  font-size: calc(var(--u) * 3.4); font-weight: 900; white-space: nowrap; box-shadow: 0 0 0 calc(var(--u) * 0.4) #8fd0ff; animation: dlvStarPop 0.5s cubic-bezier(.2, 1.6, .4, 1) both; }
+/* 「自己讀到的！」章：×0.16、深紅字（寧次 10-12：原本 ×0.11、#e0474d 對比不足）；JS 拆成「自己讀／到的！」兩行，寬＝內容寬、置中在卡片上 */
+.dlv-card-self { position: absolute; left: 50%; top: 14%; width: max-content; transform: translateX(-50%) rotate(-10deg); padding: 0.15em 0.1em 0.2em 0.2em; border-radius: 0.5em; background: rgba(255, 255, 255, 0.95); box-sizing: border-box;
+  border: calc(var(--u) * 0.35) solid #e0474d; color: #c0392b; font-size: calc(var(--card) * 0.16); font-weight: 900; line-height: 1.3; text-align: center; white-space: nowrap; z-index: 4; animation: dlvStampIn 0.45s cubic-bezier(.2, 1.6, .4, 1) both; }
+.dlv-card-self > span { display: block; }
+.dlv-card-self .ac { margin-right: 0.6em; }
+.dlv-banner-info { font-size: calc(var(--u) * 2.8); color: #8a7a66; font-weight: 700; margin-top: calc(var(--u) * 0.6); white-space: nowrap; }
+.dlv-conf { position: absolute; top: -5%; width: calc(var(--u) * 1.8); height: calc(var(--u) * 2.6); border-radius: 2px; animation: dlvConf 2.2s ease-in var(--d, 0ms) both; }
+.dlv-gift { position: absolute; left: 0; right: 0; top: 50%; width: fit-content; min-width: calc(var(--u) * 30); padding: calc(var(--u) * 2) calc(var(--u) * 3.5); margin: calc(var(--u) * -15) auto 0; border-radius: calc(var(--u) * 4); background: #fff8fb;
+  box-shadow: 0 0 0 calc(var(--u) * 0.8) #ff8fb0, 0 calc(var(--u) * 2) calc(var(--u) * 5) rgba(0, 0, 0, 0.3); display: flex; flex-direction: column; align-items: center; box-sizing: border-box; animation: dlvGiftIn 0.6s cubic-bezier(.2, 1.5, .4, 1) both; }
+.dlv-gift-pic { width: calc(var(--u) * 18); height: calc(var(--u) * 18); display: flex; align-items: center; justify-content: center; font-size: calc(var(--u) * 13); line-height: 1; }
+.dlv-gift-pic img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.dlv-gift-t { font-size: calc(var(--u) * 4.6); font-weight: 900; color: #d9507a; white-space: nowrap; margin-top: calc(var(--u) * 1); }
+.dlv-closet { position: absolute; left: 0; top: 0; width: calc(var(--btn) * 1.2); height: calc(var(--btn) * 1.2); border-radius: 30%; background: #fff; display: flex; align-items: center; justify-content: center;
+  font-size: calc(var(--btn) * 0.75); box-shadow: 0 0 0 calc(var(--u) * 0.6) #ff8fb0, 0 4px 10px rgba(0, 0, 0, 0.25); animation: dlvPop 0.4s cubic-bezier(.2, 1.6, .4, 1) both; }
+.dlv-closet.dlv-got { animation: dlvJump 0.45s ease; }
+
+@keyframes dlvBob { from { transform: translate(-50%, -50%); } to { transform: translate(-50%, -62%); } }
+@keyframes dlvPinBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7%); } }
+@keyframes dlvPinGlow { from { box-shadow: 0 0 0 calc(var(--u) * 0.7) var(--c, #ffb03b), 0 0 0 calc(var(--u) * 1.4) rgba(255, 213, 74, 0.9); } to { box-shadow: 0 0 0 calc(var(--u) * 0.7) var(--c, #ffb03b), 0 0 0 calc(var(--u) * 3) rgba(255, 213, 74, 0.25), 0 0 calc(var(--u) * 5) #ffd54a; } }
+@keyframes dlvCardIn { from { transform: translateY(-160%) rotate(-6deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes dlvFlip { from { transform: rotateY(90deg) scale(0.6); } to { transform: none; } }
+@keyframes dlvStamp { from { transform: scale(2.2) rotate(-25deg); opacity: 0; } to { transform: scale(1) rotate(-8deg); opacity: 1; } }
+@keyframes dlvShake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-9%); } 40% { transform: translateX(8%); } 60% { transform: translateX(-6%); } 80% { transform: translateX(4%); } }
+@keyframes dlvHintPulse { 0%, 100% { transform: scale(1); box-shadow: 0 calc(var(--u) * 0.6) 0 #d9a520, 0 0 0 0 rgba(255, 213, 74, 0.8); } 50% { transform: scale(1.12); box-shadow: 0 calc(var(--u) * 0.6) 0 #d9a520, 0 0 0 calc(var(--u) * 2.4) rgba(255, 213, 74, 0); } }
+@keyframes dlvSel { from { filter: brightness(1); } to { filter: brightness(1.08); } }
+@keyframes dlvJump { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-26%) scale(1.06); } }
+@keyframes dlvPop { 0% { transform: scale(0.5); } 100% { transform: scale(1); } }
+@keyframes dlvPress { 0%, 100% { transform: translate(0, 0) scale(1); } 45% { transform: translate(0, 12%) scale(0.88); } }
+@keyframes dlvRing { 0% { opacity: 0.95; transform: scale(0.3); } 100% { opacity: 0; transform: scale(1.6); } }
+@keyframes dlvSay { 0% { opacity: 0; transform: translate(-50%, -80%) scale(0.6); } 12% { opacity: 1; transform: translate(-50%, -100%) scale(1); } 82% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -120%); } }
+@keyframes dlvBanner { from { transform: translate(-50%, -50%) scale(0.3); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+@keyframes dlvConf { 0% { transform: translateY(0) rotate(0); opacity: 1; } 100% { transform: translateY(110vh) rotate(720deg); opacity: 0.8; } }
+@keyframes dlvGiftIn { from { transform: scale(0.2) rotate(-10deg); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes dlvStarPop { 0% { transform: scale(0) rotate(-30deg); } 70% { transform: scale(1.35) rotate(8deg); } 100% { transform: scale(1) rotate(0); } }
+@keyframes dlvPinAt { 0%, 100% { transform: translateY(0) scale(0.9); } 50% { transform: translateY(-6%) scale(0.96); } }
+@keyframes dlvStampIn { from { transform: translateX(-50%) scale(2) rotate(-25deg); opacity: 0; } to { transform: translateX(-50%) rotate(-10deg); opacity: 1; } }

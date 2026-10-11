@@ -1,0 +1,107 @@
+/* ===== 寵物換裝（js/zhuyin-dress.js 自己在 root 裡建畫面）=====
+   版面：上方寵物列＋「穿好了」；橫式＝左 3D 預覽、右衣櫃；直式（.portrait）＝預覽在上、衣櫃在下。
+   衣櫃格子大小 --tile 由 relayout() 依可用空間算（三組不捲動、最小 56px）；格子只放圖＝正方形（跟 JS 的 TILE_H＝1 一致）；分組標題高 6.2vmin（JS 的 GROUP_T）。 */
+.dress { position: absolute; inset: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 1.6vmin; padding: 2vmin 2.4vmin 2.4vmin;
+  background: radial-gradient(circle at 26% 46%, #fff8fc 0, #ffe6f2 30%, #eadfff 68%, #d8ecff 100%); overflow: hidden; color: #333;
+  -webkit-user-select: none; user-select: none; }
+.dress button { font-family: inherit; border: 0; cursor: pointer; color: inherit; -webkit-tap-highlight-color: transparent; }
+
+/* 上方：寵物列（太多就左右滑）＋穿好了 */
+.dr-top { display: flex; align-items: center; gap: 2vmin; min-width: 0; }
+.dr-pets { flex: 1; min-width: 0; display: flex; gap: 1.4vmin; overflow-x: auto; overflow-y: hidden; padding: 1.2vmin 1.4vmin 1.8vmin; border-radius: 4.4vmin;
+  background: rgba(255, 255, 255, 0.6); box-shadow: inset 0 0.4vmin 1.2vmin rgba(150, 110, 190, 0.12); scrollbar-width: none; touch-action: pan-x; -webkit-overflow-scrolling: touch; }
+.dr-pets::-webkit-scrollbar { display: none; }
+.dr-pet { flex: none; position: relative; width: 12.5vmin; height: 12.5vmin; min-width: 56px; min-height: 56px; border-radius: 3vmin; background: #fff; padding: 0.9vmin;
+  box-shadow: 0 0.6vmin 0 #e3cfe0; transition: transform 0.15s, box-shadow 0.15s; }
+.dr-pet img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.dr-pet.on { box-shadow: 0 0 0 0.8vmin #ff8fb1, 0 0.9vmin 0 #f0a5c2; transform: translateY(-0.5vmin) scale(1.05); }
+.dr-pet:active { transform: scale(0.94); }
+.dr-star { position: absolute; right: -0.8vmin; top: -1vmin; font-size: 3.4vmin; line-height: 1; pointer-events: none; }
+.dr-done { flex: none; height: 13vmin; min-height: 56px; padding: 0 3.6vmin 0 2.8vmin; border-radius: 6.5vmin; background: var(--yellow, #ffd54a); color: #333;
+  box-shadow: 0 0.8vmin 0 var(--yellow-dk, #d4a800), 0 1.2vmin 2vmin rgba(0, 0, 0, 0.14); font-size: 5.2vmin; font-weight: 900; display: flex; align-items: center; gap: 1.2vmin; white-space: nowrap; }
+.dr-done .dr-ic { font-size: 5vmin; }
+.dr-done:active { transform: translateY(0.6vmin); box-shadow: 0 0.2vmin 0 var(--yellow-dk, #d4a800); }
+
+/* 主區：預覽＋衣櫃 */
+.dr-main { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2.4vmin; min-height: 0; min-width: 0; }
+.dr-stage { position: relative; min-height: 0; min-width: 0; border-radius: 5vmin; overflow: hidden;
+  background: radial-gradient(ellipse 60% 52% at 50% 64%, rgba(255, 255, 255, 0.95) 0, rgba(255, 255, 255, 0.5) 60%, rgba(255, 255, 255, 0) 100%); }
+.dr-cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+.dr-name { position: absolute; left: 50%; bottom: 2vmin; translate: -50% 0; background: #fff; border-radius: 4vmin; padding: 1vmin 3.6vmin; font-size: 4.6vmin; font-weight: 900;
+  color: #c2477a; box-shadow: 0 0.6vmin 1.4vmin rgba(150, 60, 110, 0.18); pointer-events: none; white-space: nowrap; }
+.dr-name:empty { display: none; }
+/* 點配件：配件名大字名牌（≥4.6vmin＋注音，寧次 10-12）跳出來 2 秒；橫式在預覽上方（寵物名牌在下）、直式在下方（寵物名牌在上） */
+.dr-wn { position: absolute; left: 50%; top: 2vmin; translate: -50% 0; background: #fff; border-radius: 4vmin; padding: 1vmin 3.6vmin; font-size: 5vmin; font-weight: 900; line-height: 1.15;
+  color: #6a4aa8; box-shadow: 0 0 0 0.6vmin #d9c8ec, 0 0.8vmin 1.6vmin rgba(110, 70, 160, 0.22); pointer-events: none; white-space: nowrap; z-index: 2;
+  opacity: 0; scale: 0.7; transition: opacity 0.25s ease, scale 0.25s cubic-bezier(.2, 1.6, .4, 1); }
+.dr-wn.show { opacity: 1; scale: 1; }
+.dr-wn.lock { color: #6b6380; box-shadow: 0 0 0 0.6vmin #e6e0ee, 0 0.8vmin 1.6vmin rgba(110, 80, 160, 0.16); }   /* 還沒拿到：灰紫字（對白底 5.6:1） */
+.dr-wn:empty { display: none; }
+
+.dr-closet { display: flex; flex-direction: column; justify-content: center; gap: 1.4vmin; min-height: 0; }
+.dr-group { background: rgba(255, 255, 255, 0.74); border-radius: 3.6vmin; padding: 0.8vmin 1.3vmin 2vmin; box-shadow: 0 0.6vmin 1.6vmin rgba(120, 80, 160, 0.12); }
+.dr-group[data-slot="head"] { background: rgba(255, 246, 214, 0.86); }
+.dr-group[data-slot="side"] { background: rgba(255, 228, 240, 0.86); }
+.dr-group[data-slot="back"] { background: rgba(222, 236, 255, 0.86); }
+.dr-gt { height: 6.2vmin; display: flex; align-items: center; gap: 1vmin; padding-left: 0.6vmin; font-size: 4.6vmin; font-weight: 900; color: #6a4aa8; white-space: nowrap; line-height: 1; }   /* 有注音的字 ≥4.6vmin（寧次 10-12） */
+.dr-gi { font-size: 4.6vmin; }
+.dr-items { display: flex; gap: 1.4vmin; }
+
+/* 衣櫃格子 */
+.dr-item { --t: var(--tile, 16vmin); position: relative; flex: none; width: var(--t); height: var(--t); border-radius: calc(var(--t) * 0.16); background: #fff;
+  box-shadow: 0 0.6vmin 0 #d9c8ec, 0 0 0 0.45vmin #eadff5 inset; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 0; transition: transform 0.12s; overflow: hidden; }
+.dr-item:active { transform: scale(0.94); }
+.dr-pic { width: calc(var(--t) * 0.8); height: calc(var(--t) * 0.8); flex: none; display: flex; align-items: center; justify-content: center; }
+.dr-pic img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.dr-emo { font-size: calc(var(--t) * 0.55); line-height: 1; }
+/* 格子不放名字（寧次 10-12：格子 ×0.15 的字＋注音只有 6px）：點了會說、預覽區跳大字名牌（.dr-wn） */
+.dr-get { display: none; }
+.dr-ok { position: absolute; right: calc(var(--t) * 0.05); top: calc(var(--t) * 0.05); width: calc(var(--t) * 0.26); height: calc(var(--t) * 0.26); border-radius: 50%; background: #ff6f9f; color: #fff;
+  font-size: calc(var(--t) * 0.17); font-weight: 900; display: none; align-items: center; justify-content: center; box-shadow: 0 0.3vmin 0.8vmin rgba(200, 60, 110, 0.35); }
+.dr-item.on { background: #fff1f7; box-shadow: 0 0.6vmin 0 #f0a5c2, 0 0 0 0.8vmin #ff8fb1 inset; }
+.dr-item.on .dr-ok { display: flex; }
+.dr-item.on .dr-pic { animation: drWorn 0.45s cubic-bezier(.2, 1.6, .4, 1); }
+/* 還沒拿到：剪影＋右上角小圖示（🚚 送貨拿得到、藍色扭蛋膠囊＝扭蛋抽得到；點了用說的，格子不放字）；圖示 ×0.24（寧次 10-12：原本 ×0.17 太小） */
+.dr-item.lock { background: rgba(255, 255, 255, 0.55); box-shadow: 0 0.6vmin 0 #d9d2e2, 0 0 0 0.45vmin #e6e0ee inset; }
+.dr-item.lock .dr-pic img { filter: brightness(0) opacity(0.2); }
+.dr-item.lock .dr-get { position: absolute; right: calc(var(--t) * 0.03); top: calc(var(--t) * 0.03); display: flex; align-items: center; gap: calc(var(--t) * 0.015); padding: calc(var(--t) * 0.02) calc(var(--t) * 0.035);
+  border-radius: calc(var(--t) * 0.16); background: rgba(255, 255, 255, 0.95); box-shadow: 0 0.3vmin 0.8vmin rgba(110, 80, 160, 0.22); pointer-events: none; }
+.dr-get > i { font-style: normal; font-size: calc(var(--t) * 0.24); line-height: 1; display: flex; align-items: center; justify-content: center; min-width: calc(var(--t) * 0.24); height: calc(var(--t) * 0.26); }
+.dr-get > i > img { width: calc(var(--t) * 0.24); height: calc(var(--t) * 0.24); object-fit: contain; pointer-events: none; }
+.dr-item.shake { animation: drShake 0.42s ease-in-out; }
+@keyframes drShake { 0%, 100% { translate: 0 0; } 20% { translate: -1.2vmin 0; } 40% { translate: 1.1vmin 0; } 60% { translate: -0.8vmin 0; } 80% { translate: 0.5vmin 0; } }
+@keyframes drWorn { 0% { scale: 0.7; } 100% { scale: 1; } }
+
+/* 沒有 WebGL：圖片版預覽 */
+.dr-fb { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2vmin; padding-bottom: 8vmin; cursor: pointer; }
+.dr-fb-pet { width: 56%; max-height: 62%; object-fit: contain; filter: drop-shadow(0 1.4vmin 1.6vmin rgba(120, 60, 120, 0.22)); }
+.dr-fb-pet.hop { animation: drHop 0.5s cubic-bezier(.3, 1.5, .5, 1); }
+@keyframes drHop { 0%, 100% { translate: 0 0; } 45% { translate: 0 -5vmin; } }
+.dr-fb-wear { display: flex; gap: 1.6vmin; }
+.dr-fb-wear img { width: 11vmin; height: 11vmin; object-fit: contain; background: #fff; border-radius: 2.4vmin; padding: 0.6vmin; box-shadow: 0 0.5vmin 1vmin rgba(0, 0, 0, 0.12); }
+
+/* 直式：預覽在上、衣櫃在下 */
+.dress.portrait .dr-main { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+.dress.portrait .dr-closet { display: grid; grid-template-columns: auto auto; grid-template-areas: "head side" "back back"; justify-content: center; align-content: start; gap: 1.4vmin; }
+.dress.portrait .dr-group[data-slot="head"] { grid-area: head; }
+.dress.portrait .dr-group[data-slot="side"] { grid-area: side; }
+.dress.portrait .dr-group[data-slot="back"] { grid-area: back; }
+.dress.portrait .dr-name { top: 1.6vmin; bottom: auto; }
+.dress.portrait .dr-wn { top: auto; bottom: 2vmin; }
+.dress.portrait .dr-done { height: 11vmin; font-size: 4.6vmin; }
+.dress.portrait .dr-pet { width: 11vmin; height: 11vmin; }
+
+/* ===== 主程式裡的入口與外框（js/zhuyin.js openDress）===== */
+/* 換裝畫面開著：上方 🏠🎵／家長按鈕收起來（「穿好了」就是回去的鈕，不跟寵物列擠在一起） */
+body.on-dress #hudL, body.on-dress #hudR { display: none; }
+#dress { overflow: hidden; }
+/* 圖鑑「🐣 動物朋友」分頁：右上大大的「👗 換裝」（開的是目前選中的夥伴） */
+.album-head .dress-open { margin-left: auto; flex: none; font-size: 5vmin; padding: 1.6vmin 3.6vmin; min-height: 56px; border-radius: 4vmin; white-space: nowrap;
+  background: #ff9ec2; color: #7a1f45; box-shadow: 0 5px 0 #e0709a; }   /* 深莓紅字對粉底 5.2:1（寧次 10-12：白字只有 1.9:1） */
+.album-head .dress-open:active { transform: translateY(3px); box-shadow: none; }
+/* 每張收集到的寵物卡右上角：小小的 👗（點了直接幫這隻換裝；點卡片其他地方＝選夥伴，跟以前一樣） */
+.pet-card { position: relative; }
+.pet-card .pc-dress { position: absolute; right: -1.2vmin; top: -1.2vmin; width: 7.4vmin; height: 7.4vmin; min-width: 44px; min-height: 44px; border-radius: 50%;
+  background: #fff; border: 0.5vmin solid #ff9ec2; box-shadow: 0 0.5vmin 0 #e0709a; font-size: 3.8vmin; line-height: 1; display: flex; align-items: center; justify-content: center; padding: 0; }
+.pet-card .pc-dress:active { scale: 0.9; }

@@ -11,6 +11,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+import * as RWD from "./zhuyin-rewards.js?v=2";   // 寵物換裝：wearOf()／wearPose()（跟換裝畫面同一套）。⚠ 跟 zhuyin.js 的 import 用同一個 ?v（升版號時一起改，才會是同一份模組）
 
 // ---------- 常數 ----------
 const P = { deep: "#3f97c9", grid: "#5fa9d6", shallow: "#7fcfd0", sand: "#ecd7a3", dirt: "#a8673f", dirtDk: "#7d4a2e", grass: "#86c449", grassDk: "#5f9c3a",
@@ -26,9 +27,17 @@ const CAM_EL = 31 * Math.PI / 180;                    // 俯角 31°（計畫 30
 const FPS = 30;                                       // 省電：最多 30 格／秒
 const TAP_MOVE = 24, TAP_MS = 800;                    // 5 歲小孩常按久、拖著點：移動 < 24px、按住 < 0.8 秒都算點（寧次 10-10）
 const DEBUG = /[?&]debug\b/.test(location.search);
+// 彩虹島（10-12：第三座島，主島西邊；彩虹拱橋接主島 z=0 那條東西向路的西端）：
+//   島形＝圓角方塊（中心 RB.x／RB.z、半寬 hx／hz）；島上一圈環狀路 RB_LOOP（圓角長方形中線、轉角半徑 rc），東邊一小段路接橋；
+//   北排（正面朝 +z＝朝鏡頭）：小熊家、寵物服裝店、小兔家；南排：小豬家、彩虹配送站（後面碼頭＋貨船）；環內是風車和彩虹花田
+const RB = { x: -20.3, z: 0.2, hx: 6.6, hz: 6.3, r: 2.2 };
+const RB_LOOP = { x0: -24.6, x1: -16.0, z0: -2.2, z1: 2.4, rc: 1.4 };
+const RAINBOW_NEED = 20;                               // 貼紙幾張開放（★可調；彩虹配送站 MODES.deliver.need 也是 20）
+const RB_COLORS = ["#ff6b6b", "#ffa24c", "#ffd84d", "#7ad66b", "#4fb6f0", "#6f7ff2", "#b583f2"];   // 彩虹七色（粉一點）
 // 遊戲建築（＋扭蛋機）：街區 (bx, bz)，door＝往哪一側的路接過去；鏡頭從 +x+z 看，正面朝 +x 或 +z。
 // ex＝不種樹的範圍；LAYOUT 是模型載完後的實際大小（區域座標，先寫死：模型還在下載時鏡頭就能擺好、浮標就能點，
 // 改了建築要更新——網址加 ?debug 後在主控台跑 __hub3d.measure() 會印出新的值）
+// isle:"rainbow"＝彩虹島上的建築（直接給世界座標 x／z；門口小路由 buildRainbow 接，lockDist＝門口路障離建築中心多遠）
 const DEFS = [
   { mode: "hunt", bx: 0, bz: 0, door: [0, 1], ex: [-1.8, 1.8, -1.8, 1.8] },
   { mode: "match", bx: 2, bz: 0, door: [0, 1], ex: [-1.4, 1.4, -1.5, 1.7] },
@@ -40,7 +49,11 @@ const DEFS = [
   { mode: "frog", bx: 3, bz: 3, door: [0, -1], ex: [-1.8, 1.9, -1.6, 1.7] },
   { mode: "bubble", bx: 2, bz: 3, door: [0, -1], ex: [-1.45, 1.45, -1.35, 2.6] },   // 阿葉 10-11：泡泡救援灣（原本的海灘景點）
   { mode: "gacha", bx: 0, bz: 3, door: [1, 0], ex: [-1.5, 1.5, -1.5, 1.5], free: true },
-].map(d => ({ ...d, x: BC(d.bx), z: BC(d.bz) }));
+  { mode: "deliver", isle: "rainbow", x: -18.4, z: 4.75, door: [0, -1], ex: [-1.6, 1.7, -1.0, 1.8], lockDist: 1.55 },   // 10-12 彩虹配送站（倉庫＋碼頭＋貨船）
+  { mode: "dress", isle: "rainbow", x: -20.3, z: -4.5, door: [0, 1], ex: [-1.1, 1.1, -1.2, 1.0], free: true },        // 10-12 寵物服裝店（像扭蛋機：不用貼紙，點了 opts.onDress()）
+].map(d => ({ ...d, x: d.x ?? BC(d.bx), z: d.z ?? BC(d.bz) }));
+const isleOf = d => d.isle || "main";
+const MAIN_DEFS = DEFS.filter(d => !d.isle);
 const LAYOUT = {   // [box x0,x1,y0,y1,z0,z1]、[anchor x,y,z]、[body x,y,z]（區域座標）
   hunt: [[-1.48, 1.24, 0.5, 2.32, -1.12, 1.43], [0.27, 1.64, 0.27], [0.27, 0.94, 0.27]],
   match: [[-0.8, 0.8, 0, 3.37, -0.87, 1.44], [0, 3.53, -0.15], [0, 1.0, -0.15]],
@@ -52,6 +65,8 @@ const LAYOUT = {   // [box x0,x1,y0,y1,z0,z1]、[anchor x,y,z]、[body x,y,z]（
   frog: [[-1.57, 2.23, -0.16, 1.11, -1.44, 1.82], [0.37, 0.16, 0.32], [0.37, 0.03, 0.32]],
   bubble: [[-1.13, 1.45, 0, 3.24, -0.93, 2.4], [-0.55, 2.57, -0.35], [-0.55, 0.98, -0.35]],
   gacha: [[-1.32, 1.15, 0, 2.34, -1.23, 1.23], [-0.55, 1.99, 0], [-0.55, 0.75, 0]],
+  deliver: [[-1.5, 2.34, -1.27, 1.67, -1.3, 3.6], [0, 1.79, -0.14], [0, 0.67, -0.14]],   // 10-12 measure()；z 只算到碼頭中段（貨船也點得到，影子圓不要大到海上）
+  dress: [[-0.85, 0.9, 0, 2.57, -0.87, 1.18], [0, 2.7, -0.15], [0, 0.83, -0.15]],
 };
 // 景點（沒有浮標、點了沒反應）
 const SPOTS = [
@@ -252,7 +267,7 @@ async function kenney(kit, name, { tints = [], scale = 1, x = 0, y = 0, z = 0, r
 }
 // 自製模型（IMAGE/zy3d/models/）：models.json 有列才載（沒列＝檔案可能還沒做好，抓了會 404）
 let modelList = null;
-function models() { return modelList || (modelList = fetch(MODELS + "models.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : {}).catch(() => ({})).then(j => ({ set: new Set(j.models || []), anchors: j.anchors || {} }))); }
+function models() { return modelList || (modelList = fetch(MODELS + "models.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : {}).catch(() => ({})).then(j => ({ set: new Set(j.models || []), anchors: j.anchors || {}, fit: j.wear_fit || {} }))); }   // fit＝配件擺放微調（寵物換裝）
 async function usableGlb(url) {
   if (!url) return null;
   if (url.startsWith(MODELS)) return (await models()).set.has(url.slice(MODELS.length).replace(/\.glb$/, "")) ? url : null;
@@ -329,8 +344,9 @@ let mainPoly = null, islPoly = null;
 function polyR(poly, x, z) { const a = Math.atan2(z, x), i = Math.round(((a + Math.PI * 2) % (Math.PI * 2)) / (Math.PI * 2) * NA) % NA; return poly[i].length(); }
 function inside(poly, x, z, m = 0) { return Math.hypot(x, z) < polyR(poly, x, z) - m; }
 function groundY(x, z) {
-  for (const t of terraces) if (x > t.x0 && x < t.x1 && z > t.z0 && z < t.z1) return t.y;
+  for (const t of terraces) if (x > t.x0 && x < t.x1 && z > t.z0 && z < t.z1) return t.fy ? t.fy(x, z) : t.y;   // fy：拱橋（高度跟著 x 變）
   if (sdDist(x, z) <= 0) return 0;                     // 新市區
+  if (sdRainbow(x, z) <= 0) return 0;                  // 彩虹島
   return inside(mainPoly, x, z) ? 0 : inside(islPoly, x, z) ? LEDGE_Y : SAND_Y;
 }
 let seaU;
@@ -358,10 +374,11 @@ function buildTerrain() {
   }
   mergeStatic(rocks);
   // 海：烘一張距離場貼圖（島＋礁石）→ 淺水、浪花白邊照著真正的岸線走
-  const N = 288, R = 27, data = new Uint8Array(N * N);   // 範圍含北邊的新市區
+  // 範圍 ±R 含北邊的新市區、西邊的彩虹島（10-12：27 → 36，解析度 N 等比例放大＝每格大小不變；超出範圍 shader 當深水）
+  const R = 36, N = Math.round(288 * R / 27), data = new Uint8Array(N * N);
   for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
     const x = (i + 0.5) / N * 2 * R - R, z = (j + 0.5) / N * 2 * R - R;
-    let d = Math.min(sdIsland(x, z), sdDist(x, z)) - 1.25;
+    let d = Math.min(sdIsland(x, z), sdDist(x, z), sdRainbow(x, z)) - 1.25;
     for (const [rx, rz, rs] of ROCKS) d = Math.min(d, Math.hypot(x - rx, z - rz) - rs * 1.3);
     data[j * N + i] = Math.max(0, Math.min(255, Math.round((d + 3) / 16 * 255)));
   }
@@ -490,7 +507,7 @@ function buildRoads() {
     edge(RN[i], RN[(i + 1) % 4], pts);
   }
   // 每棟建築、每個景點都有一條小路接到門口（門口在人行道內側一點）
-  for (const d of [...DEFS, ...SPOTS]) {
+  for (const d of [...MAIN_DEFS, ...SPOTS]) {          // 彩虹島的建築：buildRainbow 自己接
     const n = graph.nodes.get(nkey(d.x + d.door[0] * PITCH / 2, d.z + d.door[1] * PITCH / 2));
     if (!n) continue;
     const door = node(n.x - d.door[0] * (RW / 2 + SW + 0.2), n.z - d.door[1] * (RW / 2 + SW + 0.2)); door.door = d;
@@ -577,7 +594,7 @@ function startDef(d) {
   if (d.free) return;
   // 施工中：門口小路經過人行道的那一段擋一道路障（橘白斜條紋板＋柱腳），兩邊的三角錐 buildDef 第二段放。
   // 只擋門口：路燈、行道樹都讓開門口 0.9，不會穿模（10-11 阿葉：舊版圍籬沿人行道圍一圈，跟路燈、樹、樓梯打架＝破圖）
-  const g = d.lockDeco, [dx, dz] = d.door, dist = PITCH / 2 - RW / 2 - SW / 2 + 0.05;   // 人行道中線再靠馬路一點（區域座標；讓開建築門口的招牌、花台）
+  const g = d.lockDeco, [dx, dz] = d.door, dist = d.lockDist ?? PITCH / 2 - RW / 2 - SW / 2 + 0.05;   // 人行道中線再靠馬路一點（區域座標；讓開建築門口的招牌、花台）
   const bx = dx * dist, bz = dz * dist, y = groundY(d.x + bx, d.z + bz) + 0.075, w = 0.8;
   d.lockSpot = { x: bx, y, z: bz, ax: dx ? 0 : 1, az: dx ? 1 : 0 };   // ax/az＝沿人行道的方向（路障橫擋、三角錐排兩邊）
   const geo = box(w, 0.2, 0.05), uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setX(i, uv.getX(i) * w / 1.1);
@@ -944,7 +961,95 @@ async function buildBubble(d, p) {
   });
   return hut;
 }
-const BUILDERS = { fish: buildFish, order: buildOrder, build: buildBuild, hunt: buildHunt, match: buildMatch, tone: buildTone, whack: buildWhack, frog: buildFrog, bubble: buildBubble, gacha: buildGacha };
+// 縮到「水平最寬＝size」、轉 ry、中心擺到父層座標 (x, z)、最低點放在 y（父層只有平移時才準：建築的 pivot、場景本身都是）
+function placeFit(o, x, z, size, ry = 0, y = 0) {
+  o.rotation.y = ry; o.updateWorldMatrix(true, true);
+  let b = new THREE.Box3().setFromObject(o); o.scale.multiplyScalar(size / Math.max(b.max.x - b.min.x, b.max.z - b.min.z, 1e-3)); o.updateWorldMatrix(true, true);
+  b = new THREE.Box3().setFromObject(o); const pw = o.parent ? o.parent.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3();
+  o.position.x += x + pw.x - (b.min.x + b.max.x) / 2; o.position.z += z + pw.z - (b.min.z + b.max.z) / 2; o.position.y += y + pw.y - b.min.y;
+  return o;
+}
+// ----- 彩虹配送站（10-12，彩虹島南排）：奶油色倉庫＋彩虹拱頂＋鐵捲門上的七彩遮雨棚；門前貨櫃、貨箱、配送小貨車；後面（南邊、朝鏡頭）碼頭＋貨船 -----
+async function buildDepot(d, p) {
+  const W = 2.5, D = 1.45, H = 1.15, Z = -0.15, front = Z + D / 2, coast = RB.z + RB.hz - d.z;   // 區域座標；coast＝南岸草地邊
+  const shed = new THREE.Group(); p.add(shed);
+  vm(rbox(W, H, D, 0.05), "#fbf3e6", { y: H / 2, z: Z, parent: shed });
+  vm(box(W + 0.03, 0.2, D + 0.03), "#b9a7e8", { y: 0.1, z: Z, parent: shed });          // 牆腳
+  vm(box(W + 0.04, 0.06, D + 0.04), "#ffffff", { y: H - 0.02, z: Z, parent: shed, shadow: false });
+  mesh(rainbowVault(W + 0.16, D / 2 + 0.08, 0.62), vcMat, { y: H + 0.02, z: Z, parent: shed });   // 彩虹拱頂（兩頭的半圓就是一道彩虹）
+  vm(rbox(0.9, 0.72, 0.42, 0.04), "#fbf3e6", { x: -0.7, y: 0.36, z: Z - D / 2 - 0.19, parent: shed });   // 北邊（路那側）小辦公室＋門
+  vm(box(0.26, 0.42, 0.03), "#8a5a3c", { x: -0.55, y: 0.21, z: Z - D / 2 - 0.41, parent: shed, shadow: false });
+  // 南面（朝鏡頭）：大鐵捲門＋七彩遮雨棚＋窗＋招牌
+  vm(box(1.34, 0.96, 0.04), "#ffffff", { y: 0.48, z: front + 0.01, parent: shed, shadow: false });
+  for (let k = 0; k < 6; k++) vm(box(1.18, 0.12, 0.045), k % 2 ? "#c7ccd6" : "#dde2ea", { y: 0.09 + k * 0.145, z: front + 0.02, parent: shed, shadow: false });
+  const aw = rainbowTex(); mesh(box(1.62, 0.04, 0.5), new THREE.MeshLambertMaterial({ map: aw }), { y: 1.06, z: front + 0.21, rx: 0.42, parent: shed });
+  vm(box(1.62, 0.1, 0.03), "#ffffff", { y: 0.94, z: front + 0.43, parent: shed, shadow: false });
+  vm(box(0.34, 0.3, 0.03), "#bfe3f3", { x: 0.98, y: 0.62, z: front + 0.01, parent: shed, shadow: false });
+  sign(shed, "🌈", "#ffffff", -0.95, 0.7, front + 0.02, 0);
+  sign(shed, "🚚", "#4fb6f0", W / 2 + 0.02, 0.72, Z, Math.PI / 2);
+  vm(box(0.03, 0.3, 0.34), "#bfe3f3", { x: W / 2 + 0.01, y: 0.7, z: Z - 0.45, parent: shed, shadow: false });
+  // 門前水泥地、貨櫃、貨箱、木桶、配送小貨車、彩虹旗
+  vm(box(W + 0.5, 0.03, coast - front + 0.05), "#d9d5cc", { y: 0.015, z: (front + coast) / 2, parent: p, shadow: false });
+  const [ca, cb, crate, barrel, truck, dockA, dockB, ship] = await Promise.all([
+    kenney("watercraft-pack", "cargo-container-a", { parent: p }), kenney("watercraft-pack", "cargo-container-c", { parent: p }),
+    kenney("pirate-kit", "crate", { parent: p, scale: 0.28, x: -0.1, y: 0.03, z: front + 0.32, ry: 0.4 }),
+    kenney("pirate-kit", "barrel", { parent: p, scale: 0.19, x: 0.12, y: 0.03, z: front + 0.62 }),
+    kenney("car-kit", "delivery", { parent: p }),
+    kenney("pirate-kit", "structure-platform-dock", { parent: p, scale: 0.68, x: 0.35, z: coast + 0.42, y: -0.2 - 1.31 * 0.68 }),
+    kenney("pirate-kit", "structure-platform-dock", { parent: p, scale: 0.68, x: 0.35, z: coast + 0.42 + 1.7, y: -0.2 - 1.31 * 0.68 }),
+    kenney("watercraft-pack", "ship-cargo-a", { parent: p, shadow: false }),
+  ]);
+  void dockA; void dockB;
+  placeFit(ca, -0.85, front + 0.45, 1.0, 0, 0.03);
+  const cbb = new THREE.Box3().setFromObject(ca); placeFit(cb, -0.8, front + 0.45, 0.95, 0.06, cbb.max.y - 0.005);   // 疊在上面
+  placeFit(truck, 0.78, front + 0.62, 1.25, Math.PI / 2, 0.03);
+  const sb = new THREE.Box3().setFromObject(ship), along = (sb.max.x - sb.min.x) > (sb.max.z - sb.min.z);   // 船身跟碼頭平行（沿 z）
+  placeFit(ship, 1.75, coast + 2.1, 3.1, along ? Math.PI / 2 : 0, SEA_Y - 0.3);
+  ship.userData.dyn = true; const sy0 = ship.position.y;
+  rbTickers.push(t => { ship.position.y = sy0 + Math.sin(t * 1.2) * 0.035; ship.rotation.z = Math.sin(t * 0.9) * 0.025; });
+  const fg = new THREE.Group(); fg.position.set(-1.2, 0, coast - 0.3); p.add(fg);
+  vm(cyl(0.025, 0.03, 1.55, 6), "#e8e6e1", { y: 0.78, parent: fg });
+  const flagM = mesh(box(0.02, 0.34, 0.52), new THREE.MeshLambertMaterial({ map: rainbowTex(7, false) }), { y: 1.36, z: 0.27, parent: fg, shadow: false });
+  const fp = new THREE.Group(); fp.userData.dyn = true; fp.position.set(0, 0, 0); fg.add(fp); fp.attach(flagM);
+  rbTickers.push(t => { fp.rotation.y = Math.sin(t * 2.3) * 0.25; });
+  void crate; void barrel;
+  return shed;
+}
+// ----- 寵物服裝店（10-12，彩虹島北排中間）：粉紫色小店＋條紋遮雨棚；屋頂一個大蝴蝶結慢慢轉（招牌）；門口櫥窗台上的貓戴帽子、小衣架掛三件小衣服 -----
+async function buildDress(d, p) {
+  const [shop, bowU, catU, hatU] = await Promise.all([
+    kenney("city-kit-commercial", "building-d", { parent: p, scale: 1.6, z: -0.15, tints: [[0, 2, "#ffd6ea"], [3, 2, "#fff4fa"], [1, 2, "#c86fb0"], [1, 3, "#a85a9a"]] }),
+    usableGlb(MODELS + "bow.glb"), usableGlb(MODELS + "cat.glb"), usableGlb(MODELS + "hat.glb"),
+  ]);
+  const hb = new THREE.Box3().setFromObject(shop), roof = hb.max.y, front = hb.max.z - d.z, side = hb.max.x - d.x, w = hb.max.x - hb.min.x;
+  mesh(box(w - 0.1, 0.04, 0.48), new THREE.MeshLambertMaterial({ map: stripeTex("#ffffff", "#e86aa6", 7) }), { y: 0.8, z: front + 0.2, rx: 0.4, parent: p });
+  vm(box(w - 0.1, 0.12, 0.03), "#e86aa6", { y: 0.66, z: front + 0.42, parent: p });
+  sign(p, "🎀", "#ffd6ea", side + 0.02, 1.45, -0.15, Math.PI / 2);
+  sign(p, "👒", "#c86fb0", -0.42, 1.42, front + 0.02, 0);
+  stringLights(p, [[hb.min.x - d.x + 0.05, front + 0.02], [hb.max.x - d.x - 0.05, front + 0.02]], 1.3);
+  // 櫥窗台：小圓台上一隻貓戴帽子
+  const ped = new THREE.Group(); ped.position.set(-0.6, 0, front + 0.36); p.add(ped);
+  vm(cyl(0.22, 0.25, 0.16, 16), "#ffffff", { y: 0.08, parent: ped }); vm(cyl(0.235, 0.235, 0.03, 16), "#e86aa6", { y: 0.17, parent: ped, shadow: false });
+  const extra = await Promise.all([catU ? loadAny(catU, { h: 0.46 }) : null, hatU ? loadAny(hatU) : null, bowU ? loadAny(bowU) : null]);
+  const [cat, hat, bow] = extra;
+  if (cat) { cat.position.y += 0.185; cat.rotation.y = CAM_YAW; ped.add(cat); }
+  if (cat && hat) {
+    cat.updateWorldMatrix(true, true); const cb = new THREE.Box3().setFromObject(cat), pw = ped.getWorldPosition(new THREE.Vector3()), c = cb.getCenter(new THREE.Vector3());
+    ped.add(hat); placeFit(hat, c.x - pw.x, c.z - pw.z, 0.3, 0, cb.max.y - pw.y - 0.07); hat.traverse(o => { o.castShadow = false; });
+  }
+  // 小衣架：兩根柱子＋橫桿＋三件小衣服
+  const rk = new THREE.Group(); rk.position.set(0.62, 0, front + 0.36); p.add(rk);
+  for (const x of [-0.26, 0.26]) vm(cyl(0.02, 0.02, 0.62, 6), "#c98a55", { x, y: 0.31, parent: rk, shadow: false });
+  vm(cyl(0.015, 0.015, 0.56, 6), "#c98a55", { y: 0.6, rz: Math.PI / 2, parent: rk, shadow: false });
+  ["#ff6b6b", "#ffd84d", "#4fb6f0"].forEach((c, k) => { vm(rbox(0.14, 0.2, 0.05, 0.02), c, { x: -0.16 + k * 0.16, y: 0.47, parent: rk, shadow: false }); vm(box(0.2, 0.05, 0.05), c, { x: -0.16 + k * 0.16, y: 0.55, parent: rk, shadow: false }); });
+  // 屋頂大蝴蝶結（招牌，慢慢轉；浮標放它上面）
+  let sig = null;
+  if (bow) { const bg = new THREE.Group(); bg.userData.dyn = true; p.add(bg); bg.add(bow); placeFit(bow, 0, 0, 0.95, 0, 0); bg.position.set(0, roof + 0.05, -0.15);
+    bow.traverse(o => { o.castShadow = false; }); sig = bg; rbTickers.push(t => { bg.rotation.y = t * 0.5; bg.position.y = roof + 0.05 + Math.sin(t * 2) * 0.04; }); }
+  d.sig = sig;
+  return shop;
+}
+const BUILDERS = { fish: buildFish, order: buildOrder, build: buildBuild, hunt: buildHunt, match: buildMatch, tone: buildTone, whack: buildWhack, frog: buildFrog, bubble: buildBubble, gacha: buildGacha, deliver: buildDepot, dress: buildDress };
 
 // =========================================================
 // 景點（程式生成的部分第一段就蓋好；Kenney 模型第二段）
@@ -1089,7 +1194,7 @@ const sdDist = (x, z) => sdRoundBox(x - DIST.x, z - DIST.z, DIST.h, DIST.h, DIST
 const town = { agent: {}, sickTags: [], open: undefined, bridge: null, gap: null, barrier: null, nav: null, place: "main", off: { x: 0, y: 0 }, tgt: { x: 0, y: 0 }, zoomTgt: 0, fires: [], cars: {}, parked: {}, nextEvent: 0, siren: 0 };
 const CAR_YAW = 0;                                     // Kenney 車模型的車頭方向修正（車頭朝 +z＝0）
 const civHits = [];
-const shut = e => !!(e.town && !town.open);              // 新市區還沒開：橋跟那邊的路都不走
+const shut = e => !!(e.town && !town.open) || !!(e.rb && !rb.open);   // 新市區／彩虹島還沒開：橋跟那邊的路都不走
 // 第一段（同步）：地、路、橋、路網、四塊地的群組＋點擊盒＋工地
 function buildTown() {
   const g = new THREE.Group(); scene.add(g); statics.push(g);
@@ -1312,11 +1417,12 @@ function makeTownTags() {
 function syncTownTags() {
   if (!town.nav) return;
   for (const c of CIVIC) { if (!c.tag) continue; const lk = c.tag.querySelector(".ht-lock"), txt = c.locked ? `🔒 ${c.need}` : ""; if (lk.textContent !== txt) lk.textContent = txt; c.tag.classList.toggle("locked", !!c.locked); }
-  tagLayer.classList.toggle("in-town", town.place !== "main");
-  try { opts.onPlace(town.place, !!town.open); } catch (e) {}
+  tagLayer.classList.toggle("in-town", town.place !== "main");   // 不在主島：主島浮標收起來
+  tagLayer.classList.toggle("at-town", town.place === "town"); tagLayer.classList.toggle("at-rainbow", town.place === "rainbow");
+  try { opts.onPlace(town.place, !!town.open, { town: !!town.open, rainbow: !!rb.open }); } catch (e) {}
 }
 function placeTownTags() {
-  if (town.place === "main" && Math.hypot(town.off.x, town.off.y) < 0.5) return;   // 在主島：設施浮標是 display:none，不用每格量
+  if (town.place !== "town") return;                   // 不在新市區：設施浮標是 display:none，不用每格量
   const W = innerWidth, H = innerHeight;
   for (const c of CIVIC) {
     if (!c.tag) continue;
@@ -1326,21 +1432,35 @@ function placeTownTags() {
     if (!off) c.tag.style.transform = `translate3d(${(x - w / 2).toFixed(1)}px, ${(y - h - TAIL).toFixed(1)}px, 0)`;
   }
 }
-// 鏡頭飛去新市區／回小島：在擺好的鏡頭上加一個偏移（相機座標），慢慢滑過去；太陽（陰影範圍）跟著移
+// 鏡頭飛去新市區／彩虹島／回小島：在擺好的鏡頭上加一個偏移（相機座標），慢慢滑過去；太陽（陰影範圍）跟著移
+// p＝"main"｜"town"｜"rainbow"（10-12 起三個地點）；地點中心（鏡頭對準、太陽跟過去的點）：
+// zoomL／land＝橫式用的放大倍數、鏡頭再往鏡頭方向（+x+z）偏多少：彩虹島南邊有碼頭和貨船、北排浮標又高，橫式畫面矮 → 小一點、往上挪一點
+const PLACE = { main: { x: 0, z: 0, zoom: 1 }, town: { x: DIST.x, z: DIST.z, zoom: 1.3 }, rainbow: { x: RB.x + 0.2, z: RB.z + 0.9, zoom: 1.2, zoomL: 1.05, land: 0.4 } };
+const placeZoom = P => innerWidth > innerHeight && P.zoomL ? P.zoomL : P.zoom;
 function goPlace(p) {
-  town.place = p; town.off.x += user.px; town.off.y += user.py; user.px = user.py = 0; town.zoomTgt = p === "town" ? 1.3 : 1; syncTownTags();   // 拖過的量併進偏移、一起滑過去（不會跳一下）
-  if (p !== "town") town.tgt.x = town.tgt.y = 0;
-  try { opts.onCivic(p === "town" ? (town.open ? "town" : "townLocked") : "main", { need: DIST_NEED }); } catch (e) {}
+  if (!PLACE[p]) p = "main";
+  if (town.place === "rainbow" && p !== "rainbow") rb.awake = performance.now() + 3000;   // 離開彩虹島：動畫再跑 3 秒（鏡頭還在滑）
+  town.place = p; town.off.x += user.px; town.off.y += user.py; user.px = user.py = 0; town.zoomTgt = placeZoom(PLACE[p]); syncTownTags();   // 拖過的量併進偏移、一起滑過去（不會跳一下）
+  town.sunFrom = [sun.target.position.x, sun.target.position.z]; town.offFrom = [town.off.x, town.off.y];   // 太陽從現在的位置慢慢移到新地點
+  if (p === "main") town.tgt.x = town.tgt.y = 0;
+  try { opts.onCivic(p === "town" ? (town.open ? "town" : "townLocked") : p === "rainbow" ? (rb.open ? "rainbow" : "rainbowLocked") : "main", { need: p === "rainbow" ? RAINBOW_NEED : DIST_NEED }); } catch (e) {}
 }
 function stepPlace(dt) {
-  if (town.place === "town") { _v.set(DIST.x, 0.8, DIST.z).applyMatrix4(baseCam.matrixWorldInverse); town.tgt.x = _v.x - view.cx; town.tgt.y = _v.y - view.cy; }   // 每格算：轉向後鏡頭重新擺過也對得上
+  const P0 = PLACE[town.place] || PLACE.main;
+  if (town.place !== "main") {                         // 每格算：轉向後鏡頭重新擺過也對得上；島的中心放在上下介面之間的中線（直式上面有貼紙那排，不能放正中間）
+    const b = innerWidth > innerHeight ? P0.land || 0 : 0; _v.set(P0.x + b, 0.8, P0.z + b).applyMatrix4(baseCam.matrixWorldInverse);
+    town.tgt.x = _v.x - view.cx; town.tgt.y = _v.y - view.cy + ((view.placeY ?? innerHeight / 2) - innerHeight / 2) / (view.k * placeZoom(P0));
+  }
   const k = 1 - Math.exp(-dt * 3.2), ox = town.off.x, oy = town.off.y;
   if (town.zoomTgt) { user.zoom += (town.zoomTgt - user.zoom) * k; if (Math.abs(town.zoomTgt - user.zoom) < 0.003) { user.zoom = town.zoomTgt; town.zoomTgt = 0; } }
   town.off.x += (town.tgt.x - town.off.x) * k; town.off.y += (town.tgt.y - town.off.y) * k;
+  if (Math.abs(town.tgt.x - town.off.x) + Math.abs(town.tgt.y - town.off.y) < 0.02) { town.off.x = town.tgt.x; town.off.y = town.tgt.y; }   // 差一點點就直接到位（太陽也剛好停在目的地）
   if (Math.abs(town.off.x - ox) + Math.abs(town.off.y - oy) > 0.002) {
-    if (town.place === "town") town.maxOff = Math.max(1, Math.hypot(town.tgt.x, town.tgt.y));
-    const f = Math.min(1, Math.hypot(town.off.x, town.off.y) / (town.maxOff || 1));
-    sun.position.set(-7 + DIST.x * f, 15, 6 + DIST.z * f); sun.target.position.set(DIST.x * f, 0, DIST.z * f); sun.target.updateMatrixWorld(); shadowDirty = true;
+    const [sx0, sz0] = town.sunFrom || [0, 0], [fx0, fy0] = town.offFrom || [0, 0];
+    const tot = Math.hypot(town.tgt.x - fx0, town.tgt.y - fy0), rem = Math.hypot(town.tgt.x - town.off.x, town.tgt.y - town.off.y);
+    const f = tot > 1e-3 ? Math.min(1, Math.max(0, 1 - rem / tot)) : 1, cx = town.place === "main" ? 0 : P0.x, cz = town.place === "main" ? 0 : P0.z;
+    const tx = sx0 + (cx - sx0) * f, tz = sz0 + (cz - sz0) * f;
+    sun.position.set(-7 + tx, 15, 6 + tz); sun.target.position.set(tx, 0, tz); sun.target.updateMatrixWorld(); shadowDirty = true;
   }
 }
 // ----- 點設施：它的車出動 -----
@@ -1491,10 +1611,305 @@ function stepTown(t, dt) {
   if (town.open && built && now > town.nextEvent) {
     town.nextEvent = now + 50000 + Math.random() * 40000;
     const canFire = !CIVIC.find(c => c.id === "fire").locked && !town.fires.length, canSick = !CIVIC.find(c => c.id === "hospital").locked;
-    if (canFire && (!canSick || Math.random() < 0.55)) { const ds = DEFS.filter(d => !d.locked && d.ready && !d.free); if (ds.length) startFire(ds[Math.floor(Math.random() * ds.length)]); }
+    if (canFire && (!canSick || Math.random() < 0.55)) { const ds = MAIN_DEFS.filter(d => !d.locked && d.ready && !d.free); if (ds.length) startFire(ds[Math.floor(Math.random() * ds.length)]); }
     else if (canSick) sickPet();
   }
   placeTownTags(); placeFireTags(); placeSickTags();
+}
+
+// =========================================================
+// 彩虹島（10-12，docs/zhuyin-v5-plan.md §1）：主島西邊、過一座彩虹拱橋。
+// 島上一圈環狀路（圓角長方形）＋東邊一小段路接橋；北排：小熊家、寵物服裝店、小兔家（正面朝路＝朝鏡頭）；
+// 南排：小豬家、彩虹配送站（倉庫背面是碼頭＋貨船，靠近入口）；環內：風車＋彩虹花田；入口一道彩虹拱門。
+// 貼紙 RAINBOW_NEED 張才開：沒開＝拱橋中間那段沉在水裡＋兩頭路障（點了貓頭鷹說還差幾張）；開了＝橋升上來＋opts.onCivic("rainbowOpen")。
+// 彩虹配送站＝DEFS 的 deliver（點了＝點 .mode-card[data-mode=deliver]）；寵物服裝店＝DEFS 的 dress（free，點了 opts.onDress()）。
+// 效能：不會動的全部進 rbStatics（最後另外合併成幾個 draw call；鏡頭在主島時整塊被剔除）、樹／花／標線用 InstancedMesh；
+//       風車、居民、貨船、旗子的動畫在 rbTickers，只有鏡頭在彩虹島（或剛離開 3 秒內）才跑。
+// =========================================================
+const rb = { open: undefined, gap: null, barrier: null, gapHit: null, awake: 0, bridge: null, folk: [] };
+const rbTickers = [], rbHits = [], rbStatics = [];   // rbStatics：彩虹島不會動的東西（最後另外合併 → 鏡頭在主島時整塊被視錐剔除，不用畫）
+const RB_HOUSES = [   // 三戶居民（他們是彩虹配送站的客人）：門口小路接環狀路；side −1＝路北邊（正面朝 +z），+1＝路南邊
+  { id: "bearHouse", name: "小熊", glb: "bear", ico: "🐻", x: -22.7, z: -4.55, side: -1, kit: "building-type-o", roof: "#e0883a", wall: "#fff3e0", paw: "#a8714a" },
+  { id: "bunnyHouse", name: "小兔", glb: "bunny", ico: "🐰", x: -17.9, z: -4.55, side: -1, kit: "building-type-c", roof: "#a98bf0", wall: "#fbf4ff", paw: "#f4efe9" },
+  { id: "pigHouse", name: "小豬", glb: "pig", ico: "🐷", x: -22.3, z: 4.75, side: 1, kit: "building-type-s", roof: "#ff8fa8", wall: "#fff2f4", paw: "#ffb3c1" },
+];
+const RB_SLOTS = [[-15.1, -3.3], [-15.2, 3.9], [-26.5, -3.0]];   // 裝飾放置點（加在全部放置點的最後面：主島、新市區原本的順序不變）
+const RB_LAMPS = [[-21.5, -3.05], [-19.1, -3.05], [-20.35, 3.25], [-25.45, 0.1], [-14.0, -0.85], [-18.6, -1.35]];   // 路燈（人行道上）
+function sdRainbow(x, z) {
+  const u = x - RB.x, v = z - RB.z;
+  let d = sdRoundBox(u, v, RB.hx, RB.hz, RB.r);
+  d = Math.min(d, sdRoundBox(u + 5.6, v + 3.4, 1.6, 1.3, 0.8));     // 西北小岬（放裝飾、種樹）
+  d = Math.max(d, -(Math.hypot(u - 5.4, v - 6.7) - 1.5));            // 東南小海灣（貨船停在旁邊）
+  return d;
+}
+// 環狀路中線（圓角長方形）的距離；connector＝東邊接橋那一小段（z=0）
+const rbLoopD = (x, z) => { const L = RB_LOOP; return Math.abs(sdRoundBox(x - (L.x0 + L.x1) / 2, z - (L.z0 + L.z1) / 2, (L.x1 - L.x0) / 2, (L.z1 - L.z0) / 2, L.rc)); };
+function rbRoadD(x, z) { let d = rbLoopD(x, z); if (x > RB_LOOP.x1 && x < RB.x + RB.hx + 0.2) d = Math.min(d, Math.abs(z)); return d; }
+const rbActive = () => town.place === "rainbow" || performance.now() < rb.awake;
+// 以 (cx, cz) 為中心的輪廓（跟 contour 一樣：沿射線找最外面一個 f ≤ lvl 的點）
+function contourC(f, lvl, cx, cz, maxR = 12, n = 160) {   // 點數比主島少（島小、省三角形）
+  const pts = [];
+  for (let i = 0; i < n; i++) {
+    const a = i / n * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
+    let r = 0; for (let s = 0; s < maxR; s += 0.04) if (f(cx + ca * s, cz + sa * s) <= lvl) r = s;
+    pts.push(new THREE.Vector2(cx + ca * Math.max(0.5, r), cz + sa * Math.max(0.5, r)));
+  }
+  return pts;
+}
+function extrudePoly(parent, pts, top, depth, color, bevel = 0, out = false) {   // 同 buildTerrain 的 ext：平面輪廓 → 往下長的板
+  const geo = new THREE.ExtrudeGeometry(new THREE.Shape(pts), { depth, curveSegments: 4, bevelEnabled: bevel > 0, bevelThickness: bevel * 0.45, bevelSize: bevel, bevelOffset: out ? 0 : -bevel, bevelSegments: 3 });
+  geo.rotateX(Math.PI / 2); geo.translate(0, top - (bevel ? bevel * 0.45 : 0), 0);
+  const m = new THREE.Mesh(geo, mat(color)); m.receiveShadow = true; parent.add(m); return m;
+}
+// 七彩條紋布（遮雨棚、旗子）
+function rainbowTex(n = 7, vertical = true) {
+  return canvasTex(128, 64, (g, w, h) => { for (let i = 0; i < n; i++) { g.fillStyle = RB_COLORS[i % 7]; if (vertical) g.fillRect(i * w / n, 0, w / n + 1, h); else g.fillRect(0, i * h / n, w, h / n + 1); } });
+}
+// 拱型屋頂（沿 x 的半圓筒，壓扁 sq）：每一片照角度塗彩虹七色（兩頭的半圓蓋就是一道彩虹）
+function rainbowVault(len, r, sq) {
+  const geo = new THREE.CylinderGeometry(r, r, len, 21, 1, false, -Math.PI / 2, Math.PI).toNonIndexed();
+  geo.rotateX(-Math.PI / 2); geo.rotateY(Math.PI / 2); geo.scale(1, sq, 1);
+  const p = geo.attributes.position, col = new Float32Array(p.count * 3);
+  for (let i = 0; i < p.count; i += 3) {
+    let cy = 0, cz = 0; for (let k = 0; k < 3; k++) { cy += p.getY(i + k) / 3; cz += p.getZ(i + k) / 3; }
+    const a = Math.atan2(cy / sq, -cz), band = Math.max(0, Math.min(6, Math.floor(a / Math.PI * 7)));
+    _c.set(RB_COLORS[band]); for (let k = 0; k < 3; k++) col.set([_c.r, _c.g, _c.b], (i + k) * 3);
+  }
+  geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  return geo;
+}
+// 第一段（同步）：地形、路、拱橋、拱門、路網、風車、花田、樹（都不用下載）
+function buildRainbow() {
+  const g = new THREE.Group(); scene.add(g); rbStatics.push(g);
+  const C = new THREE.Vector2(RB.x, RB.z), shrink = (pts, k) => pts.map(p => p.clone().sub(C).multiplyScalar(k).add(C));
+  rb.poly = contourC(sdRainbow, 0, RB.x, RB.z);
+  extrudePoly(g, rb.poly, 0, 0.1, P.grass, 0.04);                                     // 草地
+  extrudePoly(g, shrink(rb.poly, 0.997), -0.08, 0.52, P.dirt).castShadow = true;       // 土壁
+  extrudePoly(g, shrink(rb.poly, 0.994), -0.58, 0.2, P.dirtDk);
+  extrudePoly(g, contourC(sdRainbow, 0.7, RB.x, RB.z), SAND_Y, 0.4, P.sand, 0.55, true);   // 沙灘（往外斜進水裡）
+  // ----- 路：環狀路（直段＝方塊、轉角＝圓環片）＋東邊接橋的一小段 -----
+  const L = RB_LOOP, rc = L.rc, laneM = mat("#8f93a3"), walkM = mat("#e6e2ee"), sw = RW / 2 + SW / 2;
+  const rect = (x0, x1, z0, z1, h, m) => mesh(box(x1 - x0, h, z1 - z0), m, { x: (x0 + x1) / 2, y: h / 2, z: (z0 + z1) / 2, shadow: false, parent: g });
+  const ring = (r0, r1, cx, cz, a0, a1, y, m) => { const geo = new THREE.RingGeometry(r0, r1, 12, 1, -a1, a1 - a0); geo.rotateX(-Math.PI / 2); mesh(geo, m, { x: cx, y, z: cz, shadow: false, parent: g }); };
+  for (const z of [L.z0, L.z1]) {                                                      // 北、南直段
+    rect(L.x0 + rc, L.x1 - rc, z - RW / 2, z + RW / 2, 0.045, laneM);
+    for (const s of [-1, 1]) rect(L.x0 + rc, L.x1 - rc, z + s * RW / 2 - (s < 0 ? SW : 0), z + s * RW / 2 + (s > 0 ? SW : 0), 0.075, walkM);
+  }
+  for (const x of [L.x0, L.x1]) {                                                      // 西、東直段（東邊外側人行道讓出接橋的路口）
+    const out = x === L.x0 ? -1 : 1, za = L.z0 + rc, zb = L.z1 - rc;                       // out＝環外側的方向
+    rect(x - RW / 2, x + RW / 2, za, zb, 0.045, laneM);
+    const i0 = x - out * (RW / 2 + SW), i1 = x - out * RW / 2, o0 = x + out * RW / 2, o1 = x + out * (RW / 2 + SW);
+    rect(Math.min(i0, i1), Math.max(i0, i1), za, zb, 0.075, walkM);                        // 內側
+    if (out < 0) rect(Math.min(o0, o1), Math.max(o0, o1), za, zb, 0.075, walkM);
+    else { rect(o0, o1, za, -RW / 2, 0.075, walkM); rect(o0, o1, RW / 2, zb, 0.075, walkM); }
+  }
+  const CORNER = [[L.x1 - rc, L.z0 + rc, -Math.PI / 2, 0], [L.x1 - rc, L.z1 - rc, 0, Math.PI / 2], [L.x0 + rc, L.z1 - rc, Math.PI / 2, Math.PI], [L.x0 + rc, L.z0 + rc, Math.PI, Math.PI * 1.5]];
+  for (const [cx, cz, a0, a1] of CORNER) { ring(rc - RW / 2, rc + RW / 2, cx, cz, a0, a1, 0.046, laneM); ring(rc + RW / 2, rc + RW / 2 + SW, cx, cz, a0, a1, 0.076, walkM); ring(rc - RW / 2 - SW, rc - RW / 2, cx, cz, a0, a1, 0.076, walkM); }
+  let xe = RB.x; while (sdRainbow(xe + 0.02, 0) <= 0) xe += 0.02;                       // 島的東岸（z=0 那一點）
+  rect(L.x1 + RW / 2, xe + 0.05, -RW / 2, RW / 2, 0.045, laneM);                         // 接橋的路
+  for (const s of [-1, 1]) rect(L.x1 + RW / 2 + SW, xe - 0.05, s < 0 ? -RW / 2 - SW : RW / 2, s < 0 ? -RW / 2 : RW / 2 + SW, 0.075, walkM);
+  // 路面中線：彩虹色虛線（環狀路一圈＋接橋那段；路口不畫）
+  const dashes = [], path = [];
+  const segLine = (x0, z0, x1, z1) => { const n = Math.max(1, Math.round(Math.hypot(x1 - x0, z1 - z0) / 0.05)); for (let i = 0; i <= n; i++) path.push([x0 + (x1 - x0) * i / n, z0 + (z1 - z0) * i / n]); };
+  const segArc = (cx, cz, a0, a1) => { for (let i = 0; i <= 24; i++) { const a = a0 + (a1 - a0) * i / 24; path.push([cx + Math.cos(a) * rc, cz + Math.sin(a) * rc]); } };
+  segLine(L.x0 + rc, L.z0, L.x1 - rc, L.z0); segArc(...CORNER[0]); segLine(L.x1, L.z0 + rc, L.x1, L.z1 - rc); segArc(...CORNER[1]);
+  segLine(L.x1 - rc, L.z1, L.x0 + rc, L.z1); segArc(...CORNER[2]); segLine(L.x0, L.z1 - rc, L.x0, L.z0 + rc); segArc(...CORNER[3]);
+  for (let i = 1, acc = 0.3; i < path.length; i++) {
+    const [ax, az] = path[i - 1], [bx, bz] = path[i]; acc += Math.hypot(bx - ax, bz - az);
+    if (acc < 0.62) continue; acc = 0;
+    if (Math.hypot(bx - L.x1, bz) < RW) continue;                                         // 接橋的路口
+    dashes.push([bx, bz, Math.atan2(bx - ax, bz - az)]);
+  }
+  for (let x = L.x1 + RW / 2 + 0.4; x < xe - 0.2; x += 0.62) dashes.push([x, 0, Math.PI / 2]);
+  const dm = new THREE.InstancedMesh(box(0.07, 0.01, 0.3), new THREE.MeshLambertMaterial(), dashes.length);
+  dashes.forEach(([x, z, r], k) => { _m4.compose(_v.set(x, 0.05, z), _q.setFromAxisAngle(_s.set(0, 1, 0), r), _s.set(1, 1, 1)); dm.setMatrixAt(k, _m4); dm.setColorAt(k, _c.set(RB_COLORS[k % 7])); });
+  dm.receiveShadow = true; scene.add(dm);
+  // ----- 路網：環狀路（每個門口一個節點）＋接橋的路＋橋（全部標 e.rb：沒開就不走）-----
+  const T = e => { e.rb = true; return e; };
+  const mainEnd = [...graph.nodes.values()].filter(n => Math.abs(n.z) < 0.01 && !n.door && n.x < 0).sort((a, b) => a.x - b.x)[0];
+  const stopN = [-22.7, -20.3, -17.9], stopS = [-18.4, -22.3];                            // 北排三戶、南排兩棟的門口（x；路是從東往西接）
+  const chain = pts => { for (let i = 1; i < pts.length; i++) T(edge(node(...pts[i - 1]), node(...pts[i]))); };
+  const arc = (cx, cz, a0, a1) => { const pts = []; for (let k = 0; k <= 6; k++) { const a = a0 + (a1 - a0) * k / 6; pts.push(new THREE.Vector2(cx + Math.cos(a) * rc, cz + Math.sin(a) * rc)); } T(edge(node(pts[0].x, pts[0].y), node(pts[6].x, pts[6].y), pts)); };
+  chain([[L.x0 + rc, L.z0], ...stopN.map(x => [x, L.z0]), [L.x1 - rc, L.z0]]); arc(...CORNER[0]);
+  chain([[L.x1, L.z0 + rc], [L.x1, 0], [L.x1, L.z1 - rc]]); arc(...CORNER[1]);
+  chain([[L.x1 - rc, L.z1], ...stopS.map(x => [x, L.z1]), [L.x0 + rc, L.z1]]); arc(...CORNER[2]);
+  chain([[L.x0, L.z1 - rc], [L.x0, L.z0 + rc]]); arc(...CORNER[3]);
+  const nE = node(xe, 0), gate = T(edge(mainEnd, nE)); gate.rbGate = true; T(edge(nE, node(L.x1, 0)));
+  const doorAt = (x, zRoad, dz, owner) => {                                               // dz＝建築在路的哪一邊（−1 北、+1 南）
+    const n = graph.nodes.get(nkey(x, zRoad)), dn = node(x, zRoad + dz * (RW / 2 + SW + 0.2)); dn.door = owner; T(edge(n, dn, null, true));
+    vm(box(0.7, 0.03, 0.4), "#d9d3ca", { x: dn.x, y: 0.03, z: dn.z, shadow: false, parent: g }); return dn;
+  };
+  for (const d of DEFS.filter(q => q.isle)) d.doorNode = doorAt(d.x, d.door[1] < 0 ? L.z1 : L.z0, d.door[1] < 0 ? 1 : -1, d);
+  for (const h of RB_HOUSES) {
+    h.door = doorAt(h.x, h.side < 0 ? L.z0 : L.z1, h.side, h);
+    // 門牌（動物圖案）＋居民站的位置：北排＝門口小路兩旁（房子正面朝鏡頭）；南排的房子背對鏡頭 → 改站在房子東邊（不然被房子擋住）
+    const dz = h.door.z + h.side * 0.12;
+    Object.assign(h, h.side < 0 ? { sx: h.x - 0.55, sz: dz, px: h.x + 0.62, pz: dz } : { sx: h.x + 1.12, sz: h.z - 0.95, px: h.x + 1.2, pz: h.z - 0.3 });
+  }
+  for (const [x, z] of RB_LAMPS) graph.lamps.push([x, z]);
+  for (const h of RB_HOUSES) exRects.push([h.x - 1.15, h.x + 1.15, h.z - 1.1, h.z + 1.1]);
+  // ----- 彩虹拱橋：橋面跟著拱形高低（terraces 的 fy），欄杆七彩；中間那段＝沒開時沉在水裡 -----
+  const xa = mainEnd.x + 0.2, xb = xe - 0.05, BL = xa - xb, BH = 0.55, bw = RW + 0.5;
+  const yA = x => 0.04 + BH * Math.sin(Math.PI * Math.min(1, Math.max(0, (xa - x) / BL)));
+  terraces.push({ x0: xb, x1: xa, z0: -bw / 2, z1: bw / 2, y: 0.04, fy: x => yA(x) });
+  exRects.push([xb - 0.3, xa + 0.6, -1.4, 1.4]);                                          // 兩頭不要種樹
+  const deckPart = (parent, xs, xe2, withRail = true) => {                                // 一段橋面（xs > xe2：從東往西）
+    const n = Math.max(2, Math.round((xs - xe2) / 0.2)), top = [], bot = [];
+    for (let i = 0; i <= n; i++) { const x = xs - (xs - xe2) * i / n; top.push([x, yA(x) + 0.05]); bot.push([x, yA(x) - 0.09]); }
+    const sh = new THREE.Shape(); sh.moveTo(...top[0]); for (const p of top.slice(1)) sh.lineTo(...p); for (const p of bot.reverse()) sh.lineTo(...p); sh.closePath();
+    const deckG = new THREE.ExtrudeGeometry(sh, { depth: bw, bevelEnabled: false }); deckG.translate(0, 0, -bw / 2);
+    mesh(deckG, mat("#e9dcc6"), { parent });
+    const rs = new THREE.Shape(); rs.moveTo(top[0][0], top[0][1] + 0.012); for (const [x] of top.slice(1)) rs.lineTo(x, yA(x) + 0.062); for (let i = n; i >= 0; i--) { const x = xs - (xs - xe2) * i / n; rs.lineTo(x, yA(x) + 0.049); } rs.closePath();
+    const roadG = new THREE.ExtrudeGeometry(rs, { depth: RW - 0.1, bevelEnabled: false }); roadG.translate(0, 0, -(RW - 0.1) / 2);
+    mesh(roadG, mat("#9a9fae"), { parent, shadow: false });
+    if (!withRail) return;
+    for (const s of [-1, 1]) for (let x = xs; x > xe2 - 0.01; x -= 0.42) {                // 欄杆：柱子＋扶手，顏色照在橋上的位置分七段
+      const k = Math.min(6, Math.floor((xa - x) / BL * 7)), y = yA(x);
+      vm(box(0.07, 0.32, 0.07), "#ffffff", { x, y: y + 0.21, z: s * (bw / 2 - 0.05), parent, shadow: false });
+      const x2 = Math.max(xe2, x - 0.42); if (x - x2 < 0.05) continue;
+      const y2 = yA(x2), len = Math.hypot(x - x2, y - y2);
+      vm(box(len + 0.02, 0.07, 0.08), RB_COLORS[k], { x: (x + x2) / 2, y: (y + y2) / 2 + 0.37, z: s * (bw / 2 - 0.05), rz: Math.atan2(y - y2, x - x2), parent, shadow: false });
+    }
+  };
+  const third = BL / 3, br = new THREE.Group(); scene.add(br); rbStatics.push(br);
+  deckPart(br, xa, xa - third); deckPart(br, xb + third, xb);
+  for (const x of [xa - third * 0.55, xb + third * 0.55]) for (const s of [-1, 1]) vm(cyl(0.13, 0.16, 1.2, 8), "#c9b9a6", { x, y: yA(x) - 0.62, z: s * (bw / 2 - 0.25), parent: br });   // 橋墩
+  rb.gap = new THREE.Group(); scene.add(rb.gap); deckPart(rb.gap, xa - third, xb + third); mergeStatic(rb.gap);
+  rb.barrier = new THREE.Group(); scene.add(rb.barrier);
+  for (const x of [xa - third - 0.15, xb + third + 0.15]) {                              // 沒開：缺口兩頭各一道施工路障
+    const bg = new THREE.Group(); bg.position.set(x, yA(x) + 0.08, 0); bg.rotation.y = Math.PI / 2; rb.barrier.add(bg);
+    const geo = box(bw - 0.3, 0.18, 0.05), uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setX(i, uv.getX(i) * (bw - 0.3) / 1.1);
+    mesh(geo, fenceMat, { y: 0.4, parent: bg }); mesh(geo, fenceMat, { y: 0.16, parent: bg });
+    for (const s of [-1, 1]) mesh(box(0.07, 0.56, 0.07), postMat, { x: s * (bw / 2 - 0.2), y: 0.28, parent: bg });
+  }
+  rb.gapHit = new THREE.Mesh(box(BL + 0.4, 1.6, bw + 0.6), new THREE.MeshBasicMaterial({ visible: false })); rb.gapHit.position.set((xa + xb) / 2, 0.5, 0); rb.gapHit.userData.rbLock = true; scene.add(rb.gapHit); rbHits.push(rb.gapHit);
+  rb.bridge = { xa, xb, third, yA };
+  // ----- 入口彩虹拱門（七道半圓、兩腳踩在白雲上）-----
+  const ag = new THREE.Group(); ag.position.set(xe - 0.75, 0, 0); g.add(ag);
+  RB_COLORS.forEach((c, i) => { const tg = new THREE.TorusGeometry(1.62 - i * 0.075, 0.042, 6, 28, Math.PI); tg.rotateY(Math.PI / 2); vm(tg, c, { y: 0.02, parent: ag, shadow: i === 3 }); });
+  for (const s of [-1, 1]) for (const [dx, dy, dz, r] of [[0, 0.12, 0, 0.3], [0.2, 0.08, 0.12, 0.22], [-0.18, 0.07, -0.1, 0.2], [0.05, 0.3, 0.05, 0.2]]) vm(new THREE.IcosahedronGeometry(r, 1), "#ffffff", { x: dx, y: dy, z: s * 1.4 + dz, parent: ag, shadow: false });
+  // ----- 風車（環內西邊；四片彩色風帆，朝鏡頭轉）-----
+  const wm = new THREE.Group(); wm.position.set(-22.75, 0, 0.1); wm.rotation.y = Math.PI / 4; scene.add(wm); rbStatics.push(wm);
+  vm(cyl(0.44, 0.62, 1.75, 8), "#f6eedb", { y: 0.875, ry: Math.PI / 8, parent: wm });   // 轉 22.5°：正面是平的（門、窗貼得上去）
+  for (const y of [0.55, 1.15]) { const r = 0.62 - 0.18 * y / 1.75 + 0.03; vm(cyl(r, r, 0.06, 8), "#c98a55", { y, ry: Math.PI / 8, parent: wm, shadow: false }); }
+  vm(new THREE.ConeGeometry(0.6, 0.62, 8), "#e25d4f", { y: 2.06, parent: wm });
+  vm(box(0.3, 0.46, 0.06), "#8a5a3c", { y: 0.23, z: 0.57, parent: wm, shadow: false });
+  for (const [y, x] of [[1.0, 0], [1.45, 0]]) vm(box(0.2, 0.22, 0.05), "#bfe3f3", { x, y, z: 0.5 - (y - 1) * 0.12, parent: wm, shadow: false });
+  vm(cyl(0.09, 0.09, 0.3, 10), "#8a5a3c", { y: 1.68, z: 0.5, rx: Math.PI / 2, parent: wm, shadow: false });
+  const blades = new THREE.Group(); blades.position.set(0, 1.68, 0.68); blades.userData.dyn = true; wm.add(blades);
+  ["#ff6b6b", "#ffd84d", "#4fb6f0", "#7ad66b"].forEach((c, k) => { const arm = new THREE.Group(); arm.rotation.z = k * Math.PI / 2; blades.add(arm);
+    vm(box(0.06, 1.08, 0.04), "#8a5a3c", { y: 0.54, parent: arm, shadow: false }); vm(box(0.26, 0.74, 0.02), c, { x: 0.15, y: 0.66, z: 0.02, parent: arm, shadow: false }); });
+  vm(new THREE.SphereGeometry(0.1, 10, 8), "#ffd84d", { parent: blades, shadow: false });
+  mergeStatic(blades);
+  rbTickers.push(t => { blades.rotation.z = -t * 0.9; });
+  // ----- 彩虹花田（七排，一排一色；環內東邊）-----
+  const fl = [], rnd = rng(77);
+  for (let i = 0; i < 7; i++) {
+    const z = -0.82 + i * 0.31; vm(box(3.7, 0.08, 0.2), "#8a5a3c", { x: -19.5, y: 0.04, z, parent: g, shadow: false });
+    for (let x = -21.25; x < -17.7; x += 0.2) fl.push([x + (rnd() - 0.5) * 0.06, 0.13 + rnd() * 0.04, z + (rnd() - 0.5) * 0.08, i]);
+  }
+  const fm = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.075, 0), new THREE.MeshLambertMaterial(), fl.length);
+  fl.forEach(([x, y, z, i], k) => { _m4.makeTranslation(x, y, z); fm.setMatrixAt(k, _m4); fm.setColorAt(k, _c.set(RB_COLORS[i])); });
+  fm.castShadow = false; scene.add(fm);
+  exRects.push([-23.6, -17.0, -1.2, 1.4]);                                                // 環裡面：風車、花田，不種樹
+  // ----- 樹、灌木（島的邊上；InstancedMesh）-----
+  const inst = [[], [], [], [], []], rt = rng(41), doorsXZ = [...DEFS.filter(q => q.isle).map(q => q.doorNode), ...RB_HOUSES.map(h => h.door)];
+  for (let x = RB.x - 8; x <= RB.x + 8; x += 0.55) for (let z = RB.z - 7.5; z <= RB.z + 7.5; z += 0.55) {
+    const jx = x + (rt() - 0.5) * 0.35, jz = z + (rt() - 0.5) * 0.35, sd = sdRainbow(jx, jz);
+    if (sd > -0.45 || rbRoadD(jx, jz) < RW / 2 + SW + 0.35 || exRects.some(([a, b, c, d]) => jx > a && jx < b && jz > c && jz < d)) continue;
+    if (RB_SLOTS.some(([sx, sz]) => Math.hypot(jx - sx, jz - sz) < 0.8) || doorsXZ.some(n => Math.hypot(jx - n.x, jz - n.z) < 0.9) || RB_LAMPS.some(([lx, lz]) => Math.hypot(jx - lx, jz - lz) < 0.7)) continue;
+    if (RB_HOUSES.some(h => Math.hypot(jx - h.px, jz - h.pz) < 1.1 || Math.hypot(jx - h.sx, jz - h.sz) < 0.6)) continue;   // 居民、門牌旁邊不種（不然擋住）
+    if (treeXZ.some(([a, b]) => Math.hypot(a - jx, b - jz) < 0.8)) continue;
+    const coast = sd > -1.6, r = rt();
+    if (r < (coast ? 0.42 : 0.14)) { treeXZ.push([jx, jz]); const v = rt(); inst[v < 0.4 ? 0 : v < 0.6 ? 1 : v < 0.8 ? 2 : 3].push([jx, 0, jz, 0.8 + rt() * 0.3, rt() * 6.28]); blob(jx, jz, 1.0, 0); }
+    else if (r < (coast ? 0.56 : 0.22)) { treeXZ.push([jx, jz]); inst[4].push([jx, 0, jz, 0.8 + rt() * 0.4, rt() * 6.28]); blob(jx, jz, 0.6, 0); }
+  }
+  inst.forEach((list, v) => {
+    if (!list.length) return;
+    const im = new THREE.InstancedMesh(v < 4 ? TREE_GEOS[v] : BUSH_GEO, vcMat, list.length);
+    list.forEach(([x, y, z, s, r], k) => { _m4.compose(_v.set(x, y, z), _q.setFromAxisAngle(_s.set(0, 1, 0), r), _s.set(s, s, s)); im.setMatrixAt(k, _m4); });
+    im.castShadow = im.receiveShadow = true; scene.add(im);
+  });
+  blob(-22.75, 0.1, 1.6, 0);
+}
+// 第二段（要下載的）：三戶人家＋門口的居民＋門牌、小兔的紅蘿蔔田、小熊的蜂蜜罐、小豬的泥巴坑
+async function buildRainbowKenney() {
+  const g = new THREE.Group(); scene.add(g); rbStatics.push(g);
+  await Promise.all(RB_HOUSES.map(async h => {
+    const m = await kenney("city-kit-suburban", h.kit, { parent: g, tints: [[0, 1, h.roof], [3, 2, h.wall]] });
+    placeFit(m, h.x, h.z, 1.9, h.side < 0 ? 0 : Math.PI);
+    const { sx, sz, px, pz } = h;                        // 門牌（動物圖案，不放國字）、居民的位置（buildRainbow 算好）
+    const sg = new THREE.Group(); sg.position.set(sx, 0, sz); sg.rotation.y = Math.PI / 4; g.add(sg);
+    vm(cyl(0.035, 0.04, 0.62, 6), P.wood, { y: 0.31, parent: sg }); sign(sg, h.ico, h.roof, 0, 0.72, 0.03, 0);
+    blob(sx, sz, 0.3, 0);
+    // 居民：偶爾跳一下、搖一搖揮手；點了唸名字
+    const url = await usableGlb(MODELS + h.glb + ".glb"); if (!url || dead) return;
+    const raw = await loadAny(url, { h: 0.78 }); if (dead) return;
+    const holder = new THREE.Group(); holder.position.set(px, 0, pz); holder.rotation.y = CAM_YAW; scene.add(holder);
+    const body = new THREE.Group(); body.add(raw); holder.add(body); mergeStatic(raw); raw.traverse(o => { if (o.isMesh) o.castShadow = false; });
+    const paw = vm(new THREE.SphereGeometry(0.075, 10, 8), h.paw, { x: 0.3, y: 0.45, parent: body, shadow: false }); paw.visible = false;
+    const hit = new THREE.Mesh(box(0.9, 1.2, 0.9), new THREE.MeshBasicMaterial({ visible: false })); hit.position.y = 0.6; holder.add(hit);
+    const f = { h, holder, body, paw, hit, act: 0, kind: "", next: 2 + Math.random() * 4, ph: Math.random() * 6 };
+    hit.userData.folk = f; rbHits.push(hit); rb.folk.push(f); holder.visible = !!rb.shownFolk;
+    const hh = new THREE.Mesh(box(1.9, 1.6, 1.9), new THREE.MeshBasicMaterial({ visible: false })); hh.position.set(h.x, 0.8, h.z); hh.userData.folk = f; scene.add(hh); rbHits.push(hh);   // 點房子＝點居民
+    blob(holder.position.x, holder.position.z, 0.45, 0);
+  }));
+  // 小兔家：門口旁邊一塊紅蘿蔔田；小熊家：蜂蜜罐；小豬家：屋後泥巴坑＋南瓜
+  const bun = RB_HOUSES[1], bear = RB_HOUSES[0], pig = RB_HOUSES[2];
+  const soil = slab({ hx: 0.42, hz: 0.55, r: 0.15, top: 0.06, depth: 0.1, color: "#8a5a3c", x: bun.x + 1.35, z: bun.z + 0.15 }); g.add(soil);
+  await Promise.all([
+    ...[-0.25, 0.25].map(dz => kenney("nature-kit", "crop_carrot", { parent: g, scale: 0.8, x: bun.x + 1.35, y: 0.06, z: bun.z + 0.15 + dz })),
+    ...[[0.8, 0.5], [1.15, 0.2]].map(([dx, dz]) => kenney("nature-kit", "crop_pumpkin", { parent: g, scale: 0.75, x: pig.x + dx, y: 0, z: pig.z + dz + 0.5 })),
+  ]).catch(e => console.warn("[hub3d] 彩虹島菜園", e));
+  const pot = new THREE.Group(); pot.position.set(bear.x - 1.25, 0, bear.z + 0.55); g.add(pot);
+  vm(cyl(0.2, 0.17, 0.32, 12), "#ffc93c", { y: 0.16, parent: pot }); vm(cyl(0.22, 0.22, 0.06, 12), "#e0a020", { y: 0.33, parent: pot, shadow: false }); vm(cyl(0.1, 0.12, 0.08, 10), "#8a5a3c", { y: 0.39, parent: pot, shadow: false });
+  vm(new THREE.SphereGeometry(0.14, 10, 8), "#ffc93c", { x: 0.32, y: 0.1, z: 0.12, parent: pot }).scale.set(1, 0.7, 1);
+  blob(pot.position.x, pot.position.z, 0.5, 0);
+  const mud = new THREE.CircleGeometry(0.42, 18); mud.rotateX(-Math.PI / 2); mud.scale(1.3, 1, 0.8); vm(mud, "#7a5236", { x: pig.x - 0.55, y: 0.012, z: pig.z + 1.12, parent: g, shadow: false });
+  for (const [dx, dz] of [[-0.3, 0.05], [0.25, -0.08]]) vm(new THREE.CircleGeometry(0.07, 8).rotateX(-Math.PI / 2), "#9a6a48", { x: pig.x - 0.55 + dx, y: 0.016, z: pig.z + 1.12 + dz, parent: g, shadow: false });
+  // 居民動畫（只在鏡頭在彩虹島時跑）：平常輕輕呼吸，每 4～9 秒跳一下或搖一搖揮手
+  rbTickers.push((t) => {
+    for (const f of rb.folk) {
+      if (!f.act && t > f.next) { f.act = t; f.kind = Math.random() < 0.5 ? "hop" : "wave"; f.next = t + 4 + Math.random() * 5; }
+      let y = 0, rz = 0, sq = 1 + Math.sin(t * 2.2 + f.ph) * 0.02, pw = false;
+      if (f.act) {
+        const u = (t - f.act) / (f.kind === "hop" ? 0.6 : 1.3);
+        if (u >= 1) f.act = 0;
+        else if (f.kind === "hop") { y = Math.sin(Math.PI * u) * 0.38; sq = 1 + Math.sin(Math.PI * u) * 0.08; }
+        else { rz = Math.sin(u * Math.PI * 4) * 0.2 * (1 - u); pw = true; f.paw.position.set(0.32, 0.62 + Math.abs(Math.sin(u * Math.PI * 4)) * 0.16, 0.05); }
+      }
+      f.body.position.y = y; f.body.rotation.z = rz; f.body.scale.set(1, sq, 1); f.paw.visible = pw;
+    }
+  });
+  shadowDirty = true;
+}
+// 解鎖狀態：貼紙夠 → 拱橋接上、寵物服裝店亮起來（animate＝剛剛解鎖：橋升起＋主程式宣告）
+function syncRainbow(animate) {
+  const n = opts.stickers ? opts.stickers() : 0, open = n >= RAINBOW_NEED;
+  if (rb.open !== open) {
+    const was = rb.open; rb.open = open;
+    if (!open) for (const a of agents) if (!a.vip && a.e && a.e.rb) placeAgent(a, a.kind);   // 換成貼紙少的存檔位：在彩虹島上的寵物、車搬回來
+    if (open && animate && was === false) { rbBridgeRise(); try { opts.onCivic("rainbowOpen", {}); } catch (e) {} }
+    else { rb.gap.visible = open; rb.gap.position.y = 0; rb.barrier.visible = !open; }
+    rb.gapHit.visible = !open;
+  }
+  const dr = DEFS.find(d => d.mode === "dress");
+  if (dr.locked !== !open) setLocked(dr, !open, animate && dr.locked !== undefined);
+  syncTag(dr); syncTownTags();                          // 地點鈕的「彩虹島 🔒」跟著更新
+}
+function rbBridgeRise() {
+  rb.gap.visible = true; const t0 = performance.now();
+  anims.add({ update(now) { const u = Math.min(1, (now - t0) / 1100); rb.gap.position.y = -1.6 * (1 - easeOutBack(u)); rb.barrier.scale.y = Math.max(0.001, 1 - u); if (u >= 1) { rb.barrier.visible = false; rb.barrier.scale.y = 1; shadowDirty = true; } return u < 1; } });
+}
+function tapFolk(f) {
+  if (town.place !== "rainbow" || (f.act && f.kind === "hop")) return;
+  f.act = performance.now() / 1000; f.kind = "hop"; f.next = f.act + 3;
+  later(() => { f.act = performance.now() / 1000; f.kind = "wave"; }, 620);
+  try { opts.onFriend({ name: f.h.name }); } catch (e) {}
+}
+function tapRbLock() {
+  const now = performance.now(); if (now < tapLockUntil || rb.open) return; tapLockUntil = now + 700;
+  try { opts.onCivic("rainbowLocked", { need: RAINBOW_NEED }); } catch (e) {}
 }
 
 // =========================================================
@@ -1597,6 +2012,7 @@ function nextEdge(a) {
   }
   if (n.door && a.kind === "pet") { a.pause = 2 + agentRand() * 2.5; a.atDoor = true; a.fwd = !a.fwd; a.s = 0; return; }   // 到建築門口：停一下、轉身看鏡頭，再走回去
   let opts = n.edges.filter(e => e !== a.e && (a.kind === "pet" || !e.spur) && !(e.spur && (e.a === parkDoor || e.b === parkDoor || (e.a.door || e.b.door || {}).locked)) && !shut(e));   // 還在施工（門口有路障）的不走進去；新市區沒開不過橋
+  if (a.kind === "pet" && opts.length === 1 && opts[0].rbGate && opts[0].a === n && agentRand() < 0.5) { a.fwd = !a.fwd; a.s = 0; return; }   // 走到主島西邊路底（彩虹橋頭）：一半機會掉頭，主島不會一下子空掉
   if (a.kind === "pet") { const sp = opts.filter(e => e.spur), rd = opts.filter(e => !e.spur); opts = sp.length && agentRand() < 0.3 ? sp : rd.length ? rd : opts; }
   if (!opts.length) { a.fwd = !a.fwd; a.s = 0; return; }   // 路的盡頭（海邊）：掉頭
   const e = opts[Math.floor(agentRand() * opts.length)];
@@ -1659,7 +2075,9 @@ function stepAgents(t, dt) {
 }
 // 走在人行道上（走小路進門口時會經過）要墊高 0.075，不然腳會陷進去
 function walkY(x, z) {
-  let d = Math.abs(Math.hypot(x, z) - RR); for (const c of ROADS) d = Math.min(d, Math.abs(x - c), Math.abs(z - c));
+  let d;
+  if (x < RB.x + RB.hx + 0.1) d = rbRoadD(x, z);        // 彩虹島：環狀路＋接橋那段
+  else { d = Math.abs(Math.hypot(x, z) - RR); for (const c of ROADS) d = Math.min(d, Math.abs(x - c), Math.abs(z - c)); }
   return groundY(x, z) + (d > RW / 2 && d < RW / 2 + SW ? 0.075 : 0);
 }
 function updateAgentVisuals(t, dt) {
@@ -1728,16 +2146,22 @@ async function spawnPet(p) {
   applyStage(a, p.stage);
   return a;
 }
-// 配件（models.json 有列才載）：crown／hat／baby_tuft 掛頭頂（原點在底部）、cape 掛背（原點在上緣）、bow 掛頭側再轉一點
-const WEAR = { crown: "head", hat: "head", baby_tuft: "head", cape: "back", bow: "head_side" };
+// 配件（models.json 有列才載；10-12 寵物換裝）：原點＝掛點（頭上 head＝頭頂、旁邊 head_side＝頭側、背上 back＝背後上方）。
+// 擺法跟換裝畫面（js/zhuyin-dress.js createDressRig）同一套：位置＝掛點＋wear_fit 微調 p×縮放、大小＝縮放×s、旋轉＝r（度）；蝴蝶結那一點歪頭也在 wear_fit.items 裡
+const WEAR = { hat: "head", crown: "head", flower_crown: "head", party_hat: "head", baby_tuft: "head", bow: "head_side", flower: "head_side", cape: "back", wings: "back", backpack: "back", cape_rainbow: "back" };
+const DEG = Math.PI / 180;
 async function wear(a, name) {
+  const pose = RWD.wearPose((await models()).fit, a.id, name); if (pose.hide) return null;   // hide＝這隻穿這件不好看（例：太大的頭），不顯示
   const url = await usableGlb(`${MODELS}${name}.glb`); if (!url) return null;
   const m = await loadAny(url);
-  m.scale.multiplyScalar(a.fitScale); m.position.copy(a.anchors[WEAR[name]]);
-  if (name === "bow") m.rotation.set(0, -25 * Math.PI / 180, -22 * Math.PI / 180);
+  m.scale.setScalar(a.fitScale * pose.s);
+  m.position.set(pose.p[0], pose.p[1], pose.p[2]).multiplyScalar(a.fitScale).add(a.anchors[WEAR[name]]);
+  m.rotation.set(pose.r[0] * DEG, pose.r[1] * DEG, pose.r[2] * DEG);
+  m.userData.wear = name;
   m.traverse(o => { o.castShadow = false; });
   return m;
 }
+const wearSig = w => w && typeof w === "object" ? [w.head, w.side, w.back].map(x => x || "").join(",") : "";
 async function applyStage(a, stage) {
   stage = STAGE_SCALE[stage] ? stage : 2; a.stage = stage;
   const s = STAGE_SCALE[stage], token = {}; a.wearToken = token;
@@ -1745,9 +2169,11 @@ async function applyStage(a, stage) {
   for (const m of a.worn || []) a.body.remove(m);
   a.worn = [];
   if (a.spark) { a.obj.remove(a.spark); a.spark = null; }
-  // 寶寶＝頭頂小呆毛；超級＝皇冠＋小披風＋身邊閃光；另外可以穿戴扭蛋抽到的裝扮（p.wear，頭上只戴一樣）
-  let names = [...(stage === 1 ? ["baby_tuft"] : stage === 3 ? ["crown", "cape"] : []), ...(a.f.wear || [])].filter((n, i, l) => WEAR[n] && l.indexOf(n) === i);
-  const firstHead = names.find(n => WEAR[n] === "head"); names = names.filter(n => WEAR[n] !== "head" || n === firstHead);
+  // 穿什麼＝p.wear { head, side, back }（zhuyin.js hubPets 用 RW.wearOf 算好：玩家自己選的優先，沒選的超級寵物＝皇冠＋披風）；沒給就照同一個規則算預設
+  // 寶寶頭上空著＝頭頂小芽；超級＝身邊閃光
+  const w = a.f.wear && typeof a.f.wear === "object" ? a.f.wear : RWD.wearOf({ pets: { [a.id]: { stage } } }, a.id);
+  const names = [w.head, w.side, w.back].filter(n => n && WEAR[n]);
+  if (stage === 1 && !w.head) names.push("baby_tuft");
   if (stage === 3) {
     const sp = new THREE.Group(); a.spark = sp; sp.userData.dyn = true; a.obj.add(sp);
     for (let k = 0; k < 3; k++) mesh(new THREE.OctahedronGeometry(0.06, 0), new THREE.MeshBasicMaterial({ color: "#fff3a0", toneMapped: false }), { x: Math.cos(k * 2.1) * 0.55, y: 0.5 + k * 0.25, z: Math.sin(k * 2.1) * 0.55, parent: sp, shadow: false });
@@ -1764,8 +2190,8 @@ function syncPets() {
   for (const [id, a] of pets) {
     const w = want.get(id);
     if (!w || (w.glb || "") !== (a.f.glb || "")) { removeAgent(a); pets.delete(id); continue; }
-    const wearKey = (w.wear || []).join(","), had = (a.f.wear || []).join(",");
-    a.f = w; if (w.stage !== a.stage || wearKey !== had) applyStage(a, w.stage);
+    const changed = wearSig(w.wear) !== wearSig(a.f.wear);   // 換裝畫面改了穿著 → 重穿
+    a.f = w; if (w.stage !== a.stage || changed) applyStage(a, w.stage);
   }
   for (const p of petWant) if (!pets.has(p.id) && !spawning.has(p.id) && !failedPets.has(p.id + "|" + p.glb)) {
     spawning.add(p.id);
@@ -1805,17 +2231,17 @@ const cardOf = m => document.querySelector(`.mode-card[data-mode=${m}]`);
 let tagRO = null;
 function makeTags() {
   for (const d of DEFS) {
-    const t = document.createElement("button"); t.className = "hub-tag"; t.type = "button"; t.dataset.mode = d.mode;
+    const t = document.createElement("button"); t.className = "hub-tag" + (d.isle ? " rb" : ""); t.type = "button"; t.dataset.mode = d.mode; t._def = d;   // 彩虹島的浮標多一個 .rb（只在彩虹島顯示）
     t.innerHTML = '<span class="ht-row"><span class="ht-ico"></span><span class="ht-word"></span><span class="ht-lock"></span></span>';
     t.addEventListener("pointerdown", () => preloadCard(d));
     t.addEventListener("click", () => tapBuilding(d));
     tagLayer.appendChild(t); d.tag = t;
   }
-  if ("ResizeObserver" in window) { tagRO = new ResizeObserver(() => { needFit = true; }); DEFS.forEach(d => tagRO.observe(d.tag)); }
+  if ("ResizeObserver" in window) { tagRO = new ResizeObserver(es => { needFit = true; for (const e of es) if (e.target._def && e.target._def.isle) e.target._def.tw = 0; }); DEFS.forEach(d => tagRO.observe(d.tag)); }   // 彩虹島浮標：大小變了下一格重量
 }
 function syncTag(d, card) {
   const set = (sel, txt) => { const e = d.tag.querySelector(sel); if (e.textContent !== txt) e.textContent = txt; };
-  if (d.free) { const L = (opts.labels || {})[d.mode] || {}; set(".ht-ico", L.ico || ""); set(".ht-word", L.word || ""); set(".ht-lock", ""); return; }
+  if (d.free) { const L = (opts.labels || {})[d.mode] || {}; set(".ht-ico", L.ico || ""); set(".ht-word", L.word || ""); set(".ht-lock", d.locked ? `🔒 ${RAINBOW_NEED}` : ""); d.tag.classList.toggle("locked", !!d.locked); return; }   // 寵物服裝店：彩虹島沒開＝鎖著
   set(".ht-ico", card.querySelector(".big")?.textContent || "");
   set(".ht-word", card.querySelector(".label")?.textContent || "");
   set(".ht-lock", (card.querySelector(".lock")?.textContent || "").replace("📒", "").trim());   // 鎖住：只留「🔒 數字」
@@ -1862,10 +2288,15 @@ function bounce(d, shake) {
 }
 function preloadCard(d) { if (d.free) return; try { cardOf(d.mode)?.dispatchEvent(new PointerEvent("pointerdown")); } catch (e) {} }
 function tapBuilding(d) {
-  if (town.place !== "main") return;                     // 在新市區視角：主島的建築浮標是藏著的，不給點進遊戲
+  if (isleOf(d) !== town.place) return;                  // 只能點「人在的那座島」上的建築（別座島的浮標是藏著的）
   const now = performance.now(); if (now < tapLockUntil) return; tapLockUntil = now + 700;
   preloadCard(d); bounce(d, d.locked);
-  later(() => { if (!shown) return; if (d.mode === "gacha") { try { opts.onGacha(); } catch (e) {} } else cardOf(d.mode)?.click(); }, d.locked ? 120 : 260);
+  later(() => {
+    if (!shown) return;
+    if (d.mode === "gacha") { try { opts.onGacha(); } catch (e) {} }
+    else if (d.mode === "dress") { try { if (d.locked) opts.onCivic("rainbowLocked", { need: RAINBOW_NEED }); else opts.onDress(); } catch (e) {} }   // 寵物服裝店（10-12）
+    else cardOf(d.mode)?.click();
+  }, d.locked ? 120 : 260);
 }
 function tapPet(a) {
   if (a.jump) return;
@@ -1890,6 +2321,8 @@ function pick(cx, cy) {
   if (bh.length) return { def: bh[0].object.userData.def };
   const ch = raycaster.intersectObjects(civHits, false);
   if (ch.length) return { civic: ch[0].object.userData.civic };
+  const rh = raycaster.intersectObjects(rbHits.filter(o => o.userData.folk || !rb.open), false);   // 彩虹島居民（點房子也算）、還沒接好的彩虹橋
+  if (rh.length) return rh[0].object.userData.folk ? { folk: rh[0].object.userData.folk } : { rbLock: true };
   return null;
 }
 
@@ -1898,9 +2331,10 @@ const ptrs = new Map(); let pinch = null;
 function bindInput(cv) {
   cv.addEventListener("pointerdown", e => {
     try { cv.setPointerCapture(e.pointerId); } catch (er) {}
-    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, t0: performance.now(), moved: 0, multi: ptrs.size > 0 });
+    const p0 = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, t0: performance.now(), moved: 0, multi: ptrs.size > 0 };
+    ptrs.set(e.pointerId, p0);
     if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; a.multi = b.multi = true; pinch = { d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, z0: user.zoom }; }
-    else { const hit = pick(e.clientX, e.clientY); if (hit && hit.def) preloadCard(hit.def); }
+    else { const hit = p0.hit = pick(e.clientX, e.clientY); if (hit && hit.def) preloadCard(hit.def); }   // 10-12：按下那一刻就記住點到誰（按住期間取景可能在動，放開再算會偏到隔壁棟）
   });
   cv.addEventListener("pointermove", e => {
     const p = ptrs.get(e.pointerId); if (!p) return;
@@ -1916,8 +2350,9 @@ function bindInput(cv) {
     const p = ptrs.get(e.pointerId); if (!p) return; ptrs.delete(e.pointerId);
     if (ptrs.size < 2) pinch = null;
     if (e.type === "pointerup" && !p.multi && p.moved < TAP_MOVE && performance.now() - p.t0 < TAP_MS) {
-      const hit = pick(p.x0, p.y0) || pick(e.clientX, e.clientY);   // 以按下去的位置為準（小孩常按著滑一下）
+      const hit = p.hit || pick(p.x0, p.y0) || pick(e.clientX, e.clientY);   // 以按下去那一刻點到的為準（小孩常按著不放、或按著滑一下）
       if (hit && hit.pet) tapPet(hit.pet); else if (hit && hit.def) tapBuilding(hit.def); else if (hit && hit.civic) tapCivic(hit.civic);
+      else if (hit && hit.folk) tapFolk(hit.folk); else if (hit && hit.rbLock) tapRbLock();
     }
   };
   cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
@@ -1938,11 +2373,15 @@ const baseCam = new THREE.OrthographicCamera();
 function setCamDir(cam, az) { cam.position.set(Math.sin(az) * Math.cos(CAM_EL), Math.sin(CAM_EL), Math.cos(az) * Math.cos(CAM_EL)).multiplyScalar(60); cam.lookAt(0, 0, 0); cam.updateMatrixWorld(); }
 function obstacles() {
   const out = [];
-  for (const sel of ["#menu > h1", "#resumeBtn", "#townBtn", "#townTag", "#menu > .menu-bottom", "#guide img", "#guideText", "#owlPeek", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#speakBtn", "#settingsBtn", "#hudLBtn", "#hudRBtn"]) {   // 收起來的按鈕／貓頭鷹只是 visibility:hidden，照樣量得到＝照樣避開
+  for (const sel of ["#menu > h1", "#resumeBtn", "#townBtn", "#townTag", "#rainbowBtn", "#rainbowTag", "#menu > .menu-bottom", "#guide img", "#guideText", "#owlPeek", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#speakBtn", "#settingsBtn", "#hudLBtn", "#hudRBtn"]) {   // 收起來的按鈕／貓頭鷹只是 visibility:hidden，照樣量得到＝照樣避開
     const e = document.querySelector(sel); if (!e || !e.offsetParent) continue;
     const r = e.getBoundingClientRect(); if (r.width < 2 || r.height < 2) continue;
-    const pad = sel === "#resumeBtn" ? 24 : 14;          // 繼續玩按鈕會閃動、鏡頭會漂：多留一點（10-11 試過貼紙那排多留 2vmin：取景變擠、iPad 橫式反而碰到，撤回）
-    out.push({ x0: r.left - pad, x1: r.right + pad, y0: r.top - pad, y1: r.bottom + pad });   // display:none（例如 3D 選單的標題）量不到 → 上面就略過了
+    if (sel === "#resumeBtn") {                          // 繼續玩會輕跳（softHop：只往上跳 1.2vmin）：量「靜止位置」再往上多留跳的高度——
+      const tf = getComputedStyle(e).transform, ty = tf && tf !== "none" ? new DOMMatrix(tf).m42 : 0, hop = Math.min(innerWidth, innerHeight) * 0.012;   // 以前上下都多留 24px（量到跳到一半的位置、鏡頭會漂），下面那 10px 白白壓縮了 4:3 的小島
+      out.push({ x0: r.left - 14, x1: r.right + 14, y0: r.top - ty - hop - 14, y1: r.bottom - ty + 14 }); continue;
+    }
+    const pad = 14;                                      // （10-11 試過貼紙那排多留 2vmin：取景變擠、iPad 橫式反而碰到，撤回）
+    out.push({ x0: r.left - pad, x1: r.right + pad, y0: r.top - pad, y1: r.bottom + pad, owl: sel === "#guide img" || sel === "#guideText" || sel === "#owlPeek" });   // display:none（例如 3D 選單的標題）量不到 → 上面就略過了
   }
   return out;
 }
@@ -1950,15 +2389,20 @@ const TAIL = 12;
 function fit() {
   const W = innerWidth, H = innerHeight;
   if (!W || !H) return false;
-  const sizes = DEFS.map(d => [d.tw = d.tag.offsetWidth, d.th = d.tag.offsetHeight]);
+  const sizes = MAIN_DEFS.map(d => [d.tw = d.tag.offsetWidth, d.th = d.tag.offsetHeight]);   // 只用主島的建築擺鏡頭（彩虹島是另一個地點）
   if (sizes.some(s => !s[0])) return false;             // 浮標還沒顯示（量不到大小）→ 下一幀再擺
   const obs = obstacles(); fitObs = obs;
+  // 飛去別座島時，島的中心對準「上面介面底」到「下面橫跨中間的介面頂」之間的中線（直式：上面有貼紙那排、下面是貓頭鷹的話）
+  const freeTop = Math.max(0, ...obs.filter(o => o.y1 < H * 0.5 && o.x0 < W * 0.7 && o.x1 > W * 0.3).map(o => o.y1));
+  // 橫式的貓頭鷹＋對話框在右下角，不算「橫跨中間」（v5 起 4:3 對話框加寬到 52vmin、左緣會稍微過中線；以前寬度 100vw−98vmin 剛好停在中線右邊）——不然彩虹島整座被往上推、服裝店浮標撞到右上「換人」
+  const freeBot = Math.min(H, ...obs.filter(o => o.y0 > H * 0.5 && o.x0 < W / 2 && o.x1 > W / 2 && !(o.owl && W > H)).map(o => o.y0));
+  view.placeY = (freeTop + freeBot) / 2;
   const sig = [W, H, ...sizes.flat(), ...obs.map(o => `${o.x0 | 0},${o.y0 | 0},${o.x1 | 0},${o.y1 | 0}`)].join("|");
   if (sig === fitSig) return true;                     // 畫面大小、障礙物、浮標大小都沒變 → 不用重算
   fitSig = sig;
   setCamDir(baseCam, Math.PI / 4);
   const inv = baseCam.matrixWorldInverse;
-  const items = DEFS.map((d, i) => {
+  const items = MAIN_DEFS.map((d, i) => {
     let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
     const { min, max } = d.box;
     for (const x of [min.x, max.x]) for (const y of [min.y, max.y]) for (const z of [min.z, max.z]) { _v.set(x, y, z).applyMatrix4(inv); x0 = Math.min(x0, _v.x); x1 = Math.max(x1, _v.x); y0 = Math.min(y0, _v.y); y1 = Math.max(y1, _v.y); }
@@ -2054,7 +2498,7 @@ function nudge(lab, obs = []) {
 // =========================================================
 // 主迴圈（只有選單看得到時才跑；最多 30 格／秒；陰影只在東西變了才重畫）
 // =========================================================
-const tagPos = [];
+const tagPos = [], rbPos = [];
 function frame(ms) {
   raf = 0; if (!running) return;
   raf = requestAnimationFrame(frame);
@@ -2072,6 +2516,9 @@ function frame(ms) {
   camera.updateProjectionMatrix();
   seaU.uTime.value = t;
   for (const f of tickers) f(t, dt);
+  const rbOn = rbActive();
+  if (rbOn) for (const f of rbTickers) f(t, dt);       // 彩虹島的風車、居民、貨船：鏡頭在那邊才動
+  if (rbOn !== rb.shownFolk) { rb.shownFolk = rbOn; for (const f of rb.folk) f.holder.visible = rbOn; shadowDirty = true; }   // 不在彩虹島：居民不畫（主島畫面角落只看得到一點點，省 draw call）
   for (const pl of plugins) if (pl.update) { try { pl.update(t, dt); } catch (e) { console.warn("[hub3d] 外掛", e); pl.update = null; } }
   for (const a of anims) if (a.update(performance.now()) === false) anims.delete(a);
   stepAgents(t, dt); updateAgentVisuals(t, dt); stepTown(t, dt);
@@ -2080,28 +2527,31 @@ function frame(ms) {
   placeTags(t);
 }
 function placeTags(t) {
-  const W = innerWidth, H = innerHeight;
-  tagPos.length = 0;
+  const W = innerWidth, H = innerHeight, atRb = town.place === "rainbow";
+  tagPos.length = 0; rbPos.length = 0;
   for (const d of DEFS) {
+    if (d.isle && !atRb) continue;                     // 不在彩虹島：那邊的浮標是 display:none，不用每格量
+    if (d.isle && !d.tw) { d.tw = d.tag.offsetWidth; d.th = d.tag.offsetHeight; if (!d.tw) continue; }
     _v.copy(d.anchor); _v.y += d.pivot.position.y; _v.project(camera);
     const x = (_v.x + 1) / 2 * W, y = (1 - _v.y) / 2 * H, w = d.tw || 0, h = d.th || 0;
-    tagPos.push({ d, ax: x, x0: x - w / 2, x1: x + w / 2, y0: y - h - TAIL, y1: y - TAIL });
+    (d.isle ? rbPos : tagPos).push({ d, ax: x, x0: x - w / 2, x1: x + w / 2, y0: y - h - TAIL, y1: y - TAIL });
   }
-  nudge(tagPos, fitObs);
-  for (const r of tagPos) {
+  nudge(tagPos, fitObs); if (rbPos.length) nudge(rbPos, fitObs);
+  for (const list of [tagPos, rbPos]) for (const r of list) {
     r.d.tag.style.transform = `translate3d(${r.x0.toFixed(1)}px, ${r.y0.toFixed(1)}px, 0)`; r.d.tag.style.zIndex = String(Math.round(r.y1)); r.d.tagRect = r;
     const tx = Math.round(r.ax - (r.x0 + r.x1) / 2); if (tx !== r.d.tx) { r.d.tx = tx; r.d.tag.style.setProperty("--tx", tx + "px"); }   // 浮標被挪開：尾巴還是指著建築
   }
-  const cyc = Math.floor(t / 4);                       // 浮標每 4 秒輪流輕跳一下（只跳能玩的）
-  if (cyc !== hopCycle) { hopCycle = cyc; DEFS.filter(d => !d.locked).forEach((d, i) => later(() => { if (!d.tag.classList.contains("pop")) { d.tag.classList.remove("hop"); void d.tag.offsetWidth; d.tag.classList.add("hop"); } }, i * 150)); }
+  const cyc = Math.floor(t / 4);                       // 浮標每 4 秒輪流輕跳一下（只跳能玩的、人在的那座島的）
+  if (cyc !== hopCycle) { hopCycle = cyc; DEFS.filter(d => !d.locked && isleOf(d) === town.place).forEach((d, i) => later(() => { if (!d.tag.classList.contains("pop")) { d.tag.classList.remove("hop"); void d.tag.offsetWidth; d.tag.classList.add("hop"); } }, i * 150)); }
   if (finger) { const r = DEFS.find(d => d.mode === "fish").tagRect; if (r) { finger.style.transform = `translate3d(${((r.x0 + r.x1) / 2 - 8).toFixed(1)}px, ${(r.y1 - 6).toFixed(1)}px, 0)`; finger.style.zIndex = "99999"; } }
 }
 function startLoop() { if (running || dead || lost || !shown || document.hidden) return; running = true; lastMs = lastDraw = 0; dprWin = []; raf = requestAnimationFrame(frame); }
 function stopLoop() { running = false; if (raf) cancelAnimationFrame(raf); raf = 0; }
 function onResize() {
   if (dead) return;
-  renderer.setPixelRatio(dpr); renderer.setSize(innerWidth, innerHeight, false);
   needFit = true;
+  if (slept) return;                                   // 選單看不到時畫布維持 2×2（轉向也一樣），回選單 wake() 再量
+  renderer.setPixelRatio(dpr); renderer.setSize(innerWidth, innerHeight, false);
   if (shown && !running) startLoop();
 }
 let resizeT = 0;
@@ -2109,15 +2559,16 @@ function onResizeEvt() { onResize(); clearTimeout(resizeT); resizeT = setTimeout
 function onVis() { if (document.hidden) stopLoop(); else startLoop(); }
 function onLost(e) {                                   // WebGL 被系統收走：先停、等 5 秒看會不會回來
   e.preventDefault(); lost = true; stopLoop();
-  clearTimeout(lostTimer); lostTimer = setTimeout(() => { if (lost) { dispose(); opts.onFail("contextlost"); } }, 5000);
+  clearTimeout(lostTimer); lostTimer = 0; if (shown) armLost();   // 選單沒顯示（在遊戲／配送／換裝裡）：只記下 lost，不計時——等回選單 show() 再開始等（不然玩到一半就被判死、選單永久退回卡片版）
 }
-function onRestored() { lost = false; clearTimeout(lostTimer); fitSig = ""; needFit = true; shadowDirty = true; startLoop(); }
+function armLost() { if (lostTimer) return; lostTimer = setTimeout(() => { lostTimer = 0; if (lost && !dead) { dispose(); opts.onFail("contextlost"); } }, 5000); }   // 已經在等就不重新計時
+function onRestored() { lost = false; clearTimeout(lostTimer); lostTimer = 0; fitSig = ""; needFit = true; shadowDirty = true; startLoop(); }
 
 // =========================================================
 // 對外介面
 // =========================================================
 export async function createHub(o) {
-  opts = { friends: () => [], onFriend: () => {}, onFail: () => {}, onGacha: () => {}, onCivic: () => {}, onPlace: () => {}, stickers: () => 0, newbie: () => false, labels: {}, ...o };
+  opts = { friends: () => [], onFriend: () => {}, onFail: () => {}, onGacha: () => {}, onDress: () => {}, onCivic: () => {}, onPlace: () => {}, stickers: () => 0, newbie: () => false, labels: {}, ...o };
   renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
   try {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -2153,6 +2604,8 @@ export async function createHub(o) {
     for (const [x, z] of [[-4.8 + 1.15, 9.0], [4.8 - 1.15, -9.0], [9.0, 4.8 - 1.15], [-9.0, -4.8 + 1.15], [1.15, -8.8], [-8.8, 1.15]]) if (inside(mainPoly, x, z, 0.4)) slot(x, z);
     buildStreet();
     DEFS.forEach(startDef);
+    buildRainbow();                                      // 10-12 彩虹島（建築的點擊盒、樹要讓開的範圍 startDef 已經放好）
+    for (const [x, z] of RB_SLOTS) slot(x, z);            // 彩虹島的裝飾放置點排在最後面
     buildTrees(); buildBlobs(); makeTownTags();
     agentBlob = blobMesh(40, 0.3); agentBlob.count = 0; scene.add(agentBlob);
     refresh();
@@ -2165,15 +2618,17 @@ export async function createHub(o) {
 async function loadRest() {
   if (dead) return;
   try {
-    const order = ["fish", "order", "build", "gacha", "hunt", "match", "tone", "whack", "frog", "bubble"];
+    const order = ["fish", "order", "build", "gacha", "hunt", "match", "tone", "whack", "frog", "bubble", "deliver", "dress"];
     await Promise.all([
       ...order.map((m, i) => buildDef(DEFS.find(d => d.mode === m), BUILDERS[m], i * 90).catch(e => console.warn("[hub3d] 建築載入失敗", m, e))),
       buildSpotsKenney().catch(e => console.warn("[hub3d] 景點載入失敗", e)),
       buildStreetKenney().catch(e => console.warn("[hub3d] 街景載入失敗", e)),
       buildTownKenney().catch(e => console.warn("[hub3d] 新市區載入失敗", e)),
+      buildRainbowKenney().catch(e => console.warn("[hub3d] 彩虹島載入失敗", e)),
     ]);
     if (dead) return;
     const w = new THREE.Group(); scene.add(w); for (const g of statics) w.attach(g); noDynShadow(w); mergeStatic(w);   // 整座島的靜態物件依材質合併（draw call 再少幾十個）
+    const wr = new THREE.Group(); scene.add(wr); for (const g of rbStatics) wr.attach(g); noDynShadow(wr); mergeStatic(wr);   // 彩虹島另外合併（看不到的時候整塊不畫）
     built = true; shadowDirty = true; dprCool = performance.now() + 1500;
     spawnCars(); syncPets(); applyDecor();
   } catch (e) { console.warn("[hub3d]", e); }
@@ -2189,7 +2644,7 @@ function refresh() {
     if (d.locked !== locked) setLocked(d, locked, refreshed && d.locked !== undefined);
     syncTag(d, card);
   }
-  syncTown(refreshed);
+  syncTown(refreshed); syncRainbow(refreshed);
   refreshed = true;
   needFit = true;
 }
@@ -2198,13 +2653,26 @@ function setPets(list) { petWant = (list || []).slice(0, 30).map(p => ({ ...p, s
 // 裝飾：[{ id, glb }]，依序擺到放置點（放不下的先略過）
 function setDecor(list) { decorWant = (list || []).slice(); applyDecor(); }
 function show() {
+  if (dead) return;
+  wake();
   shown = true; user.zoom = 1; user.px = user.py = 0; needFit = true;
-  if (town.place !== "main") { town.place = "main"; town.zoomTgt = 0; town.tgt.x = town.tgt.y = town.off.x = town.off.y = 0; sun.position.set(-7, 15, 6); sun.target.position.set(0, 0, 0); sun.target.updateMatrixWorld(); syncTownTags(); }   // 從遊戲回來：回到主島
+  if (town.place !== "main") { town.place = "main"; town.zoomTgt = 0; town.tgt.x = town.tgt.y = town.off.x = town.off.y = 0; town.sunFrom = town.offFrom = null; sun.position.set(-7, 15, 6); sun.target.position.set(0, 0, 0); sun.target.updateMatrixWorld(); syncTownTags(); }   // 從遊戲回來：回到主島
   startLoop();
   if (!restStarted) { restStarted = true; later(() => { if (window.requestIdleCallback) requestIdleCallback(() => loadRest(), { timeout: 400 }); else loadRest(); }, 60); }   // 選單先畫出來，再抓建築模型
   later(playFinger, 900);
 }
-function hide() { shown = false; stopLoop(); for (const p of ptrs.keys()) ptrs.delete(p); pinch = null; }
+// 選單看不到（遊戲、配送站、換裝）：停迴圈，畫布縮成 2×2（全螢幕的繪圖緩衝區放掉——不然配送／換裝自己的全螢幕 WebGL 加上這張，iPad 同時有兩張大畫布）
+let slept = false;
+function hide() {
+  shown = false; stopLoop(); for (const p of ptrs.keys()) ptrs.delete(p); pinch = null;
+  if (renderer && !dead && !slept) { slept = true; try { renderer.setPixelRatio(1); renderer.setSize(2, 2, false); } catch (e) {} }
+}
+// 回選單：畫布恢復原本解析度（onResize：dpr＝自動畫質目前的值、量一次畫面大小、重擺鏡頭、陰影重畫）；隱藏時 WebGL 被收走的話，現在才開始等 5 秒
+function wake() {
+  if (slept) { slept = false; onResize(); shadowDirty = true; }
+  if (lost) armLost();
+}
+function resume() { if (dead) return; wake(); shown = true; needFit = true; startLoop(); }   // 10-12 換裝畫面關掉：回到剛剛那座島（不像 show() 從遊戲回來要回主島、重設縮放）
 function disposeMat(m) { if (!m) return; for (const k of Object.keys(m)) { const v = m[k]; if (v && v.isTexture) v.dispose(); } m.dispose(); }
 function dispose() {
   if (gateObs) { gateObs.disconnect(); gateObs = null; }
@@ -2228,22 +2696,37 @@ function use(plugin) {
   if (dead || !scene) return null;
   const ctx = { THREE, scene, camera, renderer, sun, hemi, sea: seaU, P, groundY, islPoly, mainPoly, inside, DEFS, SPOTS, ROADS, PITCH, DEBUG,
     stage, tagLayer, markShadow: () => { shadowDirty = true; }, running: () => running, later,
-    lamps: graph.lamps.map(([x, z]) => ({ x, z, y: groundY(x, z) + 0.075 })), town: { x: DIST.x, z: DIST.z, h: DIST.h } };   // 路燈（夜晚發光用）、新市區範圍
+    lamps: graph.lamps.map(([x, z]) => ({ x, z, y: groundY(x, z) + 0.075 })), town: { x: DIST.x, z: DIST.z, h: DIST.h },   // 路燈（夜晚發光用，含彩虹島）、新市區範圍（舊外掛用）
+    isles: [{ id: "town", x: DIST.x, z: DIST.z, h: DIST.h, hx: DIST.h, hz: DIST.h }, { id: "rainbow", x: RB.x, z: RB.z, h: Math.max(RB.hx, RB.hz), hx: RB.hx + 0.6, hz: RB.hz + 0.6 }] };   // 10-12：主島以外的每座島（海洋外掛的魚群／量陸地、天氣外掛用）
   let p = null; try { p = plugin(ctx) || {}; } catch (e) { console.warn("[hub3d] 外掛載入失敗", e); return null; }
   plugins.push(p); return p;
 }
-const api = { show, hide, refresh, dispose, setPets, setDecor, use, goPlace, place: () => town.place };
+const api = { show, hide, resume, refresh, dispose, setPets, setDecor, use, goPlace, place: () => town.place };
 
 // 測試／除錯用（網址有 ?debug 才掛；tools/zy-test/hub3d.js、tools/render3d/render_bg.js）
 if (DEBUG) window.__hub3d = {
   get frames() { return frames; }, get running() { return running; }, get fitOk() { return view.fitOk; }, get ready() { return built; },
   get fit() { return { k: view.k, kMax: view.kMax, zoom: user.zoom, dpr }; },
   screenOf(m) { const d = DEFS.find(x => x.mode === m); _v.copy(d.body).applyMatrix4(d.root.matrixWorld).project(camera); return { x: (_v.x + 1) / 2 * innerWidth, y: (1 - _v.y) / 2 * innerHeight }; },
-  hitAt(x, y) { const h = pick(x, y); return h ? (h.pet ? "pet:" + h.pet.id : h.def.mode) : null; },
+  hitAt(x, y) { const h = pick(x, y); return h ? (h.pet ? "pet:" + h.pet.id : h.def ? h.def.mode : h.civic ? "civic:" + h.civic.id : h.folk ? "folk:" + h.folk.h.id : h.rbLock ? "rbLock" : null) : null; },
   tagRect(m) { const r = DEFS.find(x => x.mode === m).tag.getBoundingClientRect(); return { x0: r.left, x1: r.right, y0: r.top, y1: r.bottom }; },
   petScreen(id) { const p = pets.get(id); if (!p) return null; _v.set(0, PET_H * 0.45 * (STAGE_SCALE[p.stage] || 1), 0).applyMatrix4(p.holder.matrixWorld).project(camera); return { x: (_v.x + 1) / 2 * innerWidth, y: (1 - _v.y) / 2 * innerHeight }; },
   pets: () => [...pets.keys()],
-  locked: () => DEFS.filter(d => d.locked).map(d => d.mode),
+  worn: id => { const a = pets.get(id); return a ? { stage: a.stage, items: (a.worn || []).filter(m => m.parent === a.body).map(m => m.userData.wear).sort(), want: a.f.wear || null } : null; },   // 寵物換裝：這隻身上現在掛了哪些配件（3D 場景裡真的掛在身上的）
+  // 寵物特寫（截圖用）：所有寵物停下來、鏡頭拉近對準這隻（z＝縮放倍率）
+  petFocus(id, z = 3.2) { const a = pets.get(id); if (!a) return false; noPause = true; for (const b of agents) if (b.kind === "pet") { b.pause = 1e9; b.moving = false; } user.zoom = z; _v.set(a.x, 0.5, a.z).applyMatrix4(camera.matrixWorldInverse); user.px = _v.x - view.cx; user.py = _v.y - view.cy; return true; },
+  locked: () => MAIN_DEFS.filter(d => d.locked).map(d => d.mode),   // 主島的；彩虹島看 rainbow().locked
+  // 彩虹島（10-12）：開了沒、人在哪、建築／居民好了沒、上鎖的建築、路網（只算彩虹島＋橋：節點、斷頭路、門口）
+  rainbow() {
+    const ns = [...graph.nodes.values()].filter(n => n.edges.some(e => e.rb));
+    return { open: !!rb.open, place: town.place, gapVisible: !!(rb.gap && rb.gap.visible && rb.gap.position.y > -0.05), barrier: !!(rb.barrier && rb.barrier.visible),
+      ready: DEFS.filter(d => d.isle && d.ready).map(d => d.mode), locked: DEFS.filter(d => d.isle && d.locked).map(d => d.mode), folk: rb.folk.map(f => f.h.id),
+      nodes: ns.length, deadEnds: ns.filter(n => n.edges.length === 1 && !n.door).map(n => [n.x, n.z]), doors: ns.filter(n => n.door).map(n => n.door.mode || n.door.id),
+      off: [+town.off.x.toFixed(2), +town.off.y.toFixed(2)], zoom: +user.zoom.toFixed(3), sun: [+sun.target.position.x.toFixed(2), +sun.target.position.z.toFixed(2)], active: rbActive() };
+  },
+  rbScreen(id) { const h = RB_HOUSES.find(q => q.id === id), f = rb.folk.find(q => q.h.id === id), p = f ? f.holder.position : h ? new THREE.Vector3(h.x, 0, h.z) : null; if (!p) return null; _v.set(p.x, 0.45, p.z).project(camera); return { x: (_v.x + 1) / 2 * innerWidth, y: (1 - _v.y) / 2 * innerHeight }; },
+  bridgeScreen() { if (!rb.bridge) return null; const { xa, xb, yA } = rb.bridge, x = (xa + xb) / 2; _v.set(x, yA(x), 0).project(camera); return { x: (_v.x + 1) / 2 * innerWidth, y: (1 - _v.y) / 2 * innerHeight }; },
+  tapRainbowLock: () => tapRbLock(), tapFolk(id) { const f = rb.folk.find(q => q.h.id === id); if (f) tapFolk(f); return !!f; },
   lockScreen(m) { const d = DEFS.find(x => x.mode === m), L = d.lockSpot; if (!L) return null; _v.set(d.x + L.x, L.y + 0.3, d.z + L.z).project(camera); return { x: (_v.x + 1) / 2 * innerWidth, y: (1 - _v.y) / 2 * innerHeight }; },   // 施工路障在螢幕上的位置（截圖檢查穿模用）
   finger: () => !!finger,
   tags(on) { tagLayer.style.visibility = on ? "" : "hidden"; },
@@ -2299,6 +2782,19 @@ if (DEBUG) window.__hub3d = {
       out[d.mode] = [[b.min.x, b.max.x, b.min.y, b.max.y, b.min.z, b.max.z].map(r), [cx, top + 0.12, cz].map(r), [cx, a.min.y + (a.max.y - a.min.y) * 0.4, cz].map(r)];   // 浮標尖角碰屋頂（招牌）
     }
     return JSON.stringify(out);
+  },
+  // 三角形數（效能檢查）：彩虹島（x < −12.5）／其他，依種類分
+  triStats() {
+    const out = {}; scene.updateMatrixWorld(true);
+    scene.traverse(o => {
+      if (!o.isMesh || !o.visible || (o.material && o.material.visible === false)) return;
+      const g = o.geometry; let t = (g.index ? g.index.count : g.attributes.position.count) / 3;
+      if (o.isInstancedMesh) { t *= o.count; o.computeBoundingSphere(); _v.copy(o.boundingSphere.center).applyMatrix4(o.matrixWorld); }
+      else { if (!g.boundingSphere) g.computeBoundingSphere(); _v.copy(g.boundingSphere.center).applyMatrix4(o.matrixWorld); }
+      const k = (_v.x < -12.5 ? "rb:" : "main:") + (o.isInstancedMesh ? "inst" : o.material && o.material.map ? "tex" : "other");
+      out[k] = (out[k] || 0) + Math.round(t); out[k + "#"] = (out[k + "#"] || 0) + 1;
+    });
+    return out;
   },
   stats: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, textures: renderer.info.memory.textures, geometries: renderer.info.memory.geometries, pixelRatio: renderer.getPixelRatio() }),
   dispose,

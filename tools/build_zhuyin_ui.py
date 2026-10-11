@@ -18,7 +18,9 @@ sys.stdout.reconfigure(encoding="utf-8")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE = os.path.join(ROOT, "tools", "_moedict_cache.json")
 OUT = os.path.join(ROOT, "js", "zhuyin-ui.js")
-SOURCES = ["zhuyin.html", "js/zhuyin.js", "js/zhuyin-words.js"]
+SOURCES = ["zhuyin.html", "js/zhuyin.js", "js/zhuyin-words.js",
+           "js/zhuyin-rewards.js", "js/zhuyin-dress.js",   # 10-12 寵物換裝：配件名、寵物名、家長頁機率文字、換裝畫面
+           "js/zhuyin-deliver.js"]   # 10-12 彩虹配送站：商品、訂單、居民台詞、結算小字
 HAN = re.compile(r"[\u3400-\u9fff]+")
 TONES = "ˊˇˋ˙"
 
@@ -36,6 +38,9 @@ OVERRIDE = {
     "東西": "ㄉㄨㄥ ㄒㄧ˙",        # 物品（不是東邊西邊）
     "買東西": "ㄇㄞˇ ㄉㄨㄥ ㄒㄧ˙",
     "哪個": "ㄋㄚˇ ㄍㄜ˙",         # 跟「這個 ㄓㄜˋ ㄍㄜ˙」一致
+    "兩個": "ㄌㄧㄤˇ ㄍㄜ˙",       # 10-12 配送站「兩個都裝上車」；量詞「個」跟這個/哪個一致標輕聲
+    "挑戰": "ㄊㄧㄠˇ ㄓㄢˋ",       # 10-12 配送站「大挑戰」；台灣讀 ㄊㄧㄠˇ（單字會落到挑選的 ㄊㄧㄠ），配音也唸三聲
+    "大挑戰": "ㄉㄚˋ ㄊㄧㄠˇ ㄓㄢˋ",  # 由左往右找詞會先吃到萌典的「大挑」（清代選官，ㄊㄧㄠ），所以整詞指定
 }
 
 # 讀音回歸檢查：每次重建字典都要過，錯了就停（阿葉 10-10「加入詞組檢查，避免重新產生注音後又出錯」）

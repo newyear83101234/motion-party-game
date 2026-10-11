@@ -13,7 +13,7 @@ async function bestFire(p) {
   const browser = await launch(); const allErrs = [];
   {
     const { ctx, p, errs } = await openGame(browser, { stickers: 40, query: "debug" });
-    ok("小島上有 10 個遊戲浮標（多了泡泡）", (await p.evaluate(() => document.querySelectorAll(".hub-tag:not(.civic)").length)) === 10);
+    ok("小島上有 10 個遊戲浮標（多了泡泡）", (await p.evaluate(() => document.querySelectorAll(".hub-tag:not(.civic):not(.rb)").length)) === 10);   // .rb＝彩虹島的浮標（10-12）
     ok("🏙️ 歸仁區按鈕在選單上", await vis(p, "townBtn"));
     await enterMode(p, "bubble");
     const ready = await p.waitForFunction(() => window.__zy.bubble && window.__zy.bubble.state() && window.__zy.bubble.state().level === 0, null, { timeout: 15000 }).then(() => true, () => false);
@@ -47,7 +47,12 @@ async function bestFire(p) {
     await p.evaluate(() => document.querySelector(".mode-card[data-mode=bubble]").click()); await sleep(400);
     const pick = await p.evaluate(() => ({ open: !document.getElementById("bubblePick").classList.contains("hidden"), n: document.querySelectorAll("#bubbleLevels .bb-lv").length,
       openLv: [...document.querySelectorAll("#bubbleLevels .bb-lv:not(.locked)")].length, next: document.querySelector("#bubbleLevels .bb-lv.next .n")?.textContent, star1: document.querySelector("#bubbleLevels .bb-lv .s")?.textContent }));
-    ok("再點泡泡：先選關（10 關、開了 2 關、下一關＝2、第 1 關有星）", pick.open && pick.n === 10 && pick.openLv === 2 && pick.next === "2" && pick.star1.includes("⭐"), JSON.stringify(pick));
+    ok("再點泡泡：先選關（這區 10 關、開了 2 關、下一關＝2、第 1 關有星）", pick.open && pick.n === 10 && pick.openLv === 2 && pick.next === "2" && pick.star1.includes("⭐"), JSON.stringify(pick));
+    const tabs0 = await p.evaluate(() => [...document.querySelectorAll("#bubbleZones .bb-ztab")].map(b => ({ t: b.querySelector(".zs").textContent, on: b.classList.contains("on"), locked: b.classList.contains("locked"), img: b.querySelector("img").src.split("/").pop(), h: Math.round(b.getBoundingClientRect().height), w: Math.round(b.getBoundingClientRect().width) })));
+    ok("區頁籤：ㄅㄆㄇ／ㄉㄊㄋㄌ／ㄍㄎㄏ，第 1 區亮著、後兩區鎖頭、各自的動物圖、點擊區 ≥ 56px", tabs0.length === 3 && tabs0.map(t => t.t).join("|") === "ㄅㄆㄇ|ㄉㄊㄋㄌ|ㄍㄎㄏ" && tabs0[0].on && !tabs0[0].locked && tabs0[1].locked && tabs0[2].locked && tabs0.map(t => t.img).join() === "cust_penguin.webp,crab.webp,whale.webp" && tabs0.every(t => t.h >= 56 && t.w >= 56), JSON.stringify(tabs0));
+    await p.evaluate(() => { window.__spoken = []; document.querySelectorAll("#bubbleZones .bb-ztab")[1].click(); }); await sleep(300);
+    const lockHint = await p.evaluate(() => ({ tab: window.__zy.bubbleTab, first: document.querySelector("#bubbleLevels .bb-lv .n").textContent, spoken: (window.__spoken || []).map(x => x.text).join("|"), shake: document.querySelectorAll("#bubbleZones .bb-ztab")[1].classList.contains("shake") }));
+    ok("點鎖住的區：不切換、有提示（說話＋晃一下）", lockHint.tab === 0 && lockHint.first === "1" && /先把前面的關卡都過完/.test(lockHint.spoken) && lockHint.shake, JSON.stringify(lockHint));
     await p.evaluate(() => document.querySelectorAll("#bubbleLevels .bb-lv")[0].click());
     const l1 = await p.waitForFunction(() => window.__zy.bubble && window.__zy.bubble.state() && window.__zy.bubble.state().level === 0 && !document.getElementById("bubble").classList.contains("hidden"), null, { timeout: 15000 }).then(() => true, () => false);
     ok("選第 1 關可以重玩", l1);
@@ -59,6 +64,85 @@ async function bestFire(p) {
     await p.evaluate(() => document.querySelector(".mode-card[data-mode=bubble]").click()); await sleep(500);
     ok("貼紙不夠（10 張）：泡泡進不去", await p.evaluate(() => !document.getElementById("menu").classList.contains("hidden") && document.getElementById("bubble").classList.contains("hidden")));
     ok("歸仁區沒開：按鈕寫「歸仁區 🔒」", (await p.evaluate(() => document.getElementById("townTag").textContent)).includes("🔒"));
+    allErrs.push(...errs); await ctx.close();
+  }
+  // ===== 3 區 30 關：舊存檔升級、第 10 關 → 下一關進第 11 關、分頁切換 =====
+  const withSave = async (save, vp) => {
+    const o = await openGame(browser, { stickers: 40, query: "debug", w: vp ? vp[0] : 1180, h: vp ? vp[1] : 820 });
+    await o.p.evaluate(sv => localStorage.setItem("zy1_bubble", JSON.stringify(sv)), save);
+    await o.p.reload(); await o.p.waitForFunction(() => document.getElementById("loading").classList.contains("hidden"), null, { timeout: 15000 });
+    await o.p.evaluate(() => { const g = document.getElementById("startGate"); if (g && !g.classList.contains("hidden")) document.getElementById("startBtn").click(); }); await sleep(400);
+    return o;
+  };
+  const openPick = async p => { await p.evaluate(() => { window.__spoken = []; document.querySelector(".mode-card[data-mode=bubble]").click(); }); await p.waitForFunction(() => !document.getElementById("bubblePick").classList.contains("hidden"), null, { timeout: 8000 }); await sleep(250); };
+  const levelOf = p => p.waitForFunction(() => window.__zy.bubble && window.__zy.bubble.state() && !document.getElementById("bubble").classList.contains("hidden"), null, { timeout: 15000 }).then(() => p.evaluate(() => window.__zy.bubble.state().level), () => -1);
+  const resText = p => p.evaluate(() => document.getElementById("resultText").textContent.replace(/[ㄅ-ㄩˊˇˋ˙\s]/g, ""));
+  const playOut = async (p, max) => { let n = 0; while (n < max && !(await vis(p, "result"))) { const r = await bestFire(p); n++; await sleep(2600); if (!r) break; } await p.waitForFunction(() => !document.getElementById("result").classList.contains("hidden"), null, { timeout: 10000 }).catch(() => {}); return n; };
+  {
+    // 舊存檔：只有 10 關、全通（lv=9, all=1）→ 升級後停在第 2 區、第 11 關是「下一關」
+    const stars = { 0: 3, 1: 3, 2: 3, 3: 2, 4: 2, 5: 2, 6: 3, 7: 3, 8: 1, 9: 2 };
+    const { ctx, p, errs } = await withSave({ lv: 9, stars, all: 1 });
+    await openPick(p);
+    const mig = await p.evaluate(() => ({ lv: window.__zy.bubbleSave.lv, all: window.__zy.bubbleSave.all, n: window.__zy.bubbleN }));
+    const up = await p.evaluate(() => ({ tab: window.__zy.bubbleTab, tabs: [...document.querySelectorAll("#bubbleZones .bb-ztab")].map(b => (b.classList.contains("on") ? "on" : "") + (b.classList.contains("locked") ? "lock" : "")).join(","),
+      nums: [...document.querySelectorAll("#bubbleLevels .bb-lv .n")].map(x => x.textContent).join(","), next: document.querySelector("#bubbleLevels .bb-lv.next .n")?.textContent, open: document.querySelectorAll("#bubbleLevels .bb-lv:not(.locked)").length }));
+    ok("舊存檔（lv=9、all=1）升級：lv 變 10、清掉 all、共 30 關", mig.lv === 10 && !mig.all && mig.n === 30, JSON.stringify(mig));
+    ok("升級後打開選關：自動停在第 2 區（11～20）、第 11 關是黃框「下一關」、其他關鎖著、第 3 區鎖著", up.tab === 1 && up.tabs === ",on,lock" && up.nums === "11,12,13,14,15,16,17,18,19,20" && up.next === "11" && up.open === 1, JSON.stringify(up));
+    await p.evaluate(() => document.querySelectorAll("#bubbleZones .bb-ztab")[0].click()); await sleep(200);
+    const back = await p.evaluate(() => ({ tab: window.__zy.bubbleTab, nums: [...document.querySelectorAll("#bubbleLevels .bb-lv .n")].map(x => x.textContent).join(","), open: document.querySelectorAll("#bubbleLevels .bb-lv:not(.locked)").length, stars: document.querySelector("#bubbleLevels .bb-lv .s").textContent }));
+    ok("切回第 1 區：1～10 關全開、有星星", back.tab === 0 && back.nums === "1,2,3,4,5,6,7,8,9,10" && back.open === 10 && back.stars.includes("⭐"), JSON.stringify(back));
+    await p.evaluate(() => document.querySelectorAll("#bubbleZones .bb-ztab")[1].click()); await sleep(200);
+    await p.evaluate(() => document.querySelector("#bubbleLevels .bb-lv.next").click());
+    const lv11 = await levelOf(p);
+    const z2 = await p.evaluate(() => ({ counts: Object.entries(window.__zy.bubble.state().counts).filter(e => e[1] > 0).map(e => e[0]).join(""), img: document.querySelector(".bb-pen img").src.split("/").pop(), imgOk: document.querySelector(".bb-pen img").naturalWidth > 0 }));
+    ok("第 11 關進得去：符號ㄉㄊㄋ、被困的是小螃蟹（圖有載到）", lv11 === 10 && z2.counts === "ㄉㄊㄋ" && z2.img === "crab.webp" && z2.imgOk, JSON.stringify(z2));
+    const shots = await playOut(p, 6);
+    const rt = await p.evaluate(() => ({ again: document.getElementById("againBtn").textContent, save: JSON.parse(localStorage.getItem("zy1_bubble")) }));
+    const txt = await resText(p);
+    ok("第 11 關過關：結算寫「救出 1 隻小螃蟹」、存檔 lv 前進到第 12 關", /救出1隻小螃蟹/.test(txt) && rt.again.includes("下一關") && rt.save.lv === 11 && !rt.save.all, JSON.stringify(rt) + " " + txt + " shots " + shots);
+    allErrs.push(...errs); await ctx.close();
+  }
+  {
+    // 第 10 關過關 → 「下一關」進第 11 關（跨區）；進度 lv=9
+    const { ctx, p, errs } = await withSave({ lv: 9, stars: { 0: 3 } });
+    await openPick(p);
+    const t = await p.evaluate(() => ({ tab: window.__zy.bubbleTab, tabs: [...document.querySelectorAll("#bubbleZones .bb-ztab")].map(b => b.classList.contains("locked")).join(",") }));
+    ok("lv=9（還沒通第 10 關）：停在第 1 區、第 2 區鎖著", t.tab === 0 && t.tabs === "false,true,true", JSON.stringify(t));
+    await p.evaluate(() => document.querySelectorAll("#bubbleLevels .bb-lv")[9].click());
+    const l10 = await levelOf(p);
+    const shots = await playOut(p, 14);
+    const r10 = await p.evaluate(() => ({ again: document.getElementById("againBtn").textContent, save: JSON.parse(localStorage.getItem("zy1_bubble")) }));
+    const txt = await resText(p);
+    ok("第 10 關過關：存檔 lv=10（第 2 區解鎖）、按鈕「下一關」、救出小企鵝", l10 === 9 && r10.save.lv === 10 && !r10.save.all && r10.again.includes("下一關") && /小企鵝/.test(txt), JSON.stringify(r10) + " " + txt + " shots " + shots);
+    await sleep(3500);
+    await p.evaluate(() => document.getElementById("againBtn").click());
+    const n11 = await levelOf(p);
+    ok("按「下一關」→ 進第 2 區第 1 關（第 11 關）", n11 === 10, String(n11));
+    allErrs.push(...errs); await ctx.close();
+  }
+  {
+    // 全通（lv=29, all=1）：停在第 3 區、三區全開、沒有黃框
+    const { ctx, p, errs } = await withSave({ lv: 29, stars: {}, all: 1 });
+    await openPick(p);
+    const t = await p.evaluate(() => ({ tab: window.__zy.bubbleTab, locked: [...document.querySelectorAll("#bubbleZones .bb-ztab")].filter(b => b.classList.contains("locked")).length, nums: [...document.querySelectorAll("#bubbleLevels .bb-lv .n")].map(x => x.textContent).join(","), next: document.querySelectorAll("#bubbleLevels .bb-lv.next").length }));
+    ok("全通存檔：停在第 3 區（21～30）、三區都開、沒有黃框", t.tab === 2 && t.locked === 0 && t.nums === "21,22,23,24,25,26,27,28,29,30" && t.next === 0, JSON.stringify(t));
+    await p.evaluate(() => document.querySelectorAll("#bubbleLevels .bb-lv")[0].click());
+    const l21 = await levelOf(p);
+    const z3 = await p.evaluate(() => ({ counts: Object.keys(window.__zy.bubble.state().counts).join(""), img: document.querySelector(".bb-pen img").src.split("/").pop() }));
+    ok("第 21 關：符號ㄍㄎㄏ、被困的是小鯨魚", l21 === 20 && z3.counts === "ㄍㄎㄏ" && z3.img === "whale.webp", JSON.stringify(z3));
+    allErrs.push(...errs); await ctx.close();
+  }
+  {
+    // 壞存檔（v5 審查 里維⚠️5）：stars 不是物件、lv 是字串 → 開頁不丟錯、讀進來就清洗、選關畫面正常
+    const { ctx, p, errs } = await withSave({ lv: "3", stars: null });
+    const sv = await p.evaluate(() => JSON.parse(JSON.stringify(window.__zy.bubbleSave)));
+    ok("壞存檔（stars:null、lv:\"3\"）：讀進來就清洗成 { lv:3, stars:{} }", sv.lv === 3 && sv.stars && typeof sv.stars === "object" && !Array.isArray(sv.stars) && Object.keys(sv.stars).length === 0 && !sv.all, JSON.stringify(sv));
+    await openPick(p);
+    const pk = await p.evaluate(() => ({ n: document.querySelectorAll("#bubbleLevels .bb-lv").length, open: document.querySelectorAll("#bubbleLevels .bb-lv:not(.locked)").length, next: document.querySelector("#bubbleLevels .bb-lv.next .n")?.textContent,
+      stars: [...document.querySelectorAll("#bubbleLevels .bb-lv .s")].map(x => x.textContent).join(""), tabs: document.querySelectorAll("#bubbleZones .bb-ztab").length }));
+    ok("壞存檔：選關畫面正常（3 個分區、10 格、前 4 關開、第 4 關黃框、沒有亂冒星星）", pk.tabs === 3 && pk.n === 10 && pk.open === 4 && pk.next === "4" && !pk.stars.includes("⭐"), JSON.stringify(pk));
+    const sv2 = await withSave({ lv: 2, stars: "oops" }).then(async o => { await openPick(o.p); const r = { n: await o.p.evaluate(() => document.querySelectorAll("#bubbleLevels .bb-lv:not(.locked)").length), errs: o.errs.slice() }; await o.ctx.close(); return r; });
+    ok("壞存檔（stars 是字串）：選關照樣開、前 3 關可玩、沒有錯誤", sv2.n === 3 && sv2.errs.length === 0, JSON.stringify(sv2));
     allErrs.push(...errs); await ctx.close();
   }
   await browser.close();

@@ -5,3 +5,9 @@ MUSIC/kpop*.mp3
 # 測試暫存
 .playwright-mcp/
 *-check.png
+
+# 10-12 音訊素材工作區（候選曲、下載原檔，只留 audio/ 正式選用的）
+tools/audio/candidates/
+tools/audio/kenney/
+tools/audio/freesound/
+__pycache__/

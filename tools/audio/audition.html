@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>注音小島 音樂音效試聽</title>
+<style>
+  :root { --bg:#fffaf0; --card:#fff; --ink:#3b2f2f; --muted:#8a7a6a; --accent:#ff8a3d; --ok:#2e9e5b; --line:#eadfce; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#1e1a17; --card:#2a2521; --ink:#f3e9dc; --muted:#b5a695; --accent:#ff9d5c; --ok:#5ccf8c; --line:#40372f; } }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--ink); font:16px/1.55 "Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif; max-width:980px; margin-inline:auto; }
+  h1 { font-size:1.5rem; margin:.2em 0; }
+  h2 { font-size:1.2rem; margin:1.6em 0 .5em; border-bottom:2px solid var(--line); padding-bottom:.2em; }
+  p.hint { color:var(--muted); margin:.3em 0 1em; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin:12px 0; }
+  .card h3 { margin:.1em 0 .6em; font-size:1.05rem; }
+  .cand { display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; padding:8px 0; border-top:1px dashed var(--line); }
+  .cand:first-of-type { border-top:0; }
+  .cand .name { font-weight:700; min-width:6.5em; }
+  .badge { font-size:.78rem; padding:1px 8px; border-radius:99px; background:var(--ok); color:#fff; }
+  .meta { color:var(--muted); font-size:.85rem; flex:1 1 220px; }
+  button { font:inherit; padding:.4em .9em; border-radius:8px; border:1px solid var(--accent); background:transparent; color:var(--ink); cursor:pointer; min-height:40px; }
+  button:hover { background:var(--accent); color:#fff; }
+  button.on { background:var(--accent); color:#fff; }
+  button.stop { border-color:var(--muted); }
+  .sfxgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:8px; }
+  .sfxgrid button { width:100%; text-align:left; display:flex; flex-direction:column; gap:0; padding:.5em .8em; }
+  .sfxgrid small { color:var(--muted); font-size:.78rem; }
+  .sfxgrid button:hover small { color:#fff; }
+  #status { position:sticky; top:0; background:var(--bg); padding:6px 0; z-index:5; color:var(--muted); font-size:.9rem; }
+  .err { color:#d33; }
+</style>
+</head>
+<body>
+<h1>注音小島 音樂音效試聽</h1>
+<p class="hint">音樂是用 Web Audio 無縫循環播放（跟遊戲裡一樣）。「只聽接縫」會從循環結尾前 3 秒開始，讓你聽接縫順不順。標「選用」的是目前挑的那首，想換跟 Claude 說「island 換成 island_2」之類即可。</p>
+<div id="status">載入中…</div>
+<div style="margin:.5em 0"><button class="stop" id="stopAll">全部停止</button></div>
+<h2>背景音樂（每個場景的候選）</h2>
+<div id="bgm"></div>
+<h2>結算 jingle（party，不循環）</h2>
+<div id="party"></div>
+<h2>音效（點一下播放，可連點重疊）</h2>
+<div class="sfxgrid" id="sfx"></div>
+<h2>音效：舊版 vs 新版（第二輪換成真實錄音的 CC0 素材）</h2>
+<div id="cmp"></div>
+
+<script>
+const AC = new (window.AudioContext || window.webkitAudioContext)();
+const cache = new Map();
+let current = null; // {src, btn}
+const $ = (s) => document.querySelector(s);
+const status = (t, err) => { const el = $("#status"); el.textContent = t; el.className = err ? "err" : ""; };
+
+async function load(url) {
+  if (cache.has(url)) return cache.get(url);
+  const p = fetch(url).then(r => { if (!r.ok) throw new Error(url + " " + r.status); return r.arrayBuffer(); }).then(b => AC.decodeAudioData(b));
+  cache.set(url, p);
+  return p;
+}
+function stopCurrent() {
+  if (current) { try { current.src.stop(); } catch (e) {} current.btn && current.btn.classList.remove("on"); current = null; }
+}
+async function playLoop(url, ls, le, btn, seamOnly) {
+  await AC.resume();
+  stopCurrent();
+  status("載入 " + url.split("/").pop() + " …");
+  let buf;
+  try { buf = await load(url); } catch (e) { status("載入失敗：" + e.message, true); return; }
+  const src = AC.createBufferSource();
+  src.buffer = buf; src.loop = true; src.loopStart = ls; src.loopEnd = le;
+  const g = AC.createGain(); g.gain.value = 0.9; src.connect(g).connect(AC.destination);
+  src.start(0, seamOnly ? Math.max(ls, le - 3) : 0);
+  current = { src, btn }; btn.classList.add("on");
+  status((seamOnly ? "只聽接縫：" : "循環播放：") + url.split("/").pop() + "（loop " + ls.toFixed(3) + "–" + le.toFixed(3) + " 秒）");
+}
+async function playOnce(url, btn) {
+  await AC.resume();
+  const buf = await load(url).catch(e => { status("載入失敗：" + e.message, true); });
+  if (!buf) return;
+  const src = AC.createBufferSource(); src.buffer = buf; src.connect(AC.destination); src.start();
+  return src;
+}
+function el(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) { if (k === "class") e.className = v; else if (k.startsWith("on")) e[k] = v; else e.setAttribute(k, v); }
+  kids.flat().forEach(k => e.append(k));
+  return e;
+}
+
+(async () => {
+  let data;
+  try { data = await (await fetch("audition-data.json")).json(); } catch (e) { status("找不到 audition-data.json（請從專案根目錄啟動 python -m http.server 8765，再開 /tools/audio/audition.html）", true); return; }
+  for (const k of data.bgm) {
+    const card = el("div", { class: "card" }, el("h3", {}, `${k.key} — ${k.use}`));
+    const finalRow = el("div", { class: "cand" }, el("span", { class: "name" }, "正式檔 audio/bgm"), el("span", { class: "badge" }, "選用"),
+      el("span", { class: "meta" }, "遊戲將載入的最終檔（含頭尾各 0.5 秒緩衝，loopStart 0.5）"));
+    // final file: loop times from the chosen candidate (same layout)
+    const ch = k.cands.find(c => c.chosen);
+    const fb = el("button", {}, "▶ 循環"); fb.onclick = () => playLoop(k.final, ch.loopStart, ch.loopEnd, fb, false);
+    const fs = el("button", {}, "只聽接縫"); fs.onclick = () => playLoop(k.final, ch.loopStart, ch.loopEnd, fs, true);
+    finalRow.append(fb, fs); card.append(finalRow);
+    for (const c of k.cands) {
+      const row = el("div", { class: "cand" }, el("span", { class: "name" }, c.name), c.chosen ? el("span", { class: "badge" }, "選用") : "",
+        el("span", { class: "meta" }, `${c.source}｜${c.bpm} BPM｜綜合 ${c.score}（Gemini 總評 ${c.overall}、不搶配音 ${c.voice}、接縫 ${c.seam}）｜${c.comment}`));
+      const b1 = el("button", {}, "▶ 循環"); b1.onclick = () => playLoop(c.file, c.loopStart, c.loopEnd, b1, false);
+      const b2 = el("button", {}, "只聽接縫"); b2.onclick = () => playLoop(c.file, c.loopStart, c.loopEnd, b2, true);
+      row.append(b1, b2); card.append(row);
+    }
+    $("#bgm").append(card);
+  }
+  const pc = el("div", { class: "card" });
+  for (const c of data.party) {
+    const row = el("div", { class: "cand" }, el("span", { class: "name" }, c.name), c.chosen ? el("span", { class: "badge" }, "選用") : "", el("span", { class: "meta" }, c.comment));
+    const b = el("button", {}, "▶ 播放"); b.onclick = () => playOnce(c.file, b);
+    row.append(b); pc.append(row);
+  }
+  const fp = el("div", { class: "cand" }, el("span", { class: "name" }, "正式檔 audio/bgm"), el("span", { class: "badge" }, "選用"), el("span", { class: "meta" }, "party.mp3"));
+  const fb2 = el("button", {}, "▶ 播放"); fb2.onclick = () => playOnce("../../audio/bgm/party.mp3", fb2); fp.append(fb2); pc.prepend(fp);
+  $("#party").append(pc);
+  for (const s of data.sfx) {
+    const b = el("button", {}, s.name, el("small", {}, `${s.use}｜${s.dur}s${s.loop ? "｜loop" : ""}`));
+    b.onclick = () => playOnce(s.file, b);
+    $("#sfx").append(b);
+  }
+  const cc = el("div", { class: "card" });
+  for (const c of data.compare || []) {
+    const row = el("div", { class: "cand" }, el("span", { class: "name" }, c.name), c.new ? el("span", { class: "badge" }, "已換新版") : "", el("span", { class: "meta" }, c.note));
+    const bo = el("button", {}, "▶ 舊版"); bo.onclick = () => playOnce(c.old, bo); row.append(bo);
+    if (c.new) { const bn = el("button", {}, "▶ 新版"); bn.onclick = () => playOnce(c.new, bn); row.append(bn); }
+    cc.append(row);
+  }
+  $("#cmp").append(cc);
+  $("#stopAll").onclick = () => { stopCurrent(); status("已停止"); };
+  status("準備好了（BGM " + data.bgm.length + " 個場景、音效 " + data.sfx.length + " 個）");
+  window.__ready = true;
+})();
+</script>
+</body>
+</html>

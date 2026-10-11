@@ -10,9 +10,8 @@ const SEL = { fish: "#pond .fishBtn", order: "#shelf .item", hunt: "#scene .obj"
 // 手指一碰：只派 pointerdown（沒有 pointerup／click）
 const answer = (p, m, right) => p.evaluate(({ right, sel }) => { const o = window.__zy.curOpts; const i = o.findIndex(x => !!x.ok === right);
   document.querySelectorAll(sel)[i].dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, pointerType: "touch", isPrimary: true })); }, { right, sel: SEL[m] });
-// 監看所有 <audio>.play()：記下檔名、播放速度、preservesPitch
-const spy = p => p.evaluate(() => { window.__sfx = []; if (HTMLMediaElement.prototype.__spied) return; const orig = HTMLMediaElement.prototype.play; HTMLMediaElement.prototype.__spied = true;
-  HTMLMediaElement.prototype.play = function () { window.__sfx.push({ f: (this.src || "").split("/").pop(), rate: +this.playbackRate.toFixed(4), pp: this.preservesPitch, vol: this.volume }); return orig.apply(this, arguments); }; });
+// 監看所有音效：音訊引擎（js/zhuyin-audio.js）看到 window.__sfx 是陣列就把每次 play 記進去：{ f: "ok.mp3", name, rate, vol（含個別音量）, pp:false（Web Audio 速度＝音高） }
+const spy = p => p.evaluate(() => { window.__sfx = []; });
 const sfx = p => p.evaluate(() => window.__sfx);
 const clearSfx = p => p.evaluate(() => { window.__sfx = []; });
 const nextIdx = (p, n, t = 5000) => p.waitForFunction(n => window.__zy.idx === n, n, { timeout: t });
@@ -31,7 +30,7 @@ const nextIdx = (p, n, t = 5000) => p.waitForFunction(n => window.__zy.idx === n
       return { res: window.__zy.results[idx], cls: dot.className, bg: getComputedStyle(dot).backgroundColor }; }, SEL.fish);
     ok("pointerdown 一碰就算（沒有 pointerup／click）", now.res === "gold", JSON.stringify(now));
     ok("答對當下進度點立刻變金（黃底）", /gold/.test(now.cls) && now.bg === "rgb(255, 213, 74)", JSON.stringify(now));
-    const s1 = await sfx(p), okS = s1.find(x => x.f === "zy_ok.mp3");
+    const s1 = await sfx(p), okS = s1.find(x => x.f === "ok.mp3");
     ok("音效 preservesPitch=false（音高會跟著速度變）", okS && okS.pp === false, JSON.stringify(okS));
     // 揭曉停留：0.6 秒點畫面不會跳題，1.4 秒點才會
     await sleep(600); await p.evaluate(() => document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })));
@@ -43,7 +42,7 @@ const nextIdx = (p, n, t = 5000) => p.waitForFunction(n => window.__zy.idx === n
     await sleep(400); await clearSfx(p);
     await answer(p, "fish", true); await nextIdx(p, 2); await sleep(400);
     await answer(p, "fish", true); await sleep(250);
-    const rates = (await sfx(p)).filter(x => x.f === "zy_ok.mp3").map(x => x.rate);
+    const rates = (await sfx(p)).filter(x => x.f === "ok.mp3").map(x => x.rate);
     ok("連對音高照大調音階往上爬（Re、Mi）", rates.length === 2 && Math.abs(rates[0] - 2 ** (2 / 12)) < 0.01 && Math.abs(rates[1] - 2 ** (4 / 12)) < 0.01, JSON.stringify(rates));
     const badge = await p.evaluate(() => document.querySelector(".combo-badge")?.textContent || "");
     ok("連對 3 題：頂上落下「連續 3 題！」徽章", badge.includes("3") && badge.includes("連續"), badge);
@@ -51,7 +50,7 @@ const nextIdx = (p, n, t = 5000) => p.waitForFunction(n => window.__zy.idx === n
     // 答錯過再答對＝銀星、ok 回到 Do
     await clearSfx(p); await answer(p, "fish", false); await sleep(450); await answer(p, "fish", true); await sleep(200);
     const s2 = await sfx(p);
-    ok("答錯 ng 音量 0.5、錯過再對 ok 回到 Do", s2.find(x => x.f === "zy_ng.mp3")?.vol === 0.5 && s2.find(x => x.f === "zy_ok.mp3")?.rate === 1, JSON.stringify(s2));
+    ok("答錯 ng 音量 0.5、錯過再對 ok 回到 Do", s2.find(x => x.f === "ng.mp3")?.vol === 0.5 && s2.find(x => x.f === "ok.mp3")?.rate === 1, JSON.stringify(s2));
     await nextIdx(p, 4, 5000); await sleep(500);
     // 可戳小東西：叫出來 → 不擋選項 → 點了不算錯、不碰提示、不會變成跳題
     await p.evaluate(() => { window.__crit = window.__zyPolish.spawnCritter(); }); await sleep(600);   // 等「冒出來」的彈入動畫跑完（一開始是縮成 0 的）
@@ -64,7 +63,7 @@ const nextIdx = (p, n, t = 5000) => p.waitForFunction(n => window.__zy.idx === n
       await clearSfx(p); await p.mouse.click(cr.x, cr.y); await sleep(250);
       const w1 = await p.evaluate(() => ({ wrong: window.__zy.wrong, res: window.__zy.results[window.__zy.idx], pulse: document.getElementById("speakBtn").classList.contains("pulse") }));
       const s3 = await sfx(p);
-      ok("戳小生物：不計錯、不出答錯音、有叫一聲", JSON.stringify(w0) === JSON.stringify(w1) && !s3.some(x => x.f === "zy_ng.mp3") && s3.some(x => x.f === "zy_pop.mp3"), JSON.stringify({ w0, w1, s3 }));
+      ok("戳小生物：不計錯、不出答錯音、有叫一聲", JSON.stringify(w0) === JSON.stringify(w1) && !s3.some(x => x.f === "ng.mp3") && s3.some(x => x.f === "pop.mp3"), JSON.stringify({ w0, w1, s3 }));
       // 答對後揭曉中戳小生物：不能變成「點一下換下一題」
       const tA = Date.now(); await answer(p, "fish", true); const i0 = await p.evaluate(() => window.__zy.idx); await sleep(1300);
       const still2 = await p.evaluate(([x, y]) => { const c = document.querySelector("#fish .critter:not(.bye)"); if (!c) return null; const e = document.elementFromPoint(x, y); return (e && (e.closest(".critter") ? "critter" : e.className || e.tagName)) || "none"; }, [cr.x, cr.y]);
@@ -98,7 +97,7 @@ const nextIdx = (p, n, t = 5000) => p.waitForFunction(n => window.__zy.idx === n
     const pair = await p.evaluate(() => { const cs = [...document.querySelectorAll("#board .card")]; const z = cs.findIndex(c => c._c.kind === "z"); const e = cs.findIndex(c => c._c.kind === "e" && c._c.w !== cs[z]._c.w); const m = cs.findIndex(c => c._c.kind === "e" && c._c.w === cs[z]._c.w); return { z, e, m }; });
     await tap(pair.z); await sleep(100); await tap(pair.e); await sleep(1100);
     const s = await sfx(p);
-    ok("翻錯不播 ng（蓋回時播 flip 0.85）", !s.some(x => x.f === "zy_ng.mp3") && s.some(x => x.f === "zy_flip.mp3" && Math.abs(x.rate - 0.85) < 0.01), JSON.stringify(s));
+    ok("翻錯不播 ng（蓋回時播 flip 0.85）", !s.some(x => x.f === "ng.mp3") && s.some(x => x.f === "flip.mp3" && Math.abs(x.rate - 0.85) < 0.01), JSON.stringify(s));
     ok("翻牌頂上有配對計數「0/4」", (await p.evaluate(() => document.querySelector("#match .mcount")?.textContent || "")).includes("0/4"));
     await tap(pair.z); await sleep(100); await tap(pair.m); await sleep(1000);
     const m = await p.evaluate(({ z, m }) => { const cs = [...document.querySelectorAll("#board .card")]; return { done: cs[z].classList.contains("done") && cs[m].classList.contains("done"), han: !!cs[m].querySelector(".front .han"), cnt: document.querySelector("#match .mcount").textContent }; }, pair);

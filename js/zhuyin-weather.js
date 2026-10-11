@@ -37,7 +37,7 @@ const WEIGHTS = { sunny: 40, cloudy: 25, rain: 18, storm: 10, typhoon: 7 };
 const WET = new Set(["rain", "storm", "typhoon"]);      // 從這些轉回晴天 → 出彩虹
 const SEA_GRAY = { deep: "#4f7590", shallow: "#8cb0b4", grid: "#7495ad" };
 const FADE = 2.5;                                       // 換天氣淡入淡出秒數
-const MAX_DROPS = 760, MAX_SPLASH = 260, MAXC = 14, PUFF = 6, MAXL = 30;
+const MAX_DROPS = 760, MAX_SPLASH = 340, MAXC = 14, PUFF = 6, MAXL = 30;   // 水花 10-12：260 → 340（多了彩虹島，主島的密度維持）
 const RAINBOW_LIFE = 25;
 
 // 加權隨機：晴 40%、陰 25%、雨 18%、雷雨 10%、颱風 7%
@@ -113,7 +113,8 @@ export function weatherPlugin(ctx, { kind = "sunny", sound = null, onLightning =
   const main = box(), isl = box();
   const addPt = (o, x, z) => { const sx = R.x * x + R.z * z, sy = -sinEl * (F.x * x + F.z * z); o.l = Math.min(o.l, sx); o.r = Math.max(o.r, sx); o.t = Math.max(o.t, sy); o.b = Math.min(o.b, sy); };
   for (const v of islPoly) { addPt(main, v.x, v.y); addPt(isl, v.x, v.y); }
-  for (let x = -34; x <= 34; x += 1) for (let z = -34; z <= 34; z += 1) if (!inside(islPoly, x, z, -0.5) && isLand(x, z)) addPt(isl, x, z);
+  const SPAN = Math.max(34, ...(ctx.isles || []).map(q => Math.max(Math.abs(q.x), Math.abs(q.z)) + (q.hx || q.h || 6) + 2));   // 掃描範圍涵蓋每座島（10-12 西邊的彩虹島到 x≈−28）
+  for (let x = -SPAN; x <= SPAN; x += 1) for (let z = -SPAN; z <= SPAN; z += 1) if (!inside(islPoly, x, z, -0.5) && isLand(x, z)) addPt(isl, x, z);
   const readView = () => { view.l = camera.left; view.r = camera.right; view.t = camera.top; view.b = camera.bottom; };
   readView();
 
@@ -306,8 +307,8 @@ export function weatherPlugin(ctx, { kind = "sunny", sound = null, onLightning =
     const r2 = rng(29), sp = new Float32Array(MAX_SPLASH * 4 * 4), corner = new Float32Array(MAX_SPLASH * 4 * 2), idx = new Uint16Array(MAX_SPLASH * 6);
     let n = 0, guard = 0;
     const ring = (x, z, r) => [[r, 0], [-r, 0], [0, r], [0, -r], [r * 0.7, r * 0.7], [-r * 0.7, r * 0.7], [r * 0.7, -r * 0.7], [-r * 0.7, -r * 0.7]].map(([dx, dz]) => [x + dx, z + dz]);
-    while (n < MAX_SPLASH && guard++ < 30000) {
-      const x = (r2() - 0.5) * 56, z = (r2() - 0.5) * 56;
+    while (n < MAX_SPLASH && guard++ < 60000) {
+      const x = (r2() - 0.5) * 2 * Math.min(SPAN, 40), z = (r2() - 0.5) * 2 * Math.min(SPAN, 40);   // 範圍跟著島（原本 ±28）
       if (isl.l > R.x * x + R.z * z + 4 || isl.r < R.x * x + R.z * z - 4) continue;   // 陸地左右範圍外的海不撒
       const land = isLand(x, z);
       let y = -0.935;                                   // 海面（hub3d SEA_Y = -0.95）
@@ -491,8 +492,9 @@ export function weatherPlugin(ctx, { kind = "sunny", sound = null, onLightning =
   // 光：k 0＝燈頭光暈（面向鏡頭）1＝地上暖光圈（平躺）2＝新市區路口小燈 3＝螢火蟲
   const glows = [];
   for (const L of ctx.lamps || []) { glows.push({ k: 0, x: L.x, y: L.y + LAMP_HEAD, z: L.z, s: 1.15 }); glows.push({ k: 1, x: L.x, y: L.y + 0.012, z: L.z, s: 2.2 }); }
-  if (ctx.town) for (const [dx, dz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {   // 新市區沒有路燈：十字路口四角放矮矮的地燈
-    const x = ctx.town.x + dx * 0.88, z = ctx.town.z + dz * 0.88, y = groundY(x, z) + 0.075;
+  const townIsle = (ctx.isles || []).find(q => q.id === "town") || ctx.town;   // 10-12 起多島（ctx.isles）；彩虹島自己有路燈（在 ctx.lamps 裡）
+  if (townIsle) for (const [dx, dz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {   // 新市區沒有路燈：十字路口四角放矮矮的地燈
+    const x = townIsle.x + dx * 0.88, z = townIsle.z + dz * 0.88, y = groundY(x, z) + 0.075;
     glows.push({ k: 2, x, y: y + 0.22, z, s: 0.7 }); glows.push({ k: 1, x, y: y + 0.012, z, s: 1.6 });
   }
   const park = (ctx.SPOTS || []).find(q => q.id === "park") || { x: -2.4, z: 2.4 };
@@ -744,18 +746,18 @@ export function weatherPlugin(ctx, { kind = "sunny", sound = null, onLightning =
 
 // =========================================================
 // 聲音：WebAudio 程式合成（雨＝白噪音濾波、大雨底噪＝棕噪音低通、風＝棕噪音帶通＋慢慢起伏、遠雷＝低頻噪音衰減）
-// start(既有 AudioContext 或 null)；晴、陰天無聲；音量很小（在背景音樂之下）
+// start(既有 AudioContext 或 null, 輸出節點＝音訊引擎的 ambience bus，省略＝直接接喇叭)；晴、陰天無聲；音量很小（在背景音樂之下）
 // =========================================================
 export function createWeatherSound() {
   const LV = { sunny: [0, 0, 0], cloudy: [0, 0, 0], rain: [0.5, 0.18, 0.06], storm: [0.68, 0.36, 0.2], typhoon: [0.74, 0.42, 0.62] };   // [雨絲, 大雨底噪, 風]
   const BASE = 0.2;
-  let ac = null, ownCtx = false, g = null, srcs = [], kind = "sunny", vol = 0, autoT = 0, offT = 0, wired = false, busyUntil = 0, duck = null;
+  let ac = null, ownCtx = false, g = null, srcs = [], kind = "sunny", vol = 0, autoT = 0, offT = 0, wired = false, busyUntil = 0, duck = null, dst = null;   // dst：接到哪（音訊引擎的 ambience bus；沒給＝喇叭）
   const self = { _linked: false };
   // 沒聲音（音量 0 或晴／陰天）1.2 秒後把 master 從喇叭拔掉：斷線的節點不運算；要出聲時再接回去
   const audible = () => vol > 0 && (LV[kind] || LV.sunny).some(x => x > 0);
   function syncWire() {
     if (!g || !ac) return;
-    if (audible()) { clearTimeout(offT); offT = 0; if (!wired) { try { g.master.connect(ac.destination); wired = true; } catch (e) {} } return; }
+    if (audible()) { clearTimeout(offT); offT = 0; if (!wired) { try { g.master.connect(dst || ac.destination); wired = true; } catch (e) {} } return; }
     if (!wired || offT) return;
     offT = setTimeout(function tryOff() {
       offT = 0; if (!g || !ac || audible() || !wired) return;
@@ -781,10 +783,10 @@ export function createWeatherSound() {
     if (!g || self._linked || (kind !== "storm" && kind !== "typhoon")) return;
     autoT = setTimeout(() => { self.thunder(0, 0.8); scheduleAuto(); }, 6000 + Math.random() * 8000);
   }
-  self.start = audioCtx => {
+  self.start = (audioCtx, out) => {
     if (g) return self;
     try {
-      ac = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); ownCtx = !audioCtx;
+      ac = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); ownCtx = !audioCtx; dst = audioCtx && out ? out : null;
       const white = noiseBuf(2.3, false), brown = noiseBuf(3.7, true);
       const master = ac.createGain(); master.gain.value = BASE * vol; wired = false;
       // 雨絲：白噪音 → 高通 → 低通
@@ -821,7 +823,7 @@ export function createWeatherSound() {
       if (duck) { try { if (duck()) strength *= 0.5; } catch (e) {} }
       const t0 = ac.currentTime + Math.max(0, delay), dur = 3.6;
       busyUntil = Math.max(busyUntil, t0 + dur); clearTimeout(offT); offT = 0;
-      if (!wired) { g.master.connect(ac.destination); wired = true; }
+      if (!wired) { g.master.connect(dst || ac.destination); wired = true; }
       const s = ac.createBufferSource(); s.buffer = noiseBuf(dur, true);
       const lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.setValueAtTime(620, t0); lp.frequency.exponentialRampToValueAtTime(110, t0 + 1.6);
       const env = ac.createGain(); env.gain.setValueAtTime(0, t0); env.gain.linearRampToValueAtTime(0.85 * strength, t0 + 0.14);
@@ -838,7 +840,7 @@ export function createWeatherSound() {
     if (g) { try { g.master.disconnect(); } catch (e) {} }
     g = null;
     if (ac && ownCtx) { try { ac.close(); } catch (e) {} }
-    ac = null; ownCtx = false;
+    ac = null; ownCtx = false; dst = null;
   };
   return self;
 }

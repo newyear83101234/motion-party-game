@@ -3,9 +3,10 @@
 // 八個模式：釣魚 / 點餐 / 積木 / 尋寶 / 翻牌 / 聲調氣球 / 打地鼠 / 跳跳蛙（後兩個 2026-10-10 加）。長期動力：貼紙圖鑑（每個詞一張貼紙）＋星星罐孵蛋（解鎖朋友）。
 // 設計依據：櫻木花道（遊戲設計）＋寧次（UI/UX）2026-09-09 審查報告；規格見 memory project-zhuyin-game.md
 import { WORDS, PHRASES, CATS, FRIENDS } from "./zhuyin-words.js";
-import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js?v=5";
-import { voiceUnlock, voiceSay, voiceStop, voiceSpeaking, voicePreload, voiceCtx } from "./zhuyin-voice.js?v=4";
-import * as RW from "./zhuyin-rewards.js?v=1";   // 獎勵系統（扭蛋機）純邏輯
+import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js?v=6";
+import { voiceUnlock, voiceSay, voiceStop, voiceSpeaking, voicePreload, voiceCtx, voiceBind } from "./zhuyin-voice.js?v=5";
+import A from "./zhuyin-audio.js?v=1";               // 音訊引擎：一個 AudioContext、music／sfx／voice／ambience 四條 bus（docs/zhuyin-v5-plan.md §5）
+import * as RW from "./zhuyin-rewards.js?v=2";   // 獎勵系統（扭蛋機）純邏輯
 import { createClock } from "./zhuyin-clock.js?v=1";   // 日夜時鐘（真實 30 分鐘＝小島一天）
 startAnnotate();                                      // 畫面上每個國字自動加注音（阿葉 10-10）
 
@@ -20,8 +21,10 @@ const MODES = {                                     // 每模式：題數、解�
   tone:  { rounds: 8, need: 15, intro: "聽聲音，戳對的氣球！",         bgm: "island" },
   whack: { rounds: 6, need: 20, intro: "聽聲音，敲對的地鼠！",         bgm: "island" },   // 阿葉 10-10：再加兩個關卡
   frog:  { rounds: 5, need: 25, intro: "聽聲音，跳到對的荷葉上！",     bgm: "calm" },
-  bubble: { rounds: 1, need: 30, intro: "發射泡泡，救出小企鵝！",       bgm: "island" },   // 阿葉 10-11：泡泡救援灣（GPT 提案）
+  bubble: { rounds: 1, need: 30, intro: "發射泡泡，救出小企鵝！",       bgm: "bubble" },   // 阿葉 10-11：泡泡救援灣（GPT 提案）
+  deliver: { rounds: 1, need: 20, intro: "把貨物送到大家的家！", bgm: "road" },   // 10-12 彩虹配送站（彩虹島；need＝hub3d 的 RAINBOW_NEED）
 };
+const DELIVER_TASKS = 8;                               // 彩虹配送站關數＝js/zhuyin-deliver.js TASKS.length（模組載入前就要用：存檔、選關、備份碼；模組載入時會核對）
 const PRAISE = ["好棒！", "哇！", "就是它！", "太厲害了！", "你好會拼喔！"];
 const EGG_STARS = 10;                               // 星星罐滿幾顆孵一顆蛋
 
@@ -196,7 +199,7 @@ function polishCorrect(target, gold, pre) {
   }
   else if (m === "build") [...document.querySelectorAll("#slots .slot")].forEach((d, i) => setTimeout(() => { d.classList.remove("hop2"); void d.offsetWidth; d.classList.add("hop2"); }, 250 + i * 80));   // A8：拼完各格依序跳
   if (sur) PZ(() => polishSurprise(m, target));
-  const n = MODES[m].rounds; if (n > 1 && idx === n - 1) setTimeout(() => { if (curBgm) curBgm.playbackRate = 1; }, 1200);   // A19 衝刺結束
+  const n = MODES[m].rounds; if (n > 1 && idx === n - 1) setTimeout(() => A.bgmRate(1), 1200);   // A19 衝刺結束
 }
 // A12：連對 3、5、8 題：頂上落下「連續 N 題！」徽章（0.45 秒彈入、停 1.2 秒收回），收回時進度膠囊亮金 0.6 秒
 //   徽章落在進度膠囊上（蓋住膠囊一下），不要蓋到正在揭曉國字的題目卡
@@ -216,10 +219,10 @@ function polishSurprise(m, target) {
   else if (m === "order") fxMark($("customer"), "👑", { at: [0.5, 0.02], rise: 0, dur: 1700, cls: "crown" });
   else if (m === "frog") document.querySelectorAll("#river .pad.bloom").forEach(d => d.classList.add("goldpad"));
 }
-// A19：最後一題衝刺：BGM 快 6%（BGM 保留原本音高）、進度最後一格閃
+// A19：最後一題衝刺：BGM 快 6%（Web Audio 沒辦法保留音高，音高跟著升約半音）、進度最後一格閃
 function polishSprint() {
   const n = MODES[mode].rounds, last = n > 1 && idx === n - 1;
-  if (curBgm) curBgm.playbackRate = last ? 1.06 : 1;
+  A.bgmRate(last ? 1.06 : 1);
   if (last && $("progress").lastElementChild) $("progress").lastElementChild.classList.add("final");
 }
 // A15：注音標籤固定寬高、字縮放塞進去（一個符號的ㄩˇ不會扁寬、三個音節不會擠出框）
@@ -400,19 +403,37 @@ function loadSlot(n) {
   save.intro = lsGet(K("intro"), {});                 // 哪些模式聽過開場語
   save.matchSize = lsGet(K("match_size"), 8);         // 翻牌上次選的張數（新存檔預設 8＝簡單）
   save.best = lsGet(K("best"), {});                   // 個人紀錄（B14）：{ 模式: 最佳星數 }
-  save.bubble = lsGet(K("bubble"), { lv: 0, stars: {} });   // 泡泡救援灣：lv＝下一關（0 起算）、stars＝每關最佳星數
+  save.bubble = cleanBubble(lsGet(K("bubble"), null));   // 讀出來先清洗（壞資料：stars 不是物件、lv 是字串…）；cleanBubble 是 function 宣告，開頁這裡就能用
+  if (save.bubble.all && save.bubble.lv === 9) { save.bubble.lv = 10; delete save.bubble.all; }   // 舊存檔（只有 10 關、全通）升級後接著玩第 2 區第 1 關   // 泡泡救援灣：lv＝下一關（0 起算）、stars＝每關最佳星數
+  save.deliver = cleanDeliver(lsGet(K("deliver"), null));   // 彩虹配送站（10-12）：lv＝下一關（0 起算）、stars＝每關最佳星數、all＝8 關都過了
   save.mix = lsGet(K("mix"), {});
   save.rw = RW.migrate({ eggs: save.eggs, rewards: lsGet(K("rewards"), null) });   // 扭蛋幣、寵物、點心、集章卡…（docs/zhuyin-rewards-spec.md）；舊的 eggs 自動搬成已收集的朋友
   RW.creditJar(save.rw, save.stars); lsSet(K("rewards"), save.rw);   // 搬家結果馬上存（不等下一次 persist）                     // 容易混淆的注音／聲調：{ "ㄅ|ㄆ": 次數, "t:1|2": 次數 }（家長頁顯示）
 }
 loadSlot(slot);
-const persist = () => [lsSet(K("stickers"), save.stickers), lsSet(K("stars"), save.stars), lsSet(K("eggs"), save.eggs), lsSet(K("intro"), save.intro), lsSet(K("match_size"), save.matchSize), lsSet(K("best"), save.best), lsSet(K("bubble"), save.bubble), lsSet(K("rewards"), save.rw), lsSet("zy_music", save.music), lsSet("zy_hint_wait", save.hintWait), lsSet("zy_talk", save.talk)].every(Boolean);
+const persist = () => [lsSet(K("stickers"), save.stickers), lsSet(K("stars"), save.stars), lsSet(K("eggs"), save.eggs), lsSet(K("intro"), save.intro), lsSet(K("match_size"), save.matchSize), lsSet(K("best"), save.best), lsSet(K("bubble"), save.bubble), lsSet(K("deliver"), save.deliver),lsSet(K("rewards"), save.rw), lsSet("zy_music", save.music), lsSet("zy_hint_wait", save.hintWait), lsSet("zy_talk", save.talk)].every(Boolean);
 const slotSummary = n => ({ stickers: Object.keys(lsGet(`zy${n}_stickers`, {})).length, stars: lsGet(`zy${n}_stars`, 0) });
 try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}   // 請瀏覽器不要自動清掉存檔
 // 備份碼（B6）：ZY2＝三個存檔位一次包起來（換平板或瀏覽器被清掉時可以還原）；舊的 ZY1（只有一位）照樣能還原到目前這一位
 const b64enc = o => btoa(unescape(encodeURIComponent(JSON.stringify(o))));
 const b64dec = s => JSON.parse(decodeURIComponent(escape(atob(s))));
-const slotRaw = n => { const g = (k, d) => lsGet(`zy${n}_${k}`, d); return { s: Object.keys(g("stickers", {}) || {}), st: g("stars", 0), eg: g("eggs", 0), b: g("best", {}), i: Object.keys(g("intro", {}) || {}), m: g("match_size", 8), rw: g("rewards", null) }; };
+const slotRaw = n => { const g = (k, d) => lsGet(`zy${n}_${k}`, d); return { s: Object.keys(g("stickers", {}) || {}), st: g("stars", 0), eg: g("eggs", 0), b: g("best", {}), i: Object.keys(g("intro", {}) || {}), m: g("match_size", 8), rw: g("rewards", null), dv: g("deliver", null), bb: g("bubble", null) }; };   // dv：彩虹配送站進度（10-12）；bb：泡泡救援灣進度（10-12 補上，之前漏了）
+// 泡泡救援灣進度清洗：{ lv 下一關, stars { 關: 1..3 }, all }（關卡數上限寫寬一點，之後加關舊碼照樣能還原）
+function cleanBubble(d) {
+  const out = { lv: 0, stars: {} }; if (!d || typeof d !== "object") return out;
+  out.lv = Math.min(99, Math.max(0, Math.floor(+d.lv) || 0));
+  if (d.stars && typeof d.stars === "object") for (const [k, v] of Object.entries(d.stars)) { const i = +k, s = Math.floor(+v) || 0; if (Number.isInteger(i) && i >= 0 && i < 100 && s > 0) out.stars[i] = Math.min(3, s); }
+  if (d.all) out.all = 1;
+  return out;
+}
+// 彩虹配送站進度清洗（存檔、備份碼共用）：{ lv 下一關 0..7, stars { 關: 1..3 }, all }；壞的欄位丟掉
+function cleanDeliver(d) {                             // DELIVER_TASKS 宣告在 MODES 下面（loadSlot 開頁就會用到）
+  const out = { lv: 0, stars: {} }; if (!d || typeof d !== "object") return out;
+  out.lv = Math.min(DELIVER_TASKS - 1, Math.max(0, Math.floor(+d.lv) || 0));
+  if (d.stars && typeof d.stars === "object") for (const [k, v] of Object.entries(d.stars)) { const i = +k, s = Math.floor(+v) || 0; if (Number.isInteger(i) && i >= 0 && i < DELIVER_TASKS && s > 0) out.stars[i] = Math.min(3, s); }
+  if (d.all) out.all = 1;
+  return out;
+}
 // 備份碼裡的一位 → 乾淨的存檔資料：只收詞庫有的詞、只收認得的模式、數字有上下限（不是正確格式就回 null）
 function cleanSlot(d) {
   if (!d || typeof d !== "object" || !Array.isArray(d.s)) return null;
@@ -420,7 +441,7 @@ function cleanSlot(d) {
   const best = {}; if (d.b && typeof d.b === "object") for (const m of modes) { const v = num(d.b[m], 3); if (v) best[m] = v; }
   const intro = {}; if (Array.isArray(d.i)) for (const m of d.i) if (modes.includes(m)) intro[m] = 1;
   return { stickers: Object.fromEntries(d.s.filter(h => typeof h === "string" && valid.has(h)).map(h => [h, 1])), stars: num(d.st, 99999), eggs: num(d.eg, FRIENDS.length - 4),
-    best, intro, matchSize: [8, 16, 24].includes(+d.m) ? +d.m : 8, rewards: d.rw ? RW.cleanRewards(d.rw) : null };
+    best, intro, matchSize: [8, 16, 24].includes(+d.m) ? +d.m : 8, rewards: d.rw ? RW.cleanRewards(d.rw) : null, deliver: d.dv ? cleanDeliver(d.dv) : null, bubble: d.bb ? cleanBubble(d.bb) : null };
 }
 const slotHasData = c => !!c && (Object.keys(c.stickers).length > 0 || c.stars > 0 || c.eggs > 0);
 function exportCode() { return "ZY2:" + b64enc({ v: 2, hw: save.hintWait, p: [1, 2, 3].map(slotRaw) }); }   // 同樣的進度＝同樣的碼（還原鈕靠這個判斷「框裡只是剛備份的碼」）
@@ -438,7 +459,7 @@ function readCode(code) {
 function importCode(code) {
   const r = readCode(code); if (!r) return "bad";
   if (r.v === 1) { const c = r.slots[0]; save.stickers = c.stickers; save.stars = c.stars; save.eggs = c.eggs; save.rw = RW.migrate({ eggs: c.eggs }); RW.creditJar(save.rw, save.stars); return persist() ? "ok" : "fail"; }   // 舊碼沒有獎勵資料：照孵過的蛋重新搬家
-  const keys = ["stickers", "stars", "eggs", "best", "intro", "match_size", "resume", "hello", "rewards"], snap = {};
+  const keys = ["stickers", "stars", "eggs", "best", "intro", "match_size", "resume", "hello", "rewards", "deliver", "bubble"], snap = {};
   for (let n = 1; n <= 3; n++) for (const k of keys) { try { snap[`zy${n}_${k}`] = localStorage.getItem(`zy${n}_${k}`); } catch (e) {} }
   let ok = true;
   r.slots.forEach((c, i) => {
@@ -446,13 +467,15 @@ function importCode(code) {
     const n = i + 1, w = (k, v) => { ok = lsSet(`zy${n}_${k}`, v) && ok; };
     w("stickers", c.stickers); w("stars", c.stars); w("eggs", c.eggs); w("best", c.best); w("intro", c.intro); w("match_size", c.matchSize); w("hello", 1);
     if (c.rewards) w("rewards", c.rewards); else { try { localStorage.removeItem(`zy${n}_rewards`); } catch (e) {} }   // 舊備份碼沒有獎勵資料：照 eggs 重新搬家
+    if (c.deliver) w("deliver", c.deliver); else { try { localStorage.removeItem(`zy${n}_deliver`); } catch (e) {} }   // 彩虹配送站進度（10-12 以前的備份碼沒有＝從第 1 關開始）
+    if (c.bubble) w("bubble", c.bubble);   // 泡泡進度；10-12 以前的備份碼沒有這欄 → 保留這台平板原本的泡泡進度（以前的行為，不清掉）
     try { localStorage.removeItem(`zy${n}_resume`); } catch (e) {}   // 這台平板上「沒玩完的那一回合」跟還原的進度對不上 → 丟掉
   });
   if (ok && r.hw !== null) { save.hintWait = r.hw; ok = lsSet("zy_hint_wait", r.hw); }
   if (!ok) for (const [k, v] of Object.entries(snap)) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }   // 寫一半失敗：整批放回原狀
   loadSlot(slot); return ok ? "ok" : "fail";
 }
-function clearSlot() { for (const k of ["stickers", "stars", "eggs", "intro", "last_mode", "resume", "match_size", "whack_up", "best", "hello", "mix", "bubble", "rewards"]) { try { localStorage.removeItem(K(k)); } catch (e) {} } loadSlot(slot); }
+function clearSlot() { for (const k of ["stickers", "stars", "eggs", "intro", "last_mode", "resume", "match_size", "whack_up", "best", "hello", "mix", "bubble", "deliver", "rewards"]) { try { localStorage.removeItem(K(k)); } catch (e) {} } loadSlot(slot); }
 // 新存檔第一次進來（B8）：貓頭鷹先自我介紹；已經有進度的舊存檔不會突然被介紹
 function helloText() {
   if (lsGet(K("hello"), 0)) return null; lsSet(K("hello"), 1);
@@ -462,30 +485,32 @@ const stickerCount = () => Object.keys(save.stickers).length;
 const friends = () => FRIENDS.filter(f => save.rw.pets[RW.FRIEND_PET[f.id]]);   // 點餐的客人：已經收集的那幾位朋友
 
 // ---------- 音效 / 音樂 / 語音 ----------
-const SFX = {}; for (const n of ["ok", "ng", "tap", "select", "win", "pop", "flip", "sticker"]) { const a = SFX[n] = new Audio(`MUSIC/zy_${n}.mp3`); a.preservesPitch = a.mozPreservesPitch = a.webkitPreservesPitch = false; }   // A1：音效改 playbackRate 時音高真的跟著變（BGM 不改，保留音高）
-SFX.ng.volume = 0.5;                                    // A10：答錯音小聲一點（怪遊戲不怪小孩）
-SFX.party = new Audio(); SFX.party.preload = "none"; SFX.party.src = "MUSIC/zy_bgm_party.mp3"; SFX.party.volume = 0.45;   // 結算用 Suno 生的 7 秒慶祝 jingle
-// 背景音樂 preload="none"：開頁不下載，第一次播放才抓（之前開頁就吃掉 3.7MB，是載入慢的主因）
-const BGM = {}; for (const k of ["island", "calm"]) { const a = new Audio(); a.preload = "none"; a.src = `MUSIC/zy_bgm_${k}.mp3`; a.loop = true; a.volume = 0.3; BGM[k] = a; }
-let curBgm = null, ducked = false;
-function play(name, rate = 1) { const a = SFX[name]; if (!a) return; try { a.__played = true; a.muted = false; a.currentTime = 0; a.playbackRate = rate; a.play().catch(() => {}); } catch (e) {} }
-function playBgm(key) {
-  const b = BGM[key] || BGM.island;
-  if (curBgm && curBgm !== b) { curBgm.pause(); }
-  curBgm = b; b.playbackRate = 1; if (save.music) b.play().catch(() => {});   // 速度歸零：最後一題衝刺（A19）加快過
+// 全部走 js/zhuyin-audio.js（Web Audio）：音效 audio/sfx/<名字>.mp3、背景音樂 audio/bgm/<key>.mp3（舊的 MUSIC/zy_*.mp3 留給宣傳片工具）
+// play(名字, 速度)：速度連音高一起變（連對音階往上爬）；任何 audio/sfx 裡有的名字都能播，沒有的安靜略過；"party"＝結算 jingle（播的時候自動壓低音樂）
+A.setMusic(!!save.music);
+voiceBind({ ctx: () => A.ctx(true), out: () => A.busFor("voice") });   // 預錄配音：同一個 AudioContext、接 voice bus
+function play(name, rate = 1) { A.sfx(name, { rate }); }
+// 背景音樂：同一首不重播、換曲 0.6 秒交叉淡化；音樂關著也記住要播哪首
+function playBgm(key) { A.bgmRate(1); A.playBgm(key); }   // 速度歸零：最後一題衝刺（A19）加快過
+// 選單的背景音樂：看人在哪座島（主島晚上＝搖籃曲）
+function menuBgmKey(p) {
+  p = p || (hub && hub.place ? hub.place() : "main");
+  return p === "town" ? "town" : p === "rainbow" ? "rainbow" : document.body.classList.contains("night") ? "night" : "island";
 }
-function setMusic(on) { save.music = on ? 1 : 0; persist(); if (save.music) { if (curBgm) curBgm.play().catch(() => {}); } else if (curBgm) curBgm.pause(); $("musicBtn").classList.toggle("off", !save.music); if (typeof wxAudio === "function") wxAudio(); }
+function setMusic(on) { save.music = on ? 1 : 0; persist(); A.setMusic(!!save.music); $("musicBtn").classList.toggle("off", !save.music); if (typeof wxAudio === "function") wxAudio(); }   // 音樂開關管背景音樂＋環境音（天氣、海鷗），不管音效與配音
 function toggleMusic() {                               // B10：關掉＝白底＋紅斜線；切換時彈一下＋tap 音
   setMusic(!save.music); const b = $("musicBtn"); b.classList.remove("pop"); void b.offsetWidth; b.classList.add("pop"); play("tap");
 }
-function duck(on) { ducked = on; for (const b of Object.values(BGM)) b.volume = on ? 0.1 : 0.3; }   // TTS 講話時壓低音樂（聽力題的關鍵）
+function duck(on) { A.duck(on, "voice"); }             // 講話時把音樂壓低 10 dB（聽力題的關鍵；150 ms 壓下、400 ms 回來）
+let sayTok = 0;                                        // 只有最新那句講完才把音樂放回來（被打斷的舊句晚到的 onend 不算）
 let zhVoice = null;
 function loadVoice() { const vs = speechSynthesis.getVoices(); zhVoice = vs.find(v => /zh[-_]TW/i.test(v.lang)) || vs.find(v => /zh/i.test(v.lang)) || null; }
 if ("speechSynthesis" in window) { loadVoice(); speechSynthesis.onvoiceschanged = loadVoice; }
 // 先用 Gemini 預錄的真人語音（js/zhuyin-voice.js，阿葉 10-10「語調太像機械音」）；沒錄到的句子才退回瀏覽器語音
 function say(text, rate = 0.85, onEnd) {
   voiceStop();                                         // 先停前一句預錄（它的 onEnd 會 duck(false)），之後才壓音樂
-  let vdone = false; const vfin = () => { if (vdone) return; vdone = true; duck(false); if (onEnd) onEnd(); };
+  const me = ++sayTok, unduck = () => { if (me === sayTok) duck(false); };
+  let vdone = false; const vfin = () => { if (vdone) return; vdone = true; unduck(); if (onEnd) onEnd(); };
   if (voiceSay(text, { onEnd: vfin })) {               // 不傳 rate：預錄是自然語速，改 rate 連音高一起變
     try { if ("speechSynthesis" in window) speechSynthesis.cancel(); } catch (e) {}
     duck(true); return;
@@ -493,7 +518,7 @@ function say(text, rate = 0.85, onEnd) {
   if (!("speechSynthesis" in window)) { if (onEnd) setTimeout(onEnd, 300); return; }
   try {
     speechSynthesis.cancel(); duck(true); let done = false;
-    const fin = () => { if (done) return; done = true; duck(false); if (onEnd) onEnd(); };
+    const fin = () => { if (done) return; done = true; unduck(); if (onEnd) onEnd(); };
     const u = new SpeechSynthesisUtterance(text); u.lang = "zh-TW"; u.rate = rate; if (zhVoice) u.voice = zhVoice;
     u.onend = u.onerror = fin; speechSynthesis.speak(u);
     setTimeout(() => { if (!speechSynthesis.speaking) fin(); }, Math.max(2500, text.length * 450));   // 語音引擎沒回 onend 時的保險
@@ -510,17 +535,12 @@ function queueSay(text) {                              // 等目前這句唸完�
 function talk(text, onEnd) { if (save.talk) say(text, 0.85, onEnd); else if (onEnd) setTimeout(onEnd, 0); }
 function queueTalk(text) { if (save.talk) queueSay(text); }
 function stopSpeech() { voiceStop(); try { if ("speechSynthesis" in window) speechSynthesis.cancel(); } catch (e) {} duck(false); }
-// iOS Safari：語音與每個音效元件都要在「手指點擊當下」解鎖一次，之後等圖載完才出聲也不會被吞掉
+// iOS Safari：AudioContext 與瀏覽器語音都要在「手指點擊當下」解鎖；之後等圖載完才出聲也不會被吞掉
 let audioUnlocked = false;
 function unlockAudio() {
-  voiceUnlock();                                       // 預錄語音的 AudioContext（每次都要能 resume：iOS 切背景後會被暫停）
+  A.unlock(); voiceUnlock();                           // 共用的 AudioContext（每次都要能 resume：iOS 切背景、接電話後會被暫停）；第一次順便開始放音樂
   if (audioUnlocked) return; audioUnlocked = true;
   try { if ("speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } } catch (e) {}
-  for (const a of Object.values(SFX)) {
-    if (a.__played) continue;                          // 這次點擊本來就要播的音效，不要去靜音它
-    try { a.muted = true; const pr = a.play(); const done = () => { if (!a.__played) { a.pause(); a.currentTime = 0; } a.muted = false; };
-      if (pr) pr.then(done).catch(() => { a.muted = false; }); else done(); } catch (e) { a.muted = false; }
-  }
 }
 function burst(target, n = 10, emoji = "⭐") {
   const r = target.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, fx = $("fx");
@@ -548,9 +568,10 @@ const IMG = n => `IMAGE/zhuyin/${n}${n.startsWith("bg_") && matchMedia("(orienta
 const ASSETS = {
   menu: ["bg_map", "guide_owl"], album: ["bg_album"], result: ["bg_map"],
   fish: ["bg_pond", "fish"], build: ["bg_blocks"], hunt: ["bg_park"], match: ["bg_table", "card_back", "card_back_orange"], tone: ["bg_sky", "balloon", "balloon_blue", "balloon_green", "balloon_yellow"],
-  whack: ["bg_garden", "hole", "mole_up_body", "mole_hit_body"], bubble: ["cust_penguin"], frog: ["bg_frog", "frog_sit", "frog_jump", "lilypad", "lilypad_flower", "stone"],
+  whack: ["bg_garden", "hole", "mole_up_body", "mole_hit_body"], bubble: () => [BUBBLE_TAB_IMG[Math.floor(bubbleLevel / 10)] || "cust_penguin"], frog: ["bg_frog", "frog_sit", "frog_jump", "lilypad", "lilypad_flower", "stone"],
   order: () => ["bg_shop", ...friends().map(f => f.id)],
   hatch: () => ["egg", "egg_rare", "egg_ssr"], gacha: ["gacha_machine", "capsule_blue", "capsule_purple", "capsule_gold"],
+  deliver: ["goods_hat", "goods_apple", "goods_banana", "goods_watermelon", "goods_bread", "goods_milk"],   // 配送站貨架（3D 場景模組自己載）
 };
 const imgCache = new Map();
 function loadImg(name) {
@@ -562,7 +583,7 @@ const assetsOf = k => { const a = ASSETS[k]; return typeof a === "function" ? a(
 function preload(k) { for (const n of assetsOf(k)) loadImg(n); }                 // 背景偷偷抓，不擋畫面
 // 導覽代號：每次換畫面 +1。等圖片的非同步流程回來時代號不同＝小孩已經點去別的地方，這次作廢
 let navToken = 0, loadingOwner = 0;
-function nav() { const tok = ++navToken; qToken++; gClear(); pendingSays.clear(); if (bubbleGame) PZ(() => bubbleGame.stop()); if (loadingOwner) { loadingOwner = 0; showLoading(false); } return tok; }   // qToken++＋gClear：上一局還沒到的換題、結算、稱讚全部作廢
+function nav() { const tok = ++navToken; qToken++; gClear(); pendingSays.clear(); if (bubbleGame) PZ(() => bubbleGame.stop()); if (deliverGame) PZ(() => deliverGame.stop()); if (loadingOwner) { loadingOwner = 0; showLoading(false); } return tok; }   // qToken++＋gClear：上一局還沒到的換題、結算、稱讚全部作廢
 // 同一局的計時器（阿葉 10-10 ①）：換題、配對結算、延遲的稱讚都走這裡 → 暫停選單開著＝凍結（剩下的時間留著）、回小島／重新開始＝全部作廢
 const gameT = new Set(); let gamePaused = false, pausedAt = 0, pausedTotal = 0;
 const gNow = () => (gamePaused ? pausedAt : performance.now()) - pausedTotal;   // 本局時鐘：暫停的時間不算
@@ -585,30 +606,32 @@ function showLoading(on) { $("loading").classList.toggle("hidden", !on); }
 // ---------- 3D 選單小島（js/zhuyin-hub3d.js）----------
 // 島上走的寵物：[{ id, glb, stage, name }]（獎勵系統做好後改讀存檔裡的 pets）
 const PET_GLB = { cust_bear: "bear", cust_rabbit: "bunny", cust_cat: "cat", cust_fox: "fox", cust_panda: "panda", cust_penguin: "penguin", cust_frog: "frog", cust_lion: "lion" };
-const hubPets = () => Object.entries(save.rw.pets).map(([id, p]) => ({ id, name: RW.PET[id].name, stage: p.stage || 2, glb: `IMAGE/zy3d/models/${id}.glb` }));   // 小島上走的：全部收集到的寵物（寶寶／長大／超級）
+const hubPets = () => Object.entries(save.rw.pets).map(([id, p]) => ({ id, name: RW.PET[id].name, stage: p.stage || 2, glb: `IMAGE/zy3d/models/${id}.glb`, wear: RW.wearOf(save.rw, id) }));   // 小島上走的：全部收集到的寵物（寶寶／長大／超級）；wear＝身上穿什麼（換裝畫面選的，超級沒選＝皇冠＋披風）
 const hubDecor = () => save.rw.decor.map(id => ({ id, glb: `IMAGE/zy3d/models/${id}.glb` }));
 // 選單要用時才動態載入 Three.js＋模型；網址加 ?no3d、沒有 WebGL、載入失敗或 8 秒內沒好 → 退回原本卡片選單（遊戲照常玩）
 let hub = null;
+let dressMod = null, dressUI = null, dressFrom = "";   // 寵物換裝畫面（10-12）：dressFrom＝從哪裡開的（"menu"｜"album"），空字串＝沒開
 function hasWebGL() {                                 // Three.js r163 起只支援 WebGL2；探測完把 context 還回去（iPad 同時能開的 context 有限）
   try { const gl = document.createElement("canvas").getContext("webgl2"); if (!gl) return false; const x = gl.getExtension("WEBGL_lose_context"); if (x) x.loseContext(); return true; } catch (e) { return false; }
 }
 function importHub() {
-  const url = "./zhuyin-hub3d.js?v=8";
+  const url = "./zhuyin-hub3d.js?v=9";
   if (window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports("importmap")) return import(url);
   return new Promise((ok, no) => {                    // 舊 iPad（iOS 16.3 以前）不支援 importmap → 補 es-module-shims 再載
     const s = document.createElement("script"); s.src = "IMAGE/zy3d/vendor/es-module-shims/es-module-shims.js";
     s.onload = () => window.importShim ? window.importShim(new URL(url, import.meta.url).href).then(ok, no) : no(new Error("no importShim")); s.onerror = no; document.head.appendChild(s);
   });
 }
-function hubFail(why) { console.warn("[hub3d] 退回卡片選單：", why); hub = null; document.body.classList.remove("hub3d"); document.body.classList.add("hub-off"); $("townBtn").classList.add("hidden"); $("townTag").classList.add("hidden");
+function hubFail(why) { console.warn("[hub3d] 退回卡片選單：", why); hub = null; document.body.classList.remove("hub3d"); document.body.classList.add("hub-off"); for (const id of PLACE_IDS) $(id).classList.add("hidden");
   clearTimeout(wxTimer); weather = null; ocean = null; wxKind = null; if (wxSound) { try { wxSound.stop(); } catch (e) {} wxSound = null; wxAudioOn = false; } }   // 天氣跟著 3D 小島一起收（卡片選單不報天氣）
 function initHub() {
   if (/[?&]no3d\b/.test(location.search) || !hasWebGL()) { document.body.classList.add("hub-off"); return Promise.resolve(null); }   // hub-off：卡片選單才顯示背景圖
   let settled = false;                                 // （Three.js 已由 zhuyin.html 的 modulepreload 跟頁面一起開始抓）
   const ready = importHub().then(m => m.createHub({ host: $("menu"), onFriend: f => { play("tap"); say(f.name); }, onFail: hubFail, newbie: () => stickerCount() === 0,
     onGacha: () => { play("select"); openGacha(); },   // 獎勵系統（docs/zhuyin-rewards-spec.md）
-    stickers: stickerCount, onCivic: (k, info) => PZ(() => civicEvent(k, info)), onPlace: (p, open) => { $("townBtn").querySelector(".nav-ico").textContent = p === "main" ? "🏙️" : "🏝️"; $("townTag").querySelector(".nav-word").textContent = p === "main" ? (open ? "歸仁區" : "歸仁區 🔒") : "回小島"; $("townBtn").setAttribute("aria-label", p === "main" ? "歸仁區" : "回小島"); $("townBtn").classList.toggle("back", p !== "main"); },
-    labels: { gacha: { ico: "🎁", word: "扭蛋" } } }))
+    stickers: stickerCount, onCivic: (k, info) => PZ(() => civicEvent(k, info)), onPlace: (p, open, st) => PZ(() => { placeButtons(p, st || { town: open }); if (!mode) playBgm(menuBgmKey(p)); }),   // 換島＝換選單音樂
+    onDress: () => PZ(() => { play("select"); openDress(save.rw.partner, "menu"); }),   // 10-12 寵物服裝店（彩虹島）→ 換裝畫面（先選夥伴）
+    labels: { gacha: { ico: "🎁", word: "扭蛋" }, dress: { ico: "🎀", word: "服裝店" } } }))
     .then(h => { if (settled) { h.dispose(); return null; } settled = true; hub = h; document.body.classList.add("hub3d"); initWeather(); return h; },
       e => { if (!settled) { settled = true; hubFail(e && e.message || e); } return null; });
   const late = new Promise(r => setTimeout(() => { if (!settled) { settled = true; hubFail("逾時"); } r(null); }, 8000));
@@ -627,13 +650,13 @@ let phasePending = "";                                 // 玩遊戲時換了時�
 const envObj = { night: 0, dusk: 0, dawn: 0, kind: "sunny" };   // 給海洋外掛每格讀的環境（同一個物件，每秒 applyNight／換天氣時更新，不每格新建）
 clock.onPhase(ph => {
   if (!PHASE_LINES[ph]) { phasePending = ""; return; }  // 白天不特別說
-  if (mode || !hub) { phasePending = ph; return; }
+  if (mode || !hub || dressFrom) { phasePending = ph; return; }   // 換裝畫面開著也等回小島再說
   const t = pick(PHASE_LINES[ph]); $("guideText").textContent = t; queueTalk(t);   // 排隊：不切斷正在講的話
 });
 async function initWeather() {
   if (!hub || weather) return;
   try {
-    const m = wxMod = await import("./zhuyin-weather.js?v=3"); if (!hub) return;
+    const m = wxMod = await import("./zhuyin-weather.js?v=4"); if (!hub) return;
     const q = (location.search.match(/[?&]weather=(\w+)/) || [])[1];   // 網址 ?weather=rain 可指定（截圖、宣傳片用）
     wxKind = m.WEATHERS[q] ? q : "sunny";             // 阿葉 10-11：打開一律晴天，玩的過程中再變
     wxSound = m.createWeatherSound(); if (wxSound.setDuck) wxSound.setDuck(() => engineTalking());   // 講話時雷聲小一點
@@ -644,7 +667,7 @@ async function initWeather() {
   } catch (e) { console.warn("[weather]", e); }
   // 海（阿葉 10-11：海浪要會動、有雲、小魚、海鷗）：js/zhuyin-ocean.js；跟著日夜時鐘與天氣變（颱風浪大、晚上沒海鷗）
   try {
-    const om = await import("./zhuyin-ocean.js?v=1"); if (!hub || ocean) return;
+    const om = await import("./zhuyin-ocean.js?v=2"); if (!hub || ocean) return;
     const s = clock.get(); envObj.night = s.night; envObj.dusk = s.dusk; envObj.dawn = s.dawn; envObj.kind = wxKind || "sunny";
     ocean = hub.use(c => om.oceanPlugin(c, { env: () => envObj }));
   } catch (e) { console.warn("[ocean]", e); }
@@ -656,7 +679,7 @@ function scheduleWeather() {
 function setWeather(k) {
   if (!weather || !wxMod.WEATHERS[k] || k === wxKind) return;
   const from = wxKind; wxKind = k; weather.set(k); envObj.kind = k;   // 海也跟著換（颱風浪大、沒海鷗）
-  if (mode) { if (!wxPending) wxPending = from; return; }   // 在遊戲裡換的 → 記住玩家最後看到的天氣，回小島再說
+  if (mode || dressFrom) { if (!wxPending) wxPending = from; return; }   // 在遊戲裡（或換裝畫面）換的 → 記住玩家最後看到的天氣，回小島再說
   const t = wxLine(from); $("guideText").textContent = t; queueTalk(t);   // 排隊：不切斷正在講的話
 }
 // 從 from 變成現在的天氣要說的話（真的看過下雨才說彩虹）
@@ -664,22 +687,53 @@ function wxLine(from) { return ["rain", "storm", "typhoon"].includes(from) && wx
 // 雨聲：聲音解鎖後才能開；選單＋背景音樂開＝有聲音，其他時候靜音
 function wxAudio() {
   if (!wxSound) return;
-  if (!wxAudioOn) { const c = voiceCtx(); if (!c) return; try { wxSound.start(c); wxAudioOn = true; } catch (e) { return; } }
+  if (!wxAudioOn) { const c = voiceCtx(); if (!c) return; try { wxSound.start(c, A.busFor("ambience")); wxAudioOn = true; } catch (e) { return; } }   // 接 ambience bus（音樂開關一起管）
   wxSound.setVolume(!mode && !document.hidden && save.music && $("menu") && !$("menu").classList.contains("hidden") ? 1 : 0);
 }
 document.addEventListener("visibilitychange", () => wxAudio());
 document.addEventListener("pointerdown", () => setTimeout(wxAudio, 50), { capture: true, passive: true });
+// 海邊環境音：在 3D 小島選單停著時，偶爾很小聲的海鷗（白天、沒下雨）或遠遠的船笛；走 ambience bus（音樂關掉就沒有）
+(function seaside() {
+  setTimeout(() => {
+    try {
+      if (hub && !mode && !document.hidden && save.music && !talking() && $("menu") && !$("menu").classList.contains("hidden")) {
+        const day = clock.get().night < 0.5, wet = ["rain", "storm", "typhoon"].includes(wxKind);
+        if (day && !wet && Math.random() < 0.75) A.sfx("seagull", { bus: "ambience", gain: 0.3, rate: 0.9 + Math.random() * 0.2 });
+        else if (Math.random() < 0.5) A.sfx("boat_horn", { bus: "ambience", gain: 0.22 });
+      }
+    } catch (e) {}
+    seaside();
+  }, 28000 + Math.random() * 30000);
+})();
 
+// 地點鈕（10-12 起兩顆）：🏙️歸仁區、🌈彩虹島；人在哪座島，那顆就變 🏝️「回小島」（hub3d 的 opts.onPlace 通知）；還沒開的島名字後面加 🔒
+const PLACE_IDS = ["townBtn", "townTag", "rainbowBtn", "rainbowTag"];
+const PLACE_BTN = { town: ["townBtn", "townTag", "🏙️", "歸仁區"], rainbow: ["rainbowBtn", "rainbowTag", "🌈", "彩虹島"] };
+function placeButtons(p, st = {}) {
+  for (const [k, [b, tg, ico, word]] of Object.entries(PLACE_BTN)) {
+    const here = p === k, open = st[k] !== false;
+    $(b).querySelector(".nav-ico").textContent = here ? "🏝️" : ico;
+    $(tg).querySelector(".nav-word").textContent = here ? "回小島" : open ? word : word + " 🔒";
+    $(b).setAttribute("aria-label", here ? "回小島" : word); $(b).title = here ? "回小島" : word; $(b).classList.toggle("back", here);
+  }
+}
+// 「繼續玩」出現時 body 加 has-resume：橫式它放在 🌈 圓鈕右邊，「彩虹島」小字收起來（css/zhuyin.css）
+new MutationObserver(() => document.body.classList.toggle("has-resume", !$("resumeBtn").classList.contains("hidden"))).observe($("resumeBtn"), { attributes: true, attributeFilter: ["class"] });
+const goIsle = k => { if (!hub) return; play("whoosh"); hub.goPlace(hub.place() === k ? "main" : k); };   // 再按一次（變成 🏝️ 的那顆）＝回主島
+// 彩虹配送站（mode "deliver"，10-12）：真的遊戲在「泡泡救援灣」段後面的 buildDeliver（卡片 .mode-card[data-mode=deliver]、畫面 #deliver／#deliverRoot）
 // 歸仁區（hub3d 的城市設施與事件）：唸設施名字、警笛／鐘聲、救火、救護；還沒蓋好 → 說還差幾張貼紙（阿葉 10-11）
 function civicEvent(k, info = {}) {
   if (mode) return;                                    // 只在選單（3D 小島）
   const who = info.name || "小動物";
   const LINES = { police: "警察局！警車出動巡邏囉！", fire: "消防局！消防車出動囉！", hospital: "醫院！救護車出發囉！", school: "學校！叮噹叮噹，上課囉！",
-    town: "這裡是歸仁區！", main: "", fireStart: "失火了！快叫消防車！", fireTap: "消防車馬上來！", fireOut: "火熄滅了，謝謝消防員！",
+    town: "這裡是歸仁區！", rainbow: "這裡是彩虹島！", main: "", fireStart: "失火了！快叫消防車！", fireTap: "消防車馬上來！", fireOut: "火熄滅了，謝謝消防員！",
     sick: who + "不舒服，救護車來了！", healed: who + "好了，謝謝醫生！" };
   if (k === "locked" || k === "townLocked") { play("select"); guideSay(`再收集 ${Math.max(1, info.need - stickerCount())} 張貼紙，${k === "locked" ? info.name : "歸仁區"}就蓋好囉！`, false); talk("收集更多貼紙，就能蓋好囉！"); return; }
+  if (k === "rainbowLocked") { play("select"); guideSay(`再收集 ${Math.max(1, info.need - stickerCount())} 張貼紙，彩虹島就開放囉！`, false); talk("收集更多貼紙，就能去彩虹島囉！"); return; }   // 10-12 彩虹島還沒開（點橋、點島上的建築、按 🌈）
+  if (k === "rainbowOpen") { play("unlock"); $("rainbowBtn").classList.add("news"); guideSay("彩虹橋接好了！彩虹島開放囉！"); return; }
+  if (k === "rainbow") $("rainbowBtn").classList.remove("news");
   if (k === "spray") { play("pop", 0.7); return; }
-  if (k === "built" || k === "townOpen") { play("win"); $("townBtn").classList.add("news"); guideSay(k === "townOpen" ? "橋蓋好了！歸仁區開放囉！" : `歸仁區的${info.name}蓋好了！`); return; }
+  if (k === "built" || k === "townOpen") { play("unlock"); $("townBtn").classList.add("news"); guideSay(k === "townOpen" ? "橋蓋好了！歸仁區開放囉！" : `歸仁區的${info.name}蓋好了！`); return; }
   if (k === "town") $("townBtn").classList.remove("news");
   const line = LINES[k]; if (line === undefined) return;
   if (k === "police" || k === "fire" || k === "hospital" || k === "fireTap" || k === "sick") siren(k === "fireTap" ? "fire" : k === "sick" ? "hospital" : k);
@@ -699,7 +753,7 @@ function schoolCard() {
 function tone(c, f0, f1, t0, dur, type = "sine", vol = 0.05) {
   const o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t0); o.frequency.linearRampToValueAtTime(f1, t0 + dur);
   g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + 0.03); g.gain.setValueAtTime(vol, t0 + dur - 0.05); g.gain.linearRampToValueAtTime(0, t0 + dur);
-  o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+  o.connect(g); g.connect(A.busFor("sfx") || c.destination); o.start(t0); o.stop(t0 + dur + 0.02);   // 接 sfx bus（跟其他音效同一個總音量）
 }
 function siren(kind) {
   const c = voiceCtx(); if (!c) return; const t = c.currentTime + 0.02;
@@ -712,16 +766,18 @@ function bell() { const c = voiceCtx(); if (!c) return; const t = c.currentTime 
 // ---------- 畫面切換 / 嚮導 ----------
 let mode = null, round = [], idx = 0, results = [], locked = false, wrongThisQ = 0, combo = 0, earned = [], idleTimer = null, roundStars = 0, qToken = 0, roundTreats = 0;
 const READING = new Set(["order", "hunt"]);          // 看注音自己讀的模式：題目完全不出聲，按提示才唸
-function showScreen(id) {
+function showScreen(id, keepIsle = false) {          // keepIsle：回選單但留在剛剛那座島（換裝畫面關掉時；從遊戲回來一律回主島）
+  if (id !== "dress" && dressFrom) { dressFrom = ""; PZ(() => dressUI && dressUI.close(true)); }   // 換裝畫面還開著就要換畫面（保險）：先收掉，WebGL 才會釋放
+  document.body.classList.toggle("on-dress", id === "dress");
   for (const s of document.querySelectorAll(".screen")) s.classList.toggle("hidden", s.id !== id);
-  const inGame = id in MODES; $("speakBtn").classList.toggle("hidden", !inGame || id === "match");   // 泡泡：「再聽」＝再唸一次目前這顆的符號
+  const inGame = id in MODES; $("speakBtn").classList.toggle("hidden", !inGame || id === "match" || id === "deliver");   // 泡泡：「再聽」＝再唸一次目前這顆的符號；配送站右上自己有 💡／🔊
   $("speakLabel").textContent = READING.has(id) ? "提示" : "再聽"; $("speakBtn").classList.remove("pulse");
   $("settingsBtn").classList.toggle("hidden", id !== "menu"); $("playerBtn").classList.toggle("hidden", id !== "menu");
-  $("townBtn").classList.toggle("hidden", id !== "menu" || !hub); $("townTag").classList.toggle("hidden", id !== "menu" || !hub);   // 歸仁區按鈕：只在 3D 小島選單
+  for (const pid of PLACE_IDS) $(pid).classList.toggle("hidden", id !== "menu" || !hub);   // 地點鈕（歸仁區、彩虹島）：只在 3D 小島選單
   $("progress").classList.toggle("hidden", !inGame || BOARD(id));
   $("guide").classList.toggle("hidden", id !== "menu");
   document.body.classList.toggle("on-menu", id === "menu"); hudOpen("L", false); hudOpen("R", false);   // 換畫面：上方家長按鈕一律收起來（遊戲裡 🏠🎵 照常顯示）
-  if (hub) { if (id === "menu") hub.show(); else hub.hide(); }   // 3D 小島只在選單畫面渲染（省電）
+  if (hub) { if (id !== "menu") hub.hide(); else if (keepIsle && hub.resume) hub.resume(); else hub.show(); }   // 3D 小島只在選單畫面渲染（省電；換裝畫面開著也停）
   setTimeout(wxAudio, 0);                              // 天氣聲：只有選單有
 }
 function guideSay(text, speak = true) { owl.selfText = text; $("guideText").textContent = text; owlShow(speak); if (speak) talk(text); setTimeout(() => { owl.selfText = null; }, 0); }   // 標記只管這一次（下次別處寫一樣的字也要彈出）
@@ -785,6 +841,7 @@ function speakPrompt() { const q = round[idx]; if (!q) return; say(mode === "ord
 function useHint() {
   hintPulse(false); if (locked || !mode) return;
   if (mode === "bubble") { if (bubbleGame) bubbleGame.sayCurrent(); return; }
+  if (mode === "deliver") { if (deliverGame) deliverGame.sayCurrent(); return; }   // （按鈕平常藏著：配送站右上自己有 🔊）
   speakPrompt(); armIdle();
   if (mode === "whack" && wq) wq.pauseUntil = performance.now() + 1500;   // 按再聽：1.5 秒內不冒新地鼠，讓他專心聽
   if (wrongThisQ < 2) return;
@@ -868,7 +925,8 @@ async function startMode(m, resume) {
     : m === "hunt" ? [q.word.h, "找到了，" + q.word.h] : [q.word.h]).concat(m === "hunt" ? PHRASES.flatMap(p => [p.h, "找到了，" + p.h]) : []));
   showScreen(m);
   nextQ();
-  setTimeout(() => { preload("result"); try { SFX.party.load(); } catch (e) {} }, 2500);   // 玩的時候偷偷準備結算要用的
+  setTimeout(() => { preload("result"); A.preloadSfx(["party"]); }, 2500);   // 玩的時候偷偷準備結算要用的
+  setTimeout(() => { if (tok === navToken && mode === m) A.prefetchBgm(menuBgmKey()); }, 6000);   // 結束後最可能回選單：先把選單音樂解碼好（記憶體上限 3 首，滿了就不預載）
 }
 function nextQ() {
   clearIdle();
@@ -876,7 +934,7 @@ function nextQ() {
   if (!BOARD(mode) && idx >= round.length) return showResult();
   saveResume();                                       // 每題開始前存一次：關掉平板也能從這題繼續
   wrongThisQ = 0; locked = false; curOpts = null; hintPulse(false); drawProgress();
-  ({ fish: buildFish, order: buildOrder, build: buildBuild, hunt: buildHunt, match: buildMatch, tone: buildTone, whack: buildWhack, frog: buildFrog, bubble: buildBubble })[mode](round[idx]);
+  ({ fish: buildFish, order: buildOrder, build: buildBuild, hunt: buildHunt, match: buildMatch, tone: buildTone, whack: buildWhack, frog: buildFrog, bubble: buildBubble, deliver: buildDeliver })[mode](round[idx]);
   armIdle(); PZ(polishQ);
 }
 // 答對：金星（一次對）/ 銀星（錯過再對）；連對音高照大調音階往上爬（A1）＋更多星星；連對 3、6 題、全對有分等級的稱讚（A12）
@@ -1383,17 +1441,21 @@ function gameHint() {
 }
 
 // ---------- 泡泡救援灣（阿葉 10-11，GPT 提案）：引擎在 js/zhuyin-bubble.js（第一次玩才載）；十個固定關卡、三種符號、救小企鵝 ----------
-const BOARD = m => m === "match" || m === "bubble";      // 單一盤面的模式：沒有一題一題的回合
-const BUBBLE_N = 10;
-let bubbleMod = null, bubbleGame = null, bubbleRun = null, bubbleLevel = 0;
-const importBubble = () => bubbleMod || (bubbleMod = import("./zhuyin-bubble.js?v=1").catch(e => { bubbleMod = null; throw e; }));
+const BOARD = m => m === "match" || m === "bubble" || m === "deliver";      // 單一盤面的模式：沒有一題一題的回合
+let BUBBLE_N = 30, BUBBLE_PER = 10, BUBBLE_ZONES = [];      // 模組載入後改成 LEVELS.length／LEVELS_PER_ZONE／ZONES（三區，每區 10 關）
+let bubbleMod = null, bubbleGame = null, bubbleRun = null, bubbleLevel = 0, bubbleTab = 0;
+const importBubble = () => bubbleMod || (bubbleMod = import("./zhuyin-bubble.js?v=2").then(m => { BUBBLE_N = m.LEVELS.length; BUBBLE_PER = m.LEVELS_PER_ZONE; BUBBLE_ZONES = m.ZONES; return m; }).catch(e => { bubbleMod = null; throw e; }));
+const bubbleZoneOf = lv => Math.min(Math.max(0, BUBBLE_ZONES.length - 1), Math.floor(lv / BUBBLE_PER));
+const bubbleAnimal = lv => (BUBBLE_ZONES[bubbleZoneOf(lv)] || { name: "小企鵝" }).name;
+const BUBBLE_WIN_TALK = ["小企鵝都救出來了，好厲害！", "小螃蟹都救出來了，好厲害！", "小鯨魚都救出來了，好厲害！"];
 async function buildBubble() {
   const tok = navToken; let m;
   try { m = await importBubble(); } catch (e) { console.warn("[bubble]", e); if (tok === navToken) goMenu(); return; }
   if (tok !== navToken || mode !== "bubble") return;
   if (!bubbleGame) bubbleGame = m.createBubbleGame($("bubbleRoot"), {
     say: t => say(t), talk: t => talk(t), play, later: (fn, ms) => gLater(fn, ms), paused: () => gamePaused,
-    onWin: r => bubbleWin(r), onFull: () => bubbleFull(), animalImg: "IMAGE/zhuyin/cust_penguin.webp", animalName: "小企鵝" });
+    onWin: r => bubbleWin(r), onFull: () => bubbleFull(),
+    animalImgs: { penguin: "IMAGE/zhuyin/cust_penguin.webp", crab: "IMAGE/zhuyin/pets/crab.webp", whale: "IMAGE/zhuyin/pets/whale.webp" } });   // 每區救的動物
   bubbleRun = { level: bubbleLevel, stars: 0, rescued: 0 };
   bubbleGame.start(bubbleLevel);
 }
@@ -1409,28 +1471,112 @@ function bubbleFull() {
   talk("泡泡太多了，我們再試一次！");
   gLater(() => { if (mode === "bubble" && bubbleGame) bubbleGame.start(bubbleRun.level); }, 2400);
 }
-// 選關：過過的關有星星、下一關黃框、還沒到的鎖著
-function openBubblePick() {
-  const box = $("bubbleLevels"); box.innerHTML = "";
-  for (let i = 0; i < BUBBLE_N; i++) {
-    const open = i <= save.bubble.lv, s = save.bubble.stars[i] || 0, b = el("button", "bb-lv" + (open ? "" : " locked") + (i === save.bubble.lv && !save.bubble.all ? " next" : ""));
+// 選關：上方是三個區頁籤（顯示該區符號＋救的動物，前一區全過才開）、下面是該區 10 關（過過的關有星星、下一關黃框、還沒到的鎖著）
+// 解鎖規則：save.bubble.lv＝目前玩到的關；第 k 區要 lv ≥ k×10（＝前一區 10 關全過）；區內第 i 關要 i ≤ lv。兩種鎖是同一條「逐關解鎖」線。
+const BUBBLE_TAB_IMG = ["cust_penguin", "pets/crab", "pets/whale"];
+async function openBubblePick() {
+  try { await importBubble(); } catch (e) { console.warn("[bubble]", e); return; }
+  bubbleTab = bubbleZoneOf(Math.min(BUBBLE_N - 1, save.bubble.lv));      // 一打開停在目前進度那一區
+  renderBubblePick();
+  $("bubblePick").classList.remove("hidden");
+}
+function renderBubblePick() {
+  const lv = save.bubble.lv, tabs = $("bubbleZones"), box = $("bubbleLevels"); tabs.innerHTML = ""; box.innerHTML = "";
+  BUBBLE_ZONES.forEach((z, k) => {
+    const open = lv >= k * BUBBLE_PER, t = el("button", "bb-ztab" + (k === bubbleTab ? " on" : "") + (open ? "" : " locked"));
+    const im = el("img"); im.src = IMG(BUBBLE_TAB_IMG[k] || BUBBLE_TAB_IMG[0]); im.alt = ""; im.draggable = false; t.appendChild(im);
+    t.appendChild(el("div", "zs", z.syms)); if (!open) t.appendChild(el("div", "zl", "🔒"));
+    t.setAttribute("aria-label", `第 ${k + 1} 區 ${z.syms}${open ? "" : "，還沒開"}`); t.setAttribute("aria-pressed", k === bubbleTab ? "true" : "false");
+    t.onclick = () => {
+      if (!open) { play("ng"); talk("先把前面的關卡都過完，才能來這裡喔！"); t.classList.remove("shake"); void t.offsetWidth; t.classList.add("shake"); return; }
+      play("select"); bubbleTab = k; renderBubblePick();
+    };
+    tabs.appendChild(t);
+  });
+  for (let i = bubbleTab * BUBBLE_PER; i < Math.min(BUBBLE_N, (bubbleTab + 1) * BUBBLE_PER); i++) {
+    const open = i <= lv, s = save.bubble.stars[i] || 0, b = el("button", "bb-lv" + (open ? "" : " locked") + (i === lv && !save.bubble.all ? " next" : ""));
     b.appendChild(el("div", "n", String(i + 1))); b.appendChild(el("div", "s", open ? "⭐".repeat(s) || "　" : "🔒"));
     b.disabled = !open; b.setAttribute("aria-label", `第 ${i + 1} 關`);
     b.onclick = () => { play("select"); bubbleLevel = i; $("bubblePick").classList.add("hidden"); startMode("bubble"); };
     box.appendChild(b);
   }
-  $("bubblePick").classList.remove("hidden");
+}
+
+// ---------- 彩虹配送站（10-12，docs/zhuyin-v5-plan.md §2）：引擎在 js/zhuyin-deliver.js（第一次玩才載，要 three）；8 個固定任務、線性解鎖 ----------
+// 存檔 save.deliver＝{ lv 下一關, stars { 關: 最佳星 }, all }；第一次過關送換裝（模組 onWin 的 gift → RW.giveWear）；沒送錯過的商品詞給貼紙。
+let deliverMod = null, deliverGame = null, deliverRun = null, deliverLevel = 0;
+function importDeliver() {
+  if (deliverMod) return deliverMod;
+  const url = "./zhuyin-deliver.js?v=1";               // 要 three（importmap）；舊 iPad 沒有 importmap → 跟 3D 小島一樣走 es-module-shims
+  const p = window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports("importmap") ? import(url)
+    : window.importShim ? window.importShim(new URL(url, import.meta.url).href) : Promise.reject(new Error("no importmap"));
+  return (deliverMod = p.then(m => { if (m.TASKS.length !== DELIVER_TASKS) console.warn("[deliver] 關數跟 DELIVER_TASKS 對不上", m.TASKS.length); return m; }).catch(e => { deliverMod = null; throw e; }));
+}
+const DELIVER_WIN_TALK = "東西都送到了，好厲害！";
+const DELIVER_FAIL = "配送站現在打不開，等一下再試試看！";
+async function buildDeliver() {
+  const tok = navToken; let m;
+  const slow = setTimeout(() => { if (tok === navToken) { loadingOwner = tok; showLoading(true); } }, 150);   // 第一次載引擎（three 小島已經抓過，通常很快）
+  try { m = await importDeliver(); } catch (e) { console.warn("[deliver]", e); }
+  clearTimeout(slow); if (loadingOwner === tok) { loadingOwner = 0; showLoading(false); }
+  if (tok !== navToken || mode !== "deliver") return;
+  if (!m) { goMenu(); guideSay(DELIVER_FAIL); return; }
+  // 第一次玩的開場語還在講（introUntil）：居民的話排在後面，不打斷它（排隊的沒有 onEnd，模組自己有保險計時）
+  if (!deliverGame) deliverGame = m.createDeliverGame($("deliverRoot"), {
+    say: (t, r, cb) => Date.now() < introUntil ? queueSay(t) : say(t, r, cb), talk: (t, cb) => Date.now() < introUntil ? queueTalk(t) : talk(t, cb), play: n => play(n), later: (fn, ms) => gLater(fn, ms), paused: () => gamePaused,
+    onSave: r => deliverSave(r), onWin: r => deliverWin(r), onFail: f => setTimeout(() => deliverFail(f), 0),   // onSave＝送完最後一件立刻存檔；onWin＝演出完才轉場；失敗可能在 start() 裡面同步通知：等 start 跑完再收
+    petImg: id => `IMAGE/zhuyin/pets/${id}.webp`, isCleared: i => (save.deliver.stars[i] || 0) > 0, hintWait: () => save.hintWait,
+  });
+  deliverRun = { task: deliverLevel, stars: 0, saved: false };   // saved：這一局存過了沒（onSave 與 onWin 都會走 deliverSave，只存一次）
+  try { await deliverGame.start(deliverLevel); } catch (e) { console.warn("[deliver] start", e); }
+}
+// 存檔（里維 10-12）：送完最後一件模組就呼叫 onSave → 馬上存；以前等 onWin（3.6–6 秒演出後）才存，中間按 🏠 進度、禮物、貼紙全丟
+// 防重複：同一局（deliverRun）只存一次、而且關卡要對得上（上一局晚到的回呼不會存進這一局）
+function deliverSave(r) {
+  if (mode !== "deliver" || !r || !deliverRun || deliverRun.saved || deliverRun.task !== r.task) return false;
+  deliverRun.saved = true;
+  const d = save.deliver; d.stars[r.task] = Math.max(d.stars[r.task] || 0, r.stars); d.lv = Math.max(d.lv, Math.min(DELIVER_TASKS - 1, r.task + 1)); if (r.task === DELIVER_TASKS - 1) d.all = 1;
+  if (r.gift) RW.giveWear(save.rw, r.gift);           // 第一次過關的禮物（換裝）進衣櫃
+  for (const o of r.orders || []) {                    // 貼紙：沒送錯過的訂單＝一次答對（跟其他模式一樣，第一次答對就貼上）
+    const w = WORDS.find(x => x.h === o.word); if (w && !o.wrong && !save.stickers[w.h]) { save.stickers[w.h] = 1; earned.push(w); }
+  }
+  persist();
+  return true;
+}
+function deliverWin(r) {                              // 演出完：只管轉場（存檔已在 deliverSave；沒走過 onSave 的舊流程在這裡補存一次）
+  if (mode !== "deliver") return;
+  deliverSave(r);
+  locked = true; clearIdle();
+  deliverRun = { ...r, saved: true }; results = [r.stars >= 3 ? "gold" : "silver"]; roundTreats += 2 + (r.orders ? r.orders.length : 1);
+  gLater(() => { showResult(); if (deliverGame) PZ(() => deliverGame.stop()); }, 400);   // 結算畫面出來就把 3D 場景收掉（WebGL 釋放）
+}
+function deliverFail(f) {
+  if (mode !== "deliver") return;
+  console.warn("[deliver] 3D 場景失敗，回小島", f);
+  lsSet(K("resume"), null); goMenu(); guideSay(DELIVER_FAIL);
+}
+// 選關：8 格一條線（save.deliver.lv＝目前玩到的關；i ≤ lv 才開），過過的有星星、下一關黃框
+function openDeliverPick() { renderDeliverPick(); $("deliverPick").classList.remove("hidden"); }
+function renderDeliverPick() {
+  const d = save.deliver, box = $("deliverLevels"); box.innerHTML = "";
+  for (let i = 0; i < DELIVER_TASKS; i++) {
+    const open = i <= d.lv, s = d.stars[i] || 0, b = el("button", "bb-lv" + (open ? "" : " locked") + (i === d.lv && !d.all ? " next" : ""));
+    b.appendChild(el("div", "n", String(i + 1))); b.appendChild(el("div", "s", open ? "⭐".repeat(s) || "　" : "🔒"));
+    b.disabled = !open; b.setAttribute("aria-label", `第 ${i + 1} 關`);
+    b.onclick = () => { play("select"); deliverLevel = i; $("deliverPick").classList.add("hidden"); startMode("deliver"); };
+    box.appendChild(b);
+  }
 }
 
 // ---------- 結算（B1）：星星一顆顆蓋章 → 新貼紙一張張貼 → 星星飛進星星罐 → 按鈕最後才淡入 ----------
 // 演出中點畫面＝快轉到最後（小孩不會卡住）；按鈕一直在 DOM 裡、只用透明度淡入（測試用 JS .click() 照常有效）
 let rs = null;                                        // 這次結算演出的狀態；換畫面（navToken 變）或快轉後作廢
-const RESULT_TEXT = any => mode === "match" ? "全部配對成功！" : mode === "bubble" ? `救出 ${bubbleRun?.rescued || 1} 隻小企鵝！` : mode === "fish" ? `釣到 ${any} 條魚！` : mode === "hunt" ? `找到 ${any} 個寶物！` : mode === "tone" ? `戳破 ${any} 顆氣球！` : mode === "whack" ? `敲到 ${any * WH.hits} 隻地鼠！` : mode === "frog" ? `青蛙過了 ${any} 條河！` : `完成 ${any} 題！`;
+const RESULT_TEXT = any => mode === "match" ? "全部配對成功！" : mode === "deliver" ? "全部送到了！" : mode === "bubble" ? `救出 ${bubbleRun?.rescued || 1} 隻${bubbleAnimal(bubbleRun?.level || 0)}！` : mode === "fish" ? `釣到 ${any} 條魚！` : mode === "hunt" ? `找到 ${any} 個寶物！` : mode === "tone" ? `戳破 ${any} 顆氣球！` : mode === "whack" ? `敲到 ${any * WH.hits} 隻地鼠！` : mode === "frog" ? `青蛙過了 ${any} 條河！` : `完成 ${any} 題！`;
 function showResult() {
   clearIdle(); locked = false; lsSet(K("resume"), null); document.querySelectorAll("#result .rw-strip").forEach(x => x.remove());
   voicePreload([`拿到 ${earned.length} 張新貼紙！`]);
   const n = MODES[mode].rounds, first = results.slice(0, n), golds = first.filter(r => r === "gold").length, any = first.filter(Boolean).length;   // 星星只算第一次作答（再試一次的題不算）
-  roundStars = mode === "match" ? (mq?.stars || 2) : mode === "bubble" ? (bubbleRun?.stars || 2) : golds >= n - 1 ? 3 : golds >= Math.ceil(n / 2) ? 2 : 1;
+  roundStars = mode === "match" ? (mq?.stars || 2) : mode === "bubble" ? (bubbleRun?.stars || 2) : mode === "deliver" ? (deliverRun?.stars || 2) : golds >= n - 1 ? 3 : golds >= Math.ceil(n / 2) ? 2 : 1;
   const prevBest = save.best[mode] || 0, record = prevBest > 0 && roundStars > prevBest;   // 個人紀錄（B14）：第一次玩沒有紀錄可破
   if (roundStars > prevBest) save.best[mode] = roundStars;
   const jarFrom = RW.jarLeft(save.rw, save.stars);
@@ -1439,7 +1585,7 @@ function showResult() {
   persist();
   const st = rs = { tok: navToken, T: [], fly: [], done: false, said: false, record, stamped: false, jarFrom, t0: performance.now(), k: earned.length, rw: rwGain };
   const at = (ms, fn) => st.T.push(setTimeout(() => { if (rs === st && !st.done && st.tok === navToken) fn(); }, ms));
-  showScreen("result"); play("party"); duck(true); setTimeout(() => duck(false), 7000);
+  showScreen("result"); play("party");                  // 結算 jingle：走 sfx bus，播的那幾秒音樂自動壓低
   $("resultCf").innerHTML = ""; confetti(45, $("resultCf"));
   $("resultText").textContent = RESULT_TEXT(any);
   // 星星：三格先放灰星，拿到的 0.5／0.9／1.3 秒蓋章，各配 Do-Mi-So；第 3 顆大爆＋整頁輕震
@@ -1459,7 +1605,8 @@ function showResult() {
   at(tFly, () => flyStarsToJar(st, stars.slice(0, roundStars)));
   at(tFly + Math.max(0, roundStars - 1) * 150 + 800, () => finishResult(st, false));
   $("resultBtns").classList.add("wait");
-  $("againBtn").textContent = mode === "bubble" && bubbleRun && bubbleRun.level < BUBBLE_N - 1 ? "▶️ 下一關" : "🔁 再玩";
+  $("againBtn").textContent = mode === "bubble" && bubbleRun && bubbleRun.level < BUBBLE_N - 1 ? "▶️ 下一關"
+    : mode === "deliver" ? (deliverRun && deliverRun.task < DELIVER_TASKS - 1 ? "▶️ 下一關" : "🚚 選關") : "🔁 再玩";   // 配送站最後一關過了：改成打開選關
 }
 function quake() {                                    // 整頁輕震 0.2 秒（放大一點點再震，邊緣不會露出底色）
   try { $("result").animate([{ transform: "none" }, { transform: "scale(1.025) translate(-0.7vmin, 0.4vmin)" }, { transform: "scale(1.02) translate(0.6vmin, -0.4vmin)" }, { transform: "scale(1.01) translate(-0.3vmin, 0.2vmin)" }, { transform: "none" }], { duration: 200 }); } catch (e) {}
@@ -1467,10 +1614,10 @@ function quake() {                                    // 整頁輕震 0.2 秒（
 function stampRecord(st) { if (st.stamped) return; st.stamped = true; $("resultStars").appendChild(el("div", "rec-stamp", "新紀錄！")); play("win"); }
 function resultVoice(st) {
   if (st.said) return; st.said = true;
-  if (mode === "bubble") talk("小企鵝都救出來了，好厲害！"); else if (st.k) talk(`拿到 ${st.k} 張新貼紙！`); else talk(practicedWords().every(w => save.stickers[w.h]) ? "都收集過了，好厲害！" : "下次直接答對，就能拿到新貼紙喔！");
+  if (mode === "bubble") talk(BUBBLE_WIN_TALK[bubbleZoneOf(bubbleRun?.level || 0)] || BUBBLE_WIN_TALK[0]); else if (mode === "deliver" && !st.k) talk(DELIVER_WIN_TALK); else if (st.k) talk(`拿到 ${st.k} 張新貼紙！`); else talk(practicedWords().every(w => save.stickers[w.h]) ? "都收集過了，好厲害！" : "下次直接答對，就能拿到新貼紙喔！");
 }
 // 這回合練過的詞（貼紙詞庫裡有的、不重複）
-function practicedWords() { const ws = mode === "match" ? (mq?.words || []) : mode === "bubble" ? [] : round.map(q => q.word); return [...new Map(ws.filter(w => w && !PHRASES.includes(w)).map(w => [w.h, w])).values()]; }
+function practicedWords() { const ws = mode === "match" ? (mq?.words || []) : mode === "bubble" ? [] : mode === "deliver" ? (deliverRun?.orders || []).map(o => WORDS.find(w => w.h === o.word)) : round.map(q => q.word); return [...new Map(ws.filter(w => w && !PHRASES.includes(w)).map(w => [w.h, w])).values()]; }
 function showPracticed(st) {                           // 沒有新貼紙：列出練過的詞（小貼紙、不 slap）＋一句話
   const box = $("resultStickers"); if (st.shownPracticed) return; st.shownPracticed = true;
   if (mode === "bubble") { box.appendChild(el("div", "all-done", `第 ${(bubbleRun?.level || 0) + 1} 關過關！`)); return; }
@@ -1488,7 +1635,7 @@ function flyStarsToJar(st, from) {
     const cx = (x0 + x1) / 2, cy = Math.min(y0, y1) - innerHeight * 0.12, frames = [];
     for (let k = 0; k <= 8; k++) { const t = k / 8, u = 1 - t, x = u * u * x0 + 2 * u * t * cx + t * t * x1, y = u * u * y0 + 2 * u * t * cy + t * t * y1; frames.push({ transform: `translate(${(x - half).toFixed(1)}px, ${(y - half).toFixed(1)}px) scale(${(1 - 0.7 * t).toFixed(2)})` }); }
     const an = f.animate(frames, { duration: 600, easing: "ease-in", fill: "forwards" });
-    an.onfinish = () => { f.remove(); if (st.done || rs !== st) return; paintJar(jarBtn, st.jarFrom + j + 1); const t = jarBtn.querySelector(".jarText"); t.classList.remove("tick"); void t.offsetWidth; t.classList.add("tick"); play("tap", 1.2 + j * 0.15); };
+    an.onfinish = () => { f.remove(); if (st.done || rs !== st) return; paintJar(jarBtn, st.jarFrom + j + 1); const t = jarBtn.querySelector(".jarText"); t.classList.remove("tick"); void t.offsetWidth; t.classList.add("tick"); play("star", 2 ** (2 * j / 12)); };   // 星星進罐：一顆比一顆高一個全音
   }, j * 150)));
 }
 // 收尾（自動演完或快轉）：所有東西直接到最後的樣子，按鈕淡入
@@ -1549,13 +1696,13 @@ async function spinGacha(useGold) {
 async function gachaShow(prize) {
   const m = $("gachaMachine"), cap = $("gachaCap"), box = $("gachaPrize"); box.classList.add("hidden"); box.innerHTML = "";
   m.classList.remove("spin"); void m.offsetWidth; m.classList.add("spin");
-  for (let i = 0; i < 4; i++) setTimeout(() => play("tap", 0.9 + i * 0.12), i * 260);
+  play("gacha_crank");                                 // 轉把手（約 1.4 秒）
   await new Promise(r => setTimeout(r, 1150));
   cap.src = `IMAGE/zhuyin/${CAPSULE[prize.tier]}.webp`; cap.className = "gacha-cap drop " + prize.tier; play("pop", prize.tier === "ssr" ? 1.4 : 1);
   if (prize.tier === "ssr") { play("sticker"); PZ(() => fxFlash()); }
   $("gachaTip").textContent = "點一下膠囊打開！";
   await new Promise(r => { cap.onclick = () => { cap.onclick = null; r(); }; setTimeout(() => { if (cap.onclick) { cap.onclick = null; r(); } }, 6000); });
-  cap.classList.add("open"); play("win"); $("gachaTip").textContent = "";
+  cap.classList.add("open"); play("capsule_open"); $("gachaTip").textContent = "";
   await new Promise(r => setTimeout(r, 380));
   cap.className = "gacha-cap hidden";
   if (prize.kind === "pet" && !prize.dup) {
@@ -1564,6 +1711,7 @@ async function gachaShow(prize) {
     $("gacha").classList.remove("hidden"); showPrize(prize.tier === "ssr" ? "🌈 超稀有！" : "💜 稀有！", `${p.name}來小島了！`, `IMAGE/zhuyin/pets/${p.id}.webp`);
   } else if (prize.kind === "pet") { showPrize("🍪 點心 +" + prize.amount, `已經有${RW.PET[prize.id].name}了，換成點心！`, `IMAGE/zhuyin/pets/${prize.id}.webp`); talk("換成點心囉！"); }
   else if (prize.kind === "decor") { const d = RW.DECOR.find(x => x.id === prize.id); showPrize(d.e + " " + d.name, "放到小島上了！"); talk("小島多了一個新裝飾！"); }
+  else if (prize.kind === "wear" && RW.WEAR_BY_ID[prize.id]) { play("wear"); showPrize(RW.WEAR_BY_ID[prize.id].name, RW.wearGotLine(prize.id), `IMAGE/zhuyin/wear_${prize.id}.webp`); talk(RW.wearGotLine(prize.id)); }   // 10-12 寵物配件（普通獎）
   else { showPrize("🍪 點心 +" + prize.amount, "點心會餵給你的夥伴，讓牠長大！"); talk("拿到點心了！"); }
   if (prize.grew) { const p = RW.PET[save.rw.partner]; queueTalk(`${p.name}${prize.grew === 3 ? "變成超級" : "長大"}了！`); }
 }
@@ -1576,6 +1724,7 @@ function showPrize(title, sub, img) {
 function rewardStrip(st) {
   if (!st.rw || st.rwShown) return; st.rwShown = true;
   const g = st.rw, box = el("div", "rw-strip"), add = t => box.appendChild(el("span", "", t));
+  if (g.coins || g.cats.length || (g.stamp.stamped && g.stamp.gold)) play("coin");   // 拿到扭蛋幣／金幣
   if (g.treats) add(`🍪 點心 +${g.treats}`);
   if (g.stamp.stamped) add(g.stamp.gold ? "📅 集章卡集滿！🌟 金幣 +1" : `📅 集章 ${save.rw.stamps}/7`);
   if (g.coins) add(`🪙 扭蛋幣 +${g.coins}`);
@@ -1604,7 +1753,7 @@ function playHatchShow(imgSrc, name, { taps = 0, line = "", egg: egg_ = "" } = {
       const fl = $("flash"); fl.classList.remove("go"); void fl.offsetWidth; fl.classList.add("go");
       egg.className = "hatchEgg gone"; img.classList.remove("hidden"); box.classList.add("out");
       $("hatchName").textContent = name + "來了！"; $("hatchClose").classList.remove("hidden");
-      play("win"); confetti(40); talk(line || name + "來了！");
+      play("hatch"); confetti(40); talk(line || name + "來了！");
     };
     hatchDone = () => { T.forEach(clearTimeout); egg.onclick = null; box.classList.remove("out"); resolve(); };
     if (taps) { egg.onclick = () => { if (stage < STAGES.length && !out) shake(); }; const idle = () => { if (stage < STAGES.length && !out) { shake(); T.push(setTimeout(idle, 1600)); } }; T.push(setTimeout(idle, 4000)); }   // 小孩 4 秒沒點：蛋自己搖（不會卡住）
@@ -1621,6 +1770,7 @@ async function openAlbum(cat) {
   for (const c of CATS) { const got = WORDS.filter(w => w.c === c.id && save.stickers[w.h]).length, all = WORDS.filter(w => w.c === c.id).length; const t = el("button", "tab" + (c.id === cat ? " on" : ""), `${c.icon} ${got}/${all}`); t.onclick = () => { play("select"); openAlbum(c.id); }; tabs.appendChild(t); }
   { const t = el("button", "tab pets" + (cat === "pets" ? " on" : ""), `🐣 ${Object.keys(save.rw.pets).length}/${RW.PETS.length}`); t.onclick = () => { play("select"); openAlbum("pets"); }; tabs.appendChild(t); }
   const grid = $("albumGrid"); grid.innerHTML = ""; grid.classList.toggle("pet-grid", cat === "pets");
+  $("dressBtn").classList.toggle("hidden", cat !== "pets");   // 「👗 換裝」只在動物朋友分頁
   if (cat === "pets") { renderPets(grid); $("albumCount").textContent = `${stickerCount()} / ${WORDS.length}`; return; }
   for (const w of WORDS.filter(w => w.c === cat)) {
     if (save.stickers[w.h]) { const s = stickerNode(w); s.style.rotate = stickerTilt(w.h) + "deg"; s.onclick = () => say(w.h); grid.appendChild(s); }   // 每張歪一點點像真的貼上去（B7；同一個詞每次歪的角度一樣）
@@ -1639,9 +1789,51 @@ function renderPets(grid) {
       card.appendChild(el("div", "pc-s", ["", "寶寶", "長大", "超級"][have.stage] + (save.rw.partner === p.id ? "・夥伴" : "")));
       const left = RW.toNextStage(have); if (save.rw.partner === p.id && left) card.appendChild(el("div", "pc-s", `再 ${left} 個🍪${have.stage === 1 ? "長大" : "變超級"}`));
       card.onclick = () => { play("select"); save.rw.partner = p.id; persist(); say(p.name); openAlbum("pets"); };
+      const dr = el("span", "pc-dress", "👗"); dr.setAttribute("role", "button"); dr.setAttribute("aria-label", "換裝");   // 右上角小 👗：直接幫這隻換裝（不改夥伴）
+      dr.onclick = e => { e.stopPropagation(); play("select"); openDress(p.id, "album"); }; card.appendChild(dr);
     } else { card.appendChild(el("div", "pc-n", "？")); card.disabled = true; }
     grid.appendChild(card);
   }
+}
+
+// ---------- 寵物換裝（js/zhuyin-dress.js，10-12；docs/zhuyin-v5-plan.md §3）----------
+// 入口：彩虹島「寵物服裝店」（hub3d opts.onDress）、圖鑑「🐣 動物朋友」的「👗 換裝」大鈕（開目前的夥伴）與每張卡右上角的 👗（開那一隻）。
+// 開著的時候：3D 小島停止渲染（showScreen 呼叫 hub.hide）、放換裝音樂；「穿好了」關掉 → 回原本的畫面（小島留在剛剛那座島）＋原本的音樂，小島上的寵物換上新衣服。
+// （dressMod／dressUI／dressFrom 宣告在「3D 選單小島」段 let hub 旁邊：showScreen、天氣、日夜都會看 dressFrom）
+function importDress() {
+  if (dressMod) return dressMod;
+  const url = "./zhuyin-dress.js?v=1";                 // 要 three（importmap）；舊 iPad 沒有 importmap → 跟 3D 小島一樣走 es-module-shims（小島載入時已經補好）
+  const p = window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports("importmap") ? import(url)
+    : window.importShim ? window.importShim(new URL(url, import.meta.url).href) : Promise.reject(new Error("no importmap"));
+  return (dressMod = p.catch(e => { dressMod = null; throw e; }));
+}
+const dressPets = () => RW.PETS.filter(p => save.rw.pets[p.id]).map(p => ({ id: p.id, name: p.name, stage: save.rw.pets[p.id].stage || 2 }));   // 寵物列：照圖鑑的順序
+async function openDress(petId, from) {
+  if (dressFrom || mode) return;                       // 已經開著／遊戲中不開
+  const tok = nav();
+  const slow = setTimeout(() => { if (tok === navToken) { loadingOwner = tok; showLoading(true); } }, 150);
+  let m = null;
+  try { m = await importDress(); } catch (e) { console.warn("[dress]", e); }
+  clearTimeout(slow); if (loadingOwner === tok) { loadingOwner = 0; showLoading(false); }
+  if (tok !== navToken || mode || dressFrom) return;  // 等的時候小孩點去別的地方了
+  if (!m) { guideSay("服裝店現在打不開，等一下再試試看！", from === "menu"); return; }
+  if (!dressUI) dressUI = m.createDress($("dress"), {
+    say: t => say(t), talk: t => talk(t), play: (n, r) => play(n, r), later: gLater,
+    rw: () => save.rw, save: () => { if (!persist()) guideSay("存檔空間滿了，請爸媽到家長設定看一下喔！", false); }, pets: dressPets,
+    onClose: closeDressDone,
+  });
+  dressFrom = from || "menu";
+  showScreen("dress");                                 // 選單／圖鑑收起來、3D 小島停止渲染、上方按鈕收起來
+  playBgm("dress");
+  dressUI.open(save.rw.pets[petId] ? petId : save.rw.partner);
+  PZ(() => dressUI.relayout());
+}
+function closeDressDone() {                            // 「穿好了」→ 回原本的畫面與音樂
+  const from = dressFrom; dressFrom = ""; if (!from) return;
+  persist();
+  if (from === "album") { openAlbum("pets"); playBgm(menuBgmKey()); return; }
+  showScreen("menu", true); playBgm(menuBgmKey());     // 留在剛剛那座島（彩虹島服裝店進來的就回彩虹島）
+  renderMenu();                                        // 跟從遊戲回來一樣更新選單；裡面的 hub.setPets(hubPets()) 讓小島上的寵物換上新衣服
 }
 
 // ---------- 選單 ----------
@@ -1666,9 +1858,9 @@ function renderMenu() {
 let menuPrefetch = null;
 function goMenu() {
   nav(); stopSpeech(); introUntil = 0;                 // 作廢所有等圖中的導覽、停掉還沒講完的語音
-  mode = null; clearIdle(); locked = false; showScreen("menu"); playBgm("island"); renderMenu();
+  mode = null; clearIdle(); locked = false; showScreen("menu"); playBgm(menuBgmKey()); renderMenu();   // 選單音樂看島＋日夜（主島／歸仁區／彩虹島／晚上）
   clearTimeout(menuPrefetch);                         // 選單停 2 秒 → 預抓上次玩的那關（第一次玩＝釣魚），星星罐快滿就預抓孵蛋
-  menuPrefetch = setTimeout(() => { preload(lsGet(K("last_mode"), "fish")); if (save.rw.coins + save.rw.gold > 0 || RW.jarLeft(save.rw, save.stars) >= EGG_STARS - 3) { preload("gacha"); preload("hatch"); } }, 2000);
+  menuPrefetch = setTimeout(() => { const lm = lsGet(K("last_mode"), "fish"); preload(lm); if (MODES[lm]) A.prefetchBgm(MODES[lm].bgm); if (save.rw.coins + save.rw.gold > 0 || RW.jarLeft(save.rw, save.stars) >= EGG_STARS - 3) { preload("gacha"); preload("hatch"); } }, 2000);
 }
 function askHome() {                                  // 遊戲中按 🏠：休息選單（繼續／重新開始／回小島），左上是拇指位置，誤觸率高
   if (!mode || $("menu").classList.contains("hidden") === false) { goMenu(); return; }
@@ -1702,7 +1894,9 @@ function openMatchPick() {
 // ---------- 綁定 ----------
 for (const b of document.querySelectorAll(".mode-card")) {
   b.addEventListener("pointerdown", () => preload(b.dataset.mode));   // 手指一碰就開始抓，放開時多半已經好了
-  b.onclick = () => { play("select"); const m = b.dataset.mode; if (m === "match" && stickerCount() >= MODES.match.need) openMatchPick(); else if (m === "bubble" && stickerCount() >= MODES.bubble.need && save.bubble.lv > 0) openBubblePick(); else { if (m === "bubble") bubbleLevel = Math.min(BUBBLE_N - 1, save.bubble.lv); startMode(m); } };
+  b.onclick = () => { play("select"); const m = b.dataset.mode; if (m === "match" && stickerCount() >= MODES.match.need) openMatchPick(); else if (m === "bubble" && stickerCount() >= MODES.bubble.need && save.bubble.lv > 0) openBubblePick();
+    else if (m === "deliver" && stickerCount() >= MODES.deliver.need && save.deliver.lv > 0) openDeliverPick();   // 配送站：過過第 1 關就先選關
+    else { if (m === "bubble") bubbleLevel = Math.min(BUBBLE_N - 1, save.bubble.lv); if (m === "deliver") deliverLevel = save.deliver.lv; startMode(m); } };
 }
 $("homeBtn").onclick = () => { if ($("album").classList.contains("hidden") === false || $("result").classList.contains("hidden") === false) goMenu(); else askHome(); };
 $("confirmYes").onclick = () => { $("confirm").classList.add("hidden"); goMenu(); };
@@ -1711,9 +1905,11 @@ $("confirmRestart").onclick = () => { $("confirm").classList.add("hidden"); gRes
 $("resumeBtn").onclick = () => { const r = getResume(); if (!r) return; play("select"); if (r.mode === "match") startMode("match"); else startMode(r.mode, r); };
 $("playerBtn").onclick = () => { play("select"); openPlayers(); };
 $("playerTag").onclick = () => { play("select"); openPlayers(); };
-$("townBtn").onclick = $("townTag").onclick = () => { if (!hub) return; play("select"); hub.goPlace(hub.place() === "main" ? "town" : "main"); };
+$("townBtn").onclick = $("townTag").onclick = () => goIsle("town");
+$("rainbowBtn").onclick = $("rainbowTag").onclick = () => goIsle("rainbow");   // 10-12 彩虹島
 $("matchPickClose").onclick = () => { play("select"); $("matchPick").classList.add("hidden"); };
 $("bubblePickClose").onclick = () => { play("select"); $("bubblePick").classList.add("hidden"); };
+$("deliverPickClose").onclick = () => { play("select"); $("deliverPick").classList.add("hidden"); };
 // 家長設定：存檔（備份全部／還原／清除重來＝按兩次才清，避免小孩誤觸）
 let resetArmed = 0, restoreArmed = null, restoreTimer = 0;
 function saveMsg(t) { $("saveMsg").textContent = t; }
@@ -1763,6 +1959,7 @@ function renderSettings() {
   for (const b of document.querySelectorAll("#musicOpts button")) b.classList.toggle("on", +b.dataset.v === (save.music ? 1 : 0));
   for (const b of document.querySelectorAll("#talkOpts button")) b.classList.toggle("on", +b.dataset.v === (save.talk ? 1 : 0));
   renderMix();
+  const odds = $("rwOdds"); if (odds) { odds.innerHTML = ""; for (const t of RW.oddsText()) odds.appendChild(el("div", "", t)); }   // 機率公開：跟 js/zhuyin-rewards.js 的 RATES／PITY／GACHA_WEAR 同一份資料產生
   $("rwStats").textContent = `扭蛋幣 ${save.rw.coins}、金幣 ${save.rw.gold}、點心 ${save.rw.treats}、動物朋友 ${Object.keys(save.rw.pets).length}/${RW.PETS.length}、抽過 ${save.rw.pulls} 次`;
 }
 // 容易搞混的注音（目前這位）：次數多的排前面，最多 6 組
@@ -1808,11 +2005,16 @@ for (const b of document.querySelectorAll("#hintOpts button")) b.onclick = () =>
 for (const b of document.querySelectorAll("#musicOpts button")) b.onclick = () => { setMusic(+b.dataset.v); play("tap"); renderSettings(); };
 for (const b of document.querySelectorAll("#talkOpts button")) b.onclick = () => { save.talk = +b.dataset.v; persist(); play("tap"); if (!save.talk) stopSpeech(); renderSettings(); };
 $("settingsClose").onclick = () => { play("select"); $("settings").classList.add("hidden"); };
-$("againBtn").onclick = () => { play("select"); if (mode === "bubble" && bubbleRun) bubbleLevel = Math.min(BUBBLE_N - 1, bubbleRun.level + 1); startMode(mode); };
+$("againBtn").onclick = () => {
+  play("select"); if (mode === "bubble" && bubbleRun) bubbleLevel = Math.min(BUBBLE_N - 1, bubbleRun.level + 1);
+  if (mode === "deliver" && deliverRun) { if (deliverRun.task >= DELIVER_TASKS - 1) { openDeliverPick(); return; } deliverLevel = deliverRun.task + 1; }   // 配送站：下一關；8 關都過了＝選關
+  startMode(mode);
+};
 $("menuBtn").onclick = () => { play("select"); goMenu(); };
 $("albumBtn").onclick = () => { play("select"); openAlbum(); };
 $("resultAlbumBtn").onclick = () => { play("select"); openAlbum(); };
 $("albumBack").onclick = () => { play("select"); goMenu(); };
+$("dressBtn").onclick = () => { play("select"); openDress(save.rw.partner, "album"); };   // 圖鑑動物朋友的「👗 換裝」：開目前的夥伴（點卡片＝換夥伴，所以點哪隻就換哪隻）
 for (const b of document.querySelectorAll(".jarBtn")) b.onclick = () => { play("select"); tryHatch(); };
 $("hatchClose").onclick = () => { play("select"); $("hatch").classList.add("hidden"); const f = hatchDone; hatchDone = null; if (f) f(); else updateJar(); };   // 收尾交給 playHatchShow 的呼叫端
 // 結算演出中點畫面＝快轉到最後（開頭 0.7 秒內不算：最後一題連點的那幾下不會把整段演出跳掉）
@@ -1822,15 +2024,15 @@ $("guide").onclick = e => {                             // 點探頭＝貓頭鷹
 };
 $("gachaGo").onclick = () => spinGacha(false); $("gachaGoGold").onclick = () => spinGacha(true);
 $("gachaClose").onclick = () => { if (gachaBusy) return; play("select"); $("gacha").classList.add("hidden"); updateJar(); };
-// 第一次觸碰就起音樂。goMenu() 開頁時已經設好 curBgm，但那時瀏覽器擋自動播放 → 這裡要補播（原本 !curBgm 判斷讓它永遠不播）
-document.addEventListener("pointerdown", () => { if (!save.music) return; if (!curBgm) playBgm("island"); else if (curBgm.paused) curBgm.play().catch(() => {}); }, { once: true });
+// 第一次觸碰就起音樂：goMenu() 開頁時已經記下要播哪首（那時還沒解鎖聲音），A.unlock() 會接著播；開頁時讓選單音樂一定有一首
+document.addEventListener("pointerdown", () => { if (!mode) playBgm(menuBgmKey()); }, { once: true });
 for (const ev of ["touchend", "click"]) document.addEventListener(ev, unlockAudio, { capture: true, once: true });   // iOS：第一次點擊解鎖語音與音效
-document.addEventListener("pointerdown", voiceUnlock, { capture: true, passive: true });   // 常駐：iOS 切背景或接電話後 AudioContext 會被暫停，下一次點擊再 resume
+for (const ev of ["pointerdown", "touchend"]) document.addEventListener(ev, () => { A.unlock(); voiceUnlock(); }, { capture: true, passive: true });   // 常駐：iOS 切背景或接電話後 AudioContext 會被暫停，下一次點擊再 resume（舊 iOS 只認 touchend 當解鎖手勢）
 // 預錄語音預載（只下載＋解碼、不擋畫面）：等開頁的檔案都到了再抓開場語、稱讚、選單台詞，不跟開頁搶頻寬
 const startupVoice = () => voicePreload([...Object.values(MODES).map(m => m.intro), ...PRAISE, "找到了！", "暫停", "蛋要孵出來了！", "全部找到了！",
   "你好！快來選遊戲玩吧！", "再收集幾張貼紙，就能開新遊戲喔！", "今天要玩哪個呢？", "貼紙越來越多了！", "來釣魚還是去尋寶？"]);
-{ const t = setInterval(() => { if ($("loading").classList.contains("hidden")) { clearInterval(t); setTimeout(startupVoice, 300); } }, 250); }   // 讀取畫面關了（3D 小島也好了）才開始抓
-window.addEventListener("resize", () => { if (mode === "bubble" && bubbleGame) PZ(() => bubbleGame.relayout()); if (mode === "fish" && !locked) buildFish(round[idx]); if (mode === "match" && mq) layoutBoard(mq.pairs * 2); if (mode === "whack") layoutField(); if (mode === "frog") relayoutFrog(); });
+{ const t = setInterval(() => { if ($("loading").classList.contains("hidden")) { clearInterval(t); setTimeout(startupVoice, 300); setTimeout(() => A.preloadSfx(), 600); } }, 250); }   // 讀取畫面關了（3D 小島也好了）才開始抓（音效全部約 0.5MB，解鎖後解碼）
+window.addEventListener("resize", () => { if (mode === "bubble" && bubbleGame) PZ(() => bubbleGame.relayout()); if (mode === "deliver" && deliverGame) PZ(() => deliverGame.relayout()); if (mode === "fish" && !locked) buildFish(round[idx]); if (mode === "match" && mq) layoutBoard(mq.pairs * 2); if (mode === "whack") layoutField(); if (mode === "frog") relayoutFrog(); });
 // 開頁讀取進度（B12）：數「真的載入完」的檔案（圖、程式、3D 模型）÷ 預估總數（上次完整開頁數到幾個，第一次用 40）；開完記下這次的數量
 const boot = { n: 0, total: Math.max(10, +lsGet("zy_ld_total", 40) || 40), done: false, obs: null };
 try { boot.obs = new PerformanceObserver(l => { if (boot.done) return; boot.n += l.getEntries().length; setLoadProgress(Math.min(0.96, boot.n / boot.total)); }); boot.obs.observe({ type: "resource", buffered: true }); } catch (e) {}
@@ -1844,7 +2046,7 @@ try { boot.obs = new PerformanceObserver(l => { if (boot.done) return; boot.n +=
 })();
 $("startBtn").onclick = () => {                         // 開始玩：這一下點擊同時解鎖聲音、開音樂、貓頭鷹打招呼（新存檔：先自我介紹）
   document.body.classList.remove("gate-on"); $("startGate").classList.add("hidden"); play("select");
-  if (save.music && curBgm) curBgm.play().catch(() => {});
+  A.unlock();                                          // 解鎖聲音＋開始放選單音樂（音樂關著就不放）
   const hi = helloText(); if (hi) $("guideText").textContent = hi + "快來選遊戲玩吧！";
   setTimeout(() => talk($("guideText").textContent), 300);
   hudTour();                                           // 上方家長按鈕先展開 4 秒，讓家長知道收在「⋯」裡
@@ -1855,7 +2057,8 @@ function applyNight() {
   const s = clock.tick();                                // 只在畫面看得到時前進；切背景／鎖螢幕＝時間停
   const on = s.night > 0.5;
   if (on !== nightShown) {
-    nightShown = on; document.body.classList.toggle("night", on);
+    const first = nightShown === null; nightShown = on; document.body.classList.toggle("night", on);
+    if (!first && !mode && !dressFrom) playBgm(menuBgmKey());   // 主島天黑／天亮：選單音樂換成搖籃曲／白天的（在別的島不變；遊戲中、換裝畫面中等回選單再換）
     if (on) for (const id of Object.keys(MODES)) {
       const sc = $(id); if (!sc || sc.querySelector(":scope > .night-sky")) continue;
       const sky = el("div", "night-sky");
@@ -1869,5 +2072,5 @@ function applyNight() {
 }
 applyNight(); setInterval(applyNight, 1000);
 document.addEventListener("visibilitychange", () => applyNight());   // 回到前景馬上對一次（背景的時間不補算）
-if (location.search.includes("debug")) window.__zy = { renderZ, parseZ, WORDS, stickerNode, zMissing, get wq() { return wq; }, get fq() { return fq; }, get idx() { return idx; }, get results() { return results; }, get wrong() { return wrongThisQ; }, get mode() { return mode; }, get round() { return round; }, get curOpts() { return curOpts; }, get bubble() { return bubbleGame; }, get bubbleSave() { return save.bubble; }, setWeather, get weather() { return wxKind; }, get weatherFx() { return weather; }, get clock() { return clock; }, get oceanFx() { return ocean; }, toneVariant, pickDistractors, zToStr };   // 測試用（tools/zy-test）
+if (location.search.includes("debug")) window.__zy = { renderZ, parseZ, WORDS, stickerNode, zMissing, get wq() { return wq; }, get fq() { return fq; }, get idx() { return idx; }, get results() { return results; }, get wrong() { return wrongThisQ; }, get mode() { return mode; }, get round() { return round; }, get curOpts() { return curOpts; }, get bubble() { return bubbleGame; }, get bubbleSave() { return save.bubble; }, get bubbleTab() { return bubbleTab; }, get bubbleN() { return BUBBLE_N; }, setWeather, get weather() { return wxKind; }, get weatherFx() { return weather; }, get clock() { return clock; }, get oceanFx() { return ocean; }, toneVariant, pickDistractors, zToStr, get dress() { return dressUI; }, get dressFrom() { return dressFrom; }, get deliver() { return deliverGame; }, get deliverSave() { return save.deliver; }, get deliverRun() { return deliverRun; } };   // 測試用（tools/zy-test）
 if (DEBUG) window.__zyB = { exportCode, readCode, importCode, playHatchShow, applyNight, get rs() { return rs; }, get best() { return save.best; }, get matchSize() { return save.matchSize; } };   // 外殼測試用（tools/zy-test/shell.js）

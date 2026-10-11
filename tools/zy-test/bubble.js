@@ -1,8 +1,8 @@
 // 泡泡救援灣（js/zhuyin-bubble.js）測試：node tools/zy-test/bubble.js
 // 需要：專案根目錄開著 python -m http.server 8765。截圖存到 BB_SHOTS（預設 %TEMP%\zy-bubble）。
-// 驗：①求解器 10 關都救得完（每關 BB_SEEDS 種亂數，印出發射數與 par）②瞄準預測＝實際落點、消除、掉落、救出、onWin 參數
+// 驗：①求解器 30 關（3 區）都救得完（每關 BB_SEEDS 種亂數，印出發射數與 par）②瞄準預測＝實際落點、消除、掉落、救出、onWin 參數
 //     ③前 3 關示範（開場、4 秒沒動作、換一顆提示）④暫停不收操作 ⑤onFull ⑥stop() 清乾淨、重開不報錯、飛行中 stop 不殘留
-//     ⑦10 關用介面實際打完 ⑧四種 iPad 尺寸版面（放得下、不重疊、按鈕夠大、不捲動）⑨國字都有注音 ⑩全程 0 個 console error
+//     ⑦30 關用介面實際打完 ⑧四種 iPad 尺寸版面（放得下、不重疊、按鈕夠大、不捲動）⑨國字都有注音 ⑩全程 0 個 console error
 const { launch } = require("./lib");
 const path = require("path"), fs = require("fs"), os = require("os");
 const BASE = process.env.ZY_BASE || "http://127.0.0.1:8765";
@@ -51,9 +51,13 @@ async function pointAt(p, ux, uy) { return p.evaluate(([x, y]) => { const f = do
     console.log(`\n求解器（每關 ${SEEDS} 種亂數；發射數＝最少/中位/75%/最多）`);
     console.log("關卡 | 符號 | 企鵝 | 發射數            | par | 失敗");
     for (const r of rows) console.log(`${String(r.i + 1).padStart(4)} | ${r.syms}    | ${r.pen}    | ${r.min}/${r.med}/${r.p75}/${r.max}`.padEnd(38) + `| ${String(r.par).padEnd(3)} | ${r.fails}`);
-    ok("求解器：10 關全部救得完（0 次失敗）", rows.length === 10 && rows.every(r => r.fails === 0), rows.filter(r => r.fails).map(r => "L" + (r.i + 1)).join(","));
-    ok("求解器：par ≥ 75 百分位（略寬鬆）", rows.every(r => r.par >= r.p75), rows.map(r => `L${r.i + 1}:${r.p75}≤${r.par}`).join(" "));
-    ok("關卡：前 3 關兩種符號、1 隻企鵝；第 4 關起三種符號；企鵝 1→3", rows.slice(0, 3).every(r => r.syms === 2 && r.pen === 1) && rows.slice(3).every(r => r.syms === 3) && rows[9].pen === 3 && rows.every((r, k) => k === 0 || r.pen >= rows[k - 1].pen - 0));
+    ok("求解器：30 關全部救得完（0 次失敗）", rows.length === 30 && rows.every(r => r.fails === 0), rows.filter(r => r.fails).map(r => "L" + (r.i + 1)).join(","));
+    ok("求解器：par ≥ 75 百分位（略寬鬆），且不超過 75 百分位 +2（星星不會太好拿）", rows.every(r => r.par >= r.p75 && r.par <= r.p75 + 2), rows.map(r => `L${r.i + 1}:${r.p75}≤${r.par}`).join(" "));
+    ok("關卡：第 1 區前 3 關兩種符號、1 隻企鵝；第 4 關起三種符號；企鵝 1→3", rows.slice(0, 3).every(r => r.syms === 2 && r.pen === 1) && rows.slice(3, 10).every(r => r.syms === 3) && rows[9].pen === 3);
+    ok("關卡：第 2 區 11～13 關三種符號、14 關起四種；第 3 區全是三種符號；每區第 1 關 1 隻動物＋一發解決", rows.slice(10, 13).every(r => r.syms === 3) && rows.slice(13, 20).every(r => r.syms === 4) && rows.slice(20).every(r => r.syms === 3) && rows[10].pen === 1 && rows[20].pen === 1 && rows[10].max === 1 && rows[20].max === 1);
+    ok("關卡：每區的動物隻數從 1 長到 3 以上（第 2 區 1→3、第 3 區 1→4）、par 區內大致往上", rows[19].pen === 3 && rows[29].pen === 4 && rows[19].par >= rows[10].par + 4 && rows[29].par >= rows[20].par + 4);
+    ok("符號：第 1 區只用ㄅㄆㄇ、第 2 區只用ㄉㄊㄋㄌ、第 3 區只用ㄍㄎㄏ", await p.evaluate(() => { const m = window.__bb.mod, sets = [["ㄅㄆㄇ", 0], ["ㄉㄊㄋㄌ", 10], ["ㄍㄎㄏ", 20]];
+      return sets.every(([syms, from]) => { for (let i = from; i < from + 10; i++) { const g = m.bubbleSim.parseLevel(m.LEVELS[i]); for (const v of m.bubbleSim.present(g)) if (!syms.includes(m.SYMS[v])) return false; } return true; }); }));
     await ctx.close();
   }
 
@@ -163,11 +167,11 @@ async function pointAt(p, ux, uy) { return p.evaluate(([x, y]) => { const f = do
     await ctx.close();
   }
 
-  // ===== ⑦ 10 關用介面實際打完（計時器快 6 倍）：每發預測＝實際、onWin 參數 =====
+  // ===== ⑦ 30 關用介面實際打完（計時器快 6 倍）：每發預測＝實際、onWin 參數 =====
   {
     const { ctx, p, errs } = await open(browser, 1180, 820, "clean=1&fast=6&seed=11");
     const table = [];
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 30; i++) {
       await p.evaluate(i => { window.__bb.calls.win.length = 0; window.__bb.game.start(i); }, i);
       await sleep(80);
       let mism = 0, n = 0;
@@ -184,15 +188,15 @@ async function pointAt(p, ux, uy) { return p.evaluate(([x, y]) => { const f = do
       table.push({ lv: i + 1, shots: w && w.shots, par: w && w.par, stars: w && w.stars, rescued: w && w.rescued, need: s.need, mism, ok: !!(w && w.level === i && w.rescued === s.need && starsOk && mism === 0) });
     }
     console.log("\n介面實打（貪婪一步、不前瞻）：" + table.map(t => `L${t.lv}:${t.shots}發${"★".repeat(t.stars || 0)}`).join(" "));
-    ok("介面實打：10 關都過關、onWin 參數正確、星星照 par 算、每一發落點都＝預測", table.every(t => t.ok), JSON.stringify(table.filter(t => !t.ok)));
+    ok("介面實打：30 關都過關、onWin 參數正確、星星照 par 算、每一發落點都＝預測", table.every(t => t.ok), JSON.stringify(table.filter(t => !t.ok)));
     ok("第 2 段：沒有錯誤", errs.length === 0, errs.join(" | "));
     await ctx.close();
   }
 
-  // ===== ⑧ 版面：四種 iPad 尺寸 × 第 1/5/10 關 =====
+  // ===== ⑧ 版面：四種 iPad 尺寸 × 第 1/5/10/11/14/20/21/30 關 =====
   for (const [w, h] of [[1180, 820], [1024, 768], [820, 1180], [768, 1024]]) {
     const { ctx, p, errs } = await open(browser, w, h, "clean=1&seed=2");
-    for (const lv of [0, 4, 9]) {
+    for (const lv of [0, 4, 9, 10, 13, 19, 20, 29]) {
       await p.evaluate(lv => window.__bb.game.start(lv), lv); await sleep(120);
       const m = await p.evaluate(() => {
         const R = e => { const r = e.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; };
@@ -226,7 +230,7 @@ async function pointAt(p, ux, uy) { return p.evaluate(([x, y]) => { const f = do
     const { ctx, p, errs } = await open(browser, 1180, 820, "clean=1&ann=1&seed=4");
     await p.waitForFunction(() => window.__bb.ann, null, { timeout: 8000 });
     const res = [];
-    for (const lv of [0, 9]) {
+    for (const lv of [0, 9, 10, 20, 29]) {
       await p.evaluate(lv => window.__bb.game.start(lv), lv); await sleep(150);
       const b = await playBest(p); await waitIdle(p);
       if (lv === 0) await p.waitForFunction(() => document.querySelector(".bb-banner"), null, { timeout: 8000 });
@@ -272,6 +276,19 @@ async function pointAt(p, ux, uy) { return p.evaluate(([x, y]) => { const f = do
     await sleep(500);
     await shot(p, `${tag}_6_L7_win`);
     ok(`截圖 ${tag}：沒有錯誤`, errs.length === 0, errs.join(" | "));
+    // 第 2、3 區：開場（含示範）、中段盤面、最難一關、救出動物的圖有載到、符號顏色各不相同
+    for (const [lv, name] of [[10, "L11"], [13, "L14"], [14, "L15"], [19, "L20"], [20, "L21"], [24, "L25"], [29, "L30"]]) {
+      await p.evaluate(lv => window.__bb.game.start(lv), lv); await sleep(lv === 10 || lv === 20 ? 1300 : 350);
+      await shot(p, `${tag}_z_${name}`);
+      const info = await p.evaluate(() => { const bs = [...document.querySelectorAll(".bb-layer .bb-b:not(.bb-pen)")]; const col = {};
+        bs.forEach(b => { const sym = b.textContent, c = getComputedStyle(b).getPropertyValue("--c").trim(); (col[sym] = col[sym] || new Set()).add(c); });
+        const img = document.querySelector(".bb-layer .bb-pen img");
+        return { cols: Object.fromEntries(Object.entries(col).map(([k, v]) => [k, [...v].join("/")])), img: img ? img.naturalWidth : -1, src: img ? img.src.split("/").pop() : "" }; });
+      const colors = Object.values(info.cols), oneEach = Object.values(info.cols).every(c => !c.includes("/"));
+      ok(`第 ${lv + 1} 關：每個符號固定一種顏色、同一關內各符號顏色不重複、救的動物圖有載到`, oneEach && new Set(colors).size === colors.length && info.img > 0, JSON.stringify(info));
+      if (lv === 10) ok(`第 11 關救小螃蟹（crab.webp）、第 21 關救小鯨魚（whale.webp）`, info.src === "crab.webp", info.src);
+      if (lv === 20) ok(`第 21 關救小鯨魚`, info.src === "whale.webp", info.src);
+    }
     await ctx.close();
   }
 

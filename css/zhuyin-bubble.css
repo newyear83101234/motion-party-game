@@ -51,6 +51,13 @@
 .bb-b.s0 { --c: #ff6b6b; --c1: #ffb3b3; --c2: #d44444; }   /* ㄅ 紅 */
 .bb-b.s1 { --c: #4da3ff; --c1: #acd4ff; --c2: #2b78cf; }   /* ㄆ 藍 */
 .bb-b.s2 { --c: #ffc93c; --c1: #ffe69a; --c2: #db9f16; }   /* ㄇ 黃 */
+/* 第 2、3 區的顏色：每個符號固定一色；符號字是深色，所以底色都要夠亮；同一區內色相和亮度都拉開（紅綠色盲也分得出來）
+   第 2 區 ㄉ橘 ㄊ天藍 ㄋ綠 ㄌ粉；第 3 區 ㄍ紫 ㄎ橘 ㄏ綠 */
+.bb-b.s3 { --c: #ffa94d; --c1: #ffdcae; --c2: #e0771a; }   /* ㄉ ㄎ 橘 */
+.bb-b.s4 { --c: #5ccbf2; --c1: #b8ecff; --c2: #2a9bc9; }   /* ㄊ 天藍 */
+.bb-b.s5 { --c: #36b66c; --c1: #a6e8c2; --c2: #1d8a4c; }   /* ㄋ ㄏ 綠 */
+.bb-b.s6 { --c: #ff8fc4; --c1: #ffd0e8; --c2: #d9559a; }   /* ㄌ 粉 */
+.bb-b.s7 { --c: #b79cff; --c1: #e0d4ff; --c2: #8264d6; }   /* ㄍ 紫 */
 .bb-sym {
   font-family: inherit; font-size: calc(var(--u) * 1.22); font-weight: 900; line-height: 1; color: #1b2446;
   text-shadow: 0 0 calc(var(--u) * .05) #fff, 0 0 calc(var(--u) * .12) rgba(255,255,255,.9); transform: translateY(3%);
@@ -78,6 +85,11 @@
 .bb-dots.s0 circle { stroke: #d44444; }
 .bb-dots.s1 circle { stroke: #2b78cf; }
 .bb-dots.s2 circle { stroke: #c98a00; }
+.bb-dots.s3 circle { stroke: #e0771a; }
+.bb-dots.s4 circle { stroke: #2a9bc9; }
+.bb-dots.s5 circle { stroke: #1d8a4c; }
+.bb-dots.s6 circle { stroke: #d9559a; }
+.bb-dots.s7 circle { stroke: #8264d6; }
 .bb-dots.bb-gold circle { fill: #ffd54a; stroke: #e07b00; stroke-width: .1; animation: bbDot 1s ease-in-out infinite; }
 @keyframes bbDot { 50% { opacity: .45; } }
 .bb-arrow { fill: #2f6fb0; stroke: #fff; stroke-width: .12; stroke-linejoin: round; }

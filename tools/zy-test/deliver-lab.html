@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>彩虹配送站 試玩</title>
+<!-- 獨立試玩頁：python -m http.server 8765（專案根目錄）→ http://127.0.0.1:8765/tools/zy-test/deliver-lab.html
+     參數：?task=3 開第 3 個任務｜?clean=1 收起試玩工具列（截圖用）｜?fast=4 計時器與卡車快 4 倍（測試用）｜?seed=1 固定亂數
+           ｜?ann=1 跑主程式的自動注音｜?mute=1 不出音效｜?cleared=1,2 假裝這些任務已經過關（測重玩不送禮） -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "../../IMAGE/zy3d/vendor/three/build/three.module.min.js",
+    "../../IMAGE/zy3d/vendor/three/build/three.core.js": "../../IMAGE/zy3d/vendor/three/build/three.core.min.js",
+    "three/addons/": "../../IMAGE/zy3d/vendor/three/examples/jsm/"
+  }
+}
+</script>
+<link rel="stylesheet" href="../../css/zhuyin.css">
+<link rel="stylesheet" href="../../css/zhuyin-deliver.css">
+<style>
+  #stage { background: #9ed8f5; }
+  #dlvRoot { position: absolute; inset: 0; }
+  #lab { position: fixed; z-index: 80; left: 50%; bottom: 1vmin; transform: translateX(-50%); display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: center;
+    max-width: 60vw; padding: 4px 6px; border-radius: 10px; background: rgba(20, 30, 50, .72); color: #fff; font: 12px/1.3 system-ui, sans-serif; }
+  #lab button { font: 12px system-ui, sans-serif; padding: 3px 7px; border-radius: 6px; background: #fff; color: #123; }
+  #lab button.on { background: #ffd54a; }
+  #labLog { position: fixed; z-index: 80; left: 1vmin; bottom: 7vmin; max-width: 50vw; color: #fff; font: 12px/1.35 ui-monospace, Consolas, monospace; text-shadow: 0 1px 2px #000; pointer-events: none; white-space: pre-wrap; }
+  #labResult { position: fixed; z-index: 90; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.35); }
+  #labResult div { background: #fff; border-radius: 3vmin; padding: 3vmin 5vmin; font: bold 3.6vmin system-ui, sans-serif; color: #1b4fa0; text-align: center; white-space: pre-line; }
+  .clean #lab, .clean #labLog { display: none; }
+</style>
+</head>
+<body>
+<section id="stage" class="screen"><div id="dlvRoot"></div></section>
+<!-- 假的主程式按鈕（看會不會跟遊戲擋到）：遊戲裡左上只有 🏠🎵（.hud-l）。🏠＝暫停／繼續 -->
+<div class="hud hud-l"><button class="round-btn" id="homeBtn" aria-label="暫停">🏠</button><button class="round-btn" id="musicBtn" aria-label="音樂">🎵</button></div>
+<div id="lab" class="noann"></div>
+<div id="labLog" class="noann"></div>
+<div id="labResult" class="hidden noann"><div></div></div>
+<script type="module">
+  import * as mod from "../../js/zhuyin-deliver.js";
+  const Q = new URLSearchParams(location.search);
+  const fast = Math.max(1, +Q.get("fast") || 1);
+  if (Q.get("clean") === "1") document.body.classList.add("clean");
+  const lines = [], calls = { say: [], talk: [], play: [], win: [], save: [], at: [] };   // at：onSave／onWin 的先後與時間（[種類, performance.now()]）
+  const log = (k, t) => { lines.push(`${k}: ${t}`); while (lines.length > 6) lines.shift(); document.getElementById("labLog").textContent = lines.join("\n"); console.log("[deliver]", k, t); };
+  // 假的 gLater：跟主程式一樣，暫停時凍結剩下的時間（測「暫停時計時凍結」）
+  let paused = false; const timers = new Set();
+  const arm = t => { t.id = setTimeout(() => { timers.delete(t); t.fn(); }, Math.max(0, t.left) / fast); t.at = performance.now(); };
+  function later(fn, ms) { const t = { fn, left: ms }; timers.add(t); if (!paused) arm(t); return t; }
+  function setPaused(v) {
+    v = !!v; if (v === paused) return; paused = v;
+    for (const t of timers) { if (paused) { clearTimeout(t.id); t.left -= (performance.now() - t.at) * fast; } else arm(t); }
+    document.getElementById("homeBtn").classList.toggle("on", paused);
+  }
+  const cleared = new Set((Q.get("cleared") || "").split(",").filter(Boolean).map(n => +n - 1));
+  const api = {
+    say: (t, r, cb) => { calls.say.push(t); log("say", t); if (cb) setTimeout(cb, 900 / fast); },
+    talk: (t, cb) => { calls.talk.push(t); log("talk", t); if (cb) setTimeout(cb, 900 / fast); },
+    play: (n, r = 1) => { calls.play.push(n); if (Q.get("mute") === "1") return; try { const a = new Audio(`../../audio/sfx/${n}.mp3`); a.playbackRate = r; a.play().catch(() => {}); } catch (e) {} },   // 音訊組的音效（audio/manifest.json 的 sfx）
+    later, paused: () => paused,
+    onSave: info => { calls.save.push(info); calls.at.push(["save", performance.now()]); log("onSave", "任務 " + (info.task + 1)); },
+    failBuild: Q.get("failbuild") === "1",   // 測試：createWorld 建到一半丟錯
+    onFail: f => { (calls.fail = calls.fail || []).push(f); log("onFail", JSON.stringify(f)); },
+    onWin: info => { calls.win.push(info); calls.at.push(["win", performance.now()]); cleared.add(info.task); log("onWin", JSON.stringify(info)); if (Q.get("clean") === "1") return; const r = document.getElementById("labResult");
+      r.firstElementChild.textContent = `過關！任務 ${info.task + 1}　${"★".repeat(info.stars)}\n出車 ${info.trips} 趟（最少 ${info.bestTrips}）　路程 ${info.dist}（最短 ${info.bestDist}）\n送錯 ${info.wrong} 次　禮物 ${info.gift || "—"}`; r.classList.remove("hidden"); },
+    petImg: id => `../../IMAGE/zhuyin/pets/${id}.webp`,
+    isCleared: i => cleared.has(i),
+    hintWait: +(Q.get("hint") || 20),
+    speed: fast,
+  };
+  if (Q.has("seed")) api.seed = +Q.get("seed");
+  const game = mod.createDeliverGame(document.getElementById("dlvRoot"), api);
+  window.__dl = { mod, game, api, calls, later, setPaused, timers, cleared };
+  if (Q.get("ann") === "1") import("../../js/zhuyin-ann.js").then(m => { m.startAnnotate(); window.__dl.ann = m; });
+
+  const bar = document.getElementById("lab");
+  mod.TASKS.forEach((_, i) => { const b = document.createElement("button"); b.textContent = "任務" + (i + 1); b.onclick = () => { document.getElementById("labResult").classList.add("hidden"); game.start(i); mark(i); }; bar.appendChild(b); });
+  const extra = [["⏸", () => setPaused(!paused)], ["🔊", () => game.sayCurrent()], ["最佳一步", () => game.debug.autoStep()], ["自動", () => game.debug.autoPlay()]];
+  for (const [t, f] of extra) { const b = document.createElement("button"); b.textContent = t; b.onclick = f; bar.appendChild(b); }
+  function mark(i) { [...bar.children].forEach((b, k) => b.classList.toggle("on", k === i)); }
+  document.getElementById("homeBtn").onclick = () => setPaused(!paused);
+  document.getElementById("labResult").onclick = () => document.getElementById("labResult").classList.add("hidden");
+  addEventListener("resize", () => game.relayout());
+  const t0 = Math.max(1, Math.min(mod.TASKS.length, +Q.get("task") || 1)) - 1;
+  game.start(t0); mark(t0);
+  window.__dl.ready = true;
+</script>
+</body>
+</html>

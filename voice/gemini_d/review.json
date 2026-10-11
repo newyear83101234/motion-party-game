@@ -1,7 +1,7 @@
 {
  "how": "每句由 Gemini 3.8 Flash 盲聽寫（不給答案），拼音跟正確讀音比對；詞庫詞以遊戲注音為準。AI 聽寫本身也會錯，所以這份是『請人耳確認』清單，不代表一定唸錯。",
- "count": 46,
- "suspicious": 46,
+ "count": 62,
+ "suspicious": 62,
  "items": [
   {
    "text": "第一聲不用加符號，按這個空白格就好",
@@ -40,6 +40,42 @@
       "不 應 bu4 聽到 bu2",
       "空 應 kong1 聽到 kong4",
       "個 應 ge4 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "小鯨魚都救出來了，好厲害！",
+   "file": "result_685fbff6.mp3",
+   "level": "可疑",
+   "why": [
+    "鯨 應 jing1 聽到 jin1"
+   ],
+   "heard": "小金魚都救出來了，好厲害！",
+   "pinyin": "xiao3 jin1 yu2 dou1 jiu4 chu1 lai2 le5 hao3 li4 hai4",
+   "correct": "xiao3 jing1 yu2 dou1 jiu4 chu1 lai2 le5 hao3 li4 hai4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "小鯨魚都救出來了，好厲害！",
+     "pinyin": "xiao3 jin1 yu2 dou1 jiu4 chu1 lai2 le5 hao3 li4 hai4",
+     "why": [
+      "鯨 應 jing1 聽到 jin1"
+     ]
+    },
+    {
+     "sent": "小鯨魚都救出來了，好厲害！",
+     "pinyin": "xiao3 jin1 yu2 dou1 jiu4 chu1 lai2 le5 hao3 li4 hai4",
+     "why": [
+      "鯨 應 jing1 聽到 jin1"
+     ]
+    },
+    {
+     "sent": "小鯨魚都救出來了，好厲害！",
+     "pinyin": "xiao3 jin1 yu2 dou1 jiu4 chu1 lai2 le5 hao3 li4 hai4",
+     "why": [
+      "鯨 應 jing1 聽到 jin1"
      ]
     }
    ]
@@ -232,6 +268,114 @@
      "why": [
       "漂 應 piao1 聽到 piao4",
       "亮 應 liang4 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "這次要救小鯨魚喔！",
+   "file": "guide_e7cd20fe.mp3",
+   "level": "可疑",
+   "why": [
+    "鯨 應 jing1 聽到 jin1"
+   ],
+   "heard": "這次要救小金魚喔",
+   "pinyin": "zhe4 ci4 yao4 jiu4 xiao3 jin1 yu2 o1",
+   "correct": "zhe4 ci4 yao4 jiu4 xiao3 jing1 yu2 o1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "這次要救小鯨魚喔！",
+     "pinyin": "zhe4 ci4 yao4 jiu4 xiao3 jin1 yu2 o1",
+     "why": [
+      "鯨 應 jing1 聽到 jin1"
+     ]
+    },
+    {
+     "sent": "這次要救小鯨魚喔！",
+     "pinyin": "zhe4 ci4 yao4 jiu4 xiao3 jin1 yu2 o5",
+     "why": [
+      "鯨 應 jing1 聽到 jin1"
+     ]
+    },
+    {
+     "sent": "這次要救小鯨魚喔！",
+     "pinyin": "zhe4 ci4 yao4 jiu4 xiao3 jin1 yu2 o1",
+     "why": [
+      "鯨 應 jing1 聽到 jin1"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "ㄋ",
+   "file": "word_c1736813.mp3",
+   "level": "可疑",
+   "why": [
+    "訥 應 ne4 聽到 na5"
+   ],
+   "heard": "吶",
+   "pinyin": "na5",
+   "correct": "ne4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "訥",
+     "pinyin": "na5",
+     "why": [
+      "訥 應 ne4 聽到 na5"
+     ]
+    },
+    {
+     "sent": "訥",
+     "pinyin": "na4",
+     "why": [
+      "訥 應 ne4 聽到 na4"
+     ]
+    },
+    {
+     "sent": "訥",
+     "pinyin": "nuo4",
+     "why": [
+      "訥 應 ne4 聽到 nuo4"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "ㄌ",
+   "file": "word_2b59ac4c.mp3",
+   "level": "可疑",
+   "why": [
+    "勒 應 lei1 聽到 le5"
+   ],
+   "heard": "了",
+   "pinyin": "le5",
+   "correct": "lei1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "勒",
+     "pinyin": "le5",
+     "why": [
+      "勒 應 lei1 聽到 le5"
+     ]
+    },
+    {
+     "sent": "勒",
+     "pinyin": "le5",
+     "why": [
+      "勒 應 lei1 聽到 le5"
+     ]
+    },
+    {
+     "sent": "勒",
+     "pinyin": "le4",
+     "why": [
+      "勒 應 lei1 聽到 le4"
      ]
     }
    ]
@@ -1548,6 +1692,441 @@
      "pinyin": "cai3 hong2 xiao3 long2 zhang3 da4 le5",
      "why": [
       "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "好漂亮喔！",
+   "file": "guide_44c8fee0.mp3",
+   "level": "可疑",
+   "why": [
+    "漂 應 piao1 聽到 piao4"
+   ],
+   "heard": "好漂亮喔",
+   "pinyin": "hao3 piao4 liang4 o1",
+   "correct": "hao3 piao1 liang4 o1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "好漂亮喔！",
+     "pinyin": "hao3 piao4 liang4 o1",
+     "why": [
+      "漂 應 piao1 聽到 piao4"
+     ]
+    },
+    {
+     "sent": "好漂亮喔！",
+     "pinyin": "hao3 piao4 liang4 o1",
+     "why": [
+      "漂 應 piao1 聽到 piao4"
+     ]
+    },
+    {
+     "sent": "好漂亮喔！",
+     "pinyin": "hao3 piao4 liang5 o5",
+     "why": [
+      "漂 應 piao1 聽到 piao4",
+      "亮 應 liang4 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "背包",
+   "file": "word_ff3d08fd.mp3",
+   "level": "可疑",
+   "why": [
+    "背 應 bei4 聽到 bei1"
+   ],
+   "heard": "背包",
+   "pinyin": "bei1 bao1",
+   "correct": "bei4 bao1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "背包",
+     "pinyin": "bei1 bao1",
+     "why": [
+      "背 應 bei4 聽到 bei1"
+     ]
+    },
+    {
+     "sent": "背包",
+     "pinyin": "bei1 bao1",
+     "why": [
+      "背 應 bei4 聽到 bei1"
+     ]
+    },
+    {
+     "sent": "背包",
+     "pinyin": "bei1 bao1",
+     "why": [
+      "背 應 bei4 聽到 bei1"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "拿到背包了！",
+   "file": "guide_bdeec67a.mp3",
+   "level": "可疑",
+   "why": [
+    "背 應 bei4 聽到 bei1"
+   ],
+   "heard": "拿到背包了！",
+   "pinyin": "na2 dao4 bei1 bao1 le5",
+   "correct": "na2 dao4 bei4 bao1 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "拿到背包了！",
+     "pinyin": "na2 dao4 bei1 bao1 le5",
+     "why": [
+      "背 應 bei4 聽到 bei1"
+     ]
+    },
+    {
+     "sent": "拿到背包了！",
+     "pinyin": "na2 dao4 bei1 bao1 le5",
+     "why": [
+      "背 應 bei4 聽到 bei1"
+     ]
+    },
+    {
+     "sent": "拿到背包了！",
+     "pinyin": "na2 dao4 bei1 bao1 la5",
+     "why": [
+      "背 應 bei4 聽到 bei1",
+      "了 應 le5 聽到 la5"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "這是帽子，不是我要的喔！",
+   "file": "order_d80ad668.mp3",
+   "level": "可疑",
+   "why": [
+    "不 應 bu4 聽到 bu2"
+   ],
+   "heard": "這是帽子，不是我要的喔",
+   "pinyin": "zhe4 shi4 mao4 zi5 bu2 shi4 wo3 yao4 de5 o1",
+   "correct": "zhe4 shi4 mao4 zi5 bu4 shi4 wo3 yao4 de5 o1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "這是帽子，不是我要的喔！",
+     "pinyin": "en4 zhe4 shi4 mao4 zi5 bu2 shi4 wo3 yao4 de5 o1",
+     "why": [
+      "音節數不同：應 10（zhe4 shi4 mao4 zi5 bu4 shi4 wo3 yao4 de5 o1），聽到 11（en4 zhe4 shi4 mao4 zi5 bu2 shi4 wo3 yao4 de5 o1）"
+     ]
+    },
+    {
+     "sent": "這是帽子，不是我要的喔！",
+     "pinyin": "zhe4 shi4 mao4 zi5 bu2 shi4 wo3 yao4 de5 o1",
+     "why": [
+      "不 應 bu4 聽到 bu2"
+     ]
+    },
+    {
+     "sent": "這是帽子，不是我要的喔！",
+     "pinyin": "zhe4 shi4 mao4 zi5 bu2 shi4 wo3 yao4 de5 o1",
+     "why": [
+      "不 應 bu4 聽到 bu2"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "這是蘋果，不是我要的喔！",
+   "file": "order_6ce05984.mp3",
+   "level": "可疑",
+   "why": [
+    "不 應 bu4 聽到 bu2"
+   ],
+   "heard": "這是蘋果，不是我要的喔",
+   "pinyin": "zhe4 shi4 ping2 guo3 bu2 shi4 wo3 yao4 de5 o1",
+   "correct": "zhe4 shi4 ping2 guo3 bu4 shi4 wo3 yao4 de5 o1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "這是蘋果，不是我要的喔！",
+     "pinyin": "zhe4 shi4 ping2 guo3 bu2 shi4 wo3 yao4 de5 o1",
+     "why": [
+      "不 應 bu4 聽到 bu2"
+     ]
+    },
+    {
+     "sent": "這是蘋果，不是我要的喔！",
+     "pinyin": "zhe4 shi4 ping2 guo3 bu2 shi4 wo3 yao4 de5 o1",
+     "why": [
+      "不 應 bu4 聽到 bu2"
+     ]
+    },
+    {
+     "sent": "這是蘋果，不是我要的喔！",
+     "pinyin": "zhe4 shi4 ping2 guo3 bu2 shi4 wo3 yao4 de5 o1",
+     "why": [
+      "不 應 bu4 聽到 bu2"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "這是香蕉，不是我要的喔！",
+   "file": "order_f2d2d29e.mp3",
+   "level": "可疑",
+   "why": [
+    "不 應 bu4 聽到 bu2"
+   ],
+   "heard": "這是香蕉，不是我要的喔",
+   "pinyin": "zhe4 shi4 xiang1 jiao1 bu2 shi4 wo3 yao4 de5 o1",
+   "correct": "zhe4 shi4 xiang1 jiao1 bu4 shi4 wo3 yao4 de5 o1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "這是香蕉，不是我要的喔！",
+     "pinyin": "zhe4 shi4 xiang1 jiao1 bu2 shi4 wo3 yao4 de5 o1",
+     "why": [
+      "不 應 bu4 聽到 bu2"
+     ]
+    },
+    {
+     "sent": "這是香蕉，不是我要的喔！",
+     "pinyin": "zhe4 shi4 xiang1 jiao1 bu2 shi4 wo3 yao4 de5 o1",
+     "why": [
+      "不 應 bu4 聽到 bu2"
+     ]
+    },
+    {
+     "sent": "這是香蕉，不是我要的喔！",
+     "pinyin": "zhe4 shi4 xiang1 jiao1 bu2 shi4 wo3 yao4 de5 o1",
+     "why": [
+      "不 應 bu4 聽到 bu2"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "這是西瓜，不是我要的喔！",
+   "file": "order_49f31abb.mp3",
+   "level": "可疑",
+   "why": [
+    "不 應 bu4 聽到 bu2"
+   ],
+   "heard": "這是西瓜，不是我要的哦",
+   "pinyin": "zhe4 shi4 xi1 gua1 bu2 shi4 wo3 yao4 de5 o1",
+   "correct": "zhe4 shi4 xi1 gua1 bu4 shi4 wo3 yao4 de5 o1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "這是西瓜，不是我要的喔！",
+     "pinyin": "zhe4 shi4 xi1 gua1 bu2 shi4 wo3 yao4 de5",
+     "why": [
+      "音節數不同：應 10（zhe4 shi4 xi1 gua1 bu4 shi4 wo3 yao4 de5 o1），聽到 9（zhe4 shi4 xi1 gua1 bu2 shi4 wo3 yao4 de5）"
+     ]
+    },
+    {
+     "sent": "這是西瓜，不是我要的喔！",
+     "pinyin": "zhe4 shi4 xi1 gua1 bu2 shi4 wo3 yao4 de5 o1",
+     "why": [
+      "不 應 bu4 聽到 bu2"
+     ]
+    },
+    {
+     "sent": "這是西瓜，不是我要的喔！",
+     "pinyin": "zhe4 shi4 xi1 gua1 bu2 shi4 wo3 yao4 de5 o1",
+     "why": [
+      "不 應 bu4 聽到 bu2"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "這是麵包，不是我要的喔！",
+   "file": "order_917d8699.mp3",
+   "level": "可疑",
+   "why": [
+    "不 應 bu4 聽到 bu2"
+   ],
+   "heard": "這是麵包，不是我要的喔",
+   "pinyin": "zhe4 shi4 mian4 bao1 bu2 shi4 wo3 yao4 de5 o1",
+   "correct": "zhe4 shi4 mian4 bao1 bu4 shi4 wo3 yao4 de5 o1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "這是麵包，不是我要的喔！",
+     "pinyin": "zhe4 shi4 mian4 bao1 bu2 shi4 wo3 yao4 de5 o1",
+     "why": [
+      "不 應 bu4 聽到 bu2"
+     ]
+    },
+    {
+     "sent": "這是麵包，不是我要的喔！",
+     "pinyin": "ng4 zhe4 shi4 mian4 bao1 bu2 shi4 wo3 yao4 de5 o1",
+     "why": [
+      "音節數不同：應 10（zhe4 shi4 mian4 bao1 bu4 shi4 wo3 yao4 de5 o1），聽到 11（ng4 zhe4 shi4 mian4 bao1 bu2 shi4 wo3 yao4 de5 o1）"
+     ]
+    },
+    {
+     "sent": "這是麵包，不是我要的喔！",
+     "pinyin": "zhe4 shi4 mian4 bao1 bu2 shi4 wo3 yao4 de5 o1",
+     "why": [
+      "不 應 bu4 聽到 bu2"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "這是牛奶，不是我要的喔！",
+   "file": "order_986a53e4.mp3",
+   "level": "可疑",
+   "why": [
+    "不 應 bu4 聽到 bu2"
+   ],
+   "heard": "這是牛奶，不是我要的哦",
+   "pinyin": "zhe4 shi4 niu2 nai3 bu2 shi4 wo3 yao4 de5 o5",
+   "correct": "zhe4 shi4 niu2 nai3 bu4 shi4 wo3 yao4 de5 o1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "這是牛奶，不是我要的喔！",
+     "pinyin": "zhe4 shi4 niu2 nai3 bu2 shi4 wo3 yao4 de5 o5",
+     "why": [
+      "不 應 bu4 聽到 bu2"
+     ]
+    },
+    {
+     "sent": "這是牛奶，不是我要的喔！",
+     "pinyin": "zhe4 shi4 niu2 nai3 bu2 shi4 wo3 yao4 de5 o1",
+     "why": [
+      "不 應 bu4 聽到 bu2"
+     ]
+    },
+    {
+     "sent": "這是牛奶，不是我要的喔！",
+     "pinyin": "en5 zhe4 shi4 niu2 nai3 bu2 shi4 wo3 yao4 de5 o1",
+     "why": [
+      "音節數不同：應 10（zhe4 shi4 niu2 nai3 bu4 shi4 wo3 yao4 de5 o1），聽到 11（en5 zhe4 shi4 niu2 nai3 bu2 shi4 wo3 yao4 de5 o1）"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "送你背包！",
+   "file": "guide_5b991b91.mp3",
+   "level": "可疑",
+   "why": [
+    "背 應 bei4 聽到 bei1"
+   ],
+   "heard": "送你背包",
+   "pinyin": "song4 ni3 bei1 bao1",
+   "correct": "song4 ni3 bei4 bao1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "送你背包！",
+     "pinyin": "song4 ni3 bei1 bao1",
+     "why": [
+      "背 應 bei4 聽到 bei1"
+     ]
+    },
+    {
+     "sent": "送你背包！",
+     "pinyin": "song4 ni3 bei1 bao1",
+     "why": [
+      "背 應 bei4 聽到 bei1"
+     ]
+    },
+    {
+     "sent": "送你背包！",
+     "pinyin": "song4 ni3 bei1 bao1",
+     "why": [
+      "背 應 bei4 聽到 bei1"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "車上沒有我要的東西耶，回倉庫拿吧！",
+   "file": "guide_ef1a7ec2.mp3",
+   "level": "可疑",
+   "why": [
+    "耶 應 ye2 聽到 ei5"
+   ],
+   "heard": "車上沒有我要的東西欸，回倉庫拿吧",
+   "pinyin": "che1 shang4 mei2 you3 wo3 yao4 de5 dong1 xi1 ei5 hui2 cang1 ku4 na2 ba5",
+   "correct": "che1 shang4 mei2 you3 wo3 yao4 de5 dong1 xi1 ye2 hui2 cang1 ku4 na2 ba5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "車上沒有我要的東西耶，回倉庫拿吧！",
+     "pinyin": "che1 shang4 mei2 you3 wo3 yao4 de5 dong1 xi1 ei5 hui2 cang1 ku4 na2 ba5",
+     "why": [
+      "耶 應 ye2 聽到 ei5"
+     ]
+    },
+    {
+     "sent": "車上沒有我要的東西耶，回倉庫拿吧！",
+     "pinyin": "che1 shang4 mei2 you3 wo3 yao4 de5 dong1 xi1 ei5 hui2 cang1 ku4 na2 ba5",
+     "why": [
+      "耶 應 ye2 聽到 ei5"
+     ]
+    },
+    {
+     "sent": "車上沒有我要的東西耶，回倉庫拿吧！",
+     "pinyin": "che1 shang4 mei2 you3 wo3 yao4 de5 dong1 xi1 e5 hui2 cang1 ku4 na2 ba5",
+     "why": [
+      "耶 應 ye2 聽到 e5"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "大挑戰！想想看怎麼送最快！",
+   "file": "guide_3a47540c.mp3",
+   "level": "可疑",
+   "why": [
+    "挑 應 tiao1 聽到 tiao3"
+   ],
+   "heard": "大挑戰，想想看怎麼送最快",
+   "pinyin": "da4 tiao3 zhan4 xiang3 xiang3 kan4 zen3 me5 song4 zui4 kuai4",
+   "correct": "da4 tiao1 zhan4 xiang3 xiang3 kan4 zen3 me5 song4 zui4 kuai4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "大挑戰！想想看怎麼送最快！",
+     "pinyin": "da4 tiao3 zhan4 xiang3 xiang3 kan4 zen3 me5 song4 zui4 kuai4",
+     "why": [
+      "挑 應 tiao1 聽到 tiao3"
+     ]
+    },
+    {
+     "sent": "大挑戰！想想看怎麼送最快！",
+     "pinyin": "da4 tiao3 zhan4 xiang3 xiang5 kan4 zen3 me5 song4 zui4 kuai4",
+     "why": [
+      "挑 應 tiao1 聽到 tiao3",
+      "想 應 xiang3 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "大挑戰！想想看怎麼送最快！",
+     "pinyin": "da4 tiao3 zhan4 xiang3 xiang3 kan4 zen3 me5 song4 zui4 kuai4",
+     "why": [
+      "挑 應 tiao1 聽到 tiao3"
      ]
     }
    ]

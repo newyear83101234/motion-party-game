@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>寵物換裝 試玩</title>
+<!-- 獨立試玩頁：python -m http.server 8765（專案根目錄）→ http://127.0.0.1:8765/tools/zy-test/dress-lab.html
+     參數：?pets=all（28 隻都收集，階段輪流 1/2/3）｜?closet=all（10 件配件都有）｜?pet=dog 開哪一隻｜?clean=1 收起試玩工具列（截圖用）
+           ?fast=4 計時器快 4 倍｜?mute=1 不出音效｜?ann=1 跑主程式的自動注音｜?nogl=1 假裝沒有 WebGL（測圖片版）
+     合身檢查：?fit=head|side|back&view=front|back|side&from=0&n=28&cols=2&cell=150 → 把每隻寵物戴上該部位每一件的樣子畫成一張總表（#fitSheet） -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "../../IMAGE/zy3d/vendor/three/build/three.module.min.js",
+    "../../IMAGE/zy3d/vendor/three/build/three.core.js": "../../IMAGE/zy3d/vendor/three/build/three.core.min.js",
+    "three/addons/": "../../IMAGE/zy3d/vendor/three/examples/jsm/"
+  }
+}
+</script>
+<link rel="stylesheet" href="../../css/zhuyin.css">
+<link rel="stylesheet" href="../../css/zhuyin-dress.css">
+<style>
+  #lab { position: fixed; z-index: 50; left: 50%; bottom: 1vmin; transform: translateX(-50%); display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: center;
+    max-width: 70vw; padding: 4px 6px; border-radius: 10px; background: rgba(20, 30, 50, .72); color: #fff; font: 12px/1.3 system-ui, sans-serif; }
+  #lab button { font: 12px system-ui, sans-serif; padding: 3px 7px; border-radius: 6px; background: #fff; color: #123; }
+  #labLog { position: fixed; z-index: 50; left: 1vmin; bottom: 6vmin; max-width: 50vw; color: #fff; font: 12px/1.35 ui-monospace, Consolas, monospace; text-shadow: 0 1px 2px #000; pointer-events: none; white-space: pre-wrap; }
+  .clean #lab, .clean #labLog { display: none; }
+  body.fit { overflow: auto; background: #fff; }
+  #fitSheet { display: block; }
+</style>
+</head>
+<body>
+<section id="dress" class="screen hidden"></section>
+<div id="lab" class="noann"></div>
+<div id="labLog" class="noann"></div>
+<script type="module">
+  import * as THREE from "three";
+  import * as RW from "../../js/zhuyin-rewards.js?v=1";
+  import { createDress, createDressRig } from "../../js/zhuyin-dress.js";
+  const Q = new URLSearchParams(location.search);
+  const fast = Math.max(1, +Q.get("fast") || 1);
+  if (Q.get("clean") === "1") document.body.classList.add("clean");
+  if (Q.get("nogl") === "1") { const g = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function (t, ...a) { return /webgl/.test(t) ? null : g.call(this, t, ...a); }; }
+
+  if (Q.has("fit")) { fitMode(); }
+  else labMode();
+
+  // ---------- 試玩模式 ----------
+  function labMode() {
+    if (Q.get("ann") === "1") import("../../js/zhuyin-ann.js?v=5").then(m => { m.startAnnotate(); window.__dress.ann = m; });
+    const rw = RW.migrate({});
+    if (Q.get("pets") === "all") RW.PETS.forEach((p, i) => { if (!rw.pets[p.id]) rw.pets[p.id] = { stage: 1 + (i % 3), t: 0 }; });
+    rw.pets.bear.stage = 2; if (rw.pets.cat) rw.pets.cat.stage = 3;
+    if (Q.get("closet") === "all") RW.WEAR.forEach(w => RW.giveWear(rw, w.id));
+    const lines = [], calls = { say: [], talk: [], play: [], save: 0, close: 0 };
+    const log = (k, t) => { lines.push(`${k}: ${t}`); while (lines.length > 6) lines.shift(); document.getElementById("labLog").textContent = lines.join("\n"); console.log("[dress]", k, t); };
+    const api = {
+      say: t => { calls.say.push(t); log("say", t); },
+      talk: t => { calls.talk.push(t); log("talk", t); },
+      play: (n, r = 1) => { calls.play.push(n); if (Q.get("mute") === "1") return; try { const a = new Audio(`../../MUSIC/zy_${n === "wear" ? "sticker" : n}.mp3`); a.playbackRate = r; a.play().catch(() => {}); } catch (e) {} },
+      later: (fn, ms) => setTimeout(fn, ms / fast),
+      rw: () => rw,
+      save: () => { calls.save++; },
+      pets: () => Object.entries(rw.pets).map(([id, v]) => ({ id, name: RW.PET[id].name, stage: v.stage })),
+      onClose: () => { calls.close++; log("onClose", ""); },
+    };
+    const dress = createDress(document.getElementById("dress"), api);
+    window.__dress = { RW, rw, api, calls, dress };
+    const bar = document.getElementById("lab");
+    for (const [t, f] of [["開", () => dress.open(Q.get("pet") || undefined)], ["關", () => dress.close()], ["全部配件", () => { RW.WEAR.forEach(w => RW.giveWear(rw, w.id)); dress.close(); dress.open(); }],
+      ["重置", () => { rw.closet = ["hat", "bow"]; rw.wear = {}; dress.close(); dress.open(); }]]) { const b = document.createElement("button"); b.textContent = t; b.onclick = f; bar.appendChild(b); }
+    addEventListener("resize", () => dress.relayout());
+    dress.open(Q.get("pet") || undefined);
+    window.__dress.ready = true;
+  }
+
+  // ---------- 合身檢查：每隻寵物 × 該部位每一件 ----------
+  async function fitMode() {
+    document.body.classList.add("fit", "clean");
+    // view：front＝右前方（看得到 head_side 那一側）、back＝左後方、side＝正側面、top＝高俯角（像小島鏡頭 31°）；views=front,back 可以一次排好幾個角度
+    const slot = Q.get("fit"), from = +Q.get("from") || 0, n = +Q.get("n") || 28, cols = +Q.get("cols") || 2, cell = +Q.get("cell") || 150;
+    const views = (Q.get("views") || Q.get("view") || "front").split(",");
+    const items = (Q.get("items") || "").split(",").filter(Boolean);
+    const pick = (Q.get("pets") || "").split(",").filter(Boolean);
+    const items0 = items.length ? items : RW.WEAR.filter(w => w.slot === slot).map(w => w.id);
+    const list = []; for (const it of items0) for (const v of views) list.push([it, v]);
+    const pets = pick.length ? pick.map(id => RW.PET[id]) : RW.PETS.slice(from, from + n);
+    const VIEW = { front: [35, 16], back: [215, 16], side: [90, 10], top: [35, 31], face: [0, 8] };
+    const frameH = slot === "back" ? 2.0 : 1.4, ty = slot === "back" ? 0.62 : 0.88;
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+    renderer.setPixelRatio(1); renderer.setSize(cell, cell); renderer.setClearColor(0xffffff, 0);
+    renderer.toneMapping = THREE.NeutralToneMapping;
+    const scene = new THREE.Scene();
+    scene.add(new THREE.HemisphereLight(0xf4f9ff, 0xe9dcc6, 1.55));
+    const sun = new THREE.DirectionalLight(0xfff4e4, 2.1), fill = new THREE.DirectionalLight(0xe6f0ff, 0.55); scene.add(sun, fill);
+    const cam = new THREE.PerspectiveCamera(28, 1, 0.1, 50), dist = frameH / 2 / Math.tan(14 * Math.PI / 180);
+    const aim = v => {
+      const [yd, pd] = VIEW[v] || VIEW.front, yaw = yd * Math.PI / 180, pitch = pd * Math.PI / 180, up = new THREE.Vector3(0, 1, 0);
+      cam.position.set(Math.sin(yaw) * Math.cos(pitch) * dist, ty + Math.sin(pitch) * dist, Math.cos(yaw) * Math.cos(pitch) * dist); cam.lookAt(0, ty, 0);
+      sun.position.set(-1.6, 3.2, 2.4).applyAxisAngle(up, yaw); fill.position.set(2, 1.2, 1.5).applyAxisAngle(up, yaw);
+    };
+    const rig = createDressRig();
+    const labelH = 22, gap = 10, blockW = list.length * cell, rows = Math.ceil(pets.length / cols);
+    const cv = document.createElement("canvas"); cv.id = "fitSheet";
+    cv.width = cols * (blockW + gap) + gap; cv.height = rows * (cell + labelH + gap) + gap + 26;
+    const g = cv.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, cv.width, cv.height);
+    g.fillStyle = "#333"; g.font = "bold 16px system-ui, sans-serif"; g.fillText(`合身檢查 ${slot}（${views.join("／")}）：${items0.join("、")}`, gap, 18);
+    document.body.appendChild(cv);
+    for (let i = 0; i < pets.length; i++) {
+      const p = pets[i], bx = gap + (i % cols) * (blockW + gap), by = 26 + gap + Math.floor(i / cols) * (cell + labelH + gap);
+      g.fillStyle = "#333"; g.font = "bold 14px system-ui, sans-serif"; g.fillText(`${p.name} ${p.id}`, bx + 4, by + 15);
+      for (let j = 0; j < list.length; j++) {
+        const [it, v] = list[j], x = bx + j * cell, y = by + labelH;
+        g.fillStyle = (i + j) % 2 ? "#eef3fb" : "#f6f0fb"; g.fillRect(x, y, cell, cell);
+        let obj = null;
+        try { obj = await rig.dressed(p.id, { [RW.WEAR_BY_ID[it] ? RW.WEAR_BY_ID[it].slot : "head"]: it }); } catch (e) { console.warn(e); }
+        if (obj) { aim(v); scene.add(obj); renderer.render(scene, cam); g.drawImage(renderer.domElement, x, y); scene.remove(obj); }
+      }
+    }
+    rig.dispose(); renderer.dispose(); renderer.forceContextLoss();
+    window.__fitDone = { w: cv.width, h: cv.height };
+  }
+</script>
+</body>
+</html>

@@ -1,19 +1,19 @@
 {
  "meta": {
   "generated_by": "tools/voice/build_lines.py",
-  "total_lines": 453,
-  "total_chars": 2400,
+  "total_lines": 539,
+  "total_chars": 2978,
   "by_cat": {
-   "intro": 9,
+   "intro": 10,
    "praise": 5,
-   "guide": 110,
+   "guide": 165,
    "system": 4,
-   "result": 2,
-   "word": 139,
+   "result": 4,
+   "word": 155,
    "hatch": 28,
    "friend": 19,
+   "order": 76,
    "dynamic": 59,
-   "order": 64,
    "hunt": 1,
    "phrase": 13
   },
@@ -140,6 +140,12 @@
    "src": "MODES.intro（zhuyin.js:12-19）"
   },
   {
+   "id": "intro_deliver",
+   "text": "把貨物送到大家的家！",
+   "cat": "intro",
+   "src": "MODES.intro（zhuyin.js:12-19）"
+  },
+  {
    "id": "praise_1",
    "text": "好棒！",
    "cat": "praise",
@@ -233,6 +239,24 @@
    "id": "bubble_full",
    "text": "泡泡太多了，我們再試一次！",
    "cat": "system",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "bubble_win_2",
+   "text": "小螃蟹都救出來了，好厲害！",
+   "cat": "result",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "bubble_win_3",
+   "text": "小鯨魚都救出來了，好厲害！",
+   "cat": "result",
+   "src": "zhuyin.js（10-11）"
+  },
+  {
+   "id": "bubble_zone_locked",
+   "text": "先把前面的關卡都過完，才能來這裡喔！",
+   "cat": "guide",
    "src": "zhuyin.js（10-11）"
   },
   {
@@ -374,6 +398,18 @@
    "src": "zhuyin-bubble.js（10-11）"
   },
   {
+   "id": "bubble_zone2",
+   "text": "這次要救小螃蟹喔！",
+   "cat": "guide",
+   "src": "zhuyin-bubble.js（10-11）"
+  },
+  {
+   "id": "bubble_zone3",
+   "text": "這次要救小鯨魚喔！",
+   "cat": "guide",
+   "src": "zhuyin-bubble.js（10-11）"
+  },
+  {
    "id": "sym_1",
    "text": "ㄅ",
    "cat": "word",
@@ -393,6 +429,55 @@
    "cat": "word",
    "src": "zhuyin-bubble.js SYMS",
    "tts_text": "摸"
+  },
+  {
+   "id": "sym_4",
+   "text": "ㄉ",
+   "cat": "word",
+   "src": "zhuyin-bubble.js SYMS",
+   "tts_text": "得"
+  },
+  {
+   "id": "sym_5",
+   "text": "ㄊ",
+   "cat": "word",
+   "src": "zhuyin-bubble.js SYMS",
+   "tts_text": "特"
+  },
+  {
+   "id": "sym_6",
+   "text": "ㄋ",
+   "cat": "word",
+   "src": "zhuyin-bubble.js SYMS",
+   "tts_text": "訥"
+  },
+  {
+   "id": "sym_7",
+   "text": "ㄌ",
+   "cat": "word",
+   "src": "zhuyin-bubble.js SYMS",
+   "tts_text": "勒"
+  },
+  {
+   "id": "sym_8",
+   "text": "ㄍ",
+   "cat": "word",
+   "src": "zhuyin-bubble.js SYMS",
+   "tts_text": "哥"
+  },
+  {
+   "id": "sym_9",
+   "text": "ㄎ",
+   "cat": "word",
+   "src": "zhuyin-bubble.js SYMS",
+   "tts_text": "科"
+  },
+  {
+   "id": "sym_10",
+   "text": "ㄏ",
+   "cat": "word",
+   "src": "zhuyin-bubble.js SYMS",
+   "tts_text": "喝"
   },
   {
    "id": "gacha_open",
@@ -1137,6 +1222,445 @@
    "text": "小獅子好了，謝謝醫生！",
    "cat": "guide",
    "src": "zhuyin.js civicEvent"
+  },
+  {
+   "id": "dress_intro",
+   "text": "幫寵物換衣服吧！",
+   "cat": "guide",
+   "src": "zhuyin-dress.js LINES（10-12）"
+  },
+  {
+   "id": "dress_idle",
+   "text": "點一下衣服，幫牠穿上！",
+   "cat": "guide",
+   "src": "zhuyin-dress.js LINES（10-12）"
+  },
+  {
+   "id": "dress_again",
+   "text": "換一件試試看！",
+   "cat": "guide",
+   "src": "zhuyin-dress.js LINES（10-12）"
+  },
+  {
+   "id": "dress_praise_1",
+   "text": "好可愛！",
+   "cat": "guide",
+   "src": "zhuyin-dress.js LINES（10-12）"
+  },
+  {
+   "id": "dress_praise_2",
+   "text": "好漂亮喔！",
+   "cat": "guide",
+   "src": "zhuyin-dress.js LINES（10-12）"
+  },
+  {
+   "id": "dress_praise_3",
+   "text": "好帥喔！",
+   "cat": "guide",
+   "src": "zhuyin-dress.js LINES（10-12）"
+  },
+  {
+   "id": "dress_lock_deliver",
+   "text": "去送貨，就可以拿到喔！",
+   "cat": "guide",
+   "src": "zhuyin-dress.js LINES（10-12）"
+  },
+  {
+   "id": "dress_lock_both",
+   "text": "送貨或扭蛋，都可以拿到喔！",
+   "cat": "guide",
+   "src": "zhuyin-dress.js LINES（10-12）"
+  },
+  {
+   "id": "wear_got_hat",
+   "text": "拿到帽子了！",
+   "cat": "guide",
+   "src": "zhuyin-rewards.js wearGotLine（扭蛋／配送站拿到配件）"
+  },
+  {
+   "id": "wear_name_crown",
+   "text": "皇冠",
+   "cat": "word",
+   "src": "zhuyin-dress.js 穿上配件（say）",
+   "tts_text": "皇官"
+  },
+  {
+   "id": "wear_got_crown",
+   "text": "拿到皇冠了！",
+   "cat": "guide",
+   "src": "zhuyin-rewards.js wearGotLine（扭蛋／配送站拿到配件）"
+  },
+  {
+   "id": "wear_name_flower_crown",
+   "text": "花圈",
+   "cat": "word",
+   "src": "zhuyin-dress.js 穿上配件（say）"
+  },
+  {
+   "id": "wear_got_flower_crown",
+   "text": "拿到花圈了！",
+   "cat": "guide",
+   "src": "zhuyin-rewards.js wearGotLine（扭蛋／配送站拿到配件）"
+  },
+  {
+   "id": "wear_name_party_hat",
+   "text": "派對帽",
+   "cat": "word",
+   "src": "zhuyin-dress.js 穿上配件（say）"
+  },
+  {
+   "id": "wear_got_party_hat",
+   "text": "拿到派對帽了！",
+   "cat": "guide",
+   "src": "zhuyin-rewards.js wearGotLine（扭蛋／配送站拿到配件）"
+  },
+  {
+   "id": "wear_name_bow",
+   "text": "蝴蝶結",
+   "cat": "word",
+   "src": "zhuyin-dress.js 穿上配件（say）"
+  },
+  {
+   "id": "wear_got_bow",
+   "text": "拿到蝴蝶結了！",
+   "cat": "guide",
+   "src": "zhuyin-rewards.js wearGotLine（扭蛋／配送站拿到配件）"
+  },
+  {
+   "id": "wear_name_flower",
+   "text": "小花",
+   "cat": "word",
+   "src": "zhuyin-dress.js 穿上配件（say）"
+  },
+  {
+   "id": "wear_got_flower",
+   "text": "拿到小花了！",
+   "cat": "guide",
+   "src": "zhuyin-rewards.js wearGotLine（扭蛋／配送站拿到配件）"
+  },
+  {
+   "id": "wear_name_cape",
+   "text": "披風",
+   "cat": "word",
+   "src": "zhuyin-dress.js 穿上配件（say）"
+  },
+  {
+   "id": "wear_got_cape",
+   "text": "拿到披風了！",
+   "cat": "guide",
+   "src": "zhuyin-rewards.js wearGotLine（扭蛋／配送站拿到配件）"
+  },
+  {
+   "id": "wear_name_wings",
+   "text": "翅膀",
+   "cat": "word",
+   "src": "zhuyin-dress.js 穿上配件（say）"
+  },
+  {
+   "id": "wear_got_wings",
+   "text": "拿到翅膀了！",
+   "cat": "guide",
+   "src": "zhuyin-rewards.js wearGotLine（扭蛋／配送站拿到配件）"
+  },
+  {
+   "id": "wear_name_backpack",
+   "text": "背包",
+   "cat": "word",
+   "src": "zhuyin-dress.js 穿上配件（say）"
+  },
+  {
+   "id": "wear_got_backpack",
+   "text": "拿到背包了！",
+   "cat": "guide",
+   "src": "zhuyin-rewards.js wearGotLine（扭蛋／配送站拿到配件）"
+  },
+  {
+   "id": "wear_name_cape_rainbow",
+   "text": "彩虹披風",
+   "cat": "word",
+   "src": "zhuyin-dress.js 穿上配件（say）"
+  },
+  {
+   "id": "wear_got_cape_rainbow",
+   "text": "拿到彩虹披風了！",
+   "cat": "guide",
+   "src": "zhuyin-rewards.js wearGotLine（扭蛋／配送站拿到配件）"
+  },
+  {
+   "id": "dress_load_fail",
+   "text": "服裝店現在打不開，等一下再試試看！",
+   "cat": "guide",
+   "src": "zhuyin.js openDress（10-12）"
+  },
+  {
+   "id": "rb_open",
+   "text": "彩虹橋接好了！彩虹島開放囉！",
+   "cat": "guide",
+   "src": "zhuyin.js 彩虹島（10-12）"
+  },
+  {
+   "id": "rb_here",
+   "text": "這裡是彩虹島！",
+   "cat": "guide",
+   "src": "zhuyin.js 彩虹島（10-12）"
+  },
+  {
+   "id": "rb_locked",
+   "text": "收集更多貼紙，就能去彩虹島囉！",
+   "cat": "guide",
+   "src": "zhuyin.js 彩虹島（10-12）"
+  },
+  {
+   "id": "dlv_want_hat",
+   "text": "我要帽子！",
+   "cat": "order",
+   "src": "zhuyin-deliver.js LINES.want（前 3 關開場、🔊 再聽，say）"
+  },
+  {
+   "id": "dlv_want_apple",
+   "text": "我要蘋果！",
+   "cat": "order",
+   "src": "zhuyin-deliver.js LINES.want（前 3 關開場、🔊 再聽，say）"
+  },
+  {
+   "id": "dlv_want_banana",
+   "text": "我要香蕉！",
+   "cat": "order",
+   "src": "zhuyin-deliver.js LINES.want（前 3 關開場、🔊 再聽，say）"
+  },
+  {
+   "id": "dlv_want_watermelon",
+   "text": "我要西瓜！",
+   "cat": "order",
+   "src": "zhuyin-deliver.js LINES.want（前 3 關開場、🔊 再聽，say）"
+  },
+  {
+   "id": "dlv_want_bread",
+   "text": "我要麵包！",
+   "cat": "order",
+   "src": "zhuyin-deliver.js LINES.want（前 3 關開場、🔊 再聽，say）"
+  },
+  {
+   "id": "dlv_want_milk",
+   "text": "我要牛奶！",
+   "cat": "order",
+   "src": "zhuyin-deliver.js LINES.want（前 3 關開場、🔊 再聽，say）"
+  },
+  {
+   "id": "dlv_wrong_hat",
+   "text": "這是帽子，不是我要的喔！",
+   "cat": "order",
+   "src": "zhuyin-deliver.js LINES.wrong（送錯：說孩子給的那個，say）"
+  },
+  {
+   "id": "dlv_wrong_apple",
+   "text": "這是蘋果，不是我要的喔！",
+   "cat": "order",
+   "src": "zhuyin-deliver.js LINES.wrong（送錯：說孩子給的那個，say）"
+  },
+  {
+   "id": "dlv_wrong_banana",
+   "text": "這是香蕉，不是我要的喔！",
+   "cat": "order",
+   "src": "zhuyin-deliver.js LINES.wrong（送錯：說孩子給的那個，say）"
+  },
+  {
+   "id": "dlv_wrong_watermelon",
+   "text": "這是西瓜，不是我要的喔！",
+   "cat": "order",
+   "src": "zhuyin-deliver.js LINES.wrong（送錯：說孩子給的那個，say）"
+  },
+  {
+   "id": "dlv_wrong_bread",
+   "text": "這是麵包，不是我要的喔！",
+   "cat": "order",
+   "src": "zhuyin-deliver.js LINES.wrong（送錯：說孩子給的那個，say）"
+  },
+  {
+   "id": "dlv_wrong_milk",
+   "text": "這是牛奶，不是我要的喔！",
+   "cat": "order",
+   "src": "zhuyin-deliver.js LINES.wrong（送錯：說孩子給的那個，say）"
+  },
+  {
+   "id": "dlv_gift_flower",
+   "text": "送你小花！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js LINES.gift（任務第一次過關，居民送換裝）"
+  },
+  {
+   "id": "dlv_gift_flower_crown",
+   "text": "送你花圈！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js LINES.gift（任務第一次過關，居民送換裝）"
+  },
+  {
+   "id": "dlv_gift_backpack",
+   "text": "送你背包！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js LINES.gift（任務第一次過關，居民送換裝）"
+  },
+  {
+   "id": "dlv_gift_party_hat",
+   "text": "送你派對帽！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js LINES.gift（任務第一次過關，居民送換裝）"
+  },
+  {
+   "id": "dlv_gift_cape",
+   "text": "送你披風！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js LINES.gift（任務第一次過關，居民送換裝）"
+  },
+  {
+   "id": "dlv_gift_wings",
+   "text": "送你翅膀！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js LINES.gift（任務第一次過關，居民送換裝）"
+  },
+  {
+   "id": "dlv_gift_crown",
+   "text": "送你皇冠！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js LINES.gift（任務第一次過關，居民送換裝）"
+  },
+  {
+   "id": "dlv_gift_cape_rainbow",
+   "text": "送你彩虹披風！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js LINES.gift（任務第一次過關，居民送換裝）"
+  },
+  {
+   "id": "dlv_thanks",
+   "text": "謝謝你！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js LINES.thanks"
+  },
+  {
+   "id": "dlv_none",
+   "text": "車上沒有我要的東西耶，回倉庫拿吧！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js LINES.none"
+  },
+  {
+   "id": "dlv_got",
+   "text": "我已經收到囉，謝謝！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js LINES.got"
+  },
+  {
+   "id": "dlv_noorder",
+   "text": "我沒有訂東西喔！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js LINES.noOrder"
+  },
+  {
+   "id": "dlv_full",
+   "text": "車子裝滿了！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js LINES.full"
+  },
+  {
+   "id": "dlv_unloadtip",
+   "text": "點車上的東西可以拿下來喔！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js LINES.unloadTip"
+  },
+  {
+   "id": "dlv_loadfirst",
+   "text": "先把貨裝上車吧！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js LINES.loadFirst"
+  },
+  {
+   "id": "dlv_bridge",
+   "text": "橋還沒放下來喔！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js LINES.bridge"
+  },
+  {
+   "id": "dlv_cone",
+   "text": "前面在施工，車子沒辦法過去喔！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js LINES.cone"
+  },
+  {
+   "id": "dlv_oneway",
+   "text": "這是單行道，要繞路喔！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js LINES.oneway"
+  },
+  {
+   "id": "dlv_hello",
+   "text": "嗨！麻煩你囉！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js LINES.hello"
+  },
+  {
+   "id": "dlv_t1go",
+   "text": "點小兔家，卡車就會出發！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js LINES.t1go"
+  },
+  {
+   "id": "dlv_t1give",
+   "text": "點車廂裡的帽子，交給小兔！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js LINES.t1give"
+  },
+  {
+   "id": "dlv_intro_1",
+   "text": "點商品，再點卡車，就能裝貨喔！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js TASKS[].intro（該任務第一次玩）"
+  },
+  {
+   "id": "dlv_intro_2",
+   "text": "兩個都裝上車，一次送完喔！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js TASKS[].intro（該任務第一次玩）"
+  },
+  {
+   "id": "dlv_intro_3",
+   "text": "這次要自己看字喔！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js TASKS[].intro（該任務第一次玩）"
+  },
+  {
+   "id": "dlv_intro_4",
+   "text": "過河要先把橋放下來，點吊橋就可以喔！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js TASKS[].intro（該任務第一次玩）"
+  },
+  {
+   "id": "dlv_intro_5",
+   "text": "有箭頭的路是單行道喔！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js TASKS[].intro（該任務第一次玩）"
+  },
+  {
+   "id": "dlv_intro_6",
+   "text": "貨太多了，要回倉庫再拿喔！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js TASKS[].intro（該任務第一次玩）"
+  },
+  {
+   "id": "dlv_intro_7",
+   "text": "大挑戰！想想看怎麼送最快！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js TASKS[].intro（該任務第一次玩）"
+  },
+  {
+   "id": "dlv_win",
+   "text": "東西都送到了，好厲害！",
+   "cat": "guide",
+   "src": "zhuyin.js 彩虹配送站接線（DELIVER_WIN_TALK／DELIVER_FAIL）"
+  },
+  {
+   "id": "dlv_fail",
+   "text": "配送站現在打不開，等一下再試試看！",
+   "cat": "guide",
+   "src": "zhuyin.js 彩虹配送站接線（DELIVER_WIN_TALK／DELIVER_FAIL）"
   },
   {
    "id": "unlock_need_1",

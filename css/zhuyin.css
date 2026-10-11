@@ -677,12 +677,13 @@ body.hub3d #menu > h1 { display: none; }   /* 阿葉 10-10「注音小島一直�
   body.hub3d #menu > .resume { position: absolute; left: 2vmin; top: 16vmin; margin: 0; translate: none; }   /* 繼續玩放在左上第二排（以前在 30vmin 會跟 🏙️ 疊在一起；第一排留給 🏙️／⋯／🏠🎵） */
   body.hub3d #menu > .menu-bottom { left: 2vmin; bottom: 2.4vmin; transform: none; translate: none; }
   body.hub3d .guide { flex-direction: row-reverse; align-items: flex-end; gap: 1.5vmin; }   /* 貓頭鷹在最右、對話框在牠左邊 */
-  body.hub3d .guideText { max-width: min(52vmin, calc(100vw - 98vmin)); margin-bottom: 14vmin; font-size: 4.6vmin; line-height: 1.6; }   /* 底比左下膠囊頂（約 13.4vmin）高，不會蓋到星星罐 */
+  body.hub3d .guideText { max-width: 52vmin; margin-bottom: 14vmin; font-size: 4.6vmin; line-height: 1.6; }   /* 底比左下膠囊頂（約 13.4vmin）高，不會蓋到星星罐。
+     寬度一律 52vmin（阿葉規格「加寬約兩行」）：以前 min(52vmin, 100vw - 98vmin) 在 4:3 只剩 35vmin → 一句話變 3 行、往上長 → 有「繼續玩」時小島擺不下、氣球浮標被對話框壓到（v5 審查） */
   body.hub3d .guideText::after { right: -2vmin; bottom: 3vmin; border: 1.6vmin solid transparent; border-left-color: #fff; }
 }
 @media (orientation: portrait) {
   body.hub3d .guideText { max-width: 72vmin; }
-  body.hub3d #menu { padding-top: 22vmin; }   /* 沒有標題：繼續玩／膠囊接在圓鈕下面（讓出 🐻 下面「換人」小字的位置） */
+  body.hub3d #menu { padding-top: 22vmin; }   /* 沒有標題：繼續玩／膠囊接在圓鈕下面（讓出 🐻 下面「換人」小字的位置）；10-12 起有 🌈 彩虹島鈕 → 下面改 33vmin */
   body.hub3d #menu > .resume { margin-top: 0; }
 }
 
@@ -792,21 +793,59 @@ body:not(.night) .night-sky { display: none; }
 .hub-tag.civic { background: #fff7e6; } .hub-tag.civic::after { border-top-color: #fff7e6; }
 .hub-tag.civic.locked { background: #eef1f5; } .hub-tag.civic.locked::after { border-top-color: #eef1f5; }
 /* 🏙️ 新市區鈕（10-11 改）：跟其他圓鈕一樣白底、圖示不常駐晃動；有新東西（.news）才出現 NEW 小紅標＋圖示輕跳。「新市區」小字黏在圓鈕右邊 */
-#townBtn { z-index: 2; }
-#townBtn .nav-ico { display: inline-block; }
-#townBtn.news .nav-ico { animation: navNudge 2.8s ease-in-out infinite; }
+#townBtn, #rainbowBtn { z-index: 2; }
+#townBtn .nav-ico, #rainbowBtn .nav-ico { display: inline-block; }
+#townBtn.news .nav-ico, #rainbowBtn.news .nav-ico { animation: navNudge 2.8s ease-in-out infinite; }
 @keyframes navNudge { 0%, 72%, 100% { rotate: 0deg; scale: 1; } 80% { rotate: -8deg; scale: 1.12; } 88% { rotate: 5deg; scale: 1.05; } }
 .hud > .town-tag { position: relative; z-index: 1; flex: none; margin-left: -6vmin; padding: 1.3vmin 1.8vmin 1.3vmin 6.4vmin; cursor: pointer; }
-#townBtn.news::after { content: "NEW"; position: absolute; right: -1.6vmin; top: -1.2vmin; background: #ff5d5d; color: #fff; font-size: 2.6vmin; font-weight: 900; border-radius: 2vmin; padding: 0.4vmin 1.2vmin; border: 0.4vmin solid #fff; animation: tagHop 1.2s ease-in-out infinite; }
+/* 有新東西的小紅標：英文「NEW」小孩看不懂 → 加注音的「新」（寧次 v5；是 HTML 裡的 <span class="nav-new">，zhuyin-ann.js 才會加注音；字 4.6vmin、白字紅底對比 5.1:1） */
+.nav-new { display: none; position: absolute; right: -2.4vmin; top: -2vmin; z-index: 3; pointer-events: none; white-space: nowrap;   /* 右邊不蓋到旁邊小字的第一個字 */
+  font-size: 4.6vmin; font-weight: 900; line-height: 1; color: #fff; background: #cf3030; border: 0.4vmin solid #fff; border-radius: 2.4vmin; padding: 0.5vmin 0.2vmin 0.5vmin 0.8vmin;
+  box-shadow: 0 0.4vmin 0.8vmin rgba(0,0,0,0.25); transform-origin: 50% 0; animation: newPulse 1.4s ease-in-out infinite; }   /* 只放大、不往上跳（頂端貼著畫面上緣，跳會出畫面） */
+@keyframes newPulse { 0%, 60%, 100% { scale: 1; } 75% { scale: 1.1; } }
+.nav-new .ac { margin-right: 0.5em; }
+#townBtn.news .nav-new, #rainbowBtn.news .nav-new { display: block; }
 .school-card { position: absolute; left: 50%; top: 18%; translate: -50% 0; z-index: 30; background: #fff; border-radius: 4vmin; padding: 2.4vmin 4vmin 3vmin; box-shadow: 0 1.4vmin 4vmin rgba(20,50,80,0.35);
   display: flex; flex-direction: column; align-items: center; gap: 1.6vmin; animation: tipIn 0.4s cubic-bezier(.2,1.5,.4,1) both; pointer-events: none; }
 .school-card .sc-t { font-size: 4.2vmin; font-weight: 900; color: #e0703a; }
 .school-card .sticker { transform: none; }
 .school-card.bye { opacity: 0; transition: opacity 0.4s; }
 .town-tag.hidden { display: none; }
-@media (orientation: portrait) { .hud-l > #townTag { position: absolute; top: calc(100% + 0.8vmin); left: 0; transform: none; margin-left: 0; padding: 1.3vmin 1.8vmin; } }   /* 直式：「新市區」小字放 🏙️ 正下方（跟右邊「換人」同一排，用掉上排下面那條空帶——寧次 10-11） */
-.hub-tags.in-town .hub-tag:not(.civic) { visibility: hidden; }   /* 在新市區：主島浮標收起來；在主島：設施浮標收起來 */
-.hub-tags:not(.in-town) .hub-tag.civic { display: none; }
+/* 10-12 第二顆地點鈕 🌈 彩虹島：上面那排沒位子了（直式更擠）→ 放在 🏙️ 下面一排，樣子跟歸仁區一樣（圓鈕＋右邊黏著小字）。
+   橫式：第二排（top 16vmin），「繼續玩」往右挪到它旁邊；直式：見下面（兩顆並排在上排下面） */
+.hud-l > #rainbowBtn { position: absolute; left: 0; top: calc(100% + 2vmin); }
+.hud-l > #rainbowTag { position: absolute; left: 6vmin; top: calc(100% + 8vmin); transform: translateY(-50%); margin-left: 0; }
+@media (orientation: landscape) {   /* 「繼續玩」一行約 70vmin：出現時放在 🌈 圓鈕右邊（同一排），「彩虹島」小字先收起來（zhuyin.js 加 body.has-resume），不然 4:3 會碰到右邊「換人」 */
+  body.hub3d #menu > .resume { left: 16vmin; }
+  body.has-resume .hud-l > #rainbowTag { display: none; }
+}
+/* 直式（v5 寧次🟡）：兩顆地點鈕一律「圓鈕＋右邊黏著小字」，並排在上排（⋯🏠🎵）下面同一排——
+   以前「歸仁區」字在 🏙️ 下面、「彩虹島」字在 🌈 右邊（兩種排法），整疊到 33vmin。
+   做法：左上那組換行（flex-wrap＋::before 佔滿一行當換行），⋯🏠🎵 排第一排、地點鈕排第二排；「換人」小字改到 🐻 左邊（不然會碰到 🌈 那組） */
+@media (orientation: portrait) {
+  body.hub3d .hud-l { flex-wrap: wrap; row-gap: 0; }   /* 換行用的 ::before 自己佔一行（高 0），row-gap 會算兩次 → 用 margin-top 控制間距 */
+  body.hub3d .hud-l::before { content: ""; order: 1; flex-basis: 100%; height: 0; }
+  body.hub3d .hud-l > #townBtn, body.hub3d .hud-l > #townTag, body.hub3d .hud-l > #rainbowBtn, body.hub3d .hud-l > #rainbowTag { order: 2; margin-top: 1.2vmin; }
+  body.hub3d .hud-l > #townBtn, body.hub3d .hud-l > #rainbowBtn { position: relative; left: auto; top: auto; width: max(10vmin, 44px); height: max(10vmin, 44px); font-size: 5vmin; }
+  body.hub3d .hud-l > #townTag, body.hub3d .hud-l > #rainbowTag { position: relative; left: auto; top: auto; transform: none; margin-left: -6vmin; padding: 1.3vmin 1.8vmin 1.3vmin 6.4vmin; }
+  body.hub3d .hud-r > #playerTag { top: 50%; left: auto; right: calc(100% + 1vmin); transform: translateY(-50%); }
+  body.hub3d #menu { padding-top: calc(18.2vmin + max(10vmin, 44px)); }   /* 第二排底＝2＋12＋1.2vmin＋圓鈕；繼續玩接在下面（它會往上輕跳 1.2vmin，再多留 1.8vmin） */
+  .nav-new { top: -1.2vmin; }   /* 第二排的小紅標別頂到上排的 🏠 */
+}
+/* 沒有 3D 的卡片選單（10-12）：「彩虹配送站」五個字 → 這張卡佔兩格寬（10 張＝4＋4＋3 格）；
+   橫式卡片矮一點，三排卡片＋下面貼紙那排才放得下（以前橫式第 9 張就超出畫面） */
+.mode-card[data-mode=deliver] { grid-column: span 2; }
+.mode-card .label { white-space: nowrap; }
+@media (orientation: landscape) {
+  body.hub-off #menu .mode-cards { gap: 1.8vmin; margin-top: 1.6vmin; }
+  body.hub-off #menu .mode-card { height: 18.5vmin; }
+  body.hub-off #menu .mode-card .big { font-size: 8.4vmin; }
+  body.hub-off #menu h1 { margin-top: 1vmin; }
+  body.hub-off #menu .menu-bottom { margin-top: 2vmin; }
+}
+.hub-tags.in-town .hub-tag:not(.civic):not(.rb) { visibility: hidden; }   /* 不在主島：主島浮標收起來（還是量得到大小，鏡頭擺位照算） */
+.hub-tags:not(.at-town) .hub-tag.civic { display: none; }                /* 只有在新市區才顯示設施浮標 */
+.hub-tags:not(.at-rainbow) .hub-tag.rb { display: none; }                /* 只有在彩虹島才顯示彩虹島的浮標 */
 .hub-fire { position: absolute; left: 0; top: 0; pointer-events: auto; font-size: 5.6vmin; line-height: 1; background: #fff; border-radius: 50%; width: 9vmin; height: 9vmin; display: grid; place-items: center;
   border: 0.7vmin solid #ff7a2f; box-shadow: 0 0 0 0 rgba(255,122,47,0.6); animation: firePulse 1s ease-out infinite; z-index: 99980; }
 .hub-fire.called { border-color: #4da3ff; animation: none; }
@@ -821,6 +860,15 @@ body:not(.night) .night-sky { display: none; }
 .bubble-root { position: absolute; inset: 0; }
 .bb-levels { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2.4vmin; margin: 1vmin 0 2vmin; }
 @media (orientation: portrait) { .bb-levels { grid-template-columns: repeat(4, 1fr); } }
+/* 泡泡選關直式：一區 10 關排 5×2（以前 4 欄＝4＋4＋2，最後一排剩 2 格靠左——寧次 v5）；格子 14vmin、手機至少 56px 好點 */
+@media (orientation: portrait) {
+  #bubbleLevels { grid-template-columns: repeat(5, auto); justify-content: center; gap: 1.8vmin; }
+  #bubbleLevels .bb-lv { width: max(14vmin, 56px); height: max(14vmin, 56px); }
+}
+/* 彩虹配送站（10-12）：引擎 js/zhuyin-deliver.js 在 #deliverRoot 裡建畫面；選關 8 格排兩排（4×2） */
+#deliver { background: #3f97c9; }
+#deliverRoot { position: absolute; inset: 0; }
+.bb-levels.dv-levels { grid-template-columns: repeat(4, 1fr); }
 .bb-lv { width: 15vmin; height: 15vmin; border-radius: 4vmin; background: linear-gradient(180deg, #e9f8ff, #bfe9ff); border: 0.6vmin solid #4da3ff; box-shadow: 0 0.8vmin 0 #2f7fd0;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4vmin; color: #1b4fa0; }
 .bb-lv .n { font-size: 6.4vmin; font-weight: 900; line-height: 1; }
@@ -828,6 +876,19 @@ body:not(.night) .night-sky { display: none; }
 .bb-lv.next { border-color: #f6c445; box-shadow: 0 0 0 0.8vmin #ffe9a8, 0 0.8vmin 0 #c99a1d; animation: tagHop 1.4s ease-in-out infinite; }
 .bb-lv.locked { background: #eef1f5; border-color: #c4ccd8; box-shadow: 0 0.8vmin 0 #a9b3c2; color: #8a94a6; }
 .bb-lv:active:not(.locked) { scale: 0.93; }
+/* 選關上方的區頁籤：該區符號＋救的動物小圖，鎖住的有鎖頭（點了會說明） */
+.bb-zones { display: flex; justify-content: center; gap: 2vmin; margin: 0.4vmin 0 1.4vmin; }
+.bb-ztab { position: relative; width: 24vmin; min-height: 15vmin; padding: 1vmin 1vmin 1.2vmin; border-radius: 3.6vmin; border: 0.6vmin solid #9fcdf5; background: #f3faff; color: #2a5b99;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.2vmin; box-shadow: 0 0.6vmin 0 #a9c9e6; }
+.bb-ztab img { width: 7vmin; height: 7vmin; object-fit: contain; }
+.bb-ztab .zs { font-size: 4.2vmin; font-weight: 900; line-height: 1.1; letter-spacing: 0.15vmin; white-space: nowrap; }
+.bb-ztab.on { background: linear-gradient(180deg, #fff6cf, #ffe38a); border-color: #f6c445; color: #7a4d00; box-shadow: 0 0 0 0.6vmin #ffe9a8, 0 0.6vmin 0 #c99a1d; }
+.bb-ztab.locked { background: #eef1f5; border-color: #c4ccd8; color: #5f6b80; box-shadow: 0 0.6vmin 0 #a9b3c2; }   /* 字色對比 4.75:1（以前 #8a94a6 只有 2.70——寧次 v5） */
+.bb-ztab.locked img { filter: grayscale(1); opacity: 0.45; }
+.bb-ztab .zl { position: absolute; right: 1.2vmin; top: 0.6vmin; font-size: 3.6vmin; line-height: 1; }
+.bb-ztab:active:not(.locked) { scale: 0.95; }
+.bb-ztab.shake { animation: bbZoneShake 0.4s; }
+@keyframes bbZoneShake { 20%, 60% { translate: -1vmin 0; } 40%, 80% { translate: 1vmin 0; } }
 
 /* 10-11 扭蛋機與動物朋友圖鑑 */
 .gacha-box { max-width: 92vw; width: 86vmin; gap: 2vmin; }

@@ -34,6 +34,12 @@
   "bow",
   "hat",
   "baby_tuft",
+  "flower_crown",
+  "party_hat",
+  "flower",
+  "wings",
+  "backpack",
+  "cape_rainbow",
   "gacha_machine",
   "capsule",
   "coin",
@@ -43,6 +49,31 @@
   "egg_rare",
   "egg_ssr"
  ],
+ "wear_fit": {
+  "說明": "寵物換裝的配件擺放微調（10-12；js/zhuyin-rewards.js wearPose() 讀，hub3d 與換裝預覽共用）。疊加順序 items[配件] → pets[寵物][部位 head/side/back] → pets[寵物][配件]：p＝位移 [x,y,z]（加在掛點上，模型原始單位、glTF 座標：y 上、z 朝前），r＝旋轉 [x,y,z] 度（Euler XYZ），s＝倍率（相乘），hide:true＝這隻不顯示這件。",
+  "items": {
+   "bow": { "r": [0, -25, -22] },
+   "flower": { "r": [0, -25, -22] }
+  },
+  "pets": {
+   "bunny": { "head": { "p": [0, 0, -0.2] }, "side": { "p": [-0.03, 0.15, 0.13], "r": [0, 20, 10] } },
+   "penguin": { "head": { "p": [0, 0, -0.1] } },
+   "chick": { "head": { "p": [0, 0, -0.1] } },
+   "monkey": { "head": { "p": [0, 0, -0.1] } },
+   "frog": { "side": { "p": [0.1, 0.03, -0.45] }, "back": { "s": 0.82 } },
+   "lion": { "head": { "p": [0, -0.02, 0] } },
+   "tiger": { "head": { "p": [0, -0.035, 0] } },
+   "hog": { "head": { "p": [0, -0.035, 0.055] } },
+   "crab": { "head": { "p": [0, 0.19, 0] }, "side": { "p": [0, 0.19, 0] }, "back": { "p": [0, 0.19, 0.045] } },
+   "parrot": { "head": { "p": [0, 0.13, -0.05], "s": 0.85 } },
+   "giraffe": { "side": { "p": [0.05, 0, -0.18] } },
+   "bee": { "head": { "p": [0, 0, 0.33], "s": 0.7 } },
+   "dino": { "head": { "p": [0, 0.13, 0], "s": 0.85 } },
+   "whale": { "head": { "p": [0, 0, -0.36], "s": 0.85 } },
+   "deer": { "side": { "p": [0.05, 0, -0.2] } },
+   "dragon": { "head": { "p": [0, 0.02, -0.16], "s": 0.88 }, "side": { "p": [0.1, 0.02, -0.14] } }
+  }
+ },
  "anchors": {
   "bear": {
    "head": [

@@ -22,6 +22,7 @@ const FISH_PER = 5, MAX_GULL = 3, MAX_SPLASH = 6, DROPS = 6;
 const SCHOOLS = [   // 魚群：哪座島、從島中心往哪個角度（度，xz 平面）出去找淺水、顏色
   { isl: "main", ang: 90, color: "#ff9a3d" }, { isl: "main", ang: 2, color: "#f7d44c" }, { isl: "main", ang: 182, color: "#f2808f" },
   { isl: "main", ang: 135, color: "#ffb36b" }, { isl: "town", ang: 40, color: "#b99cf2" }, { isl: "town", ang: 215, color: "#ff8a5c" },
+  { isl: "rainbow", ang: 70, color: "#ff8fc8" },        // 10-12 彩虹島南邊（碼頭、貨船那一帶）
 ];
 const NIGHT_HIDE = new Set([1, 3, 5]);                   // 晚上只留 3 群
 const SLOTS = [[0.3, 0], [0, 0.26], [0, -0.26], [-0.32, 0.12], [-0.3, -0.17]];   // 魚在群裡的位置（往前, 往右）
@@ -206,7 +207,7 @@ export function oceanPlugin(ctx, opts = {}) {
   // ---------- 岸邊浪：從距離場挑「岸邊一圈」的格子，只畫那裡 ----------
   const shorePos = [];
   if (SD) {
-    const GN = 110, cs = 2 * SR / GN, y = SEA_Y + 0.012;
+    const GN = Math.round(110 * SR / 27), cs = 2 * SR / GN, y = SEA_Y + 0.012;   // 格子大小固定（距離場範圍 10-12 從 ±27 放大到 ±36）
     for (let j = 0; j < GN; j++) for (let i = 0; i < GN; i++) {
       const x0 = -SR + i * cs, z0 = -SR + j * cs, x1 = x0 + cs, z1 = z0 + cs;
       const ds = [sdfAt(x0, z0), sdfAt(x1, z0), sdfAt(x0, z1), sdfAt(x1, z1), sdfAt(x0 + cs / 2, z0 + cs / 2)];
@@ -255,9 +256,10 @@ export function oceanPlugin(ctx, opts = {}) {
     const g = gradAt(sc.x, sc.z), d = sdfAt(sc.x, sc.z);   // 找不到：直接往水深 1.4 那邊游
     sc.tx = sc.x + g.x * (1.4 - d); sc.tz = sc.z + g.z * (1.4 - d); sc.tRe = t + 4;
   }
-  const town = ctx.town || { x: 4.8, z: -18.9 };
+  const isles = ctx.isles || [{ id: "town", ...(ctx.town || { x: 4.8, z: -18.9, h: 5.2 }) }];   // 主島以外的島（10-12 起有彩虹島；舊版 hub 只給 ctx.town）
   SCHOOLS.forEach((def, si) => {
-    const c = def.isl === "town" ? [town.x, town.z] : [0, 0];
+    const isl = isles.find(q => q.id === def.isl); if (def.isl !== "main" && !isl) return;   // 這座島不在（舊版 hub）：這群魚不放
+    const c = isl ? [isl.x, isl.z] : [0, 0];
     const at = placeOnRay(c[0], c[1], def.ang * Math.PI / 180, 1.4);
     if (!at) return;
     const sc = { i: si, x: at[0], z: at[1], h: 0, v: 0.3 + Math.random() * 0.15, side: Math.random() < 0.5 ? 1 : -1, tx: at[0], tz: at[1], tRe: 0, vis: 1, want: true, color: new THREE.Color(def.color) };
@@ -334,7 +336,7 @@ export function oceanPlugin(ctx, opts = {}) {
   function measureLand() {
     land.t = -1e9; land.b = 1e9; land.n = 0;
     const poly = ctx.islPoly; if (poly) for (let i = 0; i < poly.length; i += 3) landPt(poly[i].x, poly[i].y);
-    if (ctx.town) { const T = ctx.town, h = T.h + 0.7; for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) if (a || b) landPt(T.x + a * h, T.z + b * h); }
+    for (const T of isles) { const hx = (T.hx || T.h) + 0.7, hz = (T.hz || T.h) + 0.7; for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) if (a || b) landPt(T.x + a * hx, T.z + b * hz); }   // 新市區、彩虹島：外框 8 個點
   }
   const BUILD_H = 2.4;                                   // 建築大概多高（鏡頭座標）
   const room = { lo: 0, hi: 0 };

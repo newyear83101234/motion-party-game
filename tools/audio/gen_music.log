@@ -1,0 +1,24 @@
+island 1 skip
+island 2 ok 4296894 bytes
+island 3 ok 3836721 bytes
+calm 1 ok 4378396 bytes
+calm 2 ok 4308178 bytes
+calm 3 ok 4206614 bytes
+town 1 FAIL HTTP 400 b'{"error":{"message":"Request blocked for an unspecified policy reason. Please modify your input and retry.","code":"content_blocked"}}'
+town 2 ok 4226676 bytes
+town 3 ok 4165863 bytes
+rainbow 1 ok 3606634 bytes
+rainbow 2 ok 4229184 bytes
+rainbow 3 ok 4294386 bytes
+night 1 ok 3921984 bytes
+night 2 ok 4289370 bytes
+night 3 ok 4324479 bytes
+road 1 ok 4106304 bytes
+road 2 ok 4326360 bytes
+road 3 ok 4273697 bytes
+dress 1 ok 4221661 bytes
+dress 2 ok 4215392 bytes
+dress 3 ok 4342660 bytes
+bubble 1 ok 3824182 bytes
+bubble 2 ok 3755845 bytes
+bubble 3 ok 3833586 bytes

@@ -10,9 +10,20 @@
 // 座標：泡泡半徑＝1 單位。場地寬 16 單位，偶數列 8 格、奇數列 7 格（往右移半格），列距 √3。
 // 預測＝實際：瞄準線、示範、求解器、真正發射，全部用同一支 trace()＋resolve()。
 
-export const SYMS = ["ㄅ", "ㄆ", "ㄇ"];
+// 全部會出現在泡泡上的符號（格子裡存的是這張表的編號；ㄅㄆㄇ 維持 0、1、2，舊關卡與存檔不受影響）
+export const SYMS = ["ㄅ", "ㄆ", "ㄇ", "ㄉ", "ㄊ", "ㄋ", "ㄌ", "ㄍ", "ㄎ", "ㄏ"];
+// 每個符號固定一個顏色（CSS 的 .s0～.s7）：ㄅ紅 ㄆ藍 ㄇ黃 ㄉ橘 ㄊ天藍 ㄋ綠 ㄌ粉 ㄍ紫 ㄎ橘 ㄏ綠
+const SYM_COLOR = [0, 1, 2, 3, 4, 5, 6, 7, 3, 5];
+// 三個區（每區 10 關）：符號、救的動物（名字＋圖的鍵，圖路徑由主程式的 api.animalImgs 給）
+export const ZONES = [
+  { syms: "ㄅㄆㄇ", key: "penguin", name: "小企鵝" },
+  { syms: "ㄉㄊㄋㄌ", key: "crab", name: "小螃蟹" },
+  { syms: "ㄍㄎㄏ", key: "whale", name: "小鯨魚" },
+];
+export const LEVELS_PER_ZONE = 10;
 
-// ---------- 關卡：'1' ㄅ（紅）'2' ㄆ（藍）'3' ㄇ（黃）'A' 被困的企鵝 '.' 空；奇數列前面的空白只是排版 ----------
+// ---------- 關卡：'1'～'4' ＝這一關符號組的第幾個（預設用該區的符號：第 1 區 ㄅ紅 ㄆ藍 ㄇ黃）'A' 被困的動物 '.' 空；奇數列前面的空白只是排版 ----------
+// 每關可以另外寫 syms:"ㄊㄋㄌ"（這一關自己的符號組，3 或 4 個）；沒寫就用該區的 ZONES[].syms。
 // q＝開場的「目前這顆／下一顆」（教學關固定，之後隨機）。par 由 tools/zy-test/bubble.js 的求解器驗證過。
 export const LEVELS = [
   { par: 2, q: "13", rows: [            // 1：一對ㄅ抱著企鵝 → 補一顆ㄅ就破（求解 1 發）
@@ -84,10 +95,171 @@ export const LEVELS = [
     " ..3A2..",
     "...23...",
   ] },
+
+  // ===== 第 2 區（11～20 關）：ㄉ ㄊ ㄋ ㄌ，救小螃蟹。'1'ㄉ '2'ㄊ '3'ㄋ '4'ㄌ（橘／天藍／綠／粉）。11～13 關三種、14 關起四種 =====
+  // 15、19、20 關和第 3 區 23、25～30 關的盤面是程式產生後用求解器挑難度的；其餘手排
+  { par: 2, q: "12", rows: [            // 11：一對ㄉ抱著螃蟹，補一顆ㄉ就破
+    "33.11.22",
+    " ...A...",
+  ] },
+  { par: 2, q: "13", rows: [            // 12：打掉上面那對，下面整串掉下來
+    "33.11.22",
+    " ...3...",
+    "...A....",
+  ] },
+  { par: 2, q: "31", rows: [            // 13：開場拿到ㄋ沒用，點泡泡換一顆
+    "2..11..3",
+    " ...3...",
+    "...1....",
+    " ..A....",
+  ] },
+  { par: 5, q: "12", rows: [            // 14：第一次出現ㄌ（先當路人）；兩隻螃蟹各被一對抱著
+    "11.22.33",
+    " A.1.3.A",
+    "4......4",
+  ] },
+  { par: 4, rows: [            // 15：四種符號擠在一起，螃蟹藏在中間
+    ".224....",
+    " 1412...",
+    "1.42331.",
+    " 311..43",
+    "..A3.A43",
+    " .42443.",
+  ] },
+  { par: 4, rows: [            // 16：大吊燈，支撐點在左上，要靠左牆反彈
+    ".11.....",
+    " ..1....",
+    "...41231",
+    " ..12412",
+    "...4A231",
+    " ..12A1.",
+    "..2412..",
+    " ..1....",
+  ] },
+  { par: 5, rows: [            // 17：左右兩串，各打掉最上面那對整串掉
+    "11....22",
+    " 4....4.",
+    "2A....A1",
+    " 3....3.",
+  ] },
+  { par: 5, rows: [            // 18：吊燈：一大團只靠右上一小撮掛著
+    "....22..",
+    " ...2...",
+    "2312....",
+    " 1A41...",
+    "23123...",
+    " 12A1...",
+    "2412....",
+  ] },
+  { par: 7, rows: [            // 19：三隻螃蟹散在四種符號裡
+    "..321...",
+    " .3213..",
+    ".21A321.",
+    " 2141214",
+    "3A221A23",
+    " ..132..",
+    "..1324..",
+  ] },
+  { par: 8, rows: [            // 20：大城堡：四種符號、三隻螃蟹
+    ".11.....",
+    " 443....",
+    "231122..",
+    " 1324432",
+    "A21.3232",
+    " 41A43.1",
+    "14.22.A1",
+    " 121.443",
+  ] },
+
+  // ===== 第 3 區（21～30 關）：ㄍ ㄎ ㄏ，救小鯨魚。'1'ㄍ '2'ㄎ '3'ㄏ（紫／橘／綠；三種符號，但盤面越來越高、動物越來越多） =====
+  { par: 2, q: "21", rows: [            // 21：一對ㄎ抱著鯨魚
+    "33.22.11",
+    " ...A...",
+  ] },
+  { par: 2, q: "32", rows: [            // 22：打掉那對，下面整串掉
+    "11.33.11",
+    " ...2...",
+    "...A....",
+  ] },
+  { par: 3, rows: [            // 23：小吊燈，兩隻鯨魚
+    ".....311",
+    " ....322",
+    "....2113",
+    " ...2A32",
+    "...11.21",
+    " ..3A23.",
+  ] },
+  { par: 4, q: "23", rows: [            // 24：兩隻鯨魚各被一對抱著
+    "22.33.11",
+    " A.2.1.A",
+    "3......3",
+  ] },
+  { par: 5, rows: [            // 25：三隻鯨魚，上面只靠一小撮
+    "..311...",
+    " .323A..",
+    ".12122..",
+    " 21A1A..",
+    "123231..",
+    " 1....1.",
+    ".2....2.",
+  ] },
+  { par: 6, rows: [            // 26：七排，兩隻鯨魚藏在中間
+    "223.....",
+    " 131....",
+    "2121....",
+    " A3231..",
+    "211.A33.",
+    " 322321.",
+    ".31.1332",
+  ] },
+  { par: 6, rows: [            // 27：八排，三隻鯨魚，右邊懸著
+    "....223.",
+    " ...1.31",
+    "...13123",
+    " ..322.A",
+    "..A1331.",
+    " .221A1.",
+    ".1.332..",
+    " 1322...",
+  ] },
+  { par: 6, rows: [            // 28：八排大團，三隻鯨魚
+    "112.....",
+    " .A1....",
+    ".13A31..",
+    " 1322133",
+    "22113221",
+    " 133.313",
+    "1A..1.31",
+    " ....1.2",
+  ] },
+  { par: 7, rows: [            // 29：九排，四隻鯨魚
+    ".....223",
+    " ....331",
+    "....1212",
+    " ...1332",
+    "...3211A",
+    " ..31A32",
+    "..121312",
+    " .3A.213",
+    "..311.A1",
+  ] },
+  { par: 8, rows: [            // 30：最後一關：九排、四隻鯨魚
+    ".....133",
+    " ....12A",
+    "....2311",
+    " ...1.32",
+    "....32.2",
+    " ...32A1",
+    "...1A312",
+    " ..2.2.3",
+    "..11A1.3",
+  ] },
 ];
 
+LEVELS.forEach((d, i) => { d.zone = Math.floor(i / LEVELS_PER_ZONE); if (!d.syms) d.syms = ZONES[d.zone].syms; });
+
 // ---------- 幾何常數 ----------
-const PEN = 9, NONE = -1;
+const PEN = 99, NONE = -1;                 // 格子的值：0～9 是符號編號、PEN＝被困的動物
 const ROWS = 12;                         // 第 0～11 列可以放；停在第 12 列＝碰到底線
 const MAXR = 14;                         // 模擬列數上限（含底線下面那一列）
 const RH = Math.sqrt(3);
@@ -99,7 +271,6 @@ const NEXT_X = SHOOT_X + 3.5, NEXT_Y = SHOOT_Y + 0.5, NEXT_S = 0.72;
 const A_MIN = 10 * Math.PI / 180, A_MAX = Math.PI - A_MIN;
 const SPEED = 40;                        // 飛行速度（單位／秒）
 const IDLE_MS = 4000;                    // 前 3 關：這麼久沒動作就出示範
-const COLORS = ["#ff6b6b", "#4da3ff", "#ffc93c"];
 
 // ---------- 純模擬（UI、示範、求解器共用） ----------
 const rowLen = r => (r & 1 ? 7 : 8);
@@ -116,13 +287,16 @@ function nbrs(r, c) {
 }
 const emptyGrid = () => Array.from({ length: MAXR }, (_, r) => new Array(rowLen(r)).fill(NONE));
 const cloneGrid = g => g.map(row => row.slice());
+// 這一關的符號組 → 編號陣列（'1' 對應第 1 個…）。沒寫 syms 的自訂盤面（測試用）當作 ㄅㄆㄇ
+function symIds(def) { return [...(def.syms || "ㄅㄆㄇ")].map(ch => { const i = SYMS.indexOf(ch); if (i < 0) throw new Error("bubble level: bad symbol " + ch); return i; }); }
+const digitOf = (ids, ch) => { const k = "123456789".indexOf(ch); return k >= 0 && k < ids.length ? ids[k] : -1; };
 function parseLevel(def) {
-  const g = emptyGrid();
+  const g = emptyGrid(), ids = symIds(def);
   if (def.rows.length > ROWS) throw new Error("bubble level: too many rows");
   def.rows.forEach((s, r) => {
     const t = s.replace(/\s/g, "");
     if (t.length !== rowLen(r)) throw new Error(`bubble level: row ${r} needs ${rowLen(r)} cells, got "${t}"`);
-    [...t].forEach((ch, c) => { g[r][c] = ch === "A" ? PEN : ch === "." ? NONE : "123".indexOf(ch); if (g[r][c] === -1 && ch !== ".") throw new Error("bubble level: bad cell " + ch); });
+    [...t].forEach((ch, c) => { g[r][c] = ch === "A" ? PEN : ch === "." ? NONE : digitOf(ids, ch); if (g[r][c] === -1 && ch !== ".") throw new Error("bubble level: bad cell " + ch); });
   });
   return g;
 }
@@ -226,11 +400,11 @@ function bestFor(g, sym) { let best = null; for (const e of evalShots(g, sym)) i
 function rng32(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 function pick(g, rnd) { const p = present(g); return p.length ? p[Math.floor(rnd() * p.length)] : NONE; }
 function newRun(def, seed) {
-  const g = parseLevel(def), rnd = rng32(seed), p = present(g);
-  const q = (def.q || "").split("").map(ch => "123".indexOf(ch));
+  const g = parseLevel(def), rnd = rng32(seed), p = present(g), ids = symIds(def);
+  const q = (def.q || "").split("").map(ch => digitOf(ids, ch));
   const cur = p.includes(q[0]) ? q[0] : pick(g, rnd);
   const next = p.includes(q[1]) ? q[1] : pick(g, rnd);
-  return { g, rnd, cur, next, need: penguinsLeft(g) };
+  return { g, rnd, cur, next, need: penguinsLeft(g), ids };
 }
 function refill(s) {                          // 發射完：下一顆變目前這顆（場上沒有這個符號就重抽），再抽新的下一顆
   const p = present(s.g);
@@ -290,6 +464,8 @@ export function createBubbleGame(root, api) {
   let st = null;               // 這一局
   let D = null;                // DOM
   let raf = 0, idleTok = 0, talkedSwap = false, talkedIntro = false;
+  const talkedZone = {};       // 每個新區第一次進來說一次「這次要救○○」
+  const ZONE_INTRO = [null, "這次要救小螃蟹喔！", "這次要救小鯨魚喔！"];
   const offs = [];             // 自己掛的事件（stop 時全部拆）
   const on = (t, ev, fn, o) => { t.addEventListener(ev, fn, o); offs.push(() => t.removeEventListener(ev, fn, o)); };
   const later = (fn, ms) => { const my = run; api.later(() => { if (my === run && st) fn(); }, ms); };
@@ -297,6 +473,8 @@ export function createBubbleGame(root, api) {
   const mk = (tag, cls, parent, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; if (parent) parent.appendChild(e); return e; };
   const SVGNS = "http://www.w3.org/2000/svg";
   const canAct = () => !!st && !st.busy && !st.full && !st.won && !api.paused();
+  // 這一關要救的動物：名字來自 ZONES，圖來自主程式給的 api.animalImgs（沒給就退回舊的 api.animalImg）
+  const animal = () => { const z = ZONES[st ? st.zone : 0] || ZONES[0]; return { name: z.name, img: (api.animalImgs && api.animalImgs[z.key]) || api.animalImg || "" }; };
 
   // ---------- DOM ----------
   function build() {
@@ -370,10 +548,10 @@ export function createBubbleGame(root, api) {
     return e;
   }
   function paint(e, v) {
-    e.classList.remove("s0", "s1", "s2", "bb-pen");
+    e.classList.remove("s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "bb-pen");
     e.textContent = "";
-    if (v === PEN) { e.classList.add("bb-pen"); const im = mk("img", "", e); im.src = api.animalImg; im.alt = ""; im.draggable = false; mk("i", "bb-shine", e); }
-    else if (v >= 0) { e.classList.add("s" + v); mk("span", "bb-sym", e, SYMS[v]); }
+    if (v === PEN) { e.classList.add("bb-pen"); const im = mk("img", "", e); im.src = animal().img; im.alt = ""; im.draggable = false; mk("i", "bb-shine", e); }
+    else if (v >= 0) { e.classList.add("s" + SYM_COLOR[v]); mk("span", "bb-sym", e, SYMS[v]); }
   }
   function renderBoard() {
     D.layer.textContent = ""; D.bmap.clear();
@@ -392,13 +570,13 @@ export function createBubbleGame(root, api) {
   function renderGoal(pulse) {
     const need = st.need, got = st.shown;
     D.lvl.textContent = ""; D.lvl.append(zh("第"), " " + (st.lv + 1) + " ", zh("關"));
-    if (D.slots.children.length !== need) { D.slots.textContent = ""; for (let i = 0; i < need; i++) { const s = mk("div", "bb-slot", D.slots); const im = mk("img", "", s); im.src = api.animalImg; im.alt = ""; im.draggable = false; } }
+    if (D.slots.children.length !== need) { D.slots.textContent = ""; for (let i = 0; i < need; i++) { const s = mk("div", "bb-slot", D.slots); const im = mk("img", "", s); im.src = animal().img; im.alt = ""; im.draggable = false; } }
     [...D.slots.children].forEach((s, i) => s.classList.toggle("on", i < got));
     D.count.textContent = "";
     const r1 = mk("div", "bb-crow", D.count), r2 = mk("div", "bb-crow", D.count);
     mk("span", "", r1).appendChild(zh("已救")); r1.appendChild(mkNum(got));
     mk("span", "", r2).appendChild(zh("需救")); r2.appendChild(mkNum(need));
-    D.goal.setAttribute("aria-label", `${api.animalName || "小企鵝"} 已救 ${got} 隻，需救 ${need} 隻`);
+    D.goal.setAttribute("aria-label", `${animal().name} 已救 ${got} 隻，需救 ${need} 隻`);
     if (pulse) { bump(D.count, "bb-tick"); const s = D.slots.children[got - 1]; if (s) bump(s, "bb-got"); }
   }
   function mkNum(n) { const b = document.createElement("b"); b.textContent = String(n); return b; }
@@ -411,7 +589,7 @@ export function createBubbleGame(root, api) {
     const tr = trace(st.g, st.aim);
     if (!tr.cell) return tr;
     const pts = tr.pts.concat([[cellX(...tr.cell), cellY(tr.cell[0])]]);
-    const g = document.createElementNS(SVGNS, "g"); g.setAttribute("class", "bb-dots " + (mode === "demo" ? "bb-gold" : "s" + st.cur));
+    const g = document.createElementNS(SVGNS, "g"); g.setAttribute("class", "bb-dots " + (mode === "demo" ? "bb-gold" : "s" + SYM_COLOR[st.cur]));
     let carry = 1.6;                             // 第一顆點離開發射口一點
     for (let i = 1; i < pts.length; i++) {
       const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], L = Math.hypot(x1 - x0, y1 - y0);
@@ -424,7 +602,7 @@ export function createBubbleGame(root, api) {
     const a = st.aim, ux = Math.cos(a), uy = -Math.sin(a), px = -uy, py = ux, R = 1.25;
     const tip = [SHOOT_X + ux * (R + 0.75), SHOOT_Y + uy * (R + 0.75)], b1 = [SHOOT_X + ux * R + px * 0.5, SHOOT_Y + uy * R + py * 0.5], b2 = [SHOOT_X + ux * R - px * 0.5, SHOOT_Y + uy * R - py * 0.5];
     ar.setAttribute("d", `M${tip.join(",")}L${b1.join(",")}L${b2.join(",")}Z`); ar.setAttribute("class", "bb-arrow"); svg.appendChild(ar);
-    D.ghost.classList.add("s" + st.cur, "on"); D.ghost.style.setProperty("--x", cellX(...tr.cell)); D.ghost.style.setProperty("--y", cellY(tr.cell[0]));
+    D.ghost.classList.add("s" + SYM_COLOR[st.cur], "on"); D.ghost.style.setProperty("--x", cellX(...tr.cell)); D.ghost.style.setProperty("--y", cellY(tr.cell[0]));
     D.ghost.textContent = ""; mk("span", "bb-sym", D.ghost, SYMS[st.cur]);
     if (mode === "demo") { D.ring.style.setProperty("--x", cellX(...tr.cell)); D.ring.style.setProperty("--y", cellY(tr.cell[0])); D.ring.classList.add("on"); }
     return tr;
@@ -602,7 +780,7 @@ export function createBubbleGame(root, api) {
     const idx = st.flying++;
     const slot = D.slots.children[Math.min(st.need - 1, st.shown + idx)] || D.count;
     const tr = slot.getBoundingClientRect(), tx = tr.left + tr.width / 2 - wr.left, ty = tr.top + tr.height / 2 - wr.top;
-    const p = mk("img", "bb-flyp", D.fx); p.src = api.animalImg; p.alt = ""; p.draggable = false;
+    const p = mk("img", "bb-flyp", D.fx); p.src = animal().img; p.alt = ""; p.draggable = false;
     const size = Math.max(er.width, 10); p.style.width = p.style.height = size * 1.1 + "px"; p.style.left = sx + "px"; p.style.top = sy + "px";
     const mx = (sx + tx) / 2, my = Math.min(sy, ty) - 18 * parseFloat(D.wrap.style.getPropertyValue("--vm"));
     const k = tr.width / (size * 1.1);
@@ -659,11 +837,12 @@ export function createBubbleGame(root, api) {
     const lv = Math.max(0, Math.min(LEVELS.length - 1, i | 0)), d = def || LEVELS[lv];
     const seed = typeof api.seed === "number" ? api.seed + lv : (Math.random() * 4294967296) >>> 0;
     const s = newRun(d, seed);
-    st = Object.assign(s, { lv, par: d.par || 5, shots: 0, rescued: 0, shown: 0, flying: 0, aim: Math.PI / 2, busy: false, full: false, won: false, demo: "", dragging: false, last: null, seed });
+    st = Object.assign(s, { lv, zone: d.zone != null ? d.zone : Math.floor(lv / LEVELS_PER_ZONE), par: d.par || 5, shots: 0, rescued: 0, shown: 0, flying: 0, aim: Math.PI / 2, busy: false, full: false, won: false, demo: "", dragging: false, last: null, seed });
     build(); relayout(); renderBoard(); renderQueue(false); renderGoal(false);
     showAim();
     api.say(SYMS[st.cur]);
-    if (lv === 0 && !talkedIntro) { talkedIntro = true; later(() => api.talk(`三個一樣的連在一起，就會破掉喔！把${api.animalName || "小企鵝"}救出來！`), 1300); }
+    if (lv === 0 && !talkedIntro) { talkedIntro = true; later(() => api.talk("三個一樣的連在一起，就會破掉喔！把小企鵝救出來！"), 1300); }
+    else if (st.zone > 0 && lv % LEVELS_PER_ZONE === 0 && !talkedZone[st.zone]) { const z = st.zone; talkedZone[z] = true; later(() => api.talk(ZONE_INTRO[z]), 1300); }
     if (lv <= 2) later(() => { if (canAct() && !st.demo && !st.dragging && st.shots === 0) showDemo(); }, 900);
     armIdle();
   }
@@ -675,12 +854,12 @@ export function createBubbleGame(root, api) {
   function boardRows() {
     if (!st) return [];
     let last = -1; each(st.g, r => { last = Math.max(last, r); });
-    const out = []; for (let r = 0; r <= last; r++) out.push(st.g[r].map(v => v === PEN ? "A" : v === NONE ? "." : String(v + 1)).join(""));
+    const out = []; for (let r = 0; r <= last; r++) out.push(st.g[r].map(v => v === PEN ? "A" : v === NONE ? "." : String(st.ids.indexOf(v) + 1)).join(""));
     return out;
   }
   function state() {
     if (!st) return null;
-    const counts = {}; SYMS.forEach(s => counts[s] = 0); each(st.g, (r, c, v) => { if (v !== PEN) counts[SYMS[v]]++; });
+    const counts = {}; st.ids.forEach(i => counts[SYMS[i]] = 0); each(st.g, (r, c, v) => { if (v !== PEN) counts[SYMS[v]] = (counts[SYMS[v]] || 0) + 1; });
     return { level: st.lv, shots: st.shots, par: st.par, rescued: st.rescued, need: st.need, busy: st.busy, full: st.full, won: st.won,
       cur: st.cur === NONE ? null : SYMS[st.cur], next: st.next === NONE ? null : SYMS[st.next], aim: st.aim, demo: st.demo, seed: st.seed,
       penguinsLeft: penguinsLeft(st.g), counts, board: boardRows(), last: st.last, win: st.winInfo || null };

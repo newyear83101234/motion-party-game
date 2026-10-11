@@ -1,0 +1,212 @@
+{
+ "tap": {
+  "source": "Kenney Interface Sounds click_003",
+  "packs": [
+   "https://kenney.nl/assets/interface-sounds"
+  ],
+  "synth": false,
+  "len": 0.09
+ },
+ "select": {
+  "source": "Kenney Interface Sounds select_002 + synth marimba",
+  "packs": [
+   "https://kenney.nl/assets/interface-sounds"
+  ],
+  "synth": true,
+  "len": 0.2
+ },
+ "ok": {
+  "source": "synth (numpy marimba/bell)",
+  "packs": [],
+  "synth": true,
+  "len": 0.8099773242630386
+ },
+ "ng": {
+  "source": "synth (numpy soft marimba, falling)",
+  "packs": [],
+  "synth": true,
+  "len": 0.76
+ },
+ "win": {
+  "source": "synth (numpy bell arpeggio)",
+  "packs": [],
+  "synth": true,
+  "len": 1.8999773242630384
+ },
+ "sticker": {
+  "source": "synth (numpy bell sparkle)",
+  "packs": [],
+  "synth": true,
+  "len": 0.77
+ },
+ "pop": {
+  "source": "synth (numpy pitch glide)",
+  "packs": [],
+  "synth": true,
+  "len": 0.05
+ },
+ "flip": {
+  "source": "Kenney RPG Audio bookFlip2",
+  "packs": [
+   "https://kenney.nl/assets/rpg-audio"
+  ],
+  "synth": false,
+  "len": 0.40551020408163263
+ },
+ "star": {
+  "source": "synth (numpy bell)",
+  "packs": [],
+  "synth": true,
+  "len": 0.6999773242630386
+ },
+ "coin": {
+  "source": "synth (numpy square blips)",
+  "packs": [],
+  "synth": true,
+  "len": 0.57
+ },
+ "whoosh": {
+  "source": "synth (numpy swept noise)",
+  "packs": [],
+  "synth": true,
+  "len": 0.5326303854875284
+ },
+ "gacha_crank": {
+  "source": "Kenney RPG Audio metalClick x9 + Impact Sounds impactWood_medium_001",
+  "packs": [
+   "https://kenney.nl/assets/rpg-audio",
+   "https://kenney.nl/assets/impact-sounds"
+  ],
+  "synth": false,
+  "len": 1.3667573696145126
+ },
+ "capsule_open": {
+  "source": "Kenney Impact Sounds impactPlate_light_001 + synth pop/sparkle",
+  "packs": [
+   "https://kenney.nl/assets/impact-sounds"
+  ],
+  "synth": true,
+  "len": 0.6
+ },
+ "hatch": {
+  "source": "Kenney Impact Sounds impactGlass_light_001/003 + synth peeps",
+  "packs": [
+   "https://kenney.nl/assets/impact-sounds"
+  ],
+  "synth": true,
+  "len": 1.8
+ },
+ "unlock": {
+  "source": "Kenney RPG Audio metalLatch + synth bells",
+  "packs": [
+   "https://kenney.nl/assets/rpg-audio"
+  ],
+  "synth": true,
+  "len": 1.2906122448979591
+ },
+ "truck_start": {
+  "source": "synth (numpy engine)",
+  "packs": [],
+  "synth": true,
+  "len": 1.7
+ },
+ "truck_drive": {
+  "source": "synth (numpy engine, periodic loop)",
+  "packs": [],
+  "synth": true,
+  "len": 1.5
+ },
+ "truck_stop": {
+  "source": "synth (numpy engine + air brake)",
+  "packs": [],
+  "synth": true,
+  "len": 1.1
+ },
+ "horn": {
+  "source": "synth (numpy two-tone honk)",
+  "packs": [],
+  "synth": true,
+  "len": 0.44
+ },
+ "load": {
+  "source": "Kenney RPG Audio dropLeather + Impact Sounds impactWood_heavy_001",
+  "packs": [
+   "https://kenney.nl/assets/rpg-audio",
+   "https://kenney.nl/assets/impact-sounds"
+  ],
+  "synth": false,
+  "len": 0.37011337868480726
+ },
+ "unload": {
+  "source": "Kenney RPG Audio handleSmallLeather + Impact Sounds impactWood_medium_003",
+  "packs": [
+   "https://kenney.nl/assets/rpg-audio",
+   "https://kenney.nl/assets/impact-sounds"
+  ],
+  "synth": false,
+  "len": 0.39666666666666667
+ },
+ "deliver_ok": {
+  "source": "synth (numpy marimba/coin)",
+  "packs": [],
+  "synth": true,
+  "len": 1.0719727891156463
+ },
+ "door": {
+  "source": "Kenney RPG Audio doorClose_3 (lowpassed)",
+  "packs": [
+   "https://kenney.nl/assets/rpg-audio"
+  ],
+  "synth": false,
+  "len": 0.7078004535147392
+ },
+ "lever": {
+  "source": "Kenney RPG Audio metalLatch + Impact Sounds impactMetal_heavy_002/impactWood_light_001",
+  "packs": [
+   "https://kenney.nl/assets/rpg-audio",
+   "https://kenney.nl/assets/impact-sounds"
+  ],
+  "synth": false,
+  "len": 0.24555555555555555
+ },
+ "bridge": {
+  "source": "synth wood groan + chain clinks (numpy) + Kenney Impact Sounds impactWood_heavy_002/impactPlank_medium_001",
+  "packs": [
+   "https://kenney.nl/assets/impact-sounds"
+  ],
+  "synth": true,
+  "len": 2.280113378684807
+ },
+ "ding": {
+  "source": "synth (numpy doorbell bells)",
+  "packs": [],
+  "synth": true,
+  "len": 1.75
+ },
+ "splash": {
+  "source": "synth (numpy filtered noise + bubbles)",
+  "packs": [],
+  "synth": true,
+  "len": 0.7661451247165533
+ },
+ "seagull": {
+  "source": "synth (numpy FM calls)",
+  "packs": [],
+  "synth": true,
+  "len": 1.2
+ },
+ "boat_horn": {
+  "source": "synth (numpy low horn)",
+  "packs": [],
+  "synth": true,
+  "len": 1.5
+ },
+ "wear": {
+  "source": "Kenney RPG Audio cloth2 + synth bells",
+  "packs": [
+   "https://kenney.nl/assets/rpg-audio"
+  ],
+  "synth": true,
+  "len": 0.8254195011337868
+ }
+}

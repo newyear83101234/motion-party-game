@@ -1,0 +1,733 @@
+{
+ "generated": "2026-10-11",
+ "note": "BGM 檔案＝[循環段最後0.5秒]+循環段+[循環段最前0.5秒]；Web Audio 用 loopStart/loopEnd（秒）循環。音效單聲道 44.1kHz mp3 128k，無 loop 除 truck_drive。",
+ "bgm": {
+  "island": {
+   "file": "audio/bgm/island.mp3",
+   "use": "主島選單＋多數遊戲（明亮輕快）",
+   "duration": 62.699,
+   "truePeak_dBTP": -6.1,
+   "loop": true,
+   "loopStart": 0.5,
+   "loopEnd": 62.199184,
+   "loopLength": 61.699184,
+   "bpm": 105.0,
+   "lufs": -18.4,
+   "lufsWholeFile": -18.4,
+   "seamCheck": {
+    "energy_diff_db": 0.93,
+    "jump_ratio": 0.01
+   },
+   "candidate": "island_1",
+   "source": "Gemini Lyria lyria-3.5",
+   "sourceUrl": "https://ai.google.dev/gemini-api/docs/music-generation",
+   "license": "Gemini API 生成（Google Lyria 3.5，instrumental）；Google 不主張生成內容所有權（Gemini API Additional Terms），不需署名；含不可聽見的 SynthID 浮水印",
+   "geminiReview": "活潑的熱帶島嶼風格烏克麗麗背景音樂。"
+  },
+  "calm": {
+   "file": "audio/bgm/calm.mp3",
+   "use": "積木／翻牌／青蛙（溫和思考）",
+   "duration": 63.216,
+   "truePeak_dBTP": -6.6,
+   "loop": true,
+   "loopStart": 0.5,
+   "loopEnd": 62.715873,
+   "loopLength": 62.215873,
+   "bpm": 81.0,
+   "lufs": -18.4,
+   "lufsWholeFile": -18.5,
+   "seamCheck": {
+    "energy_diff_db": 1.9,
+    "jump_ratio": 0.05
+   },
+   "candidate": "calm_3",
+   "source": "Gemini Lyria lyria-3.5",
+   "sourceUrl": "https://ai.google.dev/gemini-api/docs/music-generation",
+   "license": "Gemini API 生成（Google Lyria 3.5，instrumental）；Google 不主張生成內容所有權（Gemini API Additional Terms），不需署名；含不可聽見的 SynthID 浮水印",
+   "geminiReview": "一首溫暖平和的管弦樂，旋律清晰，適合安靜的益智遊戲。"
+  },
+  "town": {
+   "file": "audio/bgm/town.mp3",
+   "use": "歸仁區選單",
+   "duration": 66.455,
+   "truePeak_dBTP": -4.1,
+   "loop": true,
+   "loopStart": 0.5,
+   "loopEnd": 65.954535,
+   "loopLength": 65.454535,
+   "bpm": 110.0,
+   "lufs": -18.5,
+   "lufsWholeFile": -18.5,
+   "seamCheck": {
+    "energy_diff_db": 1.57,
+    "jump_ratio": 0.27
+   },
+   "candidate": "town_3",
+   "source": "Gemini Lyria lyria-3.5",
+   "sourceUrl": "https://ai.google.dev/gemini-api/docs/music-generation",
+   "license": "Gemini API 生成（Google Lyria 3.5，instrumental）；Google 不主張生成內容所有權（Gemini API Additional Terms），不需署名；含不可聽見的 SynthID 浮水印",
+   "geminiReview": "這是一首節奏輕快、帶有放克風格的背景音樂。"
+  },
+  "rainbow": {
+   "file": "audio/bgm/rainbow.mp3",
+   "use": "彩虹島選單",
+   "duration": 68.489,
+   "truePeak_dBTP": -6.9,
+   "loop": true,
+   "loopStart": 0.5,
+   "loopEnd": 67.988821,
+   "loopLength": 67.488821,
+   "bpm": 96.0,
+   "lufs": -18.5,
+   "lufsWholeFile": -18.5,
+   "seamCheck": {
+    "energy_diff_db": 0.2,
+    "jump_ratio": 0.06
+   },
+   "candidate": "rainbow_3",
+   "source": "Gemini Lyria lyria-3.5",
+   "sourceUrl": "https://ai.google.dev/gemini-api/docs/music-generation",
+   "license": "Gemini API 生成（Google Lyria 3.5，instrumental）；Google 不主張生成內容所有權（Gemini API Additional Terms），不需署名；含不可聽見的 SynthID 浮水印",
+   "geminiReview": "這是一首夢幻溫柔的管弦樂，帶有豎琴與鐘聲，非常適合奇幻遊戲的選單畫面。"
+  },
+  "night": {
+   "file": "audio/bgm/night.mp3",
+   "use": "晚上的選單（搖籃曲感）",
+   "duration": 60.971,
+   "truePeak_dBTP": -6.0,
+   "loop": true,
+   "loopStart": 0.5,
+   "loopEnd": 60.469955,
+   "loopLength": 59.969955,
+   "bpm": 72.0,
+   "lufs": -18.4,
+   "lufsWholeFile": -18.5,
+   "seamCheck": {
+    "energy_diff_db": 0.8,
+    "jump_ratio": 0.16
+   },
+   "candidate": "night_1",
+   "source": "Gemini Lyria lyria-3.5",
+   "sourceUrl": "https://ai.google.dev/gemini-api/docs/music-generation",
+   "license": "Gemini API 生成（Google Lyria 3.5，instrumental）；Google 不主張生成內容所有權（Gemini API Additional Terms），不需署名；含不可聽見的 SynthID 浮水印",
+   "geminiReview": "這是一首溫柔祥和、充滿夢幻感的管弦樂搖籃曲。"
+  },
+  "road": {
+   "file": "audio/bgm/road.mp3",
+   "use": "彩虹配送站（配送）",
+   "duration": 66.454,
+   "truePeak_dBTP": -5.4,
+   "loop": true,
+   "loopStart": 0.5,
+   "loopEnd": 65.954354,
+   "loopLength": 65.454354,
+   "bpm": 110.0,
+   "lufs": -18.5,
+   "lufsWholeFile": -18.5,
+   "seamCheck": {
+    "energy_diff_db": 0.17,
+    "jump_ratio": 0.04
+   },
+   "candidate": "road_2",
+   "source": "Gemini Lyria lyria-3.5",
+   "sourceUrl": "https://ai.google.dev/gemini-api/docs/music-generation",
+   "license": "Gemini API 生成（Google Lyria 3.5，instrumental）；Google 不主張生成內容所有權（Gemini API Additional Terms），不需署名；含不可聽見的 SynthID 浮水印",
+   "geminiReview": "這是一首充滿活力的民謠風木吉他音樂，節奏輕快。"
+  },
+  "dress": {
+   "file": "audio/bgm/dress.mp3",
+   "use": "寵物換裝",
+   "duration": 63.6,
+   "truePeak_dBTP": -5.6,
+   "loop": true,
+   "loopStart": 0.5,
+   "loopEnd": 63.100408,
+   "loopLength": 62.600408,
+   "bpm": 115.0,
+   "lufs": -18.4,
+   "lufsWholeFile": -18.4,
+   "seamCheck": {
+    "energy_diff_db": 0.03,
+    "jump_ratio": 0.16
+   },
+   "candidate": "dress_3",
+   "source": "Gemini Lyria lyria-3.5",
+   "sourceUrl": "https://ai.google.dev/gemini-api/docs/music-generation",
+   "license": "Gemini API 生成（Google Lyria 3.5，instrumental）；Google 不主張生成內容所有權（Gemini API Additional Terms），不需署名；含不可聽見的 SynthID 浮水印",
+   "geminiReview": "輕快俏皮的旋律，充滿童趣的氛圍。"
+  },
+  "bubble": {
+   "file": "audio/bgm/bubble.mp3",
+   "use": "泡泡遊戲",
+   "duration": 65.0,
+   "truePeak_dBTP": -5.6,
+   "loop": true,
+   "loopStart": 0.5,
+   "loopEnd": 64.500091,
+   "loopLength": 64.000091,
+   "bpm": 90.0,
+   "lufs": -18.5,
+   "lufsWholeFile": -18.4,
+   "seamCheck": {
+    "energy_diff_db": 1.6,
+    "jump_ratio": 0.01
+   },
+   "candidate": "bubble_1",
+   "source": "Gemini Lyria lyria-3.5",
+   "sourceUrl": "https://ai.google.dev/gemini-api/docs/music-generation",
+   "license": "Gemini API 生成（Google Lyria 3.5，instrumental）；Google 不主張生成內容所有權（Gemini API Additional Terms），不需署名；含不可聽見的 SynthID 浮水印",
+   "geminiReview": "這是一首輕鬆愉快的背景音樂，非常適合水底世界的氛圍。"
+  },
+  "party": {
+   "file": "audio/bgm/party.mp3",
+   "use": "結算 jingle（不循環，3–6 秒）",
+   "duration": 3.54,
+   "truePeak_dBTP": -5.5,
+   "loop": false,
+   "lufs": -18.5,
+   "source": "numpy 合成（tools/audio/party_pick.py synth_party）",
+   "license": "自製（CC0）",
+   "sourceUrl": null
+  }
+ },
+ "sfx": {
+  "boat_horn": {
+   "file": "audio/sfx/boat_horn.mp3",
+   "use": "船笛",
+   "duration": 1.8,
+   "peak_dBFS": -7.13,
+   "activeRms_dBFS": -17.8,
+   "lufs": -19.3,
+   "loop": false,
+   "source": "Freesound「Staten Island Ferry Horn.mp3」by nathanvladimirovich（trim/淡出/響度處理）",
+   "sourceUrl": "https://freesound.org/people/nathanvladimirovich/sounds/261846/",
+   "license": "CC0 1.0（公眾領域貢獻，免署名；Freesound 頁面逐檔確認 http://creativecommons.org/publicdomain/zero/1.0/）",
+   "pairwise": {
+    "winnerId": "261846",
+    "confirmedByGeminiPro": true,
+    "replaces": "synth/Kenney 舊版（保留於 tools/audio/candidates/sfx/boat_horn/cur.mp3）"
+   }
+  },
+  "bridge": {
+   "file": "audio/sfx/bridge.mp3",
+   "use": "吊橋放下",
+   "duration": 2.4,
+   "peak_dBFS": -4.49,
+   "activeRms_dBFS": -18.0,
+   "lufs": -18.6,
+   "loop": false,
+   "source": "Freesound「Gate door drawbridge wooden creaky opens closes hinge.wav」by WavJunction.com（trim/淡出/響度處理）",
+   "sourceUrl": "https://freesound.org/people/WavJunction.com/sounds/456763/",
+   "license": "CC0 1.0（公眾領域貢獻，免署名；Freesound 頁面逐檔確認 http://creativecommons.org/publicdomain/zero/1.0/）",
+   "pairwise": {
+    "winnerId": "456763",
+    "confirmedByGeminiPro": true,
+    "replaces": "synth/Kenney 舊版（保留於 tools/audio/candidates/sfx/bridge/cur.mp3）"
+   }
+  },
+  "capsule_open": {
+   "file": "audio/sfx/capsule_open.mp3",
+   "use": "扭蛋殼打開",
+   "duration": 0.6,
+   "peak_dBFS": -6.11,
+   "activeRms_dBFS": -17.5,
+   "lufs": -14.9,
+   "loop": false,
+   "source": "Kenney Impact Sounds impactPlate_light_001 + synth pop/sparkle",
+   "sourceUrl": [
+    "https://kenney.nl/assets/impact-sounds"
+   ],
+   "license": "CC0（Kenney）＋自製合成",
+   "geminiCheck": {
+    "matches": 9,
+    "pleasant_for_kids": 9,
+    "heard": "A quick pop followed by a magical, shimmering sparkle sound."
+   }
+  },
+  "coin": {
+   "file": "audio/sfx/coin.mp3",
+   "use": "得幣",
+   "duration": 0.57,
+   "peak_dBFS": -9.86,
+   "activeRms_dBFS": -17.4,
+   "lufs": -16.5,
+   "loop": false,
+   "source": "synth (numpy square blips)",
+   "sourceUrl": null,
+   "license": "自製（numpy 合成）CC0",
+   "geminiCheck": {
+    "matches": 9,
+    "pleasant_for_kids": 10,
+    "heard": "A magical, sparkly chime sound, like a video game coin pickup."
+   }
+  },
+  "deliver_ok": {
+   "file": "audio/sfx/deliver_ok.mp3",
+   "use": "送達成功",
+   "duration": 1.3,
+   "peak_dBFS": -5.11,
+   "activeRms_dBFS": -18.0,
+   "lufs": -20.1,
+   "loop": false,
+   "source": "Freesound「Congrats」by Fupicat（trim/淡出/響度處理）",
+   "sourceUrl": "https://freesound.org/people/Fupicat/sounds/607207/",
+   "license": "CC0 1.0（公眾領域貢獻，免署名；Freesound 頁面逐檔確認 http://creativecommons.org/publicdomain/zero/1.0/）",
+   "pairwise": {
+    "winnerId": "607207",
+    "confirmedByGeminiPro": true,
+    "replaces": "synth/Kenney 舊版（保留於 tools/audio/candidates/sfx/deliver_ok/cur.mp3）"
+   }
+  },
+  "ding": {
+   "file": "audio/sfx/ding.mp3",
+   "use": "訂單到／叮咚",
+   "duration": 1.8,
+   "peak_dBFS": -4.95,
+   "activeRms_dBFS": -17.9,
+   "lufs": -19.1,
+   "loop": false,
+   "source": "Freesound「DoorBell Shortened」by jwheeler91（trim/淡出/響度處理）",
+   "sourceUrl": "https://freesound.org/people/jwheeler91/sounds/442280/",
+   "license": "CC0 1.0（公眾領域貢獻，免署名；Freesound 頁面逐檔確認 http://creativecommons.org/publicdomain/zero/1.0/）",
+   "pairwise": {
+    "winnerId": "442280",
+    "confirmedByGeminiPro": true,
+    "replaces": "synth/Kenney 舊版（保留於 tools/audio/candidates/sfx/ding/cur.mp3）"
+   }
+  },
+  "door": {
+   "file": "audio/sfx/door.mp3",
+   "use": "開門",
+   "duration": 0.708,
+   "peak_dBFS": -4.49,
+   "activeRms_dBFS": -17.7,
+   "lufs": -19.6,
+   "loop": false,
+   "source": "Kenney RPG Audio doorClose_3 (lowpassed)",
+   "sourceUrl": [
+    "https://kenney.nl/assets/rpg-audio"
+   ],
+   "license": "CC0（公眾領域貢獻，免署名）",
+   "geminiCheck": {
+    "matches": 9,
+    "pleasant_for_kids": 6,
+    "heard": "A wooden door creaks open and the latch clicks loudly."
+   }
+  },
+  "flip": {
+   "file": "audio/sfx/flip.mp3",
+   "use": "翻牌／翻頁",
+   "duration": 0.406,
+   "peak_dBFS": -4.31,
+   "activeRms_dBFS": -18.8,
+   "lufs": -17.4,
+   "loop": false,
+   "source": "Kenney RPG Audio bookFlip2",
+   "sourceUrl": [
+    "https://kenney.nl/assets/rpg-audio"
+   ],
+   "license": "CC0（公眾領域貢獻，免署名）",
+   "geminiCheck": {
+    "matches": 9,
+    "pleasant_for_kids": 9,
+    "heard": "A quick, crisp whoosh and snap of a page turning."
+   }
+  },
+  "gacha_crank": {
+   "file": "audio/sfx/gacha_crank.mp3",
+   "use": "扭蛋機轉把手",
+   "duration": 1.367,
+   "peak_dBFS": -4.6,
+   "activeRms_dBFS": -17.6,
+   "lufs": -18.9,
+   "loop": false,
+   "source": "Kenney RPG Audio metalClick x9 + Impact Sounds impactWood_medium_001",
+   "sourceUrl": [
+    "https://kenney.nl/assets/rpg-audio",
+    "https://kenney.nl/assets/impact-sounds"
+   ],
+   "license": "CC0（公眾領域貢獻，免署名）",
+   "geminiCheck": {
+    "matches": 8,
+    "pleasant_for_kids": 5,
+    "heard": "A very fast, sharp, mechanical ratchet crank turning quickly."
+   }
+  },
+  "hatch": {
+   "file": "audio/sfx/hatch.mp3",
+   "use": "孵蛋",
+   "duration": 1.8,
+   "peak_dBFS": -5.89,
+   "activeRms_dBFS": -17.4,
+   "lufs": -18.6,
+   "loop": false,
+   "source": "Kenney Impact Sounds impactGlass_light_001/003 + synth peeps",
+   "sourceUrl": [
+    "https://kenney.nl/assets/impact-sounds"
+   ],
+   "license": "CC0（Kenney）＋自製合成",
+   "geminiCheck": {
+    "matches": 6,
+    "pleasant_for_kids": 8,
+    "heard": "A cartoon pop, rapid bird chirps, and a final positive chime."
+   }
+  },
+  "horn": {
+   "file": "audio/sfx/horn.mp3",
+   "use": "可愛叭叭",
+   "duration": 0.446,
+   "peak_dBFS": -5.81,
+   "activeRms_dBFS": -17.9,
+   "lufs": -15.6,
+   "loop": false,
+   "source": "Freesound「Squeaky Toy #1」by Breviceps（trim/淡出/響度處理）",
+   "sourceUrl": "https://freesound.org/people/Breviceps/sounds/468443/",
+   "license": "CC0 1.0（公眾領域貢獻，免署名；Freesound 頁面逐檔確認 http://creativecommons.org/publicdomain/zero/1.0/）",
+   "pairwise": {
+    "winnerId": "468443",
+    "confirmedByGeminiPro": true,
+    "replaces": "synth/Kenney 舊版（保留於 tools/audio/candidates/sfx/horn/cur.mp3）"
+   }
+  },
+  "lever": {
+   "file": "audio/sfx/lever.mp3",
+   "use": "拉桿",
+   "duration": 0.246,
+   "peak_dBFS": -3.65,
+   "activeRms_dBFS": -17.6,
+   "lufs": null,
+   "loop": false,
+   "source": "Kenney RPG Audio metalLatch + Impact Sounds impactMetal_heavy_002/impactWood_light_001",
+   "sourceUrl": [
+    "https://kenney.nl/assets/rpg-audio",
+    "https://kenney.nl/assets/impact-sounds"
+   ],
+   "license": "CC0（公眾領域貢獻，免署名）",
+   "geminiCheck": {
+    "matches": 9,
+    "pleasant_for_kids": 9,
+    "heard": "A sharp latch click followed by a solid mechanical clunk."
+   }
+  },
+  "load": {
+   "file": "audio/sfx/load.mp3",
+   "use": "箱子放上車",
+   "duration": 0.37,
+   "peak_dBFS": -4.71,
+   "activeRms_dBFS": -17.3,
+   "lufs": null,
+   "loop": false,
+   "source": "Kenney RPG Audio dropLeather + Impact Sounds impactWood_heavy_001",
+   "sourceUrl": [
+    "https://kenney.nl/assets/rpg-audio",
+    "https://kenney.nl/assets/impact-sounds"
+   ],
+   "license": "CC0（公眾領域貢獻，免署名）",
+   "geminiCheck": {
+    "matches": 6,
+    "pleasant_for_kids": 7,
+    "heard": "A short, sharp thud of a heavy object being dropped."
+   }
+  },
+  "ng": {
+   "file": "audio/sfx/ng.mp3",
+   "use": "答錯（溫和）",
+   "duration": 0.76,
+   "peak_dBFS": -5.85,
+   "activeRms_dBFS": -17.4,
+   "lufs": -20.5,
+   "loop": false,
+   "source": "synth (numpy soft marimba, falling)",
+   "sourceUrl": null,
+   "license": "自製（numpy 合成）CC0",
+   "geminiCheck": {
+    "matches": 10,
+    "pleasant_for_kids": 10,
+    "heard": "A soft, two-note descending marimba or xylophone sound."
+   }
+  },
+  "ok": {
+   "file": "audio/sfx/ok.mp3",
+   "use": "答對",
+   "duration": 0.811,
+   "peak_dBFS": -5.91,
+   "activeRms_dBFS": -17.4,
+   "lufs": -19.9,
+   "loop": false,
+   "source": "synth (numpy marimba/bell)",
+   "sourceUrl": null,
+   "license": "自製（numpy 合成）CC0",
+   "geminiCheck": {
+    "matches": 10,
+    "pleasant_for_kids": 10,
+    "heard": "A short, happy, ascending synth chime for a correct answer."
+   }
+  },
+  "pop": {
+   "file": "audio/sfx/pop.mp3",
+   "use": "泡泡／彈出",
+   "duration": 0.3,
+   "peak_dBFS": -7.38,
+   "activeRms_dBFS": -17.9,
+   "lufs": null,
+   "loop": false,
+   "source": "Freesound「Pop (made by DuffyBro)」by DuffyBro（trim/淡出/響度處理）",
+   "sourceUrl": "https://freesound.org/people/DuffyBro/sounds/319107/",
+   "license": "CC0 1.0（公眾領域貢獻，免署名；Freesound 頁面逐檔確認 http://creativecommons.org/publicdomain/zero/1.0/）",
+   "pairwise": {
+    "winnerId": "319107",
+    "confirmedByGeminiPro": true,
+    "replaces": "synth/Kenney 舊版（保留於 tools/audio/candidates/sfx/pop/cur.mp3）"
+   }
+  },
+  "seagull": {
+   "file": "audio/sfx/seagull.mp3",
+   "use": "海鷗",
+   "duration": 1.3,
+   "peak_dBFS": -4.89,
+   "activeRms_dBFS": -18.1,
+   "lufs": -18.4,
+   "loop": false,
+   "source": "Freesound「sea gulls.wav」by Snapper4298（trim/淡出/響度處理）",
+   "sourceUrl": "https://freesound.org/people/Snapper4298/sounds/166703/",
+   "license": "CC0 1.0（公眾領域貢獻，免署名；Freesound 頁面逐檔確認 http://creativecommons.org/publicdomain/zero/1.0/）",
+   "pairwise": {
+    "winnerId": "166703",
+    "confirmedByGeminiPro": true,
+    "replaces": "synth/Kenney 舊版（保留於 tools/audio/candidates/sfx/seagull/cur.mp3）"
+   }
+  },
+  "select": {
+   "file": "audio/sfx/select.mp3",
+   "use": "選取／切換",
+   "duration": 0.2,
+   "peak_dBFS": -4.65,
+   "activeRms_dBFS": -17.2,
+   "lufs": null,
+   "loop": false,
+   "source": "Kenney Interface Sounds select_002 + synth marimba",
+   "sourceUrl": [
+    "https://kenney.nl/assets/interface-sounds"
+   ],
+   "license": "CC0（Kenney）＋自製合成",
+   "geminiCheck": {
+    "matches": 10,
+    "pleasant_for_kids": 10,
+    "heard": "A short, clean, descending synthesized blip or select sound."
+   }
+  },
+  "splash": {
+   "file": "audio/sfx/splash.mp3",
+   "use": "水花",
+   "duration": 1.0,
+   "peak_dBFS": -3.53,
+   "activeRms_dBFS": -20.4,
+   "lufs": -26.0,
+   "loop": false,
+   "source": "Freesound「Tiny Splash」by dslrguide（trim/淡出/響度處理）",
+   "sourceUrl": "https://freesound.org/people/dslrguide/sounds/321490/",
+   "license": "CC0 1.0（公眾領域貢獻，免署名；Freesound 頁面逐檔確認 http://creativecommons.org/publicdomain/zero/1.0/）",
+   "pairwise": {
+    "winnerId": "321490",
+    "confirmedByGeminiPro": true,
+    "replaces": "synth/Kenney 舊版（保留於 tools/audio/candidates/sfx/splash/cur.mp3）"
+   }
+  },
+  "star": {
+   "file": "audio/sfx/star.mp3",
+   "use": "得星",
+   "duration": 0.8,
+   "peak_dBFS": -5.04,
+   "activeRms_dBFS": -17.9,
+   "lufs": -17.7,
+   "loop": false,
+   "source": "Freesound「Signal-Ring 1」by Vendarro（trim/淡出/響度處理）",
+   "sourceUrl": "https://freesound.org/people/Vendarro/sounds/399315/",
+   "license": "CC0 1.0（公眾領域貢獻，免署名；Freesound 頁面逐檔確認 http://creativecommons.org/publicdomain/zero/1.0/）",
+   "pairwise": {
+    "winnerId": "399315",
+    "confirmedByGeminiPro": true,
+    "replaces": "synth/Kenney 舊版（保留於 tools/audio/candidates/sfx/star/cur.mp3）"
+   }
+  },
+  "sticker": {
+   "file": "audio/sfx/sticker.mp3",
+   "use": "貼紙閃亮",
+   "duration": 0.77,
+   "peak_dBFS": -5.89,
+   "activeRms_dBFS": -17.4,
+   "lufs": -16.2,
+   "loop": false,
+   "source": "synth (numpy bell sparkle)",
+   "sourceUrl": null,
+   "license": "自製（numpy 合成）CC0",
+   "geminiCheck": {
+    "matches": 10,
+    "pleasant_for_kids": 10,
+    "heard": "A magical, sparkly, shimmering chime sound effect for a reward."
+   }
+  },
+  "tap": {
+   "file": "audio/sfx/tap.mp3",
+   "use": "一般點按",
+   "duration": 0.09,
+   "peak_dBFS": -6.82,
+   "activeRms_dBFS": -17.4,
+   "lufs": null,
+   "loop": false,
+   "source": "Kenney Interface Sounds click_003",
+   "sourceUrl": [
+    "https://kenney.nl/assets/interface-sounds"
+   ],
+   "license": "CC0（公眾領域貢獻，免署名）",
+   "geminiCheck": {
+    "matches": 10,
+    "pleasant_for_kids": 10,
+    "heard": "A soft, gentle, slightly bubbly user interface tap or click."
+   }
+  },
+  "truck_drive": {
+   "file": "audio/sfx/truck_drive.mp3",
+   "use": "卡車行駛（可接，loop）",
+   "duration": 1.35,
+   "peak_dBFS": -9.35,
+   "activeRms_dBFS": -17.8,
+   "lufs": -23.3,
+   "loop": true,
+   "source": "Freesound「Motor Loop.wav」by soundjoao（trim/淡出/響度處理）",
+   "sourceUrl": "https://freesound.org/people/soundjoao/sounds/325808/",
+   "license": "CC0 1.0（公眾領域貢獻，免署名；Freesound 頁面逐檔確認 http://creativecommons.org/publicdomain/zero/1.0/）",
+   "pairwise": {
+    "winnerId": "325808",
+    "confirmedByGeminiPro": true,
+    "replaces": "synth/Kenney 舊版（保留於 tools/audio/candidates/sfx/truck_drive/cur.mp3）"
+   }
+  },
+  "truck_start": {
+   "file": "audio/sfx/truck_start.mp3",
+   "use": "卡車發動",
+   "duration": 1.8,
+   "peak_dBFS": -4.23,
+   "activeRms_dBFS": -18.1,
+   "lufs": -17.0,
+   "loop": false,
+   "source": "Freesound「Car Start」by snakebarney（trim/淡出/響度處理）",
+   "sourceUrl": "https://freesound.org/people/snakebarney/sounds/138099/",
+   "license": "CC0 1.0（公眾領域貢獻，免署名；Freesound 頁面逐檔確認 http://creativecommons.org/publicdomain/zero/1.0/）",
+   "pairwise": {
+    "winnerId": "138099",
+    "confirmedByGeminiPro": true,
+    "replaces": "synth/Kenney 舊版（保留於 tools/audio/candidates/sfx/truck_start/cur.mp3）"
+   }
+  },
+  "truck_stop": {
+   "file": "audio/sfx/truck_stop.mp3",
+   "use": "卡車停下",
+   "duration": 1.3,
+   "peak_dBFS": -8.14,
+   "activeRms_dBFS": -17.7,
+   "lufs": -15.3,
+   "loop": false,
+   "source": "Freesound「Air Brake Applied」by chungus43A（trim/淡出/響度處理）",
+   "sourceUrl": "https://freesound.org/people/chungus43A/sounds/705390/",
+   "license": "CC0 1.0（公眾領域貢獻，免署名；Freesound 頁面逐檔確認 http://creativecommons.org/publicdomain/zero/1.0/）",
+   "pairwise": {
+    "winnerId": "705390",
+    "confirmedByGeminiPro": true,
+    "replaces": "synth/Kenney 舊版（保留於 tools/audio/candidates/sfx/truck_stop/cur.mp3）"
+   }
+  },
+  "unload": {
+   "file": "audio/sfx/unload.mp3",
+   "use": "箱子卸下",
+   "duration": 0.397,
+   "peak_dBFS": -4.73,
+   "activeRms_dBFS": -17.3,
+   "lufs": null,
+   "loop": false,
+   "source": "Kenney RPG Audio handleSmallLeather + Impact Sounds impactWood_medium_003",
+   "sourceUrl": [
+    "https://kenney.nl/assets/rpg-audio",
+    "https://kenney.nl/assets/impact-sounds"
+   ],
+   "license": "CC0（公眾領域貢獻，免署名）",
+   "geminiCheck": {
+    "matches": 9,
+    "pleasant_for_kids": 6,
+    "heard": "A short, sharp thud of a wooden crate being set down."
+   }
+  },
+  "unlock": {
+   "file": "audio/sfx/unlock.mp3",
+   "use": "解鎖",
+   "duration": 1.291,
+   "peak_dBFS": -4.74,
+   "activeRms_dBFS": -18.0,
+   "lufs": -18.4,
+   "loop": false,
+   "source": "Kenney RPG Audio metalLatch + synth bells",
+   "sourceUrl": [
+    "https://kenney.nl/assets/rpg-audio"
+   ],
+   "license": "CC0（Kenney）＋自製合成",
+   "geminiCheck": {
+    "matches": 10,
+    "pleasant_for_kids": 10,
+    "heard": "A click followed by a short, rising, synthesized chime melody."
+   }
+  },
+  "wear": {
+   "file": "audio/sfx/wear.mp3",
+   "use": "穿上衣服",
+   "duration": 0.825,
+   "peak_dBFS": -5.05,
+   "activeRms_dBFS": -17.4,
+   "lufs": -16.7,
+   "loop": false,
+   "source": "Kenney RPG Audio cloth2 + synth bells",
+   "sourceUrl": [
+    "https://kenney.nl/assets/rpg-audio"
+   ],
+   "license": "CC0（Kenney）＋自製合成",
+   "geminiCheck": {
+    "matches": 9,
+    "pleasant_for_kids": 9,
+    "heard": "A quick cloth rustle followed by a magical sparkle chime."
+   }
+  },
+  "whoosh": {
+   "file": "audio/sfx/whoosh.mp3",
+   "use": "揮動／轉場",
+   "duration": 0.533,
+   "peak_dBFS": -4.75,
+   "activeRms_dBFS": -17.8,
+   "lufs": -17.4,
+   "loop": false,
+   "source": "synth (numpy swept noise)",
+   "sourceUrl": null,
+   "license": "自製（numpy 合成）CC0",
+   "geminiCheck": {
+    "matches": 10,
+    "pleasant_for_kids": 9,
+    "heard": "A fast, clean whoosh or swoosh sound effect."
+   }
+  },
+  "win": {
+   "file": "audio/sfx/win.mp3",
+   "use": "新紀錄／完成",
+   "duration": 2.0,
+   "peak_dBFS": -5.78,
+   "activeRms_dBFS": -17.9,
+   "lufs": -18.8,
+   "loop": false,
+   "source": "Freesound「WinFantasia.wav」by Fupicat（trim/淡出/響度處理）",
+   "sourceUrl": "https://freesound.org/people/Fupicat/sounds/521645/",
+   "license": "CC0 1.0（公眾領域貢獻，免署名；Freesound 頁面逐檔確認 http://creativecommons.org/publicdomain/zero/1.0/）",
+   "pairwise": {
+    "winnerId": "521645",
+    "confirmedByGeminiPro": true,
+    "replaces": "synth/Kenney 舊版（保留於 tools/audio/candidates/sfx/win/cur.mp3）"
+   }
+  }
+ }
+}

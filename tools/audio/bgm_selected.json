@@ -1,0 +1,339 @@
+{
+ "island": {
+  "chosen": "island_1",
+  "source": "Gemini Lyria lyria-3.5",
+  "loopStart": 0.5,
+  "loopEnd": 62.199183673469385,
+  "loopLen": 61.699183673469385,
+  "bpm": 105.0,
+  "file_duration": 62.699184,
+  "lufs_loop": -18.0,
+  "tp_file": -6.1,
+  "seam": {
+   "energy_diff_db": 0.93,
+   "jump_ratio": 0.01
+  },
+  "gemini": {
+   "vocals": false,
+   "rhythm_stability": 10,
+   "glitches": 10,
+   "seam": 10,
+   "kid_suitability": 10,
+   "voice_friendly": 10,
+   "theme_fit": 10,
+   "overall": 10,
+   "comment": "活潑的熱帶島嶼風格烏克麗麗背景音樂。"
+  },
+  "ranking": [
+   {
+    "name": "island_1",
+    "total": 59.89
+   },
+   {
+    "name": "island_2",
+    "total": 59.35
+   },
+   {
+    "name": "island_s1",
+    "total": 57.21
+   },
+   {
+    "name": "island_3",
+    "total": 56.3
+   },
+   {
+    "name": "island_s2",
+    "total": 51.12
+   }
+  ]
+ },
+ "calm": {
+  "chosen": "calm_3",
+  "source": "Gemini Lyria lyria-3.5",
+  "loopStart": 0.5,
+  "loopEnd": 62.715873015873015,
+  "loopLen": 62.215873015873015,
+  "bpm": 81.0,
+  "file_duration": 63.215873,
+  "lufs_loop": -18.0,
+  "tp_file": -6.6,
+  "seam": {
+   "energy_diff_db": 1.9,
+   "jump_ratio": 0.05
+  },
+  "gemini": {
+   "vocals": false,
+   "rhythm_stability": 10,
+   "glitches": 10,
+   "seam": 10,
+   "kid_suitability": 10,
+   "voice_friendly": 9,
+   "theme_fit": 10,
+   "overall": 10,
+   "comment": "一首溫暖平和的管弦樂，旋律清晰，適合安靜的益智遊戲。"
+  },
+  "ranking": [
+   {
+    "name": "calm_3",
+    "total": 58.15
+   },
+   {
+    "name": "calm_2",
+    "total": 45.23
+   },
+   {
+    "name": "calm_1",
+    "total": 40.9
+   }
+  ]
+ },
+ "town": {
+  "chosen": "town_3",
+  "source": "Gemini Lyria lyria-3.5",
+  "loopStart": 0.5,
+  "loopEnd": 65.95453514739229,
+  "loopLen": 65.45453514739229,
+  "bpm": 110.0,
+  "file_duration": 66.454535,
+  "lufs_loop": -18.0,
+  "tp_file": -4.1,
+  "seam": {
+   "energy_diff_db": 1.57,
+   "jump_ratio": 0.27
+  },
+  "gemini": {
+   "vocals": false,
+   "rhythm_stability": 10,
+   "glitches": 10,
+   "seam": 10,
+   "kid_suitability": 10,
+   "voice_friendly": 9,
+   "theme_fit": 10,
+   "overall": 10,
+   "comment": "這是一首節奏輕快、帶有放克風格的背景音樂。"
+  },
+  "ranking": [
+   {
+    "name": "town_3",
+    "total": 59.06
+   },
+   {
+    "name": "town_2",
+    "total": 58.33
+   },
+   {
+    "name": "town_1",
+    "total": 55.48
+   }
+  ]
+ },
+ "rainbow": {
+  "chosen": "rainbow_3",
+  "source": "Gemini Lyria lyria-3.5",
+  "loopStart": 0.5,
+  "loopEnd": 67.98882086167801,
+  "loopLen": 67.48882086167801,
+  "bpm": 96.0,
+  "file_duration": 68.488821,
+  "lufs_loop": -18.0,
+  "tp_file": -6.9,
+  "seam": {
+   "energy_diff_db": 0.2,
+   "jump_ratio": 0.06
+  },
+  "gemini": {
+   "vocals": false,
+   "rhythm_stability": 6,
+   "glitches": 10,
+   "seam": 10,
+   "kid_suitability": 10,
+   "voice_friendly": 9,
+   "theme_fit": 10,
+   "overall": 10,
+   "comment": "這是一首夢幻溫柔的管弦樂，帶有豎琴與鐘聲，非常適合奇幻遊戲的選單畫面。"
+  },
+  "ranking": [
+   {
+    "name": "rainbow_3",
+    "total": 55.62
+   },
+   {
+    "name": "rainbow_1",
+    "total": 52.73
+   },
+   {
+    "name": "rainbow_2",
+    "total": 50.23
+   }
+  ]
+ },
+ "night": {
+  "chosen": "night_1",
+  "source": "Gemini Lyria lyria-3.5",
+  "loopStart": 0.5,
+  "loopEnd": 60.46995464852608,
+  "loopLen": 59.96995464852608,
+  "bpm": 72.0,
+  "file_duration": 60.970862,
+  "lufs_loop": -18.0,
+  "tp_file": -6.0,
+  "seam": {
+   "energy_diff_db": 0.8,
+   "jump_ratio": 0.16
+  },
+  "gemini": {
+   "vocals": false,
+   "rhythm_stability": 10,
+   "glitches": 10,
+   "seam": 10,
+   "kid_suitability": 10,
+   "voice_friendly": 9,
+   "theme_fit": 10,
+   "overall": 10,
+   "comment": "這是一首溫柔祥和、充滿夢幻感的管弦樂搖籃曲。"
+  },
+  "ranking": [
+   {
+    "name": "night_1",
+    "total": 57.38
+   },
+   {
+    "name": "night_3",
+    "total": 56.92
+   },
+   {
+    "name": "night_2",
+    "total": 40.66
+   }
+  ]
+ },
+ "road": {
+  "chosen": "road_2",
+  "source": "Gemini Lyria lyria-3.5",
+  "loopStart": 0.5,
+  "loopEnd": 65.9543537414966,
+  "loopLen": 65.4543537414966,
+  "bpm": 110.0,
+  "file_duration": 66.454354,
+  "lufs_loop": -18.0,
+  "tp_file": -5.4,
+  "seam": {
+   "energy_diff_db": 0.17,
+   "jump_ratio": 0.04
+  },
+  "gemini": {
+   "vocals": false,
+   "rhythm_stability": 10,
+   "glitches": 10,
+   "seam": 10,
+   "kid_suitability": 10,
+   "voice_friendly": 9,
+   "theme_fit": 10,
+   "overall": 10,
+   "comment": "這是一首充滿活力的民謠風木吉他音樂，節奏輕快。"
+  },
+  "ranking": [
+   {
+    "name": "road_2",
+    "total": 58.38
+   },
+   {
+    "name": "road_3",
+    "total": 57.35
+   },
+   {
+    "name": "road_1",
+    "total": 53.43
+   }
+  ]
+ },
+ "dress": {
+  "chosen": "dress_3",
+  "source": "Gemini Lyria lyria-3.5",
+  "loopStart": 0.5,
+  "loopEnd": 63.10040816326531,
+  "loopLen": 62.60040816326531,
+  "bpm": 115.0,
+  "file_duration": 63.600408,
+  "lufs_loop": -18.0,
+  "tp_file": -5.6,
+  "seam": {
+   "energy_diff_db": 0.03,
+   "jump_ratio": 0.16
+  },
+  "gemini": {
+   "vocals": false,
+   "rhythm_stability": 10,
+   "glitches": 10,
+   "seam": 7,
+   "kid_suitability": 10,
+   "voice_friendly": 9,
+   "theme_fit": 10,
+   "overall": 9,
+   "comment": "輕快俏皮的旋律，充滿童趣的氛圍。"
+  },
+  "ranking": [
+   {
+    "name": "dress_3",
+    "total": 53.45
+   },
+   {
+    "name": "dress_1",
+    "total": 51.91
+   },
+   {
+    "name": "dress_2",
+    "total": 35.31
+   }
+  ]
+ },
+ "bubble": {
+  "chosen": "bubble_1",
+  "source": "Gemini Lyria lyria-3.5",
+  "loopStart": 0.5,
+  "loopEnd": 64.50009070294784,
+  "loopLen": 64.00009070294784,
+  "bpm": 90.0,
+  "file_duration": 65.000091,
+  "lufs_loop": -18.0,
+  "tp_file": -5.6,
+  "seam": {
+   "energy_diff_db": 1.6,
+   "jump_ratio": 0.01
+  },
+  "gemini": {
+   "vocals": false,
+   "rhythm_stability": 10,
+   "glitches": 10,
+   "seam": 10,
+   "kid_suitability": 10,
+   "voice_friendly": 10,
+   "theme_fit": 10,
+   "overall": 10,
+   "comment": "這是一首輕鬆愉快的背景音樂，非常適合水底世界的氛圍。"
+  },
+  "ranking": [
+   {
+    "name": "bubble_1",
+    "total": 61.39
+   },
+   {
+    "name": "bubble_2",
+    "total": 57.86
+   },
+   {
+    "name": "bubble_3",
+    "total": 53.54
+   }
+  ]
+ },
+ "party": {
+  "chosen": "synth_fanfare",
+  "source": "synth (numpy, tools/audio/party_pick.py)",
+  "measure": {
+   "lufs": -18.5,
+   "tp": -5.5,
+   "duration": 3.54
+  }
+ }
+}

@@ -74,5 +74,124 @@ const seq = arr => { let k = 0; return () => arr[k++ % arr.length]; };
   const f = k => cnt[k] / n;
   ok("機率：普通≈70%、稀有≈25%、超稀有≈5%", Math.abs(f("common") - 0.7) < 0.01 && Math.abs(f("rare") - 0.25) < 0.01 && Math.abs(f("ssr") - 0.05) < 0.005, JSON.stringify(cnt));
 }
+// ===================== 10-12 寵物換裝 =====================
+// 搬家：舊存檔（沒有獎勵資料／有獎勵資料但沒有衣櫃）都補 closet＝帽子＋蝴蝶結、wear＝{}
+{
+  const a = R.migrate({ eggs: 1 }), b = R.migrate({ rewards: { pets: { bear: { stage: 2, t: 30 } }, coins: 3 } });
+  ok("換裝搬家：新／舊存檔都補 closet=[hat,bow]、wear={}", a.closet.join() === "hat,bow" && b.closet.join() === "hat,bow" && JSON.stringify(a.wear) === "{}" && JSON.stringify(b.wear) === "{}" && b.coins === 3, JSON.stringify([a.closet, b.closet, b.wear]));
+  const c = R.migrate({ rewards: { closet: ["crown", "crown", "bad", 5], wear: [1, 2] } });
+  ok("換裝搬家：壞衣櫃清掉重複／不認得的、起始兩件一定在；wear 不是物件就重設", c.closet.join() === "hat,bow,crown" && JSON.stringify(c.wear) === "{}", JSON.stringify(c.closet));
+}
+// 拿到配件：新的回 true、重複回 false、不認得的回 false
+{
+  const rw = R.migrate({});
+  ok("giveWear：新的 true、重複 false、不認得 false", R.giveWear(rw, "wings") === true && R.giveWear(rw, "wings") === false && R.giveWear(rw, "hat") === false && R.giveWear(rw, "rocket") === false && rw.closet.join() === "hat,bow,wings", rw.closet.join());
+  ok("配送站 8 個任務各送不同的一件、都在目錄裡", R.DELIVER_GIFTS.length === 8 && new Set(R.DELIVER_GIFTS).size === 8 && R.DELIVER_GIFTS.every(i => R.WEAR_BY_ID[i] && !R.START_WEAR.includes(i)) && R.WEAR.length === 10);
+}
+// 穿／脫：部位要對、只能穿擁有的、寵物要已收集；同部位替換；null＝脫掉
+{
+  const rw = R.migrate({});
+  const r1 = R.setWear(rw, "bear", "head", "hat");
+  const r2 = R.setWear(rw, "bear", "side", "hat");          // 部位不對
+  const r3 = R.setWear(rw, "bear", "head", "crown");        // 沒有皇冠
+  const r4 = R.setWear(rw, "dog", "head", "hat");           // 還沒收集小狗
+  const r5 = R.setWear(rw, "bear", "tail", "hat");          // 沒有這個部位
+  const r6 = R.setWear(rw, "bear", "head", "rocket");       // 不認得的配件
+  ok("setWear：擁有＋部位對才穿得上，其餘都拒絕", r1 && !r2 && !r3 && !r4 && !r5 && !r6 && R.wearOf(rw, "bear").head === "hat", JSON.stringify([r1, r2, r3, r4, r5, r6, rw.wear]));
+  R.giveWear(rw, "party_hat"); R.setWear(rw, "bear", "head", "party_hat"); R.setWear(rw, "bear", "side", "bow");
+  ok("setWear：同部位替換（帽子→派對帽）、不同部位並存", JSON.stringify(R.wearOf(rw, "bear")) === JSON.stringify({ head: "party_hat", side: "bow", back: null }), JSON.stringify(R.wearOf(rw, "bear")));
+  ok("setWear：null＝脫掉", R.setWear(rw, "bear", "head", null) && R.wearOf(rw, "bear").head === null && rw.wear.bear.head === null);
+  ok("每隻寵物各穿各的", JSON.stringify(R.wearOf(rw, "cat")) === JSON.stringify({ head: null, side: null, back: null }));
+}
+// wearOf 預設：超級階段沒設定＝皇冠＋披風；自己選的（含脫掉）優先；超級寵物不用擁有也能穿回預設那兩件；沒收集的寵物全空
+{
+  const rw = R.migrate({}); rw.pets.dog = { stage: 3, t: 120 }; rw.pets.pig = { stage: 1, t: 0 };
+  ok("wearOf：超級預設皇冠＋披風、寶寶／長大預設全空", JSON.stringify(R.wearOf(rw, "dog")) === JSON.stringify({ head: "crown", side: null, back: "cape" }) && JSON.stringify(R.wearOf(rw, "pig")) === JSON.stringify({ head: null, side: null, back: null }));
+  R.setWear(rw, "dog", "head", "hat"); R.setWear(rw, "dog", "back", null);
+  ok("wearOf：超級寵物自己選的優先（帽子、脫掉披風）", JSON.stringify(R.wearOf(rw, "dog")) === JSON.stringify({ head: "hat", side: null, back: null }), JSON.stringify(R.wearOf(rw, "dog")));
+  ok("超級寵物沒有皇冠也能穿回預設皇冠；一般寵物不行", R.setWear(rw, "dog", "head", "crown") && R.wearOf(rw, "dog").head === "crown" && !R.setWear(rw, "pig", "head", "crown") && !rw.closet.includes("crown"));
+  ok("wearOf：沒收集的寵物全空", JSON.stringify(R.wearOf(rw, "dragon")) === JSON.stringify({ head: null, side: null, back: null }));
+  rw.wear.pig = { head: "crown", side: "hat", back: "wings" };   // 手改壞的存檔：沒擁有、部位不對
+  ok("wearOf：存檔裡不合法的值當作沒穿", JSON.stringify(R.wearOf(rw, "pig")) === JSON.stringify({ head: null, side: null, back: null }));
+}
+// 備份碼清洗：保留 closet／wear，丟掉不合法的
+{
+  const c = R.cleanRewards({ pets: { bear: { stage: 2 }, dog: { stage: 3 } }, closet: ["wings", "zzz", "wings"],
+    wear: { bear: { head: "hat", side: "crown", back: "wings", tail: "hat" }, dog: { head: "crown", back: null, side: "flower" }, ghost: { head: "hat" }, cat: { head: "hat" } } });
+  ok("清洗：closet 去重、丟不認得、補起始兩件", c.closet.join() === "hat,bow,wings", c.closet.join());
+  ok("清洗：wear 只留合法值（部位對、擁有或超級預設、寵物有收集），null 保留", JSON.stringify(c.wear) === JSON.stringify({ bear: { head: "hat", back: "wings" }, dog: { head: "crown", back: null } }), JSON.stringify(c.wear));
+  const z = R.cleanRewards({ pets: { bear: { stage: 2 } } });
+  ok("清洗：舊備份碼沒有換裝欄位 → 起始衣櫃、空 wear", z.closet.join() === "hat,bow" && JSON.stringify(z.wear) === "{}");
+  const rt = R.cleanRewards(JSON.parse(JSON.stringify(c)));
+  ok("清洗：洗過的再洗一次不變（備份碼來回）", JSON.stringify(rt) === JSON.stringify(c));
+}
+// 扭蛋普通獎：裝飾＋可抽配件一起當池子；配件會進衣櫃；全拿到就給點心；只有 4 件可抽
+{
+  const rw = R.migrate({}); rw.coins = 200; const got = { decor: new Set(), wear: new Set() }; let treats = 0, s = 11;
+  const rand = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  for (let i = 0; i < 200; i++) { rw.pity = { rare: 0, ssr: 0 }; const x = R.pull(rw, { rand: seq([0.99, 0.1, rand()]) }); if (x.kind === "decor") got.decor.add(x.id); else if (x.kind === "wear") got.wear.add(x.id); else treats++; }   // 每抽：普通、抽「東西」、池子裡隨機一個
+  ok("普通獎池：拿得到全部 3 種裝飾＋4 件可抽配件，而且都進存檔", got.decor.size === 3 && got.wear.size === 4 && [...got.wear].every(i => R.GACHA_WEAR.includes(i) && rw.closet.includes(i)) && rw.decor.length === 3, JSON.stringify([[...got.decor], [...got.wear]]));
+  ok("普通獎池：不可抽的配件（翅膀、彩虹披風…）一件都沒出現", !rw.closet.some(i => !R.GACHA_WEAR.includes(i) && !R.START_WEAR.includes(i)), rw.closet.join());
+  const before = rw.treats; const y = R.pull(Object.assign(rw, { coins: 1, pity: { rare: 0, ssr: 0 } }), { rand: seq([0.9, 0.1, 0.1]) });
+  ok("普通獎池：全拿到之後就算抽中「東西」也給點心包", y.kind === "treats" && rw.treats === before + R.TREAT_PACK, JSON.stringify(y));
+}
+{
+  const rw = R.migrate({}); rw.coins = 1;
+  const x = R.pull(rw, { rand: seq([0.9, 0.1, 0.99]) });   // 普通、抽「東西」、池子最後一個（7 件中第 7 件＝最後一個可抽配件）
+  ok("普通獎池：抽到配件回傳 kind=wear、id，且已放進衣櫃", x.kind === "wear" && x.id === R.GACHA_WEAR[R.GACHA_WEAR.length - 1] && rw.closet.includes(x.id), JSON.stringify(x));
+}
+// 普通獎的「東西／點心」各一半、保底不變（再跑一次大量統計）
+{
+  const rw = R.migrate({}); const n = 60000; let item = 0, common = 0, s = 3;
+  const rand = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  for (let i = 0; i < n; i++) { rw.coins = 1; rw.pity = { rare: 0, ssr: 0 }; rw.decor = []; rw.closet = ["hat", "bow"]; const x = R.pull(rw, { rand }); if (x.tier === "common") { common++; if (x.kind !== "treats") item++; } }
+  ok("普通獎：東西≈50%（池子沒空時）", Math.abs(item / common - R.COMMON_ITEM_RATE) < 0.015, `${item}/${common}`);
+  const rw2 = R.migrate({}); rw2.coins = 30; const t2 = []; for (let i = 0; i < 15; i++) t2.push(R.pull(rw2, { rand: () => 0.99 }).tier);
+  ok("保底不變：第 5、10 抽稀有以上、第 15 抽超稀有", t2[4] !== "common" && t2[9] !== "common" && t2[14] === "ssr", t2.join(","));
+}
+// 公開機率常數與文字（家長頁）
+{
+  const t = R.oddsText();
+  ok("機率表：GACHA_ODDS 與 RATES 一致、文字含 4 件可抽配件名、其他配件送貨拿", R.GACHA_ODDS.common.rate === R.RATES.common && R.GACHA_ODDS.common.wear.length === 4 && t.length === 6 && ["皇冠", "小花", "派對帽", "背包"].every(n => t[0].includes(n)) && t[5].includes("翅膀"), t[0]);
+  // 寧次 10-12：每一項寫實際機率、百分比放段首（35%／35%／25%／5%，加起來 100%）
+  const lead = t.slice(0, 4).map(s => (s.match(/^(\d+)%/) || [])[1]).map(Number);
+  ok("機率表：前 4 段段首＝各項實際百分比 35／35／25／5（加起來 100）", lead.join() === "35,35,25,5" && lead.reduce((a, b) => a + b, 0) === 100 && t[0].includes("裝飾") && t[1].includes("點心包") && t[1].includes("70%"), JSON.stringify(t.slice(0, 4)));
+}
+// 存檔不可信（里維 10-12）：migrate 先洗再用，壞掉的不會丟錯（開頁白屏）
+{
+  const bad = [{ rewards: { pets: 5 } }, { rewards: { pets: "x", closet: 7, wear: [1], pity: 3, decor: "a", catBonus: {}, partner: 9 } }, { rewards: 5 }, { rewards: "壞掉" }, { rewards: [] }, null, undefined, 5, {}];
+  const res = bad.map(o => { try { const r = R.migrate(o); return ["bear", "bunny", "cat", "fox"].every(id => r.pets[id] && r.pets[id].stage === 2) && r.partner === "bear" && r.closet.join() === "hat,bow" && JSON.stringify(r.wear) === "{}" ? "ok" : "壞:" + JSON.stringify(r); } catch (e) { return "丟錯:" + e.message; } });
+  ok("migrate：壞存檔（pets:5、型別全錯、rewards 不是物件、null）不丟錯、起始 4 隻＋起始衣櫃", res.every(x => x === "ok"), JSON.stringify(res));
+  const g = R.migrate({ rewards: "壞掉", eggs: 2 });
+  ok("migrate：rewards 不是物件＝當新存檔，照樣做 eggs 搬家（6 隻、用掉 2 罐）", Object.keys(g.pets).length === 6 && g.pets.panda && g.pets.penguin && g.jarCoins === 2, JSON.stringify(g.pets));
+  const p = R.migrate({ rewards: { pets: 5 }, eggs: 2 });
+  ok("migrate：rewards 是物件但欄位壞＝洗乾淨後保留（不當舊存檔、不重複給 eggs 的朋友）", Object.keys(p.pets).length === 4 && p.jarCoins === 0, JSON.stringify(p.pets));
+  const good = { pets: { bear: { stage: 2, t: 31 }, bunny: { stage: 2, t: 30 }, cat: { stage: 3, t: 120 }, fox: { stage: 1, t: 4 }, dog: { stage: 3, t: 200 } }, partner: "dog", coins: 3, gold: 1, jarCoins: 12, treats: 250,
+    decor: ["statue_owl"], stamps: 4, stampDay: "2026-10-11", pity: { rare: 2, ssr: 9 }, catBonus: ["animal"], pulls: 30, closet: ["hat", "bow", "wings", "crown"], wear: { dog: { head: "hat", back: null }, bear: { back: "wings" } } };
+  const m = R.migrate({ rewards: JSON.parse(JSON.stringify(good)), eggs: 4 });
+  ok("migrate：正常存檔洗過完全不變（不掉任何欄位）", JSON.stringify(m) === JSON.stringify(good), JSON.stringify(m));
+}
+// 原型鏈上的鍵（"constructor"、"toString"、"__proto__"）騙不過查表（里維 10-12）
+{
+  const d = JSON.parse('{"pets":{"constructor":{"stage":2},"toString":{"stage":3},"__proto__":{"stage":2},"bear":{"stage":2}},"partner":"constructor","closet":["constructor","toString","__proto__","hasOwnProperty","wings"],' +
+    '"wear":{"constructor":{"head":"hat"},"toString":{"head":"hat"},"bear":{"head":"constructor","side":"toString","back":"wings"}}}');
+  const c = R.cleanRewards(d);
+  ok("清洗：原型鏈鍵不算寵物／配件／穿著，夥伴退回小熊", JSON.stringify(Object.keys(c.pets)) === '["bear"]' && c.partner === "bear" && c.closet.join() === "hat,bow,wings" && JSON.stringify(c.wear) === JSON.stringify({ bear: { back: "wings" } }), JSON.stringify(c));
+  const m = R.migrate({ rewards: d });
+  ok("migrate：原型鏈鍵的存檔照樣開得起來、夥伴＝小熊", m.partner === "bear" && !Object.prototype.hasOwnProperty.call(m.pets, "constructor") && m.pets.bear, JSON.stringify(Object.keys(m.pets)));
+  const rw = R.migrate({});
+  const r = [R.giveWear(rw, "constructor"), R.giveWear(rw, "toString"), R.canWear(rw, "constructor", "hat"), R.canWear(rw, "bear", "constructor"), R.setWear(rw, "constructor", "head", "hat"), R.setWear(rw, "bear", "head", "toString")];
+  ok("giveWear／canWear／setWear：原型鏈鍵一律拒絕、衣櫃不變", r.every(x => x === false) && rw.closet.join() === "hat,bow" && JSON.stringify(rw.wear) === "{}", JSON.stringify(r));
+  rw.wear.bear = JSON.parse('{"head":"constructor"}');
+  ok("wearOf：存檔裡的原型鏈鍵當作沒穿；沒收集的「寵物」constructor 全空", JSON.stringify(R.wearOf(rw, "bear")) === JSON.stringify({ head: null, side: null, back: null }) && JSON.stringify(R.wearOf(rw, "constructor")) === JSON.stringify({ head: null, side: null, back: null }));
+}
+// 配件擺放微調：items → pets[部位] → pets[配件] 疊加
+{
+  const fit = { items: { bow: { r: [0, -25, -22] } }, pets: { lion: { head: { p: [0, -0.05, 0], s: 0.9 }, crown: { p: [0, 0.01, 0.02], s: 1.1 }, bow: { hide: true } } } };
+  const a = R.wearPose(fit, "lion", "crown"), b = R.wearPose(fit, "bear", "bow"), c = R.wearPose(fit, "lion", "bow"), d = R.wearPose(null, "bear", "hat"), e = R.wearPose(fit, "lion", "baby_tuft");
+  const near = (x, y) => Math.abs(x - y) < 1e-9;
+  ok("wearPose：部位＋配件疊加（p 相加、s 相乘）", near(a.p[1], -0.04) && near(a.p[2], 0.02) && near(a.s, 0.99) && a.r.join() === "0,0,0", JSON.stringify(a));
+  ok("wearPose：配件預設旋轉、hide、沒資料＝原樣、寶寶小芽算頭上", b.r.join() === "0,-25,-22" && !b.hide && c.hide && d.s === 1 && d.p.join() === "0,0,0" && near(e.p[1], -0.05), JSON.stringify([b, c, e]));
+}
 for (const l of out) console.log(l);
 const bad = out.filter(l => l.startsWith("FAIL")).length; console.log(bad ? `\n${bad} FAILED / ${out.length}` : `\nALL PASS (${out.length})`);
