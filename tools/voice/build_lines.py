@@ -118,9 +118,24 @@ for i, t in [("bubble_swap", "點一下泡泡，可以換一顆喔！"), ("bubbl
 BSYMS = re.search(r'export const SYMS = \[(.*?)\];', BSRC).group(1)
 BSYMS = re.findall(r'"(.)"', BSYMS)
 SYM_READ = {"ㄅ": "玻", "ㄆ": "坡", "ㄇ": "摸", "ㄉ": "得", "ㄊ": "特", "ㄋ": "訥", "ㄌ": "勒", "ㄍ": "哥", "ㄎ": "科", "ㄏ": "喝"}
-assert BSYMS == list(SYM_READ), f"SYMS 跟讀音表不一致：{BSYMS}"
-for i, (sym, rd) in enumerate((k, SYM_READ[k]) for k in BSYMS):
+assert BSYMS[:len(SYM_READ)] == list(SYM_READ), f"SYMS 跟讀音表不一致：{BSYMS}"   # v6 新加的符號在下面 4d 段
+for i, (sym, rd) in enumerate((k, SYM_READ[k]) for k in BSYMS[:len(SYM_READ)]):
     add(f"sym_{i + 1}", sym, "word", "zhuyin-bubble.js SYMS", tts=rd)
+
+# ---- 4d. v6（10-13）泡泡救援灣第 4、5 區：新符號、區開場、天花板下壓／石頭教學、過關稱讚（分身 B）----
+# 第 4 區 ㄐㄑㄒ（機欺希）、第 5 區 ㄓㄔㄕㄖ（知吃詩日）：台灣念法，tts 用讀音字；編號接在 sym_10 後面（順序＝SYMS）
+SYM_READ_V6 = {"ㄐ": "機", "ㄑ": "欺", "ㄒ": "希", "ㄓ": "知", "ㄔ": "吃", "ㄕ": "詩", "ㄖ": "日"}
+assert BSYMS[len(SYM_READ):] == list(SYM_READ_V6), f"v6 SYMS 跟讀音表不一致：{BSYMS[len(SYM_READ):]}"
+for i, sym in enumerate(BSYMS[len(SYM_READ):]):
+    add(f"sym_{len(SYM_READ) + i + 1}", sym, "word", "zhuyin-bubble.js SYMS（v6）", tts=SYM_READ_V6[sym])
+for i, t in [("bubble_zone4", "這次要救小象喔！天花板會慢慢降下來喔！"),
+             ("bubble_zone5", "這次要救小獅子喔！灰色的石頭打不破，要讓它掉下來！"),
+             ("bubble_drop_tip", "天花板降下來了！小燈都熄掉，就會往下降喔！")]:
+    if t not in BSRC: sys.exit(f"zhuyin-bubble.js 找不到：{t}")
+    add(i, t, "guide", "zhuyin-bubble.js（v6 10-13）")
+for i, t in [("bubble_win_4", "小象都救出來了，好厲害！"), ("bubble_win_5", "小獅子都救出來了，好厲害！")]:
+    must(t); add(i, t, "result", "zhuyin.js BUBBLE_WIN_TALK（v6 10-13）")
+must("🚪 離開挑戰")   # 爬塔 Boss 的暫停選單按鈕（只顯示不唸，不用錄）
 # ---- 4c. 10-11 扭蛋機與 28 隻寵物 ----
 RWSRC = (ROOT / "js" / "zhuyin-rewards.js").read_text(encoding="utf-8")
 PETS_BLOCK = RWSRC.split("export const PETS = [")[1].split("];\nexport const PET")[0]

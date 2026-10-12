@@ -37,7 +37,35 @@
 }
 .bb-dead { position: absolute; left: calc(var(--u) * .3); right: calc(var(--u) * .3); top: calc(var(--y) * var(--u)); height: 0; pointer-events: none; border-top: calc(var(--u) * .13) dashed rgba(236, 84, 84, .7); }
 .bb-aim { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; overflow: visible; }
-.bb-layer { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+/* 泡泡層用「從天花板算的列」排；天花板降下來 --top 排時整層往下移（√3 單位一排），慢慢滑下去 */
+.bb-layer { position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  transform: translateY(calc(var(--top, 0) * 1.7320508 * var(--u))); transition: transform .5s cubic-bezier(.3, 1.25, .5, 1); }
+
+/* ---------- v6 天花板下壓（第 4、5 區）：會往下降的天花板＋上面的小燈 ---------- */
+.bb-field.bb-hasceil::before { display: none; }       /* 換成下面這塊會長高的天花板 */
+.bb-ceil { position: absolute; left: 0; right: 0; top: calc(var(--u) * -0.32); z-index: 2; pointer-events: none;
+  height: calc((var(--top, 0) * 1.7320508 + 0.62) * var(--u)); transition: height .5s cubic-bezier(.3, 1.25, .5, 1);
+  border-radius: calc(var(--u) * .9) calc(var(--u) * .9) 0 0;
+  background:
+    radial-gradient(circle at 50% 0, #2f86c4 62%, transparent 64%) 0 100% / calc(var(--u) * 2) calc(var(--u) * .62) repeat-x,
+    repeating-linear-gradient(135deg, #3b8fcd 0 calc(var(--u) * .5), #3282c1 calc(var(--u) * .5) calc(var(--u) * 1)) 0 0 / 100% calc(100% - var(--u) * .6) no-repeat; }
+.bb-ceil[hidden] { display: none; }
+.bb-jump .bb-layer, .bb-jump .bb-ceil { transition: none !important; }
+/* 小燈：掛在天花板下緣（一半在天花板裡），比泡泡上層，亮＝黃色會發光、熄＝深藍灰的空燈座 */
+.bb-lamp { position: absolute; bottom: calc(var(--u) * -.14); left: calc((var(--x) - .44) * var(--u)); width: calc(var(--u) * .88); height: calc(var(--u) * .88); border-radius: 50%; box-sizing: border-box;
+  background: radial-gradient(circle at 38% 32%, #7f97ad 0, #3d5873 60%, #233a50 100%); border: calc(var(--u) * .1) solid #e8f4ff;
+  box-shadow: 0 calc(var(--u) * .05) calc(var(--u) * .12) rgba(0, 30, 70, .35); transition: background .3s, box-shadow .3s, transform .3s; }
+.bb-lamp.on { background: radial-gradient(circle at 38% 32%, #fffef0 0, #ffe36a 40%, #ffbf1a 100%); border-color: #fff;
+  box-shadow: 0 0 calc(var(--u) * .45) calc(var(--u) * .12) rgba(255, 214, 70, .9), 0 calc(var(--u) * .05) calc(var(--u) * .12) rgba(0, 30, 70, .3); }
+.bb-ceil.bb-thud { animation: bbThud .55s ease-out; }                         /* 降下來的那一下 */
+@keyframes bbThud { 0% { transform: translateY(0); } 70% { transform: translateY(calc(var(--u) * .18)); } 100% { transform: translateY(0); } }
+.bb-ceil.bb-warn { animation: bbCeilWarn 1s ease-in-out infinite; }          /* 剩最後一盞燈：天花板輕輕抖（快降了）；寫在 thud 後面才蓋得過 */
+@keyframes bbCeilWarn { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(calc(var(--u) * .14)); } }
+.bb-ceil.bb-warn .bb-lamp.on { animation: bbLampBlink 1s ease-in-out infinite; }
+@keyframes bbLampBlink { 50% { opacity: .55; transform: scale(.88); } }
+/* Boss 碰到底線（爬塔扣一下）：底線亮一下白藍色就好（不紅閃、不震畫面） */
+.bb-press .bb-dead { animation: bbPress .9s ease-out; }
+@keyframes bbPress { 0% { border-top-color: rgba(236, 84, 84, .7); } 30% { border-top-color: #fff; box-shadow: 0 0 calc(var(--u) * .6) calc(var(--u) * .2) rgba(160, 220, 255, .9); } 100% { border-top-color: rgba(236, 84, 84, .7); } }
 
 /* ---------- 泡泡 ---------- */
 .bb-b {
@@ -57,7 +85,15 @@
 .bb-b.s4 { --c: #5ccbf2; --c1: #b8ecff; --c2: #2a9bc9; }   /* ㄊ 天藍 */
 .bb-b.s5 { --c: #36b66c; --c1: #a6e8c2; --c2: #1d8a4c; }   /* ㄋ ㄏ 綠 */
 .bb-b.s6 { --c: #ff8fc4; --c1: #ffd0e8; --c2: #d9559a; }   /* ㄌ 粉 */
-.bb-b.s7 { --c: #b79cff; --c1: #e0d4ff; --c2: #8264d6; }   /* ㄍ 紫 */
+.bb-b.s7 { --c: #b79cff; --c1: #e0d4ff; --c2: #8264d6; }   /* ㄍ ㄓ 紫 */
+/* v6 第 4 區 ㄐ紅 ㄑ天藍 ㄒ黃（沿用 s0／s4／s2）；第 5 區 ㄓ紫 ㄔ黃 ㄕ青綠 ㄖ紅（s8 新的青綠） */
+.bb-b.s8 { --c: #3fcfbf; --c1: #b4f1ea; --c2: #1e9c8e; }   /* ㄕ 青綠 */
+/* 石頭泡泡（第 5 區）：灰色、有斑點、沒有符號；不會被消掉，只能跟天花板斷開掉下來 */
+.bb-b.bb-stone { background: radial-gradient(circle at 33% 28%, #f2f4f6 0, #cdd3d9 20%, #9aa3ad 60%, #687180 100%);
+  box-shadow: inset 0 0 0 calc(var(--u) * .075) rgba(255,255,255,.55), inset 0 calc(var(--u) * -.25) calc(var(--u) * .35) rgba(0,0,0,.22), 0 calc(var(--u) * .07) calc(var(--u) * .15) rgba(0, 30, 70, .3); }
+.bb-rock { position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle at 62% 64%, rgba(64,72,86,.55) 0 9%, transparent 11%), radial-gradient(circle at 34% 70%, rgba(64,72,86,.45) 0 6%, transparent 8%),
+    radial-gradient(circle at 70% 33%, rgba(64,72,86,.4) 0 6%, transparent 8%), radial-gradient(circle at 46% 46%, rgba(64,72,86,.3) 0 4%, transparent 6%); }
 .bb-sym {
   font-family: inherit; font-size: calc(var(--u) * 1.22); font-weight: 900; line-height: 1; color: #1b2446;
   text-shadow: 0 0 calc(var(--u) * .05) #fff, 0 0 calc(var(--u) * .12) rgba(255,255,255,.9); transform: translateY(3%);
@@ -90,6 +126,7 @@
 .bb-dots.s5 circle { stroke: #1d8a4c; }
 .bb-dots.s6 circle { stroke: #d9559a; }
 .bb-dots.s7 circle { stroke: #8264d6; }
+.bb-dots.s8 circle { stroke: #1e9c8e; }
 .bb-dots.bb-gold circle { fill: #ffd54a; stroke: #e07b00; stroke-width: .1; animation: bbDot 1s ease-in-out infinite; }
 @keyframes bbDot { 50% { opacity: .45; } }
 .bb-arrow { fill: #2f6fb0; stroke: #fff; stroke-width: .12; stroke-linejoin: round; }
@@ -152,6 +189,9 @@
 .bb-port .bb-count { grid-column: 1; grid-row: 2; font-size: calc(var(--vm) * 3.3); }
 .bb-port .bb-slots { grid-column: 2; grid-row: 1 / 3; flex-wrap: nowrap; gap: calc(var(--vm) * 1); }
 .bb-port .bb-slot { width: calc(var(--vm) * 8.5); height: calc(var(--vm) * 8.5); }
+/* 要救 4 隻以上：直式一排放不下（v6 測試抓到第 30 關的第 4 格擠到發射鈕底下）→ 每排 3 格、格子小一點 */
+.bb-port .bb-goal.bb-many .bb-slots { flex-wrap: wrap; justify-content: flex-start; max-width: calc(var(--vm) * 23); gap: calc(var(--vm) * .8); }
+.bb-port .bb-goal.bb-many .bb-slot { width: calc(var(--vm) * 7); height: calc(var(--vm) * 7); }
 
 .bb-fire { position: absolute; z-index: 10; transform: translate(-50%, -50%); cursor: pointer; touch-action: manipulation; font-family: inherit;
   width: calc(var(--vm) * 25); height: calc(var(--vm) * 25); border-radius: 50%; border: 0; padding: 0;
@@ -195,4 +235,12 @@
 
 @media (prefers-reduced-motion: reduce) {
   .bb-b.bb-pen, .bb-ghost.on, .bb-dots.bb-gold circle { animation: none; }
+  .bb-ceil.bb-warn { animation: none; }
 }
+
+/* v6 選關：區頁籤變成 5 個（ㄅㄆㄇ／ㄉㄊㄋㄌ／ㄍㄎㄏ／ㄐㄑㄒ／ㄓㄔㄕㄖ），一排放得下（直式 768 寬也不會超出對話框） */
+#bubbleZones { gap: 1.2vmin; }
+#bubbleZones .bb-ztab { width: 15vmin; min-height: 14vmin; padding: 0.8vmin 0.4vmin 1vmin; }
+#bubbleZones .bb-ztab img { width: 6.2vmin; height: 6.2vmin; }
+#bubbleZones .bb-ztab .zs { font-size: 2.9vmin; letter-spacing: 0; }
+#bubbleZones .bb-ztab .zl { right: 0.6vmin; top: 0.4vmin; font-size: 3vmin; }

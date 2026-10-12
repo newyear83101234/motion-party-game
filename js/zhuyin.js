@@ -433,7 +433,7 @@ function loadSlot(n) {
   save.matchSize = lsGet(K("match_size"), 8);         // 翻牌上次選的張數（新存檔預設 8＝簡單）
   save.best = lsGet(K("best"), {});                   // 個人紀錄（B14）：{ 模式: 最佳星數 }
   save.bubble = cleanBubble(lsGet(K("bubble"), null));   // 讀出來先清洗（壞資料：stars 不是物件、lv 是字串…）；cleanBubble 是 function 宣告，開頁這裡就能用
-  if (save.bubble.all && save.bubble.lv === 9) { save.bubble.lv = 10; delete save.bubble.all; }   // 舊存檔（只有 10 關、全通）升級後接著玩第 2 區第 1 關   // 泡泡救援灣：lv＝下一關（0 起算）、stars＝每關最佳星數
+  if (save.bubble.all && (save.bubble.lv === 9 || save.bubble.lv === 29)) { save.bubble.lv += 1; delete save.bubble.all; }   // 舊存檔（10 關或 30 關版、全通）升級後接著玩下一區第 1 關（v6：30→50 關）   // 泡泡救援灣：lv＝下一關（0 起算）、stars＝每關最佳星數
   save.deliver = cleanDeliver(lsGet(K("deliver"), null));   // 彩虹配送站（10-12）：lv＝下一關（0 起算）、stars＝每關最佳星數、all＝8 關都過了
   save.detective = cleanDetective(lsGet(K("detective"), null));   // 詞句小偵探（10-12）：seen＝玩過的題目 id、best＝最佳星數
   save.tops = cleanTops(lsGet(K("tops"), null));       // 注音戰鬥陀螺（10-12）：tickets 陀螺券、starsBank 存著換券的星星、freeUsed 第一次免費用過了、best、home 我家排行、history 最近 10 句
@@ -1622,24 +1622,31 @@ function gameHint() {
 
 // ---------- 泡泡救援灣（阿葉 10-11，GPT 提案）：引擎在 js/zhuyin-bubble.js（第一次玩才載）；十個固定關卡、三種符號、救小企鵝 ----------
 const BOARD = m => m === "match" || m === "bubble" || m === "deliver" || m === "detective" || m === "tops";      // 單一盤面的模式：沒有一題一題的回合（偵探、陀螺的回合在模組裡）
-let BUBBLE_N = 30, BUBBLE_PER = 10, BUBBLE_ZONES = [];      // 模組載入後改成 LEVELS.length／LEVELS_PER_ZONE／ZONES（三區，每區 10 關）
+let BUBBLE_N = 50, BUBBLE_PER = 10, BUBBLE_ZONES = [];      // 模組載入後改成 LEVELS.length／LEVELS_PER_ZONE／ZONES（v6：五區，每區 10 關）
 let bubbleMod = null, bubbleGame = null, bubbleRun = null, bubbleLevel = 0, bubbleTab = 0;
 const importBubble = () => bubbleMod || (bubbleMod = import("./zhuyin-bubble.js?v=2").then(m => { BUBBLE_N = m.LEVELS.length; BUBBLE_PER = m.LEVELS_PER_ZONE; BUBBLE_ZONES = m.ZONES; return m; }).catch(e => { bubbleMod = null; throw e; }));
 const bubbleZoneOf = lv => Math.min(Math.max(0, BUBBLE_ZONES.length - 1), Math.floor(lv / BUBBLE_PER));
 const bubbleAnimal = lv => (BUBBLE_ZONES[bubbleZoneOf(lv)] || { name: "小企鵝" }).name;
-const BUBBLE_WIN_TALK = ["小企鵝都救出來了，好厲害！", "小螃蟹都救出來了，好厲害！", "小鯨魚都救出來了，好厲害！"];
+const BUBBLE_WIN_TALK = ["小企鵝都救出來了，好厲害！", "小螃蟹都救出來了，好厲害！", "小鯨魚都救出來了，好厲害！", "小象都救出來了，好厲害！", "小獅子都救出來了，好厲害！"];
+// 泡泡引擎只建一次（一般關卡和爬塔 Boss 共用）；每區救的動物圖
+function ensureBubbleGame(m) {
+  if (!bubbleGame) bubbleGame = m.createBubbleGame($("bubbleRoot"), {
+    say: t => say(t), talk: t => talk(t), play, later: (fn, ms) => gLater(fn, ms), paused: () => gamePaused,
+    onWin: r => bubbleWin(r), onFull: () => bubbleFull(), onPress: e => bubbleBossPress(e), onStop: e => bubbleStopped(e),
+    animalImgs: { penguin: "IMAGE/zhuyin/cust_penguin.webp", crab: "IMAGE/zhuyin/pets/crab.webp", whale: "IMAGE/zhuyin/pets/whale.webp",
+      elephant: "IMAGE/zhuyin/pets/elephant.webp", lion: "IMAGE/zhuyin/pets/lion.webp" } });
+  return bubbleGame;
+}
 async function buildBubble() {
   const tok = navToken; let m;
   try { m = await importBubble(); } catch (e) { console.warn("[bubble]", e); if (tok === navToken) goMenu(); return; }
   if (tok !== navToken || mode !== "bubble") return;
-  if (!bubbleGame) bubbleGame = m.createBubbleGame($("bubbleRoot"), {
-    say: t => say(t), talk: t => talk(t), play, later: (fn, ms) => gLater(fn, ms), paused: () => gamePaused,
-    onWin: r => bubbleWin(r), onFull: () => bubbleFull(),
-    animalImgs: { penguin: "IMAGE/zhuyin/cust_penguin.webp", crab: "IMAGE/zhuyin/pets/crab.webp", whale: "IMAGE/zhuyin/pets/whale.webp" } });   // 每區救的動物
+  ensureBubbleGame(m);
   bubbleRun = { level: bubbleLevel, stars: 0, rescued: 0 };
   bubbleGame.start(bubbleLevel);
 }
 function bubbleWin(r) {
+  if (bubbleBoss) { bubbleBossWin(r); return; }        // 爬塔 Boss：不存進度、不給星星
   if (mode !== "bubble") return;
   locked = true; clearIdle();
   const b = save.bubble; b.stars[r.level] = Math.max(b.stars[r.level] || 0, r.stars); b.lv = Math.max(b.lv, Math.min(BUBBLE_N - 1, r.level + 1)); if (r.level === BUBBLE_N - 1) b.all = 1; persist();
@@ -1648,13 +1655,62 @@ function bubbleWin(r) {
   gLater(showResult, 700);
 }
 function bubbleFull() {
-  if (mode !== "bubble") return;
+  if (mode !== "bubble" || bubbleBoss) return;           // Boss 碰底線走 onPress，不會到這裡（保險）
   talk("泡泡太多了，我們再試一次！");
-  gLater(() => { if (mode === "bubble" && bubbleGame) bubbleGame.start(bubbleRun.level); }, 2400);
+  gLater(() => { if (mode === "bubble" && bubbleGame && !bubbleBoss) bubbleGame.start(bubbleRun.level); }, 2400);
 }
+
+// ---------- v6 爬塔用的泡泡 Boss（docs/zhuyin-v6-plan.md §3、§5.3）----------
+// playBubbleBoss({ level: 盤面（LEVELS 的第幾個，0 起）, ceilingEvery: 每幾發天花板降一排, onEvent }) → { done: Promise<{ cleared, shots, presses, aborted }>, abort() }
+// 自己開泡泡畫面、結束（救完／abort／🏠 離開挑戰）時收掉並回到呼叫前的畫面。碰到底線不重來：發 onEvent({ type: "press" }) 並整片往上退 2 排。
+// 不存泡泡進度、不給星星／貼紙、不記同樂廣場。🏠 暫停選單在 Boss 時是「繼續玩／離開挑戰」（離開＝aborted）。
+let bubbleBoss = null;
+function playBubbleBoss({ level = 0, ceilingEvery = 8, onEvent } = {}) {
+  if (bubbleBoss) bubbleBoss.finish({ aborted: true });   // 上一場還沒收（保險）
+  let resolveDone; const done = new Promise(r => { resolveDone = r; });
+  const prev = [...document.querySelectorAll(".screen")].find(s => !s.classList.contains("hidden"))?.id || "menu";
+  const B = bubbleBoss = { presses: 0, shots: 0, prev, prevMode: mode, done: false, level: Math.max(0, level | 0), every: Math.max(1, Math.floor(+ceilingEvery) || 8) };
+  B.emit = ev => { try { if (onEvent) onEvent(ev); } catch (e) { console.warn("[bubble boss] onEvent", e); } };
+  B.finish = res => {
+    if (B.done) return; B.done = true;
+    const s = bubbleGame && bubbleGame.state(); if (s && s.boss) { B.shots = s.shots; B.presses = s.presses; }
+    if (bubbleBoss === B) bubbleBoss = null;
+    bossPauseMenu(false); $("confirm").classList.add("hidden");
+    if (bubbleGame) PZ(() => bubbleGame.stop());
+    if (gamePaused) gResume();
+    if (mode === "bubble") { mode = B.prevMode; showScreen(B.prev); if (B.prev === "menu") playBgm(menuBgmKey()); }
+    resolveDone(Object.assign({ cleared: false, shots: B.shots, presses: B.presses, aborted: false }, res));
+  };
+  (async () => {
+    let m; try { m = await importBubble(); } catch (e) { console.warn("[bubble]", e); B.finish({ aborted: true }); return; }
+    if (B.done) return;
+    clearIdle(); mode = "bubble"; locked = false;
+    showScreen("bubble"); playBgm(MODES.bubble.bgm); bossPauseMenu(true);
+    ensureBubbleGame(m).start(Math.min(BUBBLE_N - 1, B.level), { boss: true, drop: B.every });
+  })();
+  return { done, abort: () => B.finish({ aborted: true }) };
+}
+function bubbleBossWin(r) { const B = bubbleBoss; if (!B) return; B.shots = r.shots; B.presses = r.presses || 0; B.finish({ cleared: true, shots: r.shots, presses: r.presses || 0 }); }
+function bubbleBossPress(e) { const B = bubbleBoss; if (!B) return; B.presses = e.presses; B.emit({ type: "press", presses: e.presses, shots: e.shots }); }
+function bubbleStopped(e) { if (e && e.boss && bubbleBoss && !bubbleBoss.done) bubbleBoss.finish({ aborted: true }); }   // 別的地方把泡泡畫面收掉了（例如 goMenu）：這場算離開
+// 🏠 暫停選單：Boss 進行中「回小島」變「離開挑戰」、藏「重新開始」；點擊在捕獲階段先攔下來（原本的 onclick 不會跑）
+function bossPauseCatch(e) {
+  const B = bubbleBoss; if (!B) return;
+  const b = e.target && e.target.closest && e.target.closest("#confirmYes, #confirmRestart"); if (!b) return;
+  e.stopPropagation(); e.preventDefault();
+  if (b.id === "confirmYes") { play("select"); B.finish({ aborted: true }); }
+}
+function bossPauseMenu(on) {
+  const yes = $("confirmYes"), rs = $("confirmRestart");
+  document.body.classList.toggle("zy-bubble-boss", on);   // Boss 進行中（爬塔畫面若是蓋在上面的 overlay，可用這個 class 先藏起來）
+  if (on) { document.addEventListener("click", bossPauseCatch, true); if (!yes.dataset.bossTxt) { yes.dataset.bossTxt = yes.textContent; yes.textContent = "🚪 離開挑戰"; } rs.classList.add("hidden"); }
+  else { document.removeEventListener("click", bossPauseCatch, true); if (yes.dataset.bossTxt) { yes.textContent = yes.dataset.bossTxt; delete yes.dataset.bossTxt; } rs.classList.remove("hidden"); }
+}
+window.__zyTowerApi = Object.assign(window.__zyTowerApi || {}, { playBubbleBoss });   // 爬塔模組（分身 D）從這裡拿
+if (location.search.includes("debug")) setTimeout(() => { if (window.__zy) window.__zy.playBubbleBoss = playBubbleBoss; }, 0);   // 測試用（window.__zy 在檔尾才建）
 // 選關：上方是三個區頁籤（顯示該區符號＋救的動物，前一區全過才開）、下面是該區 10 關（過過的關有星星、下一關黃框、還沒到的鎖著）
 // 解鎖規則：save.bubble.lv＝目前玩到的關；第 k 區要 lv ≥ k×10（＝前一區 10 關全過）；區內第 i 關要 i ≤ lv。兩種鎖是同一條「逐關解鎖」線。
-const BUBBLE_TAB_IMG = ["cust_penguin", "pets/crab", "pets/whale"];
+const BUBBLE_TAB_IMG = ["cust_penguin", "pets/crab", "pets/whale", "pets/elephant", "pets/lion"];
 async function openBubblePick() {
   try { await importBubble(); } catch (e) { console.warn("[bubble]", e); return; }
   bubbleTab = bubbleZoneOf(Math.min(BUBBLE_N - 1, save.bubble.lv));      // 一打開停在目前進度那一區

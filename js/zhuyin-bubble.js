@@ -1,30 +1,37 @@
 // ===================== 注音小島：泡泡救援灣（泡泡龍玩法） =====================
 // 小企鵝被泡泡困住，從下面發射注音泡泡；三顆以上相同符號連在一起就破掉，
 // 跟天花板斷開的泡泡整片掉下來（企鵝掉下來＝救出）。救完這關所有企鵝就過關，不用清空。
-// 給 5 歲小孩自己玩：沒有倒數、泡泡不會往下壓、發射次數不限；大人的樂趣是找「支撐點」一發清一大片。
+// 給 5 歲小孩自己玩：沒有倒數、發射次數不限；大人的樂趣是找「支撐點」一發清一大片。
+// v6（10-13）：第 4 區（31～40 關 ㄐㄑㄒ）起「天花板下壓」：每 N 發整片往下降一排（關卡的 drop＝N；天花板上的小燈每發熄一顆，
+//   剩最後一顆時天花板輕輕抖），碰到底線＝這關重來（跟滿盤一樣）；第 5 區（41～50 關 ㄓㄔㄕㄖ）再加「石頭泡泡」（不會被同色消掉，只能跟天花板斷開掉下來）。
+//   Boss 模式（爬塔用，主程式 playBubbleBoss）：碰到底線不重來 → api.onPress()、整片往上退 2 排、接著玩；不給星星。
 //
 // 介面（主程式照這個接）：
-//   createBubbleGame(root, api) → { start(i), stop(), sayCurrent(), relayout(), state(), debug }
-//   api：say talk play later paused onWin onFull animalImg animalName（＋測試用可選 seed）
+//   createBubbleGame(root, api) → { start(i, { drop, boss }?), stop(), sayCurrent(), relayout(), state(), debug }
+//   api：say talk play later paused onWin onFull onPress（Boss）animalImgs（＋測試用可選 seed）
 //
 // 座標：泡泡半徑＝1 單位。場地寬 16 單位，偶數列 8 格、奇數列 7 格（往右移半格），列距 √3。
 // 預測＝實際：瞄準線、示範、求解器、真正發射，全部用同一支 trace()＋resolve()。
 
 // 全部會出現在泡泡上的符號（格子裡存的是這張表的編號；ㄅㄆㄇ 維持 0、1、2，舊關卡與存檔不受影響）
-export const SYMS = ["ㄅ", "ㄆ", "ㄇ", "ㄉ", "ㄊ", "ㄋ", "ㄌ", "ㄍ", "ㄎ", "ㄏ"];
-// 每個符號固定一個顏色（CSS 的 .s0～.s7）：ㄅ紅 ㄆ藍 ㄇ黃 ㄉ橘 ㄊ天藍 ㄋ綠 ㄌ粉 ㄍ紫 ㄎ橘 ㄏ綠
-const SYM_COLOR = [0, 1, 2, 3, 4, 5, 6, 7, 3, 5];
-// 三個區（每區 10 關）：符號、救的動物（名字＋圖的鍵，圖路徑由主程式的 api.animalImgs 給）
+export const SYMS = ["ㄅ", "ㄆ", "ㄇ", "ㄉ", "ㄊ", "ㄋ", "ㄌ", "ㄍ", "ㄎ", "ㄏ", "ㄐ", "ㄑ", "ㄒ", "ㄓ", "ㄔ", "ㄕ", "ㄖ"];
+// 每個符號固定一個顏色（CSS 的 .s0～.s8）：ㄅ紅 ㄆ藍 ㄇ黃 ㄉ橘 ㄊ天藍 ㄋ綠 ㄌ粉 ㄍ紫 ㄎ橘 ㄏ綠｜ㄐ紅 ㄑ天藍 ㄒ黃｜ㄓ紫 ㄔ黃 ㄕ青綠 ㄖ紅
+// （同一區裡色相、亮度都拉開；符號字本身印在泡泡上，顏色只是幫忙）
+const SYM_COLOR = [0, 1, 2, 3, 4, 5, 6, 7, 3, 5, 0, 4, 2, 7, 2, 8, 0];
+// 五個區（每區 10 關）：符號、救的動物（名字＋圖的鍵，圖路徑由主程式的 api.animalImgs 給）
 export const ZONES = [
   { syms: "ㄅㄆㄇ", key: "penguin", name: "小企鵝" },
   { syms: "ㄉㄊㄋㄌ", key: "crab", name: "小螃蟹" },
   { syms: "ㄍㄎㄏ", key: "whale", name: "小鯨魚" },
+  { syms: "ㄐㄑㄒ", key: "elephant", name: "小象" },        // v6 第 4 區：天花板下壓（象＝ㄒㄧㄤˋ）
+  { syms: "ㄓㄔㄕㄖ", key: "lion", name: "小獅子" },       // v6 第 5 區：下壓＋石頭泡泡（獅＝ㄕ）
 ];
 export const LEVELS_PER_ZONE = 10;
 
-// ---------- 關卡：'1'～'4' ＝這一關符號組的第幾個（預設用該區的符號：第 1 區 ㄅ紅 ㄆ藍 ㄇ黃）'A' 被困的動物 '.' 空；奇數列前面的空白只是排版 ----------
+// ---------- 關卡：'1'～'4' ＝這一關符號組的第幾個（預設用該區的符號：第 1 區 ㄅ紅 ㄆ藍 ㄇ黃）'A' 被困的動物 'X' 石頭泡泡 '.' 空；奇數列前面的空白只是排版 ----------
 // 每關可以另外寫 syms:"ㄊㄋㄌ"（這一關自己的符號組，3 或 4 個）；沒寫就用該區的 ZONES[].syms。
-// q＝開場的「目前這顆／下一顆」（教學關固定，之後隨機）。par 由 tools/zy-test/bubble.js 的求解器驗證過。
+// q＝開場的「目前這顆／下一顆」（教學關固定，之後隨機）。par 由 tools/zy-test/bubble.js 的求解器驗證過（含天花板下壓）。
+// drop＝每幾發天花板降一排（0／沒寫＝不降）；teach＝教學關（閒置 4 秒出示範，同前 3 關）。
 export const LEVELS = [
   { par: 2, q: "13", rows: [            // 1：一對ㄅ抱著企鵝 → 補一顆ㄅ就破（求解 1 發）
     "33.11.33",
@@ -254,12 +261,197 @@ export const LEVELS = [
     " ..2.2.3",
     "..11A1.3",
   ] },
+  // ===== v6 第 4 區（31～40 關）：ㄐ ㄑ ㄒ，救小象。'1'ㄐ '2'ㄑ '3'ㄒ（紅／天藍／黃）。天花板下壓：31 關 3 發、32 關 4 發（教學），33～35 關 8 發、36～40 關 7 發 =====
+  // 盤面是程式隨機產生後、用求解器（含下壓）照難度挑的；par＝求解器 75 百分位（比前三區緊，教學關可多 1）
+  { par: 3, drop: 3, teach: true, rows: [ // 31：第一次天花板下壓（3 發降一排，小燈示範）（求解器 2/3/3/5）
+    "..2131..",
+    " ...22.3",
+    "..A11312",
+    " ..322.2",
+  ] },
+  { par: 4, drop: 4, rows: [             // 32：兩隻小象，4 發降一排（求解器 2/3/4/5）
+    ".22.13..",
+    " 11.3A..",
+    ".221322.",
+    " 3312131",
+    "1..213A.",
+  ] },
+  { par: 4, drop: 8, rows: [             // 33：起 8 發降一排（求解器 2/3/4/6）
+    "..312.33",
+    " .323321",
+    "31123212",
+    " 31221A2",
+    "2..3123A",
+  ] },
+  { par: 5, drop: 8, rows: [             // 34：兩隻小象藏在中間（求解器 3/4/5/6）
+    ".1222...",
+    " .31131.",
+    "12A12...",
+    " 12..1.3",
+    "2313132A",
+    " 23.2232",
+  ] },
+  { par: 5, drop: 8, rows: [             // 35：七排、三隻（求解器 3/4/5/7）
+    ".123112.",
+    " 2132..3",
+    "33213213",
+    " 2A2.3A1",
+    "11232123",
+    " 2A13123",
+    "2.22.31.",
+  ] },
+  { par: 6, drop: 7, rows: [             // 36：起 7 發降一排（求解器 3/5/6/8）
+    "..3311..",
+    " 1123221",
+    "32..A13.",
+    " 1232231",
+    "12131112",
+    " 231A.A2",
+    "13.2113.",
+  ] },
+  { par: 6, drop: 7, rows: [             // 37：八排、三隻（求解器 4/5/6/9）
+    "...32...",
+    " ..2321.",
+    ".21131.1",
+    " 1222322",
+    "12.31113",
+    " A.3A223",
+    "13123A3.",
+    " 21311.1",
+  ] },
+  { par: 7, drop: 7, rows: [             // 38：八排、四隻（求解器 4/6/7/10）
+    ".21331..",
+    " .321212",
+    "1.312323",
+    " 321A1.1",
+    "2133133.",
+    " 321.21.",
+    "A.12121.",
+    " .A33A33",
+  ] },
+  { par: 8, drop: 7, rows: [             // 39：九排、四隻（求解器 4/6/8/10）
+    ".3.23...",
+    " ..3213.",
+    ".1..1...",
+    " 2.3A22.",
+    ".22313.1",
+    " 31223A2",
+    "A13A1211",
+    " 21321.2",
+    ".2113213",
+  ] },
+  { par: 9, drop: 7, rows: [             // 40：九排、五隻（求解器 5/7/9/12）
+    ".2.2....",
+    " ..2323.",
+    ".2113A11",
+    " .33A1.3",
+    "..113.23",
+    " .332232",
+    "..2.13..",
+    " A131...",
+    ".2A233A.",
+  ] },
+
+  // ===== v6 第 5 區（41～50 關）：ㄓ ㄔ ㄕ ㄖ，救小獅子。'1'ㄓ '2'ㄔ '3'ㄕ '4'ㄖ（紫／黃／青綠／紅）、'X' 石頭泡泡。下壓 41～45 關 7 發、46～50 關 6 發 =====
+  { par: 2, drop: 7, teach: true, q: "12", rows: [   // 41：第一次出現石頭——石頭籠子只掛在一對ㄓ下面，補一顆ㄓ整個籠子掉下來（求解器 1 發）
+    "2..11..3",
+    " .XXX...",
+    "..XAX...",
+    " ..XX...",
+  ] },
+  { par: 4, drop: 7, rows: [             // 42：四種符號＋石頭（求解器 2/3/4/8）
+    "33244...",
+    " 4XA1...",
+    "X2.32...",
+    " 32.....",
+    "244A2...",
+  ] },
+  { par: 5, drop: 7, rows: [             // 43（求解器 2/3/5/9）
+    ".42.....",
+    " 4.213..",
+    "3141....",
+    " 133X4..",
+    "3AX1XA1.",
+    " 433.4.1",
+  ] },
+  { par: 6, drop: 7, rows: [             // 44：三隻小獅子（求解器 3/4/6/8）
+    "422.....",
+    " .4133.4",
+    ".314214.",
+    " 324.4XA",
+    "11XA14..",
+    " 23X31A4",
+    "234.4322",
+  ] },
+  { par: 7, drop: 7, rows: [             // 45：七排大團（求解器 3/5/7/11）
+    ".4422.3.",
+    " .131323",
+    "24214AX2",
+    " 412434.",
+    "1.A.13X4",
+    " 3.314AX",
+    "311.4X23",
+  ] },
+  { par: 8, drop: 6, rows: [             // 46：起 6 發降一排（求解器 2/6/8/13）
+    "..44..44",
+    " 4233233",
+    ".2121214",
+    " 1344343",
+    "X13X314.",
+    " AXA2241",
+    "34.4331.",
+    " 311AX4.",
+  ] },
+  { par: 9, drop: 6, rows: [             // 47：四隻、石頭擋路（求解器 5/7/9/15）
+    ".34.....",
+    " 24.....",
+    ".XA22...",
+    " ..433..",
+    "..12243.",
+    " .A3X.2.",
+    ".3X3A42.",
+    " 3XAX243",
+  ] },
+  { par: 10, drop: 6, rows: [            // 48：九排、四隻（求解器 4/8/10/13）
+    "..1442.1",
+    " ...1X2.",
+    "....XX..",
+    " ...A431",
+    "....4.XA",
+    " ..14211",
+    ".A312X34",
+    " 4324A31",
+    "34.24.1.",
+  ] },
+  { par: 11, drop: 6, rows: [            // 49：九排、四隻、石頭最多（求解器 3/6/11/20）
+    "...32...",
+    " ..31241",
+    ".312X321",
+    " 4X4AXAX",
+    ".X124..3",
+    " 13.413A",
+    ".3114132",
+    " 243XA.2",
+    "321241..",
+  ] },
+  { par: 12, drop: 6, rows: [            // 50：最後一關：十排、五隻小獅子（求解器 4/11/12/20）
+    ".22.....",
+    " ..21...",
+    "..442...",
+    " ..1.3..",
+    ".22423..",
+    " .4XAX..",
+    "..A.1...",
+    " ..422X1",
+    ".43A.XX2",
+    " .22XA1A",
+  ] },
 ];
 
 LEVELS.forEach((d, i) => { d.zone = Math.floor(i / LEVELS_PER_ZONE); if (!d.syms) d.syms = ZONES[d.zone].syms; });
 
 // ---------- 幾何常數 ----------
-const PEN = 99, NONE = -1;                 // 格子的值：0～9 是符號編號、PEN＝被困的動物
+const PEN = 99, STONE = 98, NONE = -1;    // 格子的值：0～16 是符號編號、PEN＝被困的動物、STONE＝石頭泡泡（不會被消掉，只會掉下來）
 const ROWS = 12;                         // 第 0～11 列可以放；停在第 12 列＝碰到底線
 const MAXR = 14;                         // 模擬列數上限（含底線下面那一列）
 const RH = Math.sqrt(3);
@@ -285,8 +477,13 @@ function nbrs(r, c) {
   add(r + 1, c - 1 + o); add(r + 1, c + o);
   return out;
 }
-const emptyGrid = () => Array.from({ length: MAXR }, (_, r) => new Array(rowLen(r)).fill(NONE));
-const cloneGrid = g => g.map(row => row.slice());
+// 盤面＝MAXR 列的陣列，列號從天花板算起（第 0 列黏在天花板上）；g.top＝天花板已經往下降了幾排（畫面上第 r 列在 r＋top 的位置）。
+// 天花板下降只改 top，不搬格子：每一列的奇偶（往右移半格）不變，泡泡不會左右跳。
+const emptyGrid = () => { const g = Array.from({ length: MAXR }, (_, r) => new Array(rowLen(r)).fill(NONE)); g.top = 0; return g; };
+const cloneGrid = g => { const c = g.map(row => row.slice()); c.top = g.top || 0; return c; };
+const topOf = g => g.top || 0;
+const gy = (g, r) => cellY(r) + topOf(g) * RH;           // 第 r 列在畫面上的 y（含天花板下降）
+const isSym = v => v >= 0 && v !== PEN && v !== STONE;
 // 這一關的符號組 → 編號陣列（'1' 對應第 1 個…）。沒寫 syms 的自訂盤面（測試用）當作 ㄅㄆㄇ
 function symIds(def) { return [...(def.syms || "ㄅㄆㄇ")].map(ch => { const i = SYMS.indexOf(ch); if (i < 0) throw new Error("bubble level: bad symbol " + ch); return i; }); }
 const digitOf = (ids, ch) => { const k = "123456789".indexOf(ch); return k >= 0 && k < ids.length ? ids[k] : -1; };
@@ -296,22 +493,22 @@ function parseLevel(def) {
   def.rows.forEach((s, r) => {
     const t = s.replace(/\s/g, "");
     if (t.length !== rowLen(r)) throw new Error(`bubble level: row ${r} needs ${rowLen(r)} cells, got "${t}"`);
-    [...t].forEach((ch, c) => { g[r][c] = ch === "A" ? PEN : ch === "." ? NONE : digitOf(ids, ch); if (g[r][c] === -1 && ch !== ".") throw new Error("bubble level: bad cell " + ch); });
+    [...t].forEach((ch, c) => { g[r][c] = ch === "A" ? PEN : ch === "X" ? STONE : ch === "." ? NONE : digitOf(ids, ch); if (g[r][c] === -1 && ch !== ".") throw new Error("bubble level: bad cell " + ch); });
   });
   return g;
 }
 function each(g, fn) { for (let r = 0; r < MAXR; r++) for (let c = 0; c < g[r].length; c++) if (g[r][c] !== NONE) fn(r, c, g[r][c]); }
-function present(g) { const s = new Set(); each(g, (r, c, v) => { if (v !== PEN) s.add(v); }); return [...s].sort(); }
+function present(g) { const s = new Set(); each(g, (r, c, v) => { if (isSym(v)) s.add(v); }); return [...s].sort((a, b) => a - b); }
 function penguinsLeft(g) { let n = 0; each(g, (r, c, v) => { if (v === PEN) n++; }); return n; }
 
 // 從發射口沿角度 ang（弧度，0＝右、π/2＝正上）飛：撞牆反彈、碰到泡泡或天花板就停，吸到最近的空格
 function trace(g, ang) {
   let x = SHOOT_X, y = SHOOT_Y, dx = Math.cos(ang), dy = -Math.sin(ang);
-  const occ = []; each(g, (r, c) => occ.push([cellX(r, c), cellY(r)]));
-  const pts = [[x, y]];
+  const occ = []; each(g, (r, c) => occ.push([cellX(r, c), gy(g, r)]));
+  const pts = [[x, y]], ceil = 1 + topOf(g) * RH;          // 天花板（第 0 列泡泡的中心線）跟著下降
   for (let seg = 0; seg < 40; seg++) {
     const tW = dx > 1e-9 ? (FIELD_W - 1 - x) / dx : dx < -1e-9 ? (1 - x) / dx : Infinity;
-    const tC = dy < -1e-9 ? (1 - y) / dy : Infinity;
+    const tC = dy < -1e-9 ? (ceil - y) / dy : Infinity;
     let tH = Infinity;
     for (const [bx, by] of occ) {
       const px = x - bx, py = y - by, b = px * dx + py * dy;
@@ -328,11 +525,11 @@ function trace(g, ang) {
 }
 function snap(g, x, y) {
   let best = null, bd = Infinity;
-  const r0 = Math.max(0, Math.floor((y - 1) / RH) - 2), r1 = Math.min(MAXR - 1, r0 + 5);
+  const r0 = Math.max(0, Math.floor((y - 1) / RH - topOf(g)) - 2), r1 = Math.min(MAXR - 1, r0 + 5);
   for (let r = r0; r <= r1; r++) for (let c = 0; c < rowLen(r); c++) {
     if (g[r][c] !== NONE) continue;
     if (r > 0 && !nbrs(r, c).some(([a, b]) => g[a][b] !== NONE)) continue;
-    const d = (cellX(r, c) - x) ** 2 + (cellY(r) - y) ** 2;
+    const d = (cellX(r, c) - x) ** 2 + (gy(g, r) - y) ** 2;
     if (d < bd) { bd = d; best = [r, c]; }
   }
   return best;
@@ -346,7 +543,7 @@ function flood(g, starts, ok) {               // BFS，回傳順序＝離起點�
   }
   return out;
 }
-// 黏上去之後的判定（直接改 g）：同符號 ≥3 消除 → 旁邊的企鵝救出 → 跟天花板斷開的全部掉下來
+// 黏上去之後的判定（直接改 g）：同符號 ≥3 消除 → 旁邊的企鵝救出 → 跟天花板斷開的全部掉下來（石頭泡泡只會在這一步掉）
 function resolve(g, r, c, v) {
   g[r][c] = v;
   const res = { cell: [r, c], v, popped: [], rescued: [], dropped: [], full: false };
@@ -359,9 +556,22 @@ function resolve(g, r, c, v) {
   const roots = []; for (let c2 = 0; c2 < 8; c2++) if (g[0][c2] !== NONE) roots.push([0, c2]);
   const keep = new Set(flood(g, roots, (a, b) => g[a][b] !== NONE).map(([a, b]) => key(a, b)));
   each(g, (a, b, w) => { if (keep.has(key(a, b))) return; if (w === PEN) res.rescued.push([a, b, "fall"]); else res.dropped.push([a, b, w]); g[a][b] = NONE; });
-  if (!present(g).length) each(g, (a, b, w) => { if (w === PEN) { res.rescued.push([a, b, "auto"]); g[a][b] = NONE; } });   // 符號泡泡都沒了＝剩下的企鵝自己飛出來
-  each(g, a => { if (a >= ROWS) res.full = true; });
+  if (!present(g).length) each(g, (a, b, w) => { if (w === PEN) { res.rescued.push([a, b, "auto"]); g[a][b] = NONE; } });   // 符號泡泡都沒了（只剩石頭也算）＝剩下的企鵝自己飛出來
+  res.full = touching(g);
   return res;
+}
+// 有沒有泡泡碰到底線（畫面上的第 ROWS 列）
+function touching(g) { let t = false; const top = topOf(g); each(g, a => { if (a + top >= ROWS) t = true; }); return t; }
+// 天花板往下降一排（直接改 g）：回傳降完是不是碰到底線
+function lower(g) { g.top = topOf(g) + 1; return touching(g); }
+// Boss：整片往上退 n 排（n 要偶數，列的奇偶才不會變）。天花板降過 n 排以上＝天花板往回收；不夠的話＝最上面 n 列被天花板收走
+// （符號／石頭泡泡消失、困在裡面的動物算救出），其餘整片往上搬 n 列。回傳被收走的格子 { gone: [[r,c,v]], freed: [[r,c]] }
+function raise(g, n = 2) {
+  const out = { gone: [], freed: [] };
+  if (topOf(g) >= n) { g.top -= n; return out; }
+  for (let r = 0; r < n; r++) for (let c = 0; c < g[r].length; c++) { const v = g[r][c]; if (v === PEN) out.freed.push([r, c]); else if (v !== NONE) out.gone.push([r, c, v]); }
+  for (let r = 0; r < MAXR; r++) g[r] = r + n < MAXR ? g[r + n] : new Array(rowLen(r)).fill(NONE);
+  return out;
 }
 // 示範與求解器用的分數：救出×100＋消除與掉落顆數×5＋有消除 10；其餘是小數點級的偏好（沒得消時：靠近同色、位置高）
 function scoreOf(res, g, sym) {
@@ -412,11 +622,14 @@ function refill(s) {                          // 發射完：下一顆變目前�
   s.next = pick(s.g, s.rnd);
 }
 
-// 求解器：貪婪＋一步前瞻（同一套 trace/resolve）。回傳 { win, shots, swaps, full }
-export function solveLevel(i, { seed = 1, maxShots = 60, look = 6 } = {}) {
-  const s = newRun(LEVELS[i], seed);
-  let shots = 0, swaps = 0;
+// 求解器：貪婪＋一步前瞻（同一套 trace/resolve；天花板下壓照關卡的 drop 算，這一發會讓天花板降下來就連降完一起看）。
+// 回傳 { win, shots, swaps, full, drops }；def 給了就解這個盤面（關卡設計工具用）
+export function solveLevel(i, { seed = 1, maxShots = 60, look = 6, def = null, drop = null } = {}) {
+  const d = def || LEVELS[i], N = drop != null ? drop : (d.drop || 0);
+  const s = newRun(d, seed);
+  let shots = 0, swaps = 0, left = N, drops = 0;
   while (penguinsLeft(s.g) > 0 && shots < maxShots) {
+    const dropNow = N > 0 && left === 1;
     const opts = [];
     for (const sw of s.next !== NONE && s.next !== s.cur ? [false, true] : [false]) {
       const sym = sw ? s.next : s.cur;
@@ -426,6 +639,7 @@ export function solveLevel(i, { seed = 1, maxShots = 60, look = 6 } = {}) {
     for (const o of opts.slice(0, look)) {
       if (o.score <= -1000) continue;
       if (penguinsLeft(o.g2) === 0) { o.val = o.score + 10000 - (o.sw ? 1 : 0); continue; }
+      if (dropNow && lower(o.g2)) { o.val = -1000; continue; }          // 這一發之後天花板降下來就碰底線
       const nx = o.sw ? s.cur : s.next, p = present(o.g2);
       const cands = p.includes(nx) ? [nx] : p;
       let sum = 0; for (const sym of cands) { const b = bestFor(o.g2, sym); sum += b ? Math.max(0, b.score) : 0; }
@@ -435,14 +649,16 @@ export function solveLevel(i, { seed = 1, maxShots = 60, look = 6 } = {}) {
     if (!ch) break;
     if (ch.sw) { [s.cur, s.next] = [s.next, s.cur]; swaps++; }
     const res = resolve(s.g, ch.cell[0], ch.cell[1], s.cur); shots++;
-    if (res.full && penguinsLeft(s.g) > 0) return { win: false, shots, swaps, full: true };
+    if (res.full && penguinsLeft(s.g) > 0) return { win: false, shots, swaps, full: true, drops };
+    if (penguinsLeft(s.g) === 0) break;
+    if (N > 0 && --left === 0) { left = N; drops++; if (lower(s.g)) return { win: false, shots, swaps, full: true, drops }; }
     refill(s);
   }
-  return { win: penguinsLeft(s.g) === 0, shots, swaps, full: false };
+  return { win: penguinsLeft(s.g) === 0, shots, swaps, full: false, drops };
 }
 
 // 測試／關卡設計用（主程式不需要）
-export const bubbleSim = { parseLevel, trace, resolve, evalShots, bestFor, present, penguinsLeft, cloneGrid, newRun, refill };
+export const bubbleSim = { parseLevel, trace, resolve, evalShots, bestFor, present, penguinsLeft, cloneGrid, newRun, refill, lower, raise, touching, PEN, STONE };
 
 // ---------- 自己附注音的字（國字旁邊都要有注音；不靠主程式字典，所以字典沒收的字也不會漏） ----------
 const ZR = { 第: "ㄉㄧˋ", 關: "ㄍㄨㄢ", 已: "ㄧˇ", 救: "ㄐㄧㄡˋ", 需: "ㄒㄩ", 發: "ㄈㄚ", 射: "ㄕㄜˋ", 全: "ㄑㄩㄢˊ", 部: "ㄅㄨˋ", 出: "ㄔㄨ", 來: "ㄌㄞˊ", 了: "ㄌㄜ˙" };
@@ -463,9 +679,10 @@ export function createBubbleGame(root, api) {
   let run = 0;                 // 每次 start/stop 換號：舊的 later 回呼看到號碼不同就作廢
   let st = null;               // 這一局
   let D = null;                // DOM
-  let raf = 0, idleTok = 0, talkedSwap = false, talkedIntro = false;
-  const talkedZone = {};       // 每個新區第一次進來說一次「這次要救○○」
-  const ZONE_INTRO = [null, "這次要救小螃蟹喔！", "這次要救小鯨魚喔！"];
+  let raf = 0, idleTok = 0, talkedSwap = false, talkedIntro = false, talkedDrop = false;
+  const talkedZone = {};       // 每個新區第一次進來說一次「這次要救○○」（第 4、5 區順便講新機制）
+  const ZONE_INTRO = [null, "這次要救小螃蟹喔！", "這次要救小鯨魚喔！", "這次要救小象喔！天花板會慢慢降下來喔！", "這次要救小獅子喔！灰色的石頭打不破，要讓它掉下來！"];
+  const DROP_TIP = "天花板降下來了！小燈都熄掉，就會往下降喔！";   // 第一次看到天花板降下來時說（Boss 模式不說）
   const offs = [];             // 自己掛的事件（stop 時全部拆）
   const on = (t, ev, fn, o) => { t.addEventListener(ev, fn, o); offs.push(() => t.removeEventListener(ev, fn, o)); };
   const later = (fn, ms) => { const my = run; api.later(() => { if (my === run && st) fn(); }, ms); };
@@ -485,6 +702,7 @@ export function createBubbleGame(root, api) {
     const dead = mk("div", "bb-dead", field); dead.style.setProperty("--y", DEAD_Y);
     const aim = document.createElementNS(SVGNS, "svg"); aim.setAttribute("class", "bb-aim"); aim.setAttribute("viewBox", `0 0 ${FIELD_W} ${FIELD_H}`); aim.setAttribute("preserveAspectRatio", "none"); field.appendChild(aim);
     const layer = mk("div", "bb-layer", field);
+    const ceil = mk("div", "bb-ceil", field); ceil.setAttribute("aria-hidden", "true");   // 會往下降的天花板（有 drop 的關才顯示）＋上面的小燈
     const ghost = mk("div", "bb-b bb-ghost", field);
     const ring = mk("div", "bb-ring", field);
     const base = mk("div", "bb-base", field); base.style.setProperty("--x", SHOOT_X); base.style.setProperty("--y", SHOOT_Y);
@@ -499,7 +717,7 @@ export function createBubbleGame(root, api) {
     const fire = mk("button", "bb-fire", wrap); fire.type = "button"; fire.setAttribute("aria-label", "發射");
     mk("span", "bb-fire-ic", fire, "🚀"); mk("span", "bb-fire-tx", fire).appendChild(zh("發射"));
     const fx = mk("div", "bb-fx", wrap);
-    D = { wrap, field, aim, layer, ghost, ring, base, cur, next, swap, finger, goal, lvl, slots, count, fire, fx, bmap: new Map(), fly: null };
+    D = { wrap, field, aim, layer, ceil, ghost, ring, base, cur, next, swap, finger, goal, lvl, slots, count, fire, fx, bmap: new Map(), fly: null };
     on(field, "pointerdown", onDown); on(field, "pointermove", onMove); on(field, "pointerup", onUp); on(field, "pointercancel", onUp); on(field, "lostpointercapture", onUp);
     on(cur, "pointerdown", e => { if (st) st.curTap = [...toUnits(e), e.pointerId]; });   // 不攔：交給場地的 onDown（拖了＝瞄準，沒拖＝放開時換球）
     on(next, "pointerdown", onSwapTap); on(swap, "pointerdown", onSwapTap);
@@ -547,15 +765,37 @@ export function createBubbleGame(root, api) {
     e.style.setProperty("--x", x); e.style.setProperty("--y", y);
     return e;
   }
+  const PAINT_CLS = ["s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "bb-pen", "bb-stone"];
   function paint(e, v) {
-    e.classList.remove("s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "bb-pen");
+    e.classList.remove(...PAINT_CLS);
     e.textContent = "";
     if (v === PEN) { e.classList.add("bb-pen"); const im = mk("img", "", e); im.src = animal().img; im.alt = ""; im.draggable = false; mk("i", "bb-shine", e); }
+    else if (v === STONE) { e.classList.add("bb-stone"); mk("i", "bb-rock", e); }
     else if (v >= 0) { e.classList.add("s" + SYM_COLOR[v]); mk("span", "bb-sym", e, SYMS[v]); }
   }
+  // 泡泡元素放在 .bb-layer 裡、用「從天花板算的列」定位；整層再跟著天花板往下移（--top，CSS 有過場動畫）
   function renderBoard() {
     D.layer.textContent = ""; D.bmap.clear();
     each(st.g, (r, c, v) => { const e = bubbleEl(v, D.layer, cellX(r, c), cellY(r)); if (v === PEN) e.style.animationDelay = (-(r * 0.37 + c * 0.53) % 2.4) + "s"; D.bmap.set(key(r, c), e); });
+  }
+  // 天花板位置：jump＝不要過場動畫（Boss 收走最上面兩列時，先瞬間對齊再滑上去）
+  function setTop(jump, extra = 0) {
+    D.field.classList.toggle("bb-jump", !!jump);
+    D.field.style.setProperty("--top", topOf(st.g) + extra);
+    if (jump) { void D.field.offsetWidth; D.field.classList.remove("bb-jump"); }
+  }
+  // 天花板上的小燈：每發熄一顆，全熄＝天花板降一排；剩最後一顆時天花板輕輕抖（不用數字、不用紅色）
+  function renderCeil() {
+    const on = st.drop > 0;
+    D.field.classList.toggle("bb-hasceil", on); D.ceil.hidden = !on;
+    if (!on) return;
+    if (D.ceil.children.length !== st.drop) {
+      D.ceil.textContent = "";
+      const gap = Math.min(2, 13.5 / Math.max(1, st.drop - 1));          // 燈的間距（單位）：最多 2（一顆泡泡寬），燈多就擠一點
+      for (let i = 0; i < st.drop; i++) { const l = mk("i", "bb-lamp", D.ceil); l.style.setProperty("--x", (FIELD_W / 2 + (i - (st.drop - 1) / 2) * gap).toFixed(3)); }
+    }
+    [...D.ceil.children].forEach((l, i) => l.classList.toggle("on", i < st.left));
+    D.ceil.classList.toggle("bb-warn", st.left === 1 && !st.won && !st.full);
   }
   function renderQueue(anim) {
     const c = st.cur, n = st.next;
@@ -569,7 +809,8 @@ export function createBubbleGame(root, api) {
   function bump(e, cls) { e.classList.remove(cls); void e.offsetWidth; e.classList.add(cls); }
   function renderGoal(pulse) {
     const need = st.need, got = st.shown;
-    D.lvl.textContent = ""; D.lvl.append(zh("第"), " " + (st.lv + 1) + " ", zh("關"));
+    D.lvl.textContent = ""; if (st.boss) D.lvl.append("🗼"); else D.lvl.append(zh("第"), " " + (st.lv + 1) + " ", zh("關"));   // Boss（爬塔）不顯示泡泡灣的關卡號碼
+    D.goal.classList.toggle("bb-many", need > 3);      // 救 4 隻以上（第 29、30、38～40、47～50 關）：直式的小格子改兩排、縮小（不然會鑽到發射鈕底下；v6 測試抓到第 30 關本來就擠出去）
     if (D.slots.children.length !== need) { D.slots.textContent = ""; for (let i = 0; i < need; i++) { const s = mk("div", "bb-slot", D.slots); const im = mk("img", "", s); im.src = animal().img; im.alt = ""; im.draggable = false; } }
     [...D.slots.children].forEach((s, i) => s.classList.toggle("on", i < got));
     D.count.textContent = "";
@@ -588,7 +829,8 @@ export function createBubbleGame(root, api) {
     if (!mode || !st || st.cur === NONE) return null;
     const tr = trace(st.g, st.aim);
     if (!tr.cell) return tr;
-    const pts = tr.pts.concat([[cellX(...tr.cell), cellY(tr.cell[0])]]);
+    const cyy = gy(st.g, tr.cell[0]);                 // 畫面座標（含天花板下降）
+    const pts = tr.pts.concat([[cellX(...tr.cell), cyy]]);
     const g = document.createElementNS(SVGNS, "g"); g.setAttribute("class", "bb-dots " + (mode === "demo" ? "bb-gold" : "s" + SYM_COLOR[st.cur]));
     let carry = 1.6;                             // 第一顆點離開發射口一點
     for (let i = 1; i < pts.length; i++) {
@@ -602,9 +844,9 @@ export function createBubbleGame(root, api) {
     const a = st.aim, ux = Math.cos(a), uy = -Math.sin(a), px = -uy, py = ux, R = 1.25;
     const tip = [SHOOT_X + ux * (R + 0.75), SHOOT_Y + uy * (R + 0.75)], b1 = [SHOOT_X + ux * R + px * 0.5, SHOOT_Y + uy * R + py * 0.5], b2 = [SHOOT_X + ux * R - px * 0.5, SHOOT_Y + uy * R - py * 0.5];
     ar.setAttribute("d", `M${tip.join(",")}L${b1.join(",")}L${b2.join(",")}Z`); ar.setAttribute("class", "bb-arrow"); svg.appendChild(ar);
-    D.ghost.classList.add("s" + SYM_COLOR[st.cur], "on"); D.ghost.style.setProperty("--x", cellX(...tr.cell)); D.ghost.style.setProperty("--y", cellY(tr.cell[0]));
+    D.ghost.classList.add("s" + SYM_COLOR[st.cur], "on"); D.ghost.style.setProperty("--x", cellX(...tr.cell)); D.ghost.style.setProperty("--y", cyy);
     D.ghost.textContent = ""; mk("span", "bb-sym", D.ghost, SYMS[st.cur]);
-    if (mode === "demo") { D.ring.style.setProperty("--x", cellX(...tr.cell)); D.ring.style.setProperty("--y", cellY(tr.cell[0])); D.ring.classList.add("on"); }
+    if (mode === "demo") { D.ring.style.setProperty("--x", cellX(...tr.cell)); D.ring.style.setProperty("--y", cyy); D.ring.classList.add("on"); }
     return tr;
   }
   const showAim = () => drawAim(canAct() ? (st.demo === "line" ? "demo" : "aim") : "");
@@ -619,7 +861,7 @@ export function createBubbleGame(root, api) {
     return pack(a, false);
   }
   function showDemo(noSwap) {
-    if (!st || st.lv > 2 || !canAct()) return;
+    if (!st || !st.teach || !canAct()) return;
     let b = bestShot(); if (!b) return;
     if (b.swap && noSwap) { const a = bestFor(st.g, st.cur); b = { angle: a.angle, swap: false }; }
     hideDemo(true);
@@ -644,7 +886,7 @@ export function createBubbleGame(root, api) {
   }
   function armIdle() {
     const tok = ++idleTok;
-    if (!st || st.lv > 2) return;
+    if (!st || !st.teach) return;
     later(() => { if (tok === idleTok && canAct() && !st.demo && !st.dragging) showDemo(); }, IDLE_MS);
   }
 
@@ -702,7 +944,7 @@ export function createBubbleGame(root, api) {
     drawAim(""); D.fire.classList.add("bb-busy");
     D.cur.classList.add("bb-empty"); D.cur.textContent = "";
     play("tap", 1.35);
-    const pts = tr.pts.concat([[cellX(...tr.cell), cellY(tr.cell[0])]]);
+    const pts = tr.pts.concat([[cellX(...tr.cell), gy(st.g, tr.cell[0])]]);
     const ms = Math.max(260, pathLen(pts) / SPEED * 1000);
     fly(pts, ms, sym);
     later(() => land(tr.cell, sym), ms);
@@ -763,7 +1005,7 @@ export function createBubbleGame(root, api) {
   function dropEls(list) {
     list.forEach(([a, b], i) => {
       const e = D.bmap.get(key(a, b)); if (!e) return; D.bmap.delete(key(a, b));
-      const dist = (FIELD_H - cellY(a) + 3) * D.u, rot = (i % 2 ? 1 : -1) * (20 + (i * 37) % 50);
+      const dist = (FIELD_H - gy(st.g, a) + 3) * D.u, rot = (i % 2 ? 1 : -1) * (20 + (i * 37) % 50);
       const an = e.animate([{ transform: "translate(0,0) rotate(0deg)", opacity: 1 }, { transform: `translate(${((i * 53) % 7 - 3) * 0.3 * D.u}px, ${dist}px) rotate(${rot}deg)`, opacity: 0.2 }],
         { duration: 620 + (i % 4) * 60, delay: (i % 5) * 25, easing: "cubic-bezier(.4,0,.9,.6)", fill: "forwards" });
       an.onfinish = () => e.remove();
@@ -808,22 +1050,49 @@ export function createBubbleGame(root, api) {
   function endTurn(res) {
     st.shown = st.rescued; st.flying = 0; renderGoal(false);
     if (penguinsLeft(st.g) === 0) return win();
-    if (res.full) {
-      st.full = true; st.busy = false; D.wrap.classList.add("bb-isfull"); D.fire.classList.add("bb-busy");
-      play("ng"); api.onFull({ level: st.lv }); return;
-    }
-    refill(st); st.busy = false; D.fire.classList.remove("bb-busy");
+    if (res.full) return touchBottom();
+    if (st.drop > 0 && --st.left <= 0) { st.left = st.drop; return dropCeil(); }   // 小燈全熄：天花板降一排
+    nextShot();
+  }
+  function nextShot(noRefill) {                // 換下一顆、可以再發射（noRefill：測試的 dropNow 沒有發射，不換球）
+    if (!noRefill) refill(st); st.busy = false; D.fire.classList.remove("bb-busy");
     renderQueue(true); api.say(SYMS[st.cur]);
-    showAim(); armIdle();
+    renderCeil(); showAim(); armIdle();
+  }
+  function dropCeil(noRefill) {
+    const full = lower(st.g); st.drops++;
+    renderCeil(); setTop(false); play("flip", 0.6); bump(D.ceil, "bb-thud");
+    if (!talkedDrop && !st.boss) { talkedDrop = true; later(() => api.talk(DROP_TIP), 350); }
+    later(() => { if (full) touchBottom(); else nextShot(noRefill); }, 650);   // 等天花板滑下來（CSS 0.5 秒）
+  }
+  // 泡泡碰到底線：一般關＝這關重來（主程式 onFull）；Boss＝扣一下（onPress）、整片往上退 2 排、接著玩
+  function touchBottom() {
+    if (st.boss) return press();
+    st.full = true; st.busy = false; D.wrap.classList.add("bb-isfull"); D.fire.classList.add("bb-busy"); renderCeil();
+    play("ng"); api.onFull({ level: st.lv });
+  }
+  function press() {
+    st.presses++; st.left = st.drop;
+    play("pop", 0.6); bump(D.wrap, "bb-press");
+    try { if (api.onPress) api.onPress({ level: st.lv, presses: st.presses, shots: st.shots }); } catch (e) { console.warn("[bubble] onPress", e); }
+    const out = raise(st.g, 2);
+    if (out.gone.length || out.freed.length) {     // 天花板沒降那麼多：最上面兩列被收進天花板（動物算救出），其餘瞬間對齊後滑上去
+      out.gone.forEach(([a, b]) => popEl(a, b)); out.freed.forEach(([a, b]) => rescueEl(a, b));
+      st.rescued += out.freed.length;
+      later(() => { renderBoard(); setTop(true, 2); setTop(false); }, 320);
+    } else setTop(false);
+    renderCeil();
+    later(() => { st.shown = st.rescued; st.flying = 0; renderGoal(false); if (penguinsLeft(st.g) === 0) return win(); nextShot(); }, 950);
   }
   function win() {
-    st.won = true; st.busy = false; drawAim(""); D.fire.classList.add("bb-busy"); D.wrap.classList.add("bb-won");
-    const stars = st.shots <= st.par ? 3 : st.shots <= st.par + 3 ? 2 : 1;
+    st.won = true; st.busy = false; drawAim(""); D.fire.classList.add("bb-busy"); D.wrap.classList.add("bb-won"); renderCeil();
+    const stars = st.boss ? 0 : st.shots <= st.par ? 3 : st.shots <= st.par + 2 ? 2 : 1;   // v6：2 星門檻 par+3 → par+2；Boss 不給星星
     const info = { level: st.lv, shots: st.shots, par: st.par, stars, rescued: st.rescued };
+    if (st.boss) Object.assign(info, { boss: true, presses: st.presses });
     st.winInfo = info;
     later(() => {
       const bn = mk("div", "bb-banner", D.fx); bn.appendChild(zh("全部救出來了！"));
-      const sr = mk("div", "bb-banner-stars", bn); for (let i = 0; i < 3; i++) mk("span", i < stars ? "on" : "", sr, "★");
+      if (!st.boss) { const sr = mk("div", "bb-banner-stars", bn); for (let i = 0; i < 3; i++) mk("span", i < stars ? "on" : "", sr, "★"); }
       play("win"); for (const s of D.slots.children) bump(s, "bb-got");
       for (let i = 0; i < 14; i++) { const q = mk("i", "bb-conf s" + (i % 3), D.fx); q.style.left = (8 + (i * 61) % 84) + "%"; q.style.setProperty("--d", (i * 90) % 700 + "ms"); q.addEventListener("animationend", () => q.remove(), { once: true }); }
     }, 250);
@@ -831,38 +1100,47 @@ export function createBubbleGame(root, api) {
   }
 
   // ---------- 公開介面 ----------
-  function start(i, def) {
+  // o：{ drop: 每幾發天花板降一排（蓋過關卡的 drop）, boss: 爬塔 Boss 模式（碰底線不重來、不給星星、沒有示範與區開場語） }
+  function start(i, def, o) {
     stop();
     run++;
+    o = o || {};
     const lv = Math.max(0, Math.min(LEVELS.length - 1, i | 0)), d = def || LEVELS[lv];
     const seed = typeof api.seed === "number" ? api.seed + lv : (Math.random() * 4294967296) >>> 0;
-    const s = newRun(d, seed);
-    st = Object.assign(s, { lv, zone: d.zone != null ? d.zone : Math.floor(lv / LEVELS_PER_ZONE), par: d.par || 5, shots: 0, rescued: 0, shown: 0, flying: 0, aim: Math.PI / 2, busy: false, full: false, won: false, demo: "", dragging: false, last: null, seed });
-    build(); relayout(); renderBoard(); renderQueue(false); renderGoal(false);
+    const s = newRun(d, seed), boss = !!o.boss;
+    const drop = Math.max(0, Math.floor(+(o.drop != null ? o.drop : d.drop || 0)) || 0);
+    st = Object.assign(s, { lv, zone: d.zone != null ? d.zone : Math.floor(lv / LEVELS_PER_ZONE), par: d.par || 5, shots: 0, rescued: 0, shown: 0, flying: 0, aim: Math.PI / 2, busy: false, full: false, won: false, demo: "", dragging: false, last: null, seed,
+      drop, left: drop, drops: 0, boss, presses: 0, teach: !boss && (lv <= 2 || !!d.teach) });
+    build(); relayout(); renderBoard(); setTop(true); renderCeil(); renderQueue(false); renderGoal(false);
     showAim();
     api.say(SYMS[st.cur]);
-    if (lv === 0 && !talkedIntro) { talkedIntro = true; later(() => api.talk("三個一樣的連在一起，就會破掉喔！把小企鵝救出來！"), 1300); }
+    if (boss) { /* 爬塔：開場由爬塔模組自己講 */ }
+    else if (lv === 0 && !talkedIntro) { talkedIntro = true; later(() => api.talk("三個一樣的連在一起，就會破掉喔！把小企鵝救出來！"), 1300); }
     else if (st.zone > 0 && lv % LEVELS_PER_ZONE === 0 && !talkedZone[st.zone]) { const z = st.zone; talkedZone[z] = true; later(() => api.talk(ZONE_INTRO[z]), 1300); }
-    if (lv <= 2) later(() => { if (canAct() && !st.demo && !st.dragging && st.shots === 0) showDemo(); }, 900);
+    if (st.teach) later(() => { if (canAct() && !st.demo && !st.dragging && st.shots === 0) showDemo(); }, 900);
     armIdle();
   }
   function stop() {
+    const was = st;
     run++; idleTok++;
     teardown();
     st = null;
+    if (was && api.onStop) { try { api.onStop({ level: was.lv, boss: !!was.boss, won: !!was.won }); } catch (e) { console.warn("[bubble] onStop", e); } }   // 主程式用來知道 Boss 被收掉了
   }
   function boardRows() {
     if (!st) return [];
     let last = -1; each(st.g, r => { last = Math.max(last, r); });
-    const out = []; for (let r = 0; r <= last; r++) out.push(st.g[r].map(v => v === PEN ? "A" : v === NONE ? "." : String(st.ids.indexOf(v) + 1)).join(""));
+    const out = []; for (let r = 0; r <= last; r++) out.push(st.g[r].map(v => v === PEN ? "A" : v === STONE ? "X" : v === NONE ? "." : String(st.ids.indexOf(v) + 1)).join(""));
     return out;
   }
   function state() {
     if (!st) return null;
-    const counts = {}; st.ids.forEach(i => counts[SYMS[i]] = 0); each(st.g, (r, c, v) => { if (v !== PEN) counts[SYMS[v]] = (counts[SYMS[v]] || 0) + 1; });
+    let stones = 0, low = -1;
+    const counts = {}; st.ids.forEach(i => counts[SYMS[i]] = 0); each(st.g, (r, c, v) => { low = Math.max(low, r + topOf(st.g)); if (v === STONE) stones++; else if (v !== PEN) counts[SYMS[v]] = (counts[SYMS[v]] || 0) + 1; });
     return { level: st.lv, shots: st.shots, par: st.par, rescued: st.rescued, need: st.need, busy: st.busy, full: st.full, won: st.won,
       cur: st.cur === NONE ? null : SYMS[st.cur], next: st.next === NONE ? null : SYMS[st.next], aim: st.aim, demo: st.demo, seed: st.seed,
-      penguinsLeft: penguinsLeft(st.g), counts, board: boardRows(), last: st.last, win: st.winInfo || null };
+      penguinsLeft: penguinsLeft(st.g), counts, stones, board: boardRows(), last: st.last, win: st.winInfo || null,
+      top: topOf(st.g), low, drop: st.drop, left: st.left, drops: st.drops, boss: st.boss, presses: st.presses, teach: st.teach };   // low＝最下面那顆在畫面第幾列（≥ 12＝碰底線）
   }
   const symIdx = s => (typeof s === "number" ? s : SYMS.indexOf(s));
   const debug = {
@@ -872,9 +1150,10 @@ export function createBubbleGame(root, api) {
     predict() { if (!st) return null; const tr = trace(st.g, st.aim); return { cell: tr.cell && tr.cell.slice(), pts: tr.pts.map(p => p.map(v => +v.toFixed(3))) }; },
     showDemo: () => showDemo(),
     swap: () => swapQueue(),
-    load(def, i = 0) { start(i, def); },                                   // 測試用：載入自訂盤面
+    load(def, i = 0, o) { start(i, def, o); },                             // 測試用：載入自訂盤面（o＝{ drop, boss }）
     setQueue(c, n) { if (!st) return; st.cur = symIdx(c); if (n != null) st.next = symIdx(n); renderQueue(false); showAim(); },
+    dropNow() { if (!canAct() || !st.drop) return false; st.busy = true; D.fire.classList.add("bb-busy"); hideDemo(true); drawAim(""); st.left = st.drop; dropCeil(true); return true; },   // 測試用：馬上降一排
     geom: { FIELD_W, FIELD_H, SHOOT_X, SHOOT_Y, DEAD_Y, ROWS },
   };
-  return { start: i => start(i), stop, sayCurrent: () => { if (st && st.cur !== NONE) api.say(SYMS[st.cur]); }, relayout, state, debug };
+  return { start: (i, o) => start(i, null, o), stop, sayCurrent: () => { if (st && st.cur !== NONE) api.say(SYMS[st.cur]); }, relayout, state, debug };
 }

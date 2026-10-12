@@ -1,4 +1,4 @@
-// 泡泡救援灣 第 2、3 區截圖：node tools/zy-test/bubble-shots.js
+// 泡泡救援灣 第 2～5 區截圖：node tools/zy-test/bubble-shots.js（v6：第 4 區天花板下壓、第 5 區石頭）
 // 遊戲畫面（試玩頁）＋選關畫面（主程式、帶存檔），橫 1024×768、直 768×1024。存到 BB_SHOTS（預設 %TEMP%\zy-bubble-shots）
 const { launch, openGame } = require("./lib");
 const path = require("path"), fs = require("fs"), os = require("os");
@@ -15,8 +15,8 @@ const SIZES = [[1024, 768, "land"], [768, 1024, "port"]];
     p.on("pageerror", e => console.log("PAGEERR", e.message));
     await p.goto(BASE + "/tools/zy-test/bubble-lab.html?mute=1&clean=1&seed=7");
     await p.waitForFunction(() => window.__bb && window.__bb.ready, null, { timeout: 15000 });
-    for (const [lv, name] of [[10, "z2_L11"], [14, "z2_L15"], [19, "z2_L20"], [20, "z3_L21"], [24, "z3_L25"], [29, "z3_L30"]]) {
-      await p.evaluate(lv => window.__bb.game.start(lv), lv); await sleep(lv === 10 || lv === 20 ? 1400 : 400);
+    for (const [lv, name] of [[10, "z2_L11"], [14, "z2_L15"], [19, "z2_L20"], [20, "z3_L21"], [24, "z3_L25"], [29, "z3_L30"], [30, "z4_L31"], [34, "z4_L35"], [39, "z4_L40"], [40, "z5_L41"], [44, "z5_L45"], [49, "z5_L50"]]) {
+      await p.evaluate(lv => window.__bb.game.start(lv), lv); await sleep([10, 20, 30, 40].includes(lv) ? 1400 : 400);
       await p.screenshot({ path: path.join(OUT, `game_${tag}_${name}.png`) });
     }
     await ctx.close();
@@ -25,7 +25,9 @@ const SIZES = [[1024, 768, "land"], [768, 1024, "port"]];
   for (const [w, h, tag] of SIZES) {
     for (const [save, name, click] of [[{ lv: 13, stars: { 0: 3, 1: 3, 2: 2, 3: 3, 4: 2, 5: 3, 6: 2, 7: 3, 8: 2, 9: 3, 10: 3, 11: 2, 12: 3 } }, "z2", null],
                                       [{ lv: 24, stars: { 0: 3, 5: 2, 9: 3, 10: 3, 14: 2, 19: 3, 20: 3, 21: 3, 22: 2, 23: 3 } }, "z3", null],
-                                      [{ lv: 5, stars: { 0: 3, 1: 3, 2: 2, 3: 3, 4: 3 } }, "locked", 2]]) {
+                                      [{ lv: 5, stars: { 0: 3, 1: 3, 2: 2, 3: 3, 4: 3 } }, "locked", 2],
+                                      [{ lv: 33, stars: { 29: 3, 30: 3, 31: 2, 32: 3 } }, "z4", null],
+                                      [{ lv: 49, stars: { 40: 3, 41: 2, 45: 1 }, all: 1 }, "z5", null]]) {
       const { ctx, p } = await openGame(browser, { stickers: 40, query: "debug", w, h });
       await p.evaluate(sv => localStorage.setItem("zy1_bubble", JSON.stringify(sv)), save);
       await p.reload(); await p.waitForFunction(() => document.getElementById("loading").classList.contains("hidden"), null, { timeout: 15000 });
