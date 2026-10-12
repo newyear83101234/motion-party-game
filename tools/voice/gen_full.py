@@ -206,6 +206,10 @@ def finalize(state):
     man = dict(voice=f"Gemini {MODEL}／設計聲音 D「兒童節目大姐姐」({VOICE_ID})", generated=datetime.now().strftime("%Y-%m-%d %H:%M"),
                note="key＝遊戲傳給 say() 的原字串（含標點）。split：『前綴＋詞』拆兩段播（前綴音檔＋詞音檔）。",
                files=files, split={"找到了，": "找到了！", "對手是：": "對手是："}, durations=durs)   # 「對手是：」＋內建詞句（10-12 陀螺，build_lines.py tp_vsPre／tp_insp_*）
+    rev_p = OUT / "rev.json"                                   # 10-13：重錄但檔名沒變的檔（update.py 記版次）→ 前端下載時加 ?r=版次，破平板快取
+    if rev_p.exists():
+        rv = json.loads(rev_p.read_text(encoding="utf-8"))
+        man["rev"] = {f: n for f, n in rv.items() if f in durs}
     (OUT / "manifest.json").write_text(json.dumps(man, ensure_ascii=False, indent=1), encoding="utf-8")
     review.sort(key=lambda x: x["level"] != "可疑")
     (OUT / "review.json").write_text(json.dumps(dict(

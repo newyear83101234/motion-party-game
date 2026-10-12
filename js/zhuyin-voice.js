@@ -2,14 +2,15 @@
 // voice/gemini_d/manifest.json：遊戲傳給 say() 的原字串（含標點）→ mp3。
 // 有檔就用 Web Audio 播並回傳 true；沒有（或還沒解鎖聲音）回傳 false，讓呼叫端退回 speechSynthesis。
 // iOS 最穩的做法：全程只用一個 AudioContext、在點擊裡 resume、fetch＋decodeAudioData、解碼結果快取（不要每句 new Audio()）。
-// 音檔由 tools/voice/gen_full.py 產生；要加新句子：改 tools/voice/build_lines.py → 重跑 gen_full.py（會續跑沒做過的）。
+// 音檔由 tools/voice/gen_full.py／gen_batch.py 產生；要加新句子或改台詞：改 tools/voice/build_lines.py → 跑 tools/voice/update.py（只錄新的與改過的）。
 
 const BASE = new URL("../voice/gemini_d/", import.meta.url).href;
 const GAP = 0.12;                 // 兩段句（「找到了，」＋詞）中間的停頓（秒）
 const OFF = /[?&]novoice(=|&|$)/.test(location.search);   // 網址加 ?novoice → 全部退回 speechSynthesis（除錯／比較用）
 
 let man = null;
-const manP = fetch(BASE + "manifest.json?v=20261013").then(r => (r.ok ? r.json() : null)).then(j => (man = j)).catch(() => null);
+// 10-13：manifest 每次開遊戲都跟伺服器確認（no-cache：沒變只回 304，很省）→ 配音更新不用再升 voice.js／zhuyin.js 版號（tools/voice/update.py）
+const manP = fetch(BASE + "manifest.json", { cache: "no-cache" }).then(r => (r.ok ? r.json() : null)).then(j => (man = j)).catch(() => null);
 let ctx = null;
 const raw = new Map();            // 檔名 → Promise<ArrayBuffer>（還沒解鎖聲音前先下載）
 const dec = new Map();            // 檔名 → Promise<AudioBuffer>（解碼後快取；Map 的順序＝最近用過的排最後＝LRU）
@@ -55,7 +56,8 @@ export const voiceReady = manP;   // manifest 載好（或失敗）時 resolve
 
 function fetchRaw(f) {
   if (!raw.has(f)) {
-    const p = fetch(BASE + f).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.arrayBuffer(); });
+    const rv = man && man.rev && man.rev[f];                // 重錄過但檔名沒變的檔：加 ?r=版次，平板才不會播到舊快取
+    const p = fetch(BASE + f + (rv ? "?r=" + rv : "")).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.arrayBuffer(); });
     raw.set(f, p); p.catch(() => raw.delete(f));
   }
   return raw.get(f);
