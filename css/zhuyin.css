@@ -997,3 +997,26 @@ body.night .owl-peek img { filter: drop-shadow(0 0 0.8vmin rgba(255,255,255,0.8)
 .guideText { text-wrap: balance; }   /* 斷行不要只剩「了！」掉到下一行 */
 .jarBtn .egg.zero { opacity: 0.45; }   /* 沒有幣：淡淡的 0（不然看起來像少了東西） */   /* 直式貓頭鷹在對話框左邊 → 探頭也在左邊（收起前後同一個位置，小孩找得到） */
 @keyframes peekNod { 0%, 84%, 100% { transform: none; } 88% { transform: translateY(-1.2vmin) rotate(-6deg); } 94% { transform: translateY(-0.4vmin) rotate(4deg); } }
+
+/* 10-12 家長頁「玩了什麼」（本機遊玩紀錄）：最近 7 天長條＋每個遊戲一列＋最常搞混；全部 CSS 畫、數字等寬 */
+.st-days, .st-modes, .st-row { font-variant-numeric: tabular-nums; }
+.st-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1.2vmin; width: 100%; align-items: end; background: #f2f7ff; border-radius: 2vmin; padding: 2vmin 1.6vmin 1.4vmin; box-sizing: border-box; }
+.st-day { display: flex; flex-direction: column; align-items: center; gap: 0.5vmin; min-width: 0; }
+.st-bar-box { height: 17vmin; width: 100%; display: flex; align-items: flex-end; justify-content: center; }
+.st-bar { width: 62%; min-height: 0.7vmin; background: var(--blue); border-radius: 1vmin 1vmin 0 0; }
+.st-day.zero .st-bar { background: #c9d3e3; }
+.st-day.today .st-bar { background: var(--tone); }
+.st-min { font-size: 3.6vmin; font-weight: bold; color: #333; white-space: nowrap; }
+.st-day.zero .st-min { color: #99a; font-weight: normal; }
+.st-date { font-size: 3vmin; color: #556; white-space: nowrap; }
+.st-wd { font-size: 2.9vmin; color: #778; white-space: nowrap; margin-top: -0.4vmin; }
+.st-day.today .st-date, .st-day.today .st-wd { color: var(--tone); font-weight: bold; }
+.st-modes { display: flex; flex-direction: column; gap: 0.8vmin; width: 100%; }
+.st-row { display: grid; grid-template-columns: minmax(0, 1fr) 10vmin 17vmin 15vmin; align-items: center; gap: 1.2vmin; font-size: 3.7vmin; background: #f2f7ff; border-radius: 1.8vmin; padding: 0.9vmin 2vmin; box-sizing: border-box; }
+.st-row.head { background: none; font-size: 3vmin; color: #778; padding-top: 0; padding-bottom: 0; }
+.st-row .nm { font-weight: bold; color: var(--blue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-row .n, .st-row .av, .st-row .ls { text-align: right; white-space: nowrap; }
+.st-row.none { background: #f1f1f4; color: #99a; }
+.st-row.none .nm { color: #99a; font-weight: normal; }
+.st-row.none .why { grid-column: 2 / -1; text-align: right; }
+@media (orientation: portrait) { .st-bar-box { height: 20vmin; } .st-row { grid-template-columns: minmax(0, 1fr) 12vmin 20vmin 17vmin; font-size: 3.5vmin; } }
