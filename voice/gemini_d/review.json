@@ -1,7 +1,7 @@
 {
  "how": "每句由 Gemini 3.8 Flash 盲聽寫（不給答案），拼音跟正確讀音比對；詞庫詞以遊戲注音為準。AI 聽寫本身也會錯，所以這份是『請人耳確認』清單，不代表一定唸錯。",
- "count": 76,
- "suspicious": 76,
+ "count": 83,
+ "suspicious": 83,
  "items": [
   {
    "text": "第一聲不用加符號，按這個空白格就好",
@@ -2169,6 +2169,43 @@
    ]
   },
   {
+   "text": "最後的大挑戰，加油！",
+   "file": "guide_1dd0c517.mp3",
+   "level": "可疑",
+   "why": [
+    "挑 應 tiao1 聽到 tiao3"
+   ],
+   "heard": "最後的大挑戰，加油！",
+   "pinyin": "zui4 hou4 de5 da4 tiao3 zhan4 jia1 you2",
+   "correct": "zui4 hou4 de5 da4 tiao1 zhan4 jia1 you2",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "最後的大挑戰，加油！",
+     "pinyin": "zui4 hou4 de5 da4 tiao4 san3 jia1 you2",
+     "why": [
+      "挑 應 tiao1 聽到 tiao4",
+      "戰 應 zhan4 聽到 san3"
+     ]
+    },
+    {
+     "sent": "最後的大挑戰，加油！",
+     "pinyin": "zui4 hou4 de5 da4 tiao3 zhan4 jia1 you2",
+     "why": [
+      "挑 應 tiao1 聽到 tiao3"
+     ]
+    },
+    {
+     "sent": "最後的大挑戰，加油！",
+     "pinyin": "zui4 hou4 de5 da4 tiao3 zhan4 jia1 you2",
+     "why": [
+      "挑 應 tiao1 聽到 tiao3"
+     ]
+    }
+   ]
+  },
+  {
    "text": "你看著我的眼睛說",
    "file": "phrase_0afb7da7.mp3",
    "level": "可疑",
@@ -2234,6 +2271,222 @@
     {
      "sent": "我愛你愛著你就像老鼠愛大米",
      "pinyin": "wo3 ai4 ni3 ai4 zhe5 ni3 jiu4 xiang4 lao3 shu3 ai4 da4 mi3",
+     "why": [
+      "著 應 zhu4 聽到 zhe5"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "寶寶在睡覺",
+   "file": "phrase_30193d9d.mp3",
+   "level": "可疑",
+   "why": [
+    "寶 應 bao3 唸成輕聲"
+   ],
+   "heard": "寶寶在睡覺",
+   "pinyin": "bao3 bao5 zai4 shui4 jiao4",
+   "correct": "bao3 bao3 zai4 shui4 jiao4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "寶寶在睡覺",
+     "pinyin": "bao3 bao5 zai4 shui4 jiao4",
+     "why": [
+      "寶 應 bao3 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "寶寶在睡覺",
+     "pinyin": "bao3 bao5 zai4 shui4 jiao4",
+     "why": [
+      "寶 應 bao3 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "寶寶在睡覺",
+     "pinyin": "bao3 bao1 zai4 shui4 jiao4",
+     "why": [
+      "寶 應 bao3 聽到 bao1"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "早上要刷牙",
+   "file": "phrase_122d9dba.mp3",
+   "level": "可疑",
+   "why": [
+    "上 應 shang4 唸成輕聲"
+   ],
+   "heard": "早上要刷牙",
+   "pinyin": "zao3 shang5 yao4 shua1 ya2",
+   "correct": "zao3 shang4 yao4 shua1 ya2",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "早上要刷牙",
+     "pinyin": "zao3 shang5 yao4 shua1 ya2",
+     "why": [
+      "上 應 shang4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "早上要刷牙",
+     "pinyin": "zao3 shang5 yao4 shua1 ya2",
+     "why": [
+      "上 應 shang4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "早上要刷牙",
+     "pinyin": "zao3 shang5 yao4 shua1 ya2",
+     "why": [
+      "上 應 shang4 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "弟弟在吃糖",
+   "file": "phrase_8cef663a.mp3",
+   "level": "可疑",
+   "why": [
+    "弟 應 di4 唸成輕聲"
+   ],
+   "heard": "弟弟在吃糖",
+   "pinyin": "di4 di5 zai4 chi1 tang2",
+   "correct": "di4 di4 zai4 chi1 tang2",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "弟弟在吃糖",
+     "pinyin": "di4 di5 zai4 chi1 tang2",
+     "why": [
+      "弟 應 di4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "弟弟在吃糖",
+     "pinyin": "di4 di5 zai4 chi1 tang2",
+     "why": [
+      "弟 應 di4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "弟弟在吃糖",
+     "pinyin": "di4 di5 zai4 chi1 tang2",
+     "why": [
+      "弟 應 di4 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "哥哥在看書",
+   "file": "phrase_d225e161.mp3",
+   "level": "可疑",
+   "why": [
+    "哥 應 ge1 唸成輕聲"
+   ],
+   "heard": "哥哥在看書",
+   "pinyin": "ge1 ge5 zai4 kan4 shu1",
+   "correct": "ge1 ge1 zai4 kan4 shu1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "哥哥在看書",
+     "pinyin": "ge1 ge5 zai4 kan4 shu1",
+     "why": [
+      "哥 應 ge1 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "哥哥在看書",
+     "pinyin": "ge1 ge5 zai4 kan4 shu1",
+     "why": [
+      "哥 應 ge1 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "哥哥在看書",
+     "pinyin": "ge1 ge5 zai4 kan4 shu1",
+     "why": [
+      "哥 應 ge1 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "小貓睡在床上",
+   "file": "phrase_a0b97933.mp3",
+   "level": "可疑",
+   "why": [
+    "上 應 shang4 唸成輕聲"
+   ],
+   "heard": "小貓睡在床上",
+   "pinyin": "xiao3 mao1 shui4 zai4 chuang2 shang5",
+   "correct": "xiao3 mao1 shui4 zai4 chuang2 shang4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "小貓睡在床上",
+     "pinyin": "xiao3 mao1 shui4 zai4 chuang2 shang5",
+     "why": [
+      "上 應 shang4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "小貓睡在床上",
+     "pinyin": "xiao3 mao1 shui4 zai4 chuang2 shang5",
+     "why": [
+      "上 應 shang4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "小貓睡在床上",
+     "pinyin": "xiao3 mao1 shui4 zai4 chuang2 shang5",
+     "why": [
+      "上 應 shang4 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "小鴨跟著媽媽走",
+   "file": "phrase_ee7e9b9a.mp3",
+   "level": "可疑",
+   "why": [
+    "著 應 zhu4 聽到 zhe5"
+   ],
+   "heard": "小鴨跟著媽媽走",
+   "pinyin": "xiao3 ya1 gen1 zhe5 ma1 ma5 zou3",
+   "correct": "xiao3 ya1 gen1 zhu4 ma1 ma5 zou3",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "小鴨跟著媽媽走",
+     "pinyin": "xiao3 ya1 gen1 zhe5 ma1 ma5 zou3",
+     "why": [
+      "著 應 zhu4 聽到 zhe5"
+     ]
+    },
+    {
+     "sent": "小鴨跟著媽媽走",
+     "pinyin": "xiao3 ya1 gen1 zhe5 ma1 ma5 zou3",
+     "why": [
+      "著 應 zhu4 聽到 zhe5"
+     ]
+    },
+    {
+     "sent": "小鴨跟著媽媽走",
+     "pinyin": "xiao3 ya1 gen1 zhe5 ma1 ma5 zou3",
      "why": [
       "著 應 zhu4 聽到 zhe5"
      ]
