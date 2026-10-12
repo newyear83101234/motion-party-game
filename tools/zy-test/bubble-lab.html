@@ -36,7 +36,7 @@
   const fast = Math.max(1, +Q.get("fast") || 1);
   if (Q.get("clean") === "1") document.body.classList.add("clean");
   if (Q.get("ann") === "1") import("../../js/zhuyin-ann.js?v=2").then(m => { m.startAnnotate(); window.__bb.ann = m; });
-  const lines = [], calls = { say: [], talk: [], play: [], win: [], full: [] };
+  const lines = [], calls = { say: [], talk: [], play: [], win: [], full: [], press: [] };
   const log = (k, t) => { lines.push(`${k}: ${t}`); while (lines.length > 6) lines.shift(); document.getElementById("labLog").textContent = lines.join("\n"); console.log("[bubble]", k, t); };
   let paused = false;
   const api = {
@@ -47,7 +47,9 @@
     paused: () => paused,
     onWin: info => { calls.win.push(info); log("onWin", JSON.stringify(info)); if (Q.get("clean") === "1") return; const r = document.getElementById("labResult"); r.firstElementChild.textContent = `過關！第 ${info.level + 1} 關　發射 ${info.shots}（par ${info.par}）　${"★".repeat(info.stars)}`; r.classList.remove("hidden"); },
     onFull: info => { calls.full.push(info); log("onFull", JSON.stringify(info)); },
-    animalImgs: { penguin: "../../IMAGE/zhuyin/cust_penguin.webp", crab: "../../IMAGE/zhuyin/pets/crab.webp", whale: "../../IMAGE/zhuyin/pets/whale.webp" },
+    animalImgs: { penguin: "../../IMAGE/zhuyin/cust_penguin.webp", crab: "../../IMAGE/zhuyin/pets/crab.webp", whale: "../../IMAGE/zhuyin/pets/whale.webp",
+      elephant: "../../IMAGE/zhuyin/pets/elephant.webp", lion: "../../IMAGE/zhuyin/pets/lion.webp" },
+    onPress: info => { calls.press.push(info); log("onPress", JSON.stringify(info)); },
   };
   if (Q.has("seed")) api.seed = +Q.get("seed");
   const game = mod.createBubbleGame(document.getElementById("bbRoot"), api);
