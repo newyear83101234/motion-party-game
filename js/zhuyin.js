@@ -51,7 +51,7 @@ const SELF_INTRO = new Set(["detective", "tops"]);     // 模組自己唸教學�
 const TOPS_STARS = 15, TOPS_MAX = 3;                   // 注音戰鬥陀螺（docs/zhuyin-tops-spec.md §1）：每 15 顆星星換 1 張陀螺券、最多存 3 張；第一次免費
 // 陀螺詞句＝剛好 5 個國字（範圍 U+3400–U+9FFF，跟 js/zhuyin-ann.js 一樣）；用字碼組出來：原始碼裡不放範圍兩端的怪字（不然 tools/build_zhuyin_ui.py 會把它們當畫面文字收進字典）
 const HAN5 = new RegExp("^[" + String.fromCharCode(0x3400) + "-" + String.fromCharCode(0x9fff) + "]{5}$");
-const DELIVER_TASKS = 8;                               // 彩虹配送站關數＝js/zhuyin-deliver.js TASKS.length（模組載入前就要用：存檔、選關、備份碼；模組載入時會核對）
+const DELIVER_TASKS = 12;                              // 彩虹配送站關數（10-13 由 8 加到 12：9–12 是進階關）＝js/zhuyin-deliver.js TASKS.length（模組載入前就要用：存檔、選關、備份碼；模組載入時會核對）
 const PRAISE = ["好棒！", "哇！", "就是它！", "太厲害了！", "你好會拼喔！"];
 const EGG_STARS = 10;                               // 星星罐滿幾顆孵一顆蛋
 
@@ -460,19 +460,27 @@ function cleanBubble(d) {
   if (d.all) out.all = 1;
   return out;
 }
-// 彩虹配送站進度清洗（存檔、備份碼共用）：{ lv 下一關 0..7, stars { 關: 1..3 }, all }；壞的欄位丟掉
+// 彩虹配送站進度清洗（存檔、備份碼共用）：{ lv 下一關 0..DELIVER_TASKS-1, stars { 關: 1..3 }, all }；壞的欄位丟掉
 function cleanDeliver(d) {                             // DELIVER_TASKS 宣告在 MODES 下面（loadSlot 開頁就會用到）
   const out = { lv: 0, stars: {} }; if (!d || typeof d !== "object") return out;
   out.lv = Math.min(DELIVER_TASKS - 1, Math.max(0, Math.floor(+d.lv) || 0));
   if (d.stars && typeof d.stars === "object") for (const [k, v] of Object.entries(d.stars)) { const i = +k, s = Math.floor(+v) || 0; if (Number.isInteger(i) && i >= 0 && i < DELIVER_TASKS && s > 0) out.stars[i] = Math.min(3, s); }
-  if (d.all) out.all = 1;
+  // 10-13 由 8 關加到 12 關：舊存檔 lv 停在 7、all=1（8 關都過了）→ 下一關（第 9 關）要開起來，all 改成「12 關都過了」才算
+  const done = Object.keys(out.stars).map(Number); if (done.length) out.lv = Math.max(out.lv, Math.min(DELIVER_TASKS - 1, Math.max(...done) + 1));
+  if (out.stars[DELIVER_TASKS - 1]) out.all = 1;
   return out;
 }
-// 詞句小偵探進度清洗（存檔、備份碼共用）：{ seen 玩過的題目 id（最多 200 個）, best 最佳星數 0..3 }
+// 詞句小偵探進度清洗（存檔、備份碼共用）：{ seen 玩過的題目 id（最多 200 個）, best 最佳星數 0..3, lv { max 已開到第幾級 1..5, cur 上次玩的級, st { 級: 最佳星 }, two 最高級連續 2★ 次數 } }
+// 10-13 等級：舊存檔沒有 lv，但 best 已是 3★ → 直接開到第 2 級（跟 js/zhuyin-detective.js cleanLv 同規則；模組是第一次玩才載，所以這裡自己清一份）
 function cleanDetective(d) {
-  const out = { seen: [], best: 0 }; if (!d || typeof d !== "object") return out;
+  const out = { seen: [], best: 0, lv: { max: 1, cur: 1, st: {}, two: 0 } }; if (!d || typeof d !== "object") return out;
   if (Array.isArray(d.seen)) out.seen = [...new Set(d.seen.filter(id => typeof id === "string" && /^[\w-]{1,32}$/.test(id)))].slice(-200);
   out.best = Math.min(3, Math.max(0, Math.floor(+d.best) || 0));
+  const L = d.lv && typeof d.lv === "object" ? d.lv : null, lv = out.lv;
+  lv.max = L ? Math.min(5, Math.max(1, Math.floor(+L.max) || 1)) : out.best >= 3 ? 2 : 1;
+  lv.cur = L ? Math.min(lv.max, Math.max(1, Math.floor(+L.cur) || lv.max)) : lv.max;
+  if (L && L.st && typeof L.st === "object") for (const [k, v] of Object.entries(L.st)) { const i = +k, x = Math.floor(+v) || 0; if (Number.isInteger(i) && i >= 1 && i <= 5 && x > 0) lv.st[i] = Math.min(3, x); }
+  if (L) lv.two = Math.min(2, Math.max(0, Math.floor(+L.two) || 0));
   return out;
 }
 // 注音戰鬥陀螺存檔清洗（存檔、備份碼共用；docs/zhuyin-tops-spec.md §5）：
@@ -1717,8 +1725,10 @@ function deliverSave(r) {
   if (mode !== "deliver" || !r || !deliverRun || deliverRun.saved || deliverRun.task !== r.task) return false;
   deliverRun.saved = true;
   pzAdd("deliver", (r.orders || []).length);           // 同樂廣場：送貨週＝這一局送到幾件（同一局只存一次＝只算一次）
-  const d = save.deliver; d.stars[r.task] = Math.max(d.stars[r.task] || 0, r.stars); d.lv = Math.max(d.lv, Math.min(DELIVER_TASKS - 1, r.task + 1)); if (r.task === DELIVER_TASKS - 1) d.all = 1;
+  const d = save.deliver, first = !(d.stars[r.task] > 0);   // first＝這一關以前沒過過（進階關的扭蛋幣只送第一次）
+  d.stars[r.task] = Math.max(d.stars[r.task] || 0, r.stars); d.lv = Math.max(d.lv, Math.min(DELIVER_TASKS - 1, r.task + 1)); if (r.task === DELIVER_TASKS - 1) d.all = 1;
   if (r.gift) RW.giveWear(save.rw, r.gift);           // 第一次過關的禮物（換裝）進衣櫃
+  if (r.coin && first) save.rw.coins = Math.min(999, save.rw.coins + 1);   // 10-13 進階關 9–12：第一次過關 1 枚扭蛋幣（上限跟 cleanRewards 一樣 999）
   for (const o of r.orders || []) {                    // 貼紙：沒送錯過的訂單＝一次答對（跟其他模式一樣，第一次答對就貼上）
     const w = WORDS.find(x => x.h === o.word); if (w && !o.wrong && !save.stickers[w.h]) { save.stickers[w.h] = 1; earned.push(w); }
   }
@@ -1737,7 +1747,7 @@ function deliverFail(f) {
   console.warn("[deliver] 3D 場景失敗，回小島", f);
   lsSet(K("resume"), null); goMenu(); guideSay(DELIVER_FAIL);
 }
-// 選關：8 格一條線（save.deliver.lv＝目前玩到的關；i ≤ lv 才開），過過的有星星、下一關黃框
+// 選關：12 格（每列 4 個、3 列）（save.deliver.lv＝目前玩到的關；i ≤ lv 才開），過過的有星星、下一關黃框
 function openDeliverPick() { renderDeliverPick(); $("deliverPick").classList.remove("hidden"); }
 function renderDeliverPick() {
   const d = save.deliver, box = $("deliverLevels"); box.innerHTML = "";
@@ -1754,7 +1764,7 @@ function renderDeliverPick() {
 // 念一句耳熟的歌詞 → 三句只差幾個字的卡片選一張；每回合 5 題（題庫不夠就全出）、不倒數不扣命、答錯不公布答案（規則都在模組裡）。
 // 第一次玩：教學交給模組唸（start({ intro:true })：卡片等教學講完才出來）；之後 intro:false（主程式本來就不唸開場語，見 SELF_INTRO）。
 // 答對一題（模組的 onCorrect）＝點心 +1、同樂廣場讀字週 +1；演出完（onWin）存檔 save.detective＝{ seen, best }，結算走共用 showResult（星星＝模組算的、點心再 +2、唸 WIN_TALK）。
-let detectiveMod = null, detectiveGame = null, detectiveRun = null, detectiveWinTalk = "";
+let detectiveMod = null, detectiveGame = null, detectiveRun = null, detectiveWinTalk = "", detectiveAdv = null;
 const importDetective = () => detectiveMod || (detectiveMod = import("./zhuyin-detective.js?v=2").catch(e => { detectiveMod = null; throw e; }));
 const DETECTIVE_FAIL = "偵探社現在打不開，等一下再試試看！";
 async function buildDetective() {
@@ -1764,21 +1774,24 @@ async function buildDetective() {
   clearTimeout(slow); if (loadingOwner === tok) { loadingOwner = 0; showLoading(false); }
   if (tok !== navToken || mode !== "detective") return;
   if (!m) { goMenu(); guideSay(DETECTIVE_FAIL); return; }
-  detectiveWinTalk = m.WIN_TALK;
+  detectiveWinTalk = m.WIN_TALK; detectiveAdv = m.advanceLevel;
   if (!detectiveGame) detectiveGame = m.createDetectiveGame($("detectiveRoot"), {
+    levels: () => save.detective.lv, seen: () => save.detective.seen,   // 10-13 等級：選等級畫面、出題優先沒玩過的
     say: (t, r, cb) => say(t, r, cb), talk: (t, cb) => talk(t, cb), play: n => play(n), later: (fn, ms) => gLater(fn, ms), paused: () => gamePaused,
     stopVoice: () => stopSpeech(), preload: ts => { voicePreload(ts); },   // stopVoice：真的停掉 zhuyin-voice 正在播的那句（換題、離開、重聽不疊播）
     onCorrect: () => { if (mode !== "detective") return; roundTreats++; pzAdd("read", 1); },
     onWin: r => detectiveWin(r), mascotImg: IMG("pets/dog"),
   });
   detectiveRun = { stars: 0, correct: 0, firstTry: 0, total: 0 };
-  detectiveGame.start({ intro: selfIntro });
+  detectiveGame.start({ intro: selfIntro, pick: true });   // 先出「選等級」畫面（五色徽章），按「開始」才出題
 }
 function detectiveWin(r) {
   if (mode !== "detective" || !r) return;
   locked = true; clearIdle();
   const d = save.detective, ids = (r.items || []).map(x => x && x.id).filter(id => typeof id === "string");
-  d.seen = [...new Set([...d.seen, ...ids])].slice(-200); d.best = Math.max(d.best, Math.min(3, Math.max(1, r.stars | 0))); persist();
+  d.seen = [...new Set([...d.seen, ...ids])].slice(-200); d.best = Math.max(d.best, Math.min(3, Math.max(1, r.stars | 0)));
+  if (detectiveAdv) d.lv = detectiveAdv(d.lv, r.lv | 0 || 1, r.stars | 0).rec;   // 等級：最高級 3★ 或連續 3 次 2★ 升下一級（模組的 advanceLevel，跟升級畫面同一個）
+  persist();
   detectiveRun = { ...r }; results = [r.stars >= 3 ? "gold" : "silver"]; roundTreats += 2;
   gLater(showResult, 400);
 }

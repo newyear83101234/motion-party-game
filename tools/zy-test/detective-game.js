@@ -24,7 +24,14 @@ const spoken = p => p.evaluate(() => window.__spoken.map(s => s.text));
 const want = p => p.evaluate(() => window.__zyAudio ? window.__zyAudio.debug().want : "?");
 const LS = (p, k) => p.evaluate(k => JSON.parse(localStorage.getItem(k) || "null"), k);
 const DS = p => p.evaluate(() => window.__zy.detective && window.__zy.detective.state());
-const inGame = p => p.waitForFunction(() => window.__zy.mode === "detective" && !document.getElementById("detective").classList.contains("hidden") && window.__zy.detective && window.__zy.detective.state(), null, { timeout: 20000 }).then(() => true, () => false);
+// 10-13：進偵探先出「選等級」畫面（phase pick）→ 這裡替小孩按「開始」（預設選最高已開的級）；pickSeen 記有幾次看到選等級畫面
+let pickSeen = 0;
+const inGame = async p => {
+  const up = await p.waitForFunction(() => window.__zy.mode === "detective" && !document.getElementById("detective").classList.contains("hidden") && window.__zy.detective && window.__zy.detective.state(), null, { timeout: 20000 }).then(() => true, () => false);
+  if (!up) return false;
+  if ((await DS(p)).phase === "pick") { pickSeen++; await p.click("#detective .dt-go"); }
+  return true;
+};
 const phase = (p, ph, t = 15000) => p.waitForFunction(ph => { const s = window.__zy.detective && window.__zy.detective.state(); return s && s.phase === ph; }, ph, { timeout: t, polling: 30 }).then(() => true, () => false);
 const resultOn = p => p.waitForFunction(() => !document.getElementById("result").classList.contains("hidden"), null, { timeout: 20000 }).then(() => true, () => false);
 const finishResult = async p => { await sleep(900); await p.evaluate(() => document.getElementById("result").dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }))); await sleep(900); };
@@ -91,6 +98,7 @@ const resultLayout = p => p.evaluate(() => {
   ok("① 點 3D 偵探社兩下（介紹卡 → 開始）→ 進遊戲", !!sd && in1, J({ sd, in1 }));
   ok("① 主程式「再聽」藏起來（偵探上面自己有 🔊）、沒有進度點、🏠 在、3D 小島停止渲染", ui.speak && ui.prog && ui.home !== "hidden" && ui.kids > 0 && !ui.hub, J(ui));
   ok("① 偵探音樂（calm）", (await want(p)) === "calm", await want(p));
+  ok("① 10-13 進偵探先出「選等級」畫面（第 1 級已開、其他鎖住），按「開始」才出題、上面有等級徽章 1", pickSeen === 1 && (await p.evaluate(() => ({ t: document.querySelector("#detective .dt-lvtag").textContent, lv: window.__zy.detective.state().lv }))).t === "1", J({ pickSeen }));
   // ② 教學只唸一次
   await phase(p, "ask"); await sleep(1500);
   const sp1 = await spoken(p);
@@ -126,7 +134,9 @@ const resultLayout = p => p.evaluate(() => {
   await p.setViewportSize({ width: 1180, height: 820 }); await sleep(400);
   // ④ 存檔
   const dt = await LS(p, "zy1_detective"), best = await LS(p, "zy1_best"), B = n < 5 ? 1 : 2;   // 不到 5 題最多 1 星
-  ok("④ 存檔 zy1_detective＝{seen:[題目 id], best}、個人紀錄 best.detective＝結算星數", dt && Array.isArray(dt.seen) && dt.seen.length === n && dt.best === B && best && best.detective === B, J({ dt, best }));
+  ok("④ 存檔 zy1_detective＝{seen:[題目 id], best, lv}、個人紀錄 best.detective＝結算星數", dt && Array.isArray(dt.seen) && dt.seen.length === n && dt.best === B && best && best.detective === B, J({ dt, best }));
+  // 10-13 等級存檔：第 1 級玩一回合（第一題錯一次＝2★；不到 5 題最多 1★）→ st[1]＝星數、cur 1；第 1 級最高級＋2★ 記連續 1 次（1★ 則歸零）
+  ok("④ 等級存檔：lv＝{ max:1, cur:1, st:{1:星數}, two }（2★ 連續 1 次／1★ 歸零；沒升級）", dt && dt.lv && dt.lv.max === 1 && dt.lv.cur === 1 && dt.lv.st["1"] === B && dt.lv.two === (B === 2 ? 1 : 0), J(dt && dt.lv));
 
   // ⑤ 第二次（卡片選單進）：不唸教學
   await p.evaluate(() => { window.__spoken = []; document.getElementById("menuBtn").click(); }); await sleep(800);

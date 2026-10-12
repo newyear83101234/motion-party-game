@@ -10,6 +10,9 @@
 //   - 正確答案的位置每題隨機，但同一題重聽、答錯都不重新洗牌。點卡片＝作答（不先念那張卡）。
 //   - 星星照「一次就答對的題數」：全對 3★、錯 1 題 2★、其餘 1★（答錯不扣分）。
 //     但啟用的題目不到 5 題（一回合不到 ROUND_N 題）時一回合最多 1★：見 starsFor()。
+//   - 10-13 等級 Lv1–Lv5（阿葉：「每個遊戲都太簡單」）：選項 3/3/4/4/4 個、選項之間差的字 3/2/2/1/1 個、Lv5 的錯誤選項全部「同音只差聲調」；
+//     答錯後的差異框 Lv1–2 照舊（剩下的卡每次都框）、Lv3–4 每題只框一次、Lv5 不框。3★ 升下一級；在最高級連續 3 次 2★ 也升（防卡死）。
+//     星星規則三級都一樣（全對才 3★ 本來就嚴）：難度來自選項變多、變像，不是門檻變嚴。題目優先出沒玩過的（api.seen）。
 //
 // 介面（主程式照這個接）：
 //   createDetectiveGame(root, api) → { start(opts), stop(), sayCurrent(), relayout(), state(), debug }
@@ -24,7 +27,10 @@
 //                          模組自己用代號（vtok）忽略被打斷那句晚到的 onEnd。
 //              preload(texts)  預先下載這回合要念的句子（主程式的 voicePreload）
 //              seed（測試用：固定亂數）、bank（測試用：換一份題庫）、mascotImg（偵探小狗的圖；預設 IMAGE/zhuyin/pets/dog.webp）
-//   start({ intro })：intro:false＝不念教學句（主程式自己唸過開場語時用）
+//   start({ intro, pick, lv })：intro:false＝不念教學句（主程式自己唸過開場語時用）；
+//        pick:true＝先出「選等級」畫面（五色圓形徽章，沒開的灰＋🔒，預設選最高已開的那級，按「開始」才出題）；lv:n＝直接用第 n 級（測試／沒給時＝api.levels().cur 或 1）
+//   10-13 等級介面（可選；沒給＝只有 Lv1、不出選等級畫面也能玩）：api.levels() → { max 已開到第幾級, cur, st: { "1": 最佳星數… } }；api.seen() → 玩過的題目 id 陣列；
+//        onWin 的參數多 lv（這回合的等級）與 up（true＝這回合讓 max 升級了；主程式用同一個 advanceLevel 存檔）
 //
 // 國字都自己附注音（js/zhuyin-ann.js 的 readRun＋js/zhuyin-ui.js 字典；新句子要跑 tools/build_zhuyin_ui.py）。
 // ⚠ zhuyin-ann.js 的 ?v 要跟 zhuyin.js 的 import 一樣（升版號時兩邊一起改，才會是同一份模組）。
@@ -33,18 +39,28 @@ import { BANK } from "./zhuyin-detective-bank.js?v=1";
 
 export { BANK };
 export const ROUND_N = 5;
+// 等級表（阿葉 10-13）：opts＝選項數、dif＝選項之間「差幾個字」（越小越難）、hint＝答錯後的差異框（full 每次都框／once 每題只框一次／none 不框）、tone＝錯誤選項全部只差聲調
+// new＝解鎖時小狗說的新東西（只顯示在對話框）
+export const LV = [null,
+  { opts: 3, dif: 3, hint: "full", color: "#2fae4a", new: "" },
+  { opts: 3, dif: 2, hint: "full", color: "#2f7fe8", new: "句子變像了！" },
+  { opts: 4, dif: 2, hint: "once", color: "#8a5cdc", new: "多了一張卡片！" },
+  { opts: 4, dif: 1, hint: "once", color: "#f08a1c", new: "只差一個字！" },
+  { opts: 4, dif: 1, hint: "none", color: "#e0a800", new: "只差聲調！", tone: true }];
+export const LV_MAX = 5;
 // 會念出來的台詞（都登記在 tools/voice/build_lines.py「10-12 詞句小偵探」）；ask 只顯示在對話框、不念
 export const LINES = {
   intro: "仔細聽，選出你聽到的那一句！",
   retry: "按喇叭，再聽一次喔！",                 // 10-12 櫻木：答錯後不自動重念題目，改請孩子自己按 🔊（配音 id dt_retry 要重錄）
   praise: ["答對了，小偵探！", "找到了！就是這句！", "你聽得好仔細！"],   // 每一小句 ≤4 字：對話框一行一小句，不會剩一個字掉下去
   ask: "你聽到哪句呢？",
+  lvup: "新的一級打開了！",                     // 10-13 升級時小狗說（talk；配音 id dt_lvup）
 };
 // 對話框顯示用：「|」＝建議換行的地方（字跟 LINES.intro 一樣，只是排版）
 const SHOW = { [LINES.intro]: "仔細聽，|選出你聽到的|那一句！" };
 // 結算畫面主程式唸的那句（照 BUBBLE_WIN_TALK／DELIVER_WIN_TALK 的做法）
 export const WIN_TALK = "全部找到了，你是厲害的小偵探！";
-const UI = { listen: "再聽一次", next: "下一題", done: "完成", banner: "全部找到了！" };
+const UI = { listen: "再聽一次", next: "下一題", done: "完成", banner: "全部找到了！", pickT: "選一個等級", go: "開始", lv: n => `第 ${n} 級`, lvUp: n => `第 ${n} 級打開了！` };
 
 // 國字範圍 U+3400–U+9FFF（跟 zhuyin-ann.js、tools/build_zhuyin_ui.py 一樣）；用字碼組出來，原始碼裡不放範圍兩端的怪字（不然字典工具會把它們當成畫面文字收進去）
 const HAN_SET = "[" + String.fromCharCode(0x3400) + "-" + String.fromCharCode(0x9fff) + "]";
@@ -81,10 +97,11 @@ export function checkBank(bank = BANK) {
   for (const q of bank) {
     const tag = q.id || "?";
     if (!q.id || ids.has(q.id)) bad.push(`${tag}：id 空的或重複`); ids.add(q.id);
-    if (!Array.isArray(q.options) || q.options.length !== 3) { bad.push(`${tag}：選項要剛好 3 個`); continue; }
+    if (!Array.isArray(q.options) || q.options.length < 3 || q.options.length > 6) { bad.push(`${tag}：選項要 3～6 個`); continue; }
+    if (q.lv !== undefined && !(Number.isInteger(q.lv) && q.lv >= 1 && q.lv <= LV_MAX)) bad.push(`${tag}：lv 要 1～${LV_MAX}`);
     if (q.say !== q.options[0]) bad.push(`${tag}：say 要跟 options[0] 一樣`);
     const ns = q.options.map(o => o.replace(PUNCT, ""));
-    if (new Set(ns).size !== 3) bad.push(`${tag}：選項只差標點或完全一樣`);
+    if (new Set(ns).size !== q.options.length) bad.push(`${tag}：選項只差標點或完全一樣`);
     const lens = ns.map(o => [...o].length);
     if (Math.max(...lens) - Math.min(...lens) > 1) bad.push(`${tag}：選項長度差太多（${lens.join("/")}）`);
     const ks = keysOf(q);
@@ -93,9 +110,58 @@ export function checkBank(bank = BANK) {
   }
   return bad;
 }
-// 一回合：題庫裡 enabled 的題目隨機挑 n 題（不夠就全出），每題的卡片順序在這裡就決定好（重聽、答錯都不變）
-export function pickRound(bank, n, rnd) {
-  return shuffle(bank.filter(q => q.enabled), rnd).slice(0, n).map(q => ({ ...q, order: shuffle([0, 1, 2], rnd), keys: keysOf(q) }));
+// ---- 等級（10-13）----
+const strip = z => (z ? z.replace(/[ˊˇˋ˙]$/, "") : z);
+// b 跟 a 是不是「只差聲調」：一樣長、每個不同的字讀音拿掉聲調後一樣（買／賣、媽／馬、糖／湯）；至少要有一個字不同
+export function toneOnly(a, b) {
+  const A = [...a.replace(PUNCT, "")], B = [...b.replace(PUNCT, "")];
+  if (A.length !== B.length || A.join("") === B.join("")) return false;
+  const ra = readRun(A.join("")), rb = readRun(B.join(""));
+  return A.every((ch, i) => ch === B[i] || (ra[i] && rb[i] && strip(ra[i]) === strip(rb[i])));
+}
+const toneCount = q => q.options.slice(1).filter(o => toneOnly(q.options[0], o)).length;
+// 這題能不能在第 lv 級出現：最低等級夠、選項夠多；Lv5 還要至少 3 個「只差聲調」的錯誤選項
+function fits(q, lv) {
+  if ((q.lv || 1) > lv || q.options.length < LV[lv].opts) return false;
+  return LV[lv].tone ? toneCount(q) >= LV[lv].opts - 1 : true;
+}
+// 從這題的備用錯誤選項挑出第 lv 級要的：差的字數最接近 LV[lv].dif；「只差聲調」的最多 1 個（Lv5 例外：全部都是）
+function chooseOptions(q, lv, rnd) {
+  const need = LV[lv].opts - 1, correct = q.options[0];
+  const ws = q.options.slice(1).map(o => ({ o, d: diffPos(correct, o).length, t: toneOnly(correct, o) }));
+  if (LV[lv].tone) return [correct, ...shuffle(ws.filter(w => w.t), rnd).slice(0, need).map(w => w.o)];
+  if (ws.length <= need) return q.options.slice();
+  const easy = lv <= 2 ? -1 : 1;                       // 一樣接近目標時：Lv1–2 取差比較多的（比較好分辨）、Lv3 起取差比較少的
+  const rest = shuffle(ws, rnd).sort((a, b) => Math.abs(a.d - LV[lv].dif) - Math.abs(b.d - LV[lv].dif) || easy * (a.d - b.d)), pick = [];
+  for (const w of rest) { if (pick.length >= need) break; if (w.t && pick.some(x => x.t)) continue; pick.push(w); }
+  for (const w of rest) { if (pick.length >= need) break; if (!pick.includes(w)) pick.push(w); }
+  return [correct, ...pick.map(w => w.o)];
+}
+// 一回合：題庫裡 enabled、這一級出得了的題目挑 n 題（沒玩過的優先；不夠就全出），每題的卡片順序在這裡就決定好（重聽、答錯都不變）。
+// o：{ lv（預設 1）, seen（玩過的題目 id）}。回傳的每題 options 已經是這一級要的（3 或 4 個，[0] 是正確的）
+export function pickRound(bank, n, rnd, o = {}) {
+  const lv = Math.min(LV_MAX, Math.max(1, o.lv | 0 || 1)), seen = new Set(o.seen || []);
+  const pool = bank.filter(q => q.enabled && fits(q, lv));
+  const order = shuffle(pool.filter(q => !seen.has(q.id)), rnd).concat(shuffle(pool.filter(q => seen.has(q.id)), rnd));
+  return order.slice(0, n).map(q => { const options = chooseOptions(q, lv, rnd), q2 = { ...q, options }; return { ...q2, lv, order: shuffle(options.map((_, i) => i), rnd), keys: keysOf(q2) }; });
+}
+// 存檔裡的等級資料清洗＋升級規則（主程式也用這兩個）：{ max 已開到第幾級, cur 上次玩的, st { 級: 最佳星 }, two 在最高級連續幾次 2★ }
+export function cleanLv(d) {
+  const out = { max: 1, cur: 1, st: {}, two: 0 }; if (!d || typeof d !== "object") return out;
+  out.max = Math.min(LV_MAX, Math.max(1, Math.floor(+d.max) || 1)); out.cur = Math.min(out.max, Math.max(1, Math.floor(+d.cur) || out.max));
+  if (d.st && typeof d.st === "object") for (const [k, v] of Object.entries(d.st)) { const i = +k, x = Math.floor(+v) || 0; if (Number.isInteger(i) && i >= 1 && i <= LV_MAX && x > 0) out.st[i] = Math.min(3, x); }
+  out.two = Math.min(2, Math.max(0, Math.floor(+d.two) || 0)); return out;
+}
+// 玩完第 lv 級拿 stars 星 → 新的等級資料＋有沒有升級。在最高級：3★ 升；連續 3 次 2★ 也升（1★ 斷掉連續）；玩低級只記最佳星數
+export function advanceLevel(rec, lv, stars) {
+  const r = cleanLv(rec); lv = Math.min(LV_MAX, Math.max(1, lv | 0 || 1)); stars = Math.min(3, Math.max(0, stars | 0));
+  if (stars > (r.st[lv] || 0)) r.st[lv] = stars;
+  r.cur = lv; let up = false;
+  if (lv === r.max && r.max < LV_MAX) {
+    if (stars >= 3) up = true; else if (stars === 2) { r.two++; if (r.two >= 3) up = true; } else r.two = 0;
+    if (up) { r.max++; r.two = 0; r.cur = r.max; }
+  }
+  return { rec: r, up };
 }
 // 星星照「一次就答對的題數」：全對 3★、只錯 1 題 2★、其餘 1★
 // 例外（10-12 櫻木建議）：啟用的題目不到 ROUND_N（5）題、一回合只有 total < 5 題時，最多 1★（全對也 1★）。
@@ -186,6 +252,7 @@ export function createDetectiveGame(root, api) {
     mk("i", "dt-hand", spk, "👆");                     // 答錯後指著 🔊 的手指（平常看不到；.dt-point 時點兩下）
     mk("span", "dt-listen-t", listen).appendChild(zh(UI.listen));
     const prog = mk("div", "dt-prog", head); prog.setAttribute("role", "status");
+    const lvtag = mk("span", "dt-lvtag dt-hide", prog); lvtag.setAttribute("aria-hidden", "true");   // 這回合的等級（彩色圓形徽章＋數字，不用星星圖案）
     const progT = mk("span", "dt-prog-t", prog);
     const dots = mk("span", "dt-dots", prog);
     const side = mk("div", "dt-side", wrap);
@@ -196,7 +263,7 @@ export function createDetectiveGame(root, api) {
     mk("i", "dt-hat", din); mk("i", "dt-glass", din);
     const next = mk("button", "dt-next dt-hide", side); next.type = "button";
     const board = mk("div", "dt-board", wrap);
-    const cards = [0, 1, 2].map(i => {
+    const pool = [0, 1, 2, 3].map(i => {
       const c = mk("button", "dt-card dt-hide", board); c.type = "button"; c.dataset.i = String(i);
       mk("i", "dt-clip", c).setAttribute("aria-hidden", "true");
       mk("span", "dt-sent noann", c);
@@ -204,10 +271,12 @@ export function createDetectiveGame(root, api) {
       return c;
     });
     const fx = mk("div", "dt-fx", wrap);
-    D = { wrap, head, listen, prog, progT, dots, side, bubble, dog, next, board, cards, fx, lens: null };
+    const cards = pool.slice(0, 3);                    // 這一題要幾張卡（3 或 4，看等級）就只留幾張在畫面上：beginQ 依 st.n 增減
+    D = { wrap, head, listen, prog, progT, lvtag, dots, side, bubble, dog, next, board, cards, pool, fx, lens: null, pick: null };
     on(listen, "click", () => replay(true));
     on(next, "click", () => goNext());
-    cards.forEach((c, i) => on(c, "click", () => onCard(i)));
+    pool.forEach((c, i) => on(c, "click", () => onCard(i)));
+    pool[3].remove();
   }
   function teardown() {
     while (offs.length) offs.pop()();
@@ -217,7 +286,7 @@ export function createDetectiveGame(root, api) {
 
   // ---------- 版面：橫式＝左邊偵探小狗、右邊三張卡；直式＝上面三張卡、下面小狗＋下一題 ----------
   function relayout() {
-    if (!D || !st) return;
+    if (!D || !st || !st.round.length) return;
     const rc = root.getBoundingClientRect();
     const W = rc.width || innerWidth, H = rc.height || innerHeight, vm = Math.min(W, H) / 100;
     const land = W >= H * 1.1;
@@ -229,7 +298,7 @@ export function createDetectiveGame(root, api) {
     const gap = parseFloat(getComputedStyle(D.board).rowGap) || 0;
     const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + parseFloat(cs.borderLeftWidth) * 2;
     const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + parseFloat(cs.borderTopWidth) * 2;
-    const cardH = Math.min((br.height - 2 * gap) / 3, parseFloat(cs.maxHeight) || Infinity);
+    const cardH = Math.min((br.height - (st.n - 1) * gap) / st.n, parseFloat(cs.maxHeight) || Infinity);   // 3 或 4 張卡（等級）
     const info = st.round.map(q => { const lens = q.options.map(o => [...o].length), b = brkOf(q); return { len: Math.max(...lens), line2: Math.max(b, Math.max(...lens) - b) }; });
     const fitF = T => {
       const wraps = info.some(x => x.len > T), maxLine = Math.max(...info.map(x => (x.len > T ? x.line2 : x.len)));
@@ -286,10 +355,13 @@ export function createDetectiveGame(root, api) {
     const q = cur();
     st.qtok++;                                         // 上一題還排著的 laterQ 回呼全部作廢
     st.phase = "wait"; st.qWrong = 0; st.cool = false; st.reread = false; st.lensAt = -1;
+    st.hinted = false;                                  // Lv3 起差異框每題只出一次
     renderProg();
     D.next.classList.add("dt-hide"); D.next.classList.remove("dt-pulse");
     D.listen.classList.remove("dt-nudge", "dt-point");
     if (D.lens) { D.lens.remove(); D.lens = null; }
+    D.board.classList.toggle("dt-n4", st.n === 4);
+    D.cards = D.pool.slice(0, st.n); D.pool.forEach((c, i) => { if (i < st.n) { if (!c.isConnected) D.board.appendChild(c); } else c.remove(); });   // Lv1–2 三張卡、Lv3 起四張
     D.cards.forEach((c, i) => {
       const opt = q.order[i];
       c.className = "dt-card dt-hide"; c.disabled = false; c.removeAttribute("aria-disabled");   // 上一題答錯的卡留下的「不能點」要清掉
@@ -334,7 +406,8 @@ export function createDetectiveGame(root, api) {
     restart(D.dog, "dt-tilt");
     setBubble(LINES.retry, "dt-soft");
     D.listen.classList.remove("dt-nudge", "dt-point");
-    hintDiff();                                         // 剩下的卡：彼此不一樣的那一段淡淡框起來（每張都框，不透露哪張對）
+    const hm = LV[st.lv].hint;                          // 差異框：Lv1–2 每次答錯都框、Lv3–4 每題只框一次、Lv5 不框
+    if (hm === "full" || (hm === "once" && !st.hinted)) { st.hinted = true; hintDiff(); }   // 剩下的卡：彼此不一樣的那一段淡淡框起來（每張都框，不透露哪張對）
     // 不公布答案、也不自己重念題目（阿葉規則）：講完「按喇叭，再聽一次喔！」才讓 🔊 閃＋手指點 🔊，請孩子自己按
     const mt = ++st.missTok;
     const point = () => {
@@ -350,6 +423,7 @@ export function createDetectiveGame(root, api) {
     const q = cur(), left = D.cards.map((c, i) => i).filter(i => !D.cards[i].classList.contains("dt-wrong"));
     D.cards.forEach(c => c.querySelectorAll(".dt-c.dt-hint").forEach(e => e.classList.remove("dt-hint", "hs", "he")));
     if (left.length < 2) return;                          // 只剩一張：沒得比（不框）
+    st.hintN++;
     for (const i of left) {
       const me = q.options[q.order[i]], pos = new Set(left.filter(j => j !== i).flatMap(j => diffPos(me, q.options[q.order[j]])));
       const box = D.cards[i].querySelector(".dt-sent");
@@ -416,36 +490,73 @@ export function createDetectiveGame(root, api) {
     D.next.classList.add("dt-hide");
     renderProg();
     const stars = starsFor(st.firstTry, st.total);
-    st.win = { stars, correct: st.correct, firstTry: st.firstTry, total: st.total, items: st.items.slice() };
+    const adv = api.levels ? advanceLevel(api.levels(), st.lv, stars) : { rec: null, up: false };   // 主程式存檔時用同一個 advanceLevel；這裡只為了秀「升級了」
+    st.win = { stars, correct: st.correct, firstTry: st.firstTry, total: st.total, items: st.items.slice(), lv: st.lv, up: adv.up };
     const bn = mk("div", "dt-banner", D.fx);
     mk("div", "dt-banner-ic", bn, "🔍");
     mk("div", "dt-banner-t", bn).appendChild(zh(UI.banner));
     const sr = mk("div", "dt-banner-stars", bn);
     for (let i = 0; i < 3; i++) { const s = mk("span", i < stars ? "on" : "", sr, "★"); s.style.setProperty("--d", 300 + i * 260 + "ms"); }
+    if (adv.up) {                                        // 升級：彩色徽章＋「第 N 級打開了！」＋新東西
+      const nl = adv.rec.max, up = mk("div", "dt-banner-up", bn);
+      const b = mk("span", "dt-lvb dt-lvb-s", up, String(nl)); b.style.setProperty("--c", LV[nl].color);
+      const tx = mk("span", "dt-banner-up-t", up); tx.appendChild(zh(UI.lvUp(nl)));
+      if (LV[nl].new) { const nw = mk("div", "dt-banner-new", bn); nw.appendChild(zh(LV[nl].new)); }
+      later(() => { try { if (api.talk) api.talk(LINES.lvup, () => {}); } catch (e) { /* 說明語音失敗不影響 */ } }, 1100);
+    }
     play("win");
     for (let i = 0; i < stars; i++) later(() => play("star"), 300 + i * 260);
     for (let i = 0; i < 16; i++) { const q = mk("i", "dt-conf c" + (i % 4), D.fx); q.style.left = (6 + (i * 59) % 88) + "%"; q.style.setProperty("--d", (i * 83) % 700 + "ms"); q.addEventListener("animationend", () => q.remove(), { once: true }); }
     restart(D.dog, "dt-hop");
-    later(() => { if (!st.winSent) { st.winSent = true; api.onWin(st.win); } }, 2000);
+    later(() => { if (!st.winSent) { st.winSent = true; api.onWin(st.win); } }, adv.up ? 3800 : 2000);
   }
 
+  // ---------- 選等級畫面（10-13）：五色圓形徽章（沒開的灰＋🔒）＋「開始」；預設選最高已開的那級 ----------
+  const levelsNow = () => { try { return api.levels ? cleanLv(api.levels()) : null; } catch (e) { return null; } };
+  function showPick(opts) {
+    const lvs = levelsNow() || cleanLv({ max: 1 }), pk = mk("div", "dt-pick", D.wrap);
+    mk("div", "dt-pick-t", pk).appendChild(zh(UI.pickT));
+    const row = mk("div", "dt-pick-row", pk); let sel = lvs.max;
+    const btns = [1, 2, 3, 4, 5].map(n => {
+      const open = n <= lvs.max, b = mk("button", "dt-lvb dt-lvb-pick" + (open ? "" : " dt-lock"), row); b.type = "button"; b.dataset.lv = String(n); b.style.setProperty("--c", LV[n].color);
+      b.setAttribute("aria-label", UI.lv(n)); if (!open) b.setAttribute("aria-disabled", "true");
+      mk("span", "dt-lvn", b, open ? String(n) : "🔒");
+      mk("span", "dt-lvs", b, open ? (lvs.st[n] ? "★".repeat(lvs.st[n]) : "") : "");     // 那級最佳星數（小字）
+      return b;
+    });
+    const mark = () => btns.forEach((b, i) => b.classList.toggle("dt-sel", i + 1 === sel));
+    mark();
+    btns.forEach((b, i) => on(b, "click", () => { if (!st || st.phase !== "pick") return; if (i + 1 > lvs.max) { restart(b, "dt-shake"); play("ng"); return; } sel = i + 1; mark(); play("select"); }));
+    const go = mk("button", "dt-go", pk); go.type = "button"; go.appendChild(zh(UI.go));
+    on(go, "click", () => { if (!st || st.phase !== "pick" || paused()) return; play("select"); pk.remove(); D.pick = null; begin(sel, opts); });
+    D.pick = pk; relayout();
+  }
   // ---------- 公開介面 ----------
-  function start(opts = {}) {
-    stop();
-    run++;
+  function begin(lv, opts) {
     const rnd = typeof api.seed === "number" ? rng(api.seed) : Math.random;
-    const round = pickRound(api.bank || BANK, ROUND_N, rnd);
+    let seen = []; try { seen = api.seen ? api.seen() : []; } catch (e) { /* 沒有也行 */ }
+    let round = []; for (let l = Math.min(LV_MAX, Math.max(1, lv | 0)); l >= 1 && !round.length; l--) { round = pickRound(api.bank || BANK, ROUND_N, rnd, { lv: l, seen }); lv = l; }
     if (!round.length) { console.warn("[detective] 題庫沒有啟用的題目"); return; }
-    st = { round, total: round.length, qi: 0, phase: "wait", correct: 0, firstTry: 0, misses: 0, replays: 0, items: [], voice: null, qWrong: 0, cool: false, reread: false, lensAt: -1, winSent: false, win: null,
-      qtok: 0, tapAt: -1e9, missTok: 0, pointed: 0 };   // qtok：第幾題的代號（laterQ 用）；tapAt：上次按 🔊（防抖）；missTok／pointed：第幾次答錯、手指指過了沒
-    build(); beginQ();
-    if (api.preload) { try { api.preload([LINES.intro, LINES.retry, ...LINES.praise, ...round.map(q => q.say)]); } catch (e) { /* 預載失敗沒關係 */ } }
+    Object.assign(st, { round, total: round.length, n: round[0].options.length, lv, phase: "wait" });
+    D.lvtag.textContent = String(lv); D.lvtag.style.setProperty("--c", LV[lv].color); D.lvtag.classList.remove("dt-hide");
+    beginQ();
+    if (api.preload) { try { api.preload([LINES.intro, LINES.retry, ...LINES.praise, LINES.lvup, ...round.map(q => q.say)]); } catch (e) { /* 預載失敗沒關係 */ } }
     if (opts.intro !== false) {
       st.phase = "intro"; D.wrap.classList.add("dt-introing");   // 教學時卡片區是空的：橫式對話框往右放大（CSS）
       setBubble(LINES.intro);
       speak("talk", LINES.intro, ask);
       laterQ(ask, 5200);                                   // 保險：教學句的 onEnd 沒來（被排隊、引擎沒回）也會開始念題目
     } else laterQ(ask, 500);
+  }
+  function start(opts = {}) {
+    stop();
+    run++;
+    st = { round: [], total: 0, n: 3, lv: 1, qi: 0, phase: "pick", correct: 0, firstTry: 0, misses: 0, replays: 0, items: [], voice: null, qWrong: 0, cool: false, reread: false, lensAt: -1, winSent: false, win: null,
+      qtok: 0, tapAt: -1e9, missTok: 0, pointed: 0, hinted: false, hintN: 0 };   // qtok：第幾題的代號（laterQ 用）；tapAt：上次按 🔊（防抖）；missTok／pointed：第幾次答錯、手指指過了沒；hinted：這題差異框出過了沒
+    build();
+    const lvs = levelsNow();
+    if (opts.pick) { showPick(opts); return; }
+    begin(opts.lv || (lvs ? lvs.cur : 1), opts);
   }
   function stop() {
     run++;
@@ -458,7 +569,7 @@ export function createDetectiveGame(root, api) {
     const q = cur();
     return {
       phase: st.phase, qi: st.qi, total: st.total, qid: q ? q.id : null, say: q ? q.say : null, order: q ? q.order.slice() : [],
-      answer: q ? q.order.indexOf(0) : -1, wrong: D ? D.cards.map((c, i) => (c.classList.contains("dt-wrong") ? i : -1)).filter(i => i >= 0) : [],
+      answer: q ? q.order.indexOf(0) : -1, wrong: D ? D.cards.map((c, i) => (c.classList.contains("dt-wrong") ? i : -1)).filter(i => i >= 0) : [], lv: st.lv, n: st.n, options: q ? q.options.slice() : [], hinted: st.hinted, hintN: st.hintN, pick: !!(D && D.pick),
       qWrong: st.qWrong, correct: st.correct, firstTry: st.firstTry, misses: st.misses, replays: st.replays,
       voice: st.voice ? { ...st.voice } : null, nextShown: !!(D && !D.next.classList.contains("dt-hide")),
       keys: q ? q.keys[0].slice() : [], won: st.phase === "done", win: st.win, ids: st.round.map(r => r.id),

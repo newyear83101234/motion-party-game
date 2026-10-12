@@ -1,7 +1,7 @@
 // 彩虹配送站（js/zhuyin-deliver.js）測試：node tools/zy-test/deliver.js
 // 需要：專案根目錄開著 python -m http.server 8765。截圖存到 DL_SHOTS（預設 %TEMP%\zy-deliver）。
-// 驗：①求解器 8 任務都有解、印最佳趟數／路程、任務 7–8 要回倉庫且「貪心先送最近的」比較差
-//     ②8 任務用真的點擊照求解器最佳解打完：onWin 參數、3★、禮物（重玩＝null）、單行道沒有逆向
+// 驗：①求解器 12 任務都有解（10-13 加了進階關 9–12）、印最佳趟數／路程、任務 7–8 要回倉庫且「貪心先送最近的」比較差
+//     ②12 任務用真的點擊照求解器最佳解打完：onWin 參數、3★、禮物（重玩＝null）、單行道沒有逆向
 //     ③送錯流程（說孩子給的那個、不唸答案、貨飛回車上）、藏圖任務訂單完全不出聲、其他居民台詞、裝滿、空車
 //     ④💡 提示（指商品→指卡車、藏圖第一次揭圖再示範、吊橋開關）⑤吊橋／三角錐／單行道的阻擋提示
 //     ⑥暫停：卡車停、計時凍結、不收操作 ⑦五種尺寸版面＋截圖（含訂單卡字級、車廂國字對比） ⑧start/stop 5 次沒有 WebGL 洩漏（⑧-2 建場景丟錯也不漏）
@@ -60,11 +60,17 @@ const wrongWay = legs => legs.flatMap(l => l.nodes.slice(1).map((n, i) => l.node
     console.log("\n求解器（路程＝送完最後一件為止；貪心＝在倉庫照遠近裝滿、每次開最近的那家）");
     console.log("任務 | 容量 | 件數 | 最佳 趟/路程 | 貪心 趟/路程 | 最佳路線");
     for (const r of rows) console.log(`${String(r.i + 1).padStart(4)} | ${r.cap}    | ${r.n}    | ${r.trips} / ${String(r.dist).padEnd(6)} | ${r.gTrips} / ${String(r.gDist).padEnd(6)} | ${r.plan}`);
-    ok("求解器：8 任務都有解", rows.length === 8 && rows.every(r => r.trips >= 1 && r.dist > 0));
+    ok("求解器：12 任務都有解（含 10-13 進階關 9–12）", rows.length === 12 && rows.every(r => r.trips >= 1 && r.dist > 0));
     ok("求解器：任務 7、8 至少要 2 趟（容量不夠要回倉庫）", rows[6].trips >= 2 && rows[7].trips >= 2, `T7 ${rows[6].trips} 趟、T8 ${rows[7].trips} 趟`);
     ok("求解器：任務 7、8「貪心先送最近的」路程比最佳差 ≥10%（大人要規劃）", rows[6].gDist > rows[6].dist * 1.1 && rows[7].gDist > rows[7].dist * 1.1,
       `T7 最佳 ${rows[6].dist} vs 貪心 ${rows[6].gDist}（+${Math.round((rows[6].gDist / rows[6].dist - 1) * 100)}%）、T8 最佳 ${rows[7].dist} vs 貪心 ${rows[7].gDist}（+${Math.round((rows[7].gDist / rows[7].dist - 1) * 100)}%）`);
-    ok("任務設計：前 3 關會唸、第 4 關起藏圖；容量 1→2→3；任務 7–8 是大人規劃關", await p.evaluate(() => { const T = window.__dl.mod.TASKS; return T.slice(0, 3).every(t => t.speak && !t.hidden) && T.slice(3).every(t => t.hidden && !t.speak) && T[0].cap === 1 && T[4].cap === 3 && T.map(t => t.plan).join() === "false,false,false,false,false,false,true,true"; }));
+    ok("任務設計：前 3 關會唸、第 4 關起藏圖；容量 1→2→3；任務 7–8 是大人規劃關", await p.evaluate(() => { const T = window.__dl.mod.TASKS; return T.slice(0, 3).every(t => t.speak && !t.hidden) && T.slice(3).every(t => t.hidden && !t.speak) && T[0].cap === 1 && T[4].cap === 3 && T.map(t => t.plan).join() === "false,false,false,false,false,false,true,true,true,true,true,true"; }));
+    // 10-13 進階關 9–12：全部藏圖、規劃關、有吊橋；訂單 4/4/5/5 張；容量 2/2/3/2；10–12 單行道；至少 2 趟；貪心比最佳差 ≥10%；第一次過關送扭蛋幣（沒有換裝）；逐關變難（件數或趟數不減）
+    const adv = await p.evaluate(() => window.__dl.mod.TASKS.slice(8).map(t => ({ n: t.orders.length, cap: t.cap, hidden: t.hidden, lever: t.lever, plan: t.plan, oneway: t.oneway, coin: !!t.coin, gift: t.gift || null, speak: t.speak, shelf: t.shelf.length })));
+    ok("進階關 9–12 設計：全部藏圖＋規劃關＋吊橋；訂單 4/4/5/5 張；容量 2/2/3/2；單行道 否/是/是/是；貨架 6 種；不唸訂單；第一次過關送扭蛋幣、沒有換裝禮物",
+      adv.every(t => t.hidden && t.plan && t.lever && !t.speak && t.shelf === 6 && t.coin && t.gift === null) && adv.map(t => t.n).join() === "4,4,5,5" && adv.map(t => t.cap).join() === "2,2,3,2" && adv.map(t => t.oneway).join() === "false,true,true,true", JSON.stringify(adv));
+    ok("進階關 9–12：每關至少 2 趟、「貪心先送最近的」路程比最佳差 ≥10%；11 關 5 張單最少趟不比 9 關少、12 關 3 趟＝全部最難",
+      rows.slice(8).every(r => r.trips >= 2 && r.gDist > r.dist * 1.1) && rows[11].trips === 3 && rows[10].n === 5 && rows[8].trips <= rows[10].trips && rows[11].trips >= rows[10].trips, JSON.stringify(rows.slice(8).map(r => [r.n, r.cap, r.trips, r.dist, r.gDist])));
     // 任務 4＝第一個藏圖關：不易混的詞、貨架 4 種；易混組（ㄒ西瓜／香蕉、ㄇ麵包／帽子）從任務 5 起
     ok("任務 4 降坡：訂單沒有易混組、貨架 4 種；任務 5 起才有易混組", await p.evaluate(() => { const T = window.__dl.mod.TASKS, mix = ["watermelon", "banana", "bread", "hat"];
       return T[3].shelf.length === 4 && !T[3].orders.some(o => mix.includes(o[1])) && T.slice(4).some(t => t.orders.some(o => mix.includes(o[1]))); }));
@@ -76,27 +82,28 @@ const wrongWay = legs => legs.flatMap(l => l.nodes.slice(1).map((n, i) => l.node
     await ctx.close();
   }
 
-  // ===== ② 8 任務照最佳解用真的點擊打完 =====
+  // ===== ② 12 任務照最佳解用真的點擊打完 =====
   {
     const { ctx, p, errs } = await open(browser, 1180, 820, "fast=6&seed=11");
     const table = [], saves = [];
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 12; i++) {
       await startTask(p, i);
       const best = (await S(p)).best, steps = await playBest(p);
       const banner = await p.waitForFunction(() => { const b = document.querySelector(".dlv-banner .dlv-banner-s span.dlv-pop") && document.querySelector(".dlv-banner"); return b ? b.textContent : ""; }, null, { timeout: 8000, polling: 10 }).then(h => h.jsonValue()).catch(() => "");
       await p.waitForFunction(() => window.__dl.calls.win.length > 0, null, { timeout: 15000 }).catch(() => {});
-      const w = await p.evaluate(() => window.__dl.calls.win[0] || null), s = await S(p), gift = await p.evaluate(i => window.__dl.mod.TASKS[i].gift, i);
+      const w = await p.evaluate(() => window.__dl.calls.win[0] || null), s = await S(p), gift = await p.evaluate(i => window.__dl.mod.TASKS[i].gift, i), coin = await p.evaluate(i => (window.__dl.mod.TASKS[i].coin ? 1 : 0), i);
       const sv = await p.evaluate(() => ({ n: window.__dl.calls.save.length, same: JSON.stringify(window.__dl.calls.save[0]) === JSON.stringify(window.__dl.calls.win[0]), order: window.__dl.calls.at.map(a => a[0]).join() }));
       saves.push(sv.n === 1 && sv.same && sv.order === "save,win" ? "ok" : JSON.stringify(sv));
       const ww = (await p.evaluate(i => window.__dl.mod.TASKS[i].oneway, i)) ? wrongWay(s.legs) : [];   // 只有單行道任務要查方向
       const bannerOk = i >= 6 ? /路程 \d+ 格／最短 \d+ 格/.test(banner) : !/最少|路程/.test(banner) && banner.includes("全部送到了");
       table.push({ task: i + 1, steps: steps.length, w, wrongWay: ww.length, banner: bannerOk ? undefined : banner,
-        ok: !!(w && w.task === i && w.stars === 3 && w.routeBest === true && w.trips === best.trips && w.bestTrips === best.trips && Math.abs(w.dist - best.dist) < 0.05 && w.bestDist === best.dist && w.wrong === 0 && w.gift === gift && ww.length === 0 && bannerOk) });
+        ok: !!(w && w.task === i && w.stars === 3 && w.routeBest === true && w.trips === best.trips && w.bestTrips === best.trips && Math.abs(w.dist - best.dist) < 0.05 && w.bestDist === best.dist && w.wrong === 0 && w.gift === gift && w.coin === coin && ww.length === 0 && bannerOk) });
       if (i === 7) await shot(p, "land_T8_win");
+      if (i >= 8) await shot(p, `land_T${i + 1}_win`);        // 進階關過關畫面（扭蛋幣卡）
     }
-    console.log("\n介面實打（最佳解、真的點擊）：" + table.map(t => `T${t.task}:${t.w ? t.w.trips + "趟/" + t.w.dist + "★" + t.w.stars + " " + t.w.gift : "沒過"}`).join("  "));
-    ok("自動通關：8 任務都過關、onWin 參數正確（含 routeBest）、3★、送第一次禮物、單行道沒逆向；結算小字：一般關不顯示趟數、規劃關顯示「路程 X 格／最短 Y 格」", table.every(t => t.ok), JSON.stringify(table.filter(t => !t.ok)));
-    ok("onSave（里維 10-12）：8 任務都在 onWin 之前呼叫一次、內容跟 onWin 一樣", saves.length === 8 && saves.every(x => x === "ok"), JSON.stringify(saves));
+    console.log("\n介面實打（最佳解、真的點擊）：" + table.map(t => `T${t.task}:${t.w ? t.w.trips + "趟/" + t.w.dist + "★" + t.w.stars + " " + (t.w.gift || (t.w.coin ? "🪙" : "")) : "沒過"}`).join("  "));
+    ok("自動通關：12 任務都過關、onWin 參數正確（含 routeBest、coin）、3★、送第一次禮物（9–12＝扭蛋幣）、單行道沒逆向；結算小字：一般關不顯示趟數、規劃關顯示「路程 X 格／最短 Y 格」", table.every(t => t.ok), JSON.stringify(table.filter(t => !t.ok)));
+    ok("onSave（里維 10-12）：12 任務都在 onWin 之前呼叫一次、內容跟 onWin 一樣", saves.length === 12 && saves.every(x => x === "ok"), JSON.stringify(saves));
     await startTask(p, 0);
     // 送完最後一件的那一刻（state.won 變 true）onSave 已經呼叫、onWin 還沒（演出中）
     const atWin = p.waitForFunction(() => { const s = window.__dl.game.state(); return s && s.won ? { save: window.__dl.calls.save.length, win: window.__dl.calls.win.length } : null; }, null, { timeout: 30000, polling: "raf" }).then(h => h.jsonValue()).catch(() => null);

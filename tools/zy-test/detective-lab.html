@@ -9,7 +9,8 @@
      參數：?fake=1 假語音（測試用：不出聲、記錄每段話的開始／被打斷／講完）｜?fast=4 假語音與計時快 4 倍｜?seed=3 固定亂數
            ｜?clean=1 收起試玩工具列（截圖用）｜?mute=1 不出音效｜?talk=0 模擬家長關掉說明語音｜?nostop=1 不提供 api.stopVoice
            ｜?intro=0 不念教學句｜?all=1 草稿題也出（看候選題長怎樣，不會存檔）
-           ｜?bank=2 題庫只取前 2 題啟用題（測試用：驗不到 5 題最多 1★） -->
+           ｜?bank=2 題庫只取前 2 題啟用題（測試用：驗不到 5 題最多 1★）
+           ｜10-13 等級：?lv=4 直接用第 4 級｜?levels=3 模擬存檔已開到第 3 級（api.levels；打完會照 advanceLevel 更新）｜?pick=1 先出選等級畫面｜?seen=smile,eyes 這些題已玩過（出題避開） -->
 <link rel="stylesheet" href="../../css/zhuyin.css">
 <link rel="stylesheet" href="../../css/zhuyin-detective.css">
 <style>
@@ -91,6 +92,7 @@
     later, paused: () => paused,
     onWin: info => {
       calls.win.push(info); log("onWin", JSON.stringify(info));
+      if (lvRec.rec) lvRec.rec = mod.advanceLevel(lvRec.rec, info.lv, info.stars).rec;   // 主程式 detectiveWin 做的事
       if (Q.get("clean") === "1") return;
       speakNow("talk", mod.WIN_TALK);
       const r = document.getElementById("labResult"); r.firstElementChild.textContent = `${"★".repeat(info.stars)}${"☆".repeat(3 - info.stars)}\n一次就答對 ${info.firstTry}／${info.total} 題\n（點一下再玩一次）`; r.classList.remove("hidden");
@@ -99,20 +101,24 @@
   };
   if (Q.get("nostop") !== "1") api.stopVoice = () => { calls.stop++; if (FAKE) vStop("stop"); else realStop(); };
   if (Q.has("seed")) api.seed = +Q.get("seed");
+  const lvRec = { rec: Q.has("levels") ? mod.cleanLv({ max: +Q.get("levels"), cur: +Q.get("levels") }) : null, seen: (Q.get("seen") || "").split(",").filter(Boolean) };
+  if (lvRec.rec) api.levels = () => lvRec.rec;                       // 模擬主程式的 save.detective.lv
+  if (Q.has("seen")) api.seen = () => lvRec.seen;
+  const startOpts = () => ({ ...(Q.get("intro") === "0" ? { intro: false } : {}), ...(Q.has("lv") ? { lv: +Q.get("lv") } : {}), ...(Q.get("pick") === "1" ? { pick: true } : {}) });
   if (Q.get("all") === "1") api.bank = mod.BANK.map(q => ({ ...q, enabled: true }));
   if (Q.has("bank")) api.bank = mod.BANK.filter(q => q.enabled).slice(0, Math.max(1, +Q.get("bank") || 1));   // 測試用：?bank=2 題庫只剩前 2 題（驗「啟用不到 5 題最多 1★」）
   const game = mod.createDetectiveGame(document.getElementById("detectiveRoot"), api);
-  window.__dt = { mod, game, api, calls, V, later, setPaused, timers };
+  window.__dt = { mod, game, api, calls, V, later, setPaused, timers, lvRec };
 
   const bar = document.getElementById("lab");
-  const btns = [["重新開始", () => { document.getElementById("labResult").classList.add("hidden"); game.start(Q.get("intro") === "0" ? { intro: false } : {}); }],
+  const btns = [["重新開始", () => { document.getElementById("labResult").classList.add("hidden"); game.start(startOpts()); }],
     ["⏸", () => setPaused(!paused)], ["🔊", () => game.sayCurrent()], ["stop()", () => game.stop()]];
   for (const [t, f] of btns) { const b = document.createElement("button"); b.textContent = t; b.onclick = f; bar.appendChild(b); }
   document.getElementById("homeBtn").onclick = () => setPaused(!paused);
   document.getElementById("labResult").onclick = () => { document.getElementById("labResult").classList.add("hidden"); game.start(); };
   addEventListener("resize", () => game.relayout());
   addEventListener("pointerdown", () => { if (!FAKE) voiceUnlock(); }, { capture: true });
-  const go = () => game.start(Q.get("intro") === "0" ? { intro: false } : {});
+  const go = () => game.start(startOpts());
   if (FAKE) { go(); window.__dt.ready = true; }
   else {                                                  // 真的出聲：要先點一下解鎖聲音（iPad Safari 規定）
     const g = document.getElementById("labGate"); g.classList.remove("hidden");
