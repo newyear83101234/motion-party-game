@@ -77,6 +77,7 @@ var PLAZA = {
   TOWER_SALT: 'zy-tower:',         // 雜湊 = SHA-256(TOWER_SALT + s)，試算表只存雜湊
   TOWER_DAYS: 7,                   // 到期日 = 最後活動日 + 幾天
   TOWER_MAX_F: 100,                // 樓層上限
+  TOWER_NEW_PER_HOUR: 8,           // 10-13 赤木：全站每小時最多幾次「佔一個空代號」（防腳本一次搶光 24 個；小孩一天只選一次名字，夠用）；超過回 busy
   TOWER_STEP: 20,                  // 一次最多比原本多幾層（超過就夾住，不拒收）
   TOWER_SHOW: 5,                   // 榜上顯示前幾名
   TOWER_LOCK_SWEEP_MS: 1000,       // doGet 順便清過期列時，等鎖最久幾毫秒（拿不到就算了）
@@ -154,6 +155,7 @@ function normalizeWeekCell_(v, dateFmt) {
 
 /** 試算表儲存格 → 'YYYY-MM-DD'（文字 'YYYY-MM-DD'／'YYYY/M/D' 或日期物件）；看不懂回 null */
 function normalizeYmd_(v, dateFmt) {
+  if (typeof v === 'number' && v >= 30000 && v <= 80000) return ymdFromUtcMs_(Math.round((v - 25569) * 86400000));   // 試算表日期序號（1899-12-30 起算）：儲存格格式被洗掉時 getValues 會給數字（10-13 赤木）
   var s = null;
   if (isDateObj_(v)) s = dateFmt ? dateFmt(v) : null;
   else if (typeof v === 'string' || typeof v === 'number') s = String(v).trim();
@@ -562,15 +564,16 @@ function towerSweep_(rows, today) {
  * 套用一個爬塔動作（先清過期列）。hash＝SHA-256("zy-tower:"+s) 的 hex；f 只有 tw_score 用。
  * 回 { rows: 新的全部列, res: 要給前端的物件 }
  */
-function towerApply_(rows, act, c, hash, f, today) {
+function towerApply_(rows, act, c, hash, f, today, canNew) {   // canNew === false：這小時新佔代號已達上限（舊的照常 ping／score／換回自己的）
   var out = towerSweep_(rows, today), me = null, i;
   for (i = 0; i < out.length; i++) if (out[i].c === c) me = out[i];
   if (!me) return { rows: out, res: { ok: false, why: 'server' } };
   var mine = !!me.h && me.h === hash;           // 清過期後 h 非空＝還在用
   var lost = { ok: false, why: 'lost' };
-  var res;
+  var res, fresh = false;
   if (act === 'tw_claim') {
-    if (!me.h) { me.h = hash; me.f = 0; me.seq = 0; me.exp = towerExpiryOf_(today); res = { ok: true, f: 0 }; }
+    if (!me.h && canNew === false) res = { ok: false, why: 'busy' };
+    else if (!me.h) { me.h = hash; me.f = 0; me.seq = 0; me.exp = towerExpiryOf_(today); res = { ok: true, f: 0 }; fresh = true; }
     else if (mine) { me.exp = towerExpiryOf_(today); res = { ok: true, f: me.f }; }
     else res = { ok: false, why: 'taken' };
   } else if (act === 'tw_ping') {
@@ -593,7 +596,7 @@ function towerApply_(rows, act, c, hash, f, today) {
   } else {
     res = { ok: false, why: 'bad_body' };
   }
-  return { rows: out, res: res };
+  return { rows: out, res: res, fresh: fresh };
 }
 
 /** 榜：沒過期且 f>0，樓層高→低、同樓層序號小（先達成）在前；最多 n 筆 [{c, f}] */
@@ -991,7 +994,9 @@ function postTower_(obj, now) {
     var sh = ensureTowerSheet_(ss);
     var today = taipeiYmd_(now);
     var rows = readTowerRows_(sh, fmt);
-    var r = towerApply_(rows, v.k, v.c, hash, v.f, today);
+    var nk = 'twn:' + Math.floor(now / 3600000), nNew = toInt_(cache.get(nk));
+    var r = towerApply_(rows, v.k, v.c, hash, v.f, today, nNew < PLAZA.TOWER_NEW_PER_HOUR);
+    if (r.fresh) cache.put(nk, String(nNew + 1), 3700);
     res = r.res;
     writeTowerChanged_(sh, rows, r.rows);
     changed = JSON.stringify(towerPublic_(rows, today)) !== JSON.stringify(towerPublic_(r.rows, today));

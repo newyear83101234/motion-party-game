@@ -223,7 +223,7 @@ export async function syncTower(t, post, day, { ping = true } = {}) {
 // 秘密碼：128-bit 隨機數 → 32 碼小寫 hex（rand＝crypto.getRandomValues，測試可換）
 export function newSecret(rand) {
   const b = new Uint8Array(16);
-  if (rand) rand(b); else { try { crypto.getRandomValues(b); } catch (e) { for (let i = 0; i < 16; i++) b[i] = Math.floor(Math.random() * 256); } }
+  if (rand) rand(b); else { try { crypto.getRandomValues(b); } catch (e) { return null; } }   // 10-13 赤木：秘密碼是唯一的鑰匙，不退回可預測的 Math.random（拿不到＝這次不選，畫面說連不上）
   return [...b].map(x => x.toString(16).padStart(2, "0")).join("");
 }
 // 後端 doGet 的 tower 欄位清洗：board 最多 5 筆 {c, f}、taken 代號 id 清單

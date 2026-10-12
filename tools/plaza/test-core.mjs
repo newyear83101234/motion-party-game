@@ -1185,5 +1185,24 @@ section(() => {
   ok(/^function onEdit\(e\)/m.test(SRC) && !/ScriptApp|PropertiesService|UrlFetchApp|DriveApp|GmailApp/.test(SRC), 'TO5 只用簡單觸發器、沒用到要多授權的服務');
 });
 
+// WZ. 10-13 赤木審查加強：每小時新佔代號上限、到期日儲存格是數字序號
+section(() => {
+  const E = makeEnv();
+  E.ctx.setup();
+  const sec = i => String(i).padStart(32, '0');
+  const ids = ['rat', 'ox', 'tiger', 'rabbit', 'dragon', 'snake', 'horse', 'goat', 'monkey'];
+  const got = ids.map((c, i) => tw(E, 'tw_claim', c, sec(i + 1)));
+  eq(got.slice(0, 8).every(r => r.ok === true), true, 'WZ1 一小時內前 8 次佔新代號都 ok');
+  eq(got[8], { ok: false, why: 'busy' }, 'WZ2 第 9 次佔新代號 → busy（防腳本搶光）');
+  eq(E.towerRow('monkey')[0], '', 'WZ3 busy 沒寫進試算表');
+  eq(tw(E, 'tw_claim', 'rat', sec(1)), { ok: true, f: 0 }, 'WZ4 自己的代號再 claim 不算新佔 → 照常 ok');
+  eq(tw(E, 'tw_ping', 'ox', sec(2)), { ok: true, f: 0 }, 'WZ5 ping 不受影響');
+  E.clock.now += 3600 * 1000;
+  eq(tw(E, 'tw_claim', 'monkey', sec(9)), { ok: true, f: 0 }, 'WZ6 過了一小時 → 可以再佔');
+  const serial = 46310, want = new Date(Date.UTC(1899, 11, 30) + serial * 86400000).toISOString().slice(0, 10);
+  eq(E.ctx.normalizeYmd_(serial, null), want, 'WZ7 到期日儲存格是日期序號（格式被洗掉）→ 照樣讀成 YYYY-MM-DD');
+  eq([E.ctx.normalizeYmd_('2026-10-21', null), E.ctx.normalizeYmd_(12, null)], ['2026-10-21', null], 'WZ8 字串照舊、太小的數字不當日期');
+});
+
 console.log(`PASS ${pass} / FAIL ${fail}`);
 if (fail) { for (const f of fails) console.log('  ✗ ' + f); process.exit(1); }

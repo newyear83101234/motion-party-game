@@ -303,6 +303,7 @@ export function createTowerGame(root, api) {
       const cd = C.codeOf(S.pickSel); if (!cd || S.pickBusy) return;
       S.pickBusy = true; okB.disabled = true; msg.textContent = UI.loading; A.play("select");
       const sec = T.sec || C.newSecret(), old = T.code && T.code !== cd.id ? T.code : "";
+      if (!sec) { S.pickBusy = false; okB.disabled = false; msg.textContent = UI.offline; draw(); return; }   // 平板拿不到安全亂數（極少見）：不送
       const r = await A.post({ k: "tw_claim", c: cd.id, s: sec });
       S.pickBusy = false; if (!alive(my)) return;
       if (r && r.ok === true) {
