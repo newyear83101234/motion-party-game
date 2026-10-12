@@ -684,10 +684,10 @@ function loadImg(name) {
 const assetsOf = k => { const a = ASSETS[k]; return typeof a === "function" ? a() : (a || []); };
 function preload(k) { for (const n of assetsOf(k)) loadImg(n); }                 // 背景偷偷抓，不擋畫面
 // 導覽代號：每次換畫面 +1。等圖片的非同步流程回來時代號不同＝小孩已經點去別的地方，這次作廢
-let navToken = 0, loadingOwner = 0;
+let navToken = 0, loadingOwner = 0, towerNavKeep = false;   // towerNavKeep：爬塔一層開始／結束時的 nav()（playFloor→startMode、towerEnd）不能把整座塔停掉
 function nav() { const tok = ++navToken; qToken++; gClear(); pendingSays.clear(); if (bubbleGame) PZ(() => bubbleGame.stop()); if (deliverGame) PZ(() => deliverGame.stop());
   if (detectiveGame) PZ(() => detectiveGame.stop()); if (topsGame) PZ(() => topsGame.stop()); PZ(topsRefund);   // 10-12 詞句小偵探、陀螺：停語音、停 rAF、釋放 WebGL；陀螺下場了還沒打完就離開＝券退回
-  if (towerGame) PZ(() => towerGame.stop());           // 10-13 挑戰燈塔：停流程、收愛心 HUD、正在玩的那層 abort
+  if (towerGame && !towerNavKeep) PZ(() => towerGame.stop());   // 10-13 挑戰燈塔：停流程、收愛心 HUD、正在玩的那層 abort（爬塔自己換層的 nav 不停：towerNavKeep）
   if (loadingOwner) { loadingOwner = 0; showLoading(false); } return tok; }   // qToken++＋gClear：上一局還沒到的換題、結算、稱讚全部作廢
 // 同一局的計時器（阿葉 10-10 ①）：換題、配對結算、延遲的稱讚都走這裡 → 暫停選單開著＝凍結（剩下的時間留著）、回小島／重新開始＝全部作廢
 const gameT = new Set(); let gamePaused = false, pausedAt = 0, pausedTotal = 0;
@@ -1257,7 +1257,7 @@ function towerEnd(t, aborted) {
   if (!t || t.ended) return; t.ended = true; t.res.aborted = !!aborted;
   if (tower === t) tower = null;
   if (wq) { cancelAnimationFrame(wq.raf); wq.done = true; }
-  nav(); hgStop(); if (aborted) stopSpeech(); clearIdle(); hintPulse(false);
+  towerNavKeep = true; nav(); towerNavKeep = false; hgStop(); if (aborted) stopSpeech(); clearIdle(); hintPulse(false);
   const dead = t.prev === t.m || LV_MODES.includes(t.prev) || t.prev === "result";   // 呼叫前就在某個一般遊戲／結算畫面（不該發生）：回小島
   mode = dead ? null : (t.prevMode || null); locked = false; lvNow = 1;
   $("confirm").classList.add("hidden"); confirmLabels(false);
@@ -1282,7 +1282,7 @@ function getResume() {
 async function startMode(m, resume, tw) {
   if (tower && tower !== tw) towerEnd(tower, true);    // 爬塔局進行中被別的遊戲打斷＝離開挑戰
   if (!tw && stickerCount() < MODES[m].need) { play("select"); guideSay(`再收集 ${MODES[m].need - stickerCount()} 張貼紙就可以玩囉！`); return; }
-  const tok = nav(); stopSpeech(); introUntil = 0; clearIdle(); locked = true;
+  towerNavKeep = !!tw; const tok = nav(); towerNavKeep = false; stopSpeech(); introUntil = 0; clearIdle(); locked = true;
   if (!tw) { pzAdd("play", 1); PZ(() => plaza.roundStart()); }   // 同樂廣場：開始一局（全島「這週大家玩了幾次」）；這一局幫了多少從 0 算
   // 音樂與開場語在「點下去的當下」就開始（iOS 要求在點擊裡啟動聲音；圖片載入時也不會一片安靜）
   playBgm(MODES[m].bgm);
@@ -2354,9 +2354,7 @@ const importTower = () => towerMod || (towerMod = import("./zhuyin-tower.js?v=1"
 const towerCore = () => towerCoreP || (towerCoreP = import("./zhuyin-tower-core.js?v=1").catch(e => { towerCoreP = null; throw e; }));   // 每天回報、家長頁用（同一個網址＝跟模組同一份）
 const TOWER_FAIL = "燈塔現在打不開，等一下再試試看！";
 const towerNet = () => topsNet();
-// ★ 主程式的 playFloor（分身 A）／playBubbleBoss（分身 B）：合併後掛在 window.__zyTowerApi = { playFloor, playBubbleBoss }（或把 towerApi 裡那兩行直接改成呼叫那兩個函式）；
-//   取不到＝回 null，模組用自己的模擬版（只給開發／測試用）
-const towerFloorApi = () => (window.__zyTowerApi && typeof window.__zyTowerApi === "object" ? window.__zyTowerApi : {});
+const TOWER_STUB = /[?&]towerstub(=|&|$)/.test(location.search);
 function towerPost(body) {                             // POST text/plain（不觸發 CORS 預檢，跟陀螺榜一樣）；回後端物件或 null（連不上／逾時）
   if (!towerNet()) return Promise.resolve(null);
   const ctl = typeof AbortController === "function" ? new AbortController() : null, tm = ctl ? setTimeout(() => ctl.abort(), 12000) : 0;
@@ -2384,8 +2382,8 @@ function towerExit(where) {                            // 結算的「去玩別�
 const towerApi = () => ({
   say: (t, r, cb) => say(t, r, cb), talk: (t, cb) => talk(t, cb), play: (n, r) => play(n, r), stopVoice: () => stopSpeech(), paused: () => gamePaused,
   load: () => lsGet(K("tower"), null), store: t => { lsSet(K("tower"), t); }, give: g => towerGive(g),
-  playFloor: o => { const f = towerFloorApi().playFloor; return typeof f === "function" ? f(o) : null; },             // ★ 合併後接分身 A 的 playFloor
-  playBubbleBoss: o => { const f = towerFloorApi().playBubbleBoss; return typeof f === "function" ? f(o) : null; },   // ★ 合併後接分身 B 的 playBubbleBoss
+  playFloor: o => (TOWER_STUB ? null : playFloor(o)),  // 主程式 7 個遊戲的一層（§2.4）；網址 ?towerstub＝用模組的模擬關卡（tools/zy-test/tower.js 測爬塔流程用）
+  playBubbleBoss: o => (TOWER_STUB ? null : playBubbleBoss(o)),   // 泡泡守塔怪（§3）
   net: () => towerNet(), post: b => towerPost(b), board: f => towerBoard(f),
   modeInfo: m => ({ name: (GAME_INFO[m] && GAME_INFO[m].name) || m, ico: modeIco(m) }), me: () => SLOTS[slot - 1],
   showTower: () => { if (mode === "tower" && $("tower").classList.contains("hidden")) showScreen("tower"); },
@@ -2827,7 +2825,7 @@ function goMenu() {
 }
 function askHome() {                                  // 遊戲中按 🏠：休息選單（繼續／重新開始／回小島），左上是拇指位置，誤觸率高
   if (!mode || $("menu").classList.contains("hidden") === false) { goMenu(); return; }
-  clearIdle(); gPause(); confirmLabels(!!tower); $("confirm").classList.remove("hidden"); talk("暫停");
+  clearIdle(); gPause(); confirmLabels(!!tower || !!bubbleBoss); $("confirm").classList.remove("hidden"); talk("暫停");   // 爬塔一層（playFloor）或泡泡守塔怪：繼續／離開挑戰
 }
 // 暫停選單的字：爬塔局＝「繼續／離開挑戰」（沒有重新開始）；一般＝「繼續玩／重新開始／回小島」
 function confirmLabels(tw) {
@@ -3075,7 +3073,7 @@ document.addEventListener("visibilitychange", () => applyNight());   // 回到�
 if (location.search.includes("debug")) window.__zy = { renderZ, parseZ, WORDS, stickerNode, zMissing, get wq() { return wq; }, get fq() { return fq; }, get idx() { return idx; }, get results() { return results; }, get wrong() { return wrongThisQ; }, get mode() { return mode; }, get round() { return round; }, get curOpts() { return curOpts; }, get bubble() { return bubbleGame; }, get bubbleSave() { return save.bubble; }, get bubbleTab() { return bubbleTab; }, get bubbleN() { return BUBBLE_N; }, setWeather, get weather() { return wxKind; }, get weatherFx() { return weather; }, get clock() { return clock; }, get oceanFx() { return ocean; }, toneVariant, pickDistractors, zToStr, get dress() { return dressUI; }, get dressFrom() { return dressFrom; }, get deliver() { return deliverGame; }, get deliverSave() { return save.deliver; }, get deliverRun() { return deliverRun; }, get plaza() { return plaza; }, get stats() { return save.stats; }, get hub() { return hub; },
   get detective() { return detectiveGame; }, get detectiveSave() { return save.detective; }, get detectiveRun() { return detectiveRun; }, get tops() { return topsGame; }, get topsSave() { return save.tops; }, get topsPending() { return topsPending; }, get roundTreats() { return roundTreats; } };   // 測試用（tools/zy-test）；plaza＝同樂廣場（10-12）；detective／tops＝詞句小偵探、陀螺（10-12）
 if (DEBUG) window.__zyB = { exportCode, readCode, importCode, playHatchShow, applyNight, get rs() { return rs; }, get best() { return save.best; }, get matchSize() { return save.matchSize; } };   // 外殼測試用（tools/zy-test/shell.js）
-window.__zyTowerApi = { playFloor };                     // v6 爬塔模組取用（§2.4）；zhuyin.js 裡的接線可以直接呼叫 playFloor
+window.__zyTowerApi = Object.assign(window.__zyTowerApi || {}, { playFloor });   // v6 爬塔模組取用（§2.4）；不能整個蓋掉（泡泡區段先掛了 playBubbleBoss）
 // v6 難度等級測試用（tools/zy-test/levels.js）：等級存檔、沙漏狀態、旋鈕表、playFloor；setLv(m, lv, keepMax)＝最高級設成 lv（keepMax＝只往上不往下）、這次玩 lv；hgScale(k)＝沙漏秒數乘 k
 if (window.__zy) Object.defineProperties(window.__zy, Object.getOwnPropertyDescriptors({
   get lv() { return save.lv; }, get lvNow() { return lvNow; }, get rt() { return save.rt; }, get hg() { return { on: hg.on, ms: hg.ms, run: hg.run, wait: hg.wait, out: hg.out, late: hg.late, gone: hg.gone, elapsed: hgElapsed(), shown: !!hg.el && !hg.el.classList.contains("hidden") }; },

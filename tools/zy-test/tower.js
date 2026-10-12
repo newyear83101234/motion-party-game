@@ -1,7 +1,7 @@
 // 挑戰燈塔（爬塔）瀏覽器測試（10-13）：node tools/zy-test/tower.js
 // 需要：專案根目錄開著 python -m http.server（ZY_URL 指過去）。截圖存到 TOWER_SHOTS（預設 %TEMP%\zy-tower）。
 // 後端一律 page.route 攔截 Apps Script 網址回假資料（跟 Code.js 一樣的協定）；**不打線上後端**。
-// 主程式的 playFloor／playBubbleBoss 還沒接上（分身 A／B）：用模組的模擬版（🧪 模擬關卡）跑。
+// 網址帶 ?towerstub：一般樓層／守塔怪用模組的模擬版（🧪 模擬關卡）跑，專測爬塔流程；接上真的遊戲的整合測試在 tower-real.js。
 // 驗：①3D 小島燈塔可以點：浮標、介紹卡「挑戰燈塔」、再點一次進塔；🗺️ 全部遊戲主島那組有燈塔
 //     ②選名字在家長閘門後面：點一下打不開、按住 2 秒才開；24 格、被選走的寫「有人了」；選了送 tw_claim（只有 k/c/s、秘密碼 32 碼 hex、不出現在畫面和主控台）
 //     ③用模擬版爬第 1–10 層：教學層答錯不扣心、答錯扣心、第 5 層補心、第 5 層第一次 +1 星、守塔怪（泡泡）碰底線扣心、打倒＝扭蛋幣＋徽章＋存檔點、送 tw_score
@@ -60,7 +60,7 @@ async function openP(browser, M, { w = 1180, h = 820, query = "debug&novoice&pla
   const p = await ctx.newPage(), errs = [], logs = [];
   p.on("pageerror", e => errs.push("PAGEERR " + e.message));
   p.on("console", m => { logs.push(m.text()); if (m.type() !== "error" || /favicon/.test(m.text())) return; if (/Failed to load resource|net::ERR_/.test(m.text())) return; errs.push("CONSOLE " + m.text().slice(0, 160)); });
-  await p.goto(URL + "?" + query); await p.waitForTimeout(300);
+  await p.goto(URL + "?" + query + "&towerstub"); await p.waitForTimeout(300);   // towerstub：一般樓層／守塔怪用模組的模擬版（真的遊戲另由 tower-real.js 測）
   await p.evaluate(({ stickers, ls }) => {
     localStorage.clear();
     return import("./js/zhuyin-words.js").then(({ WORDS }) => {
