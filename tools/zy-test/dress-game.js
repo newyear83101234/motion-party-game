@@ -56,7 +56,12 @@ const spot = (p, m) => p.evaluate(m => {
   }
   return null;
 }, m);
-const tap3d = async (p, m) => { for (let k = 0; k < 3; k++) { const s = await spot(p, m); if (s) { await p.mouse.click(s.x, s.y); return s; } await sleep(500); } return null; };
+// 10-12 介紹卡：點一下建築＝開介紹卡（貓頭鷹唸名字），介紹卡開著再點同一棟＝開始 → 這裡的「點 3D 建築進遊戲」都是點兩下；
+// 第二下之前把唸過的話清掉（後面驗「進遊戲後唸了什麼」，不算介紹卡唸的名字）
+const pickOn = (p, m) => p.waitForFunction(m => { const b = document.getElementById("pick"); return !b.classList.contains("hidden") && b.dataset.mode === m && window.__hub3d.sel() === m; }, m, { timeout: 5000 }).then(() => true, () => false);
+const tap3d = async (p, m) => { for (let k = 0; k < 3; k++) { const s = await spot(p, m); if (!s) { await sleep(500); continue; }
+  await p.mouse.click(s.x, s.y); if (!(await pickOn(p, m))) continue; await sleep(900); const s2 = await spot(p, m); if (!s2) continue;
+  await p.evaluate(() => { if (window.__spoken) window.__spoken = []; }); await p.mouse.click(s2.x, s2.y); return s2; } return null; };
 const dressOpen = p => p.waitForFunction(() => !document.getElementById("dress").classList.contains("hidden") && window.__zy.dress && window.__zy.dress.debug.state().open, null, { timeout: 15000 }).then(() => true, () => false);
 const glCount = () => { window.__gl = { made: 0, lost: 0 }; const g = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function (t, ...a) { const had = this.__glc; const c = g.call(this, t, ...a); if (c && /webgl/.test(t) && !had) { this.__glc = c; window.__gl.made++; this.addEventListener("webglcontextlost", () => { window.__gl.lost++; }, { once: true }); } return c; }; };
 
@@ -131,7 +136,7 @@ const glCount = () => { window.__gl = { made: 0, lost: 0 }; const g = HTMLCanvas
     ok("⑦ 飛到彩虹島", (await p.evaluate(() => window.__hub3d.rainbow().place)) === "rainbow");
     const sr = await tap3d(p, "dress");
     const op7 = await dressOpen(p); await dReady(p);
-    ok("⑦ 點服裝店 → 打開換裝畫面（夥伴小熊）、3D 小島停止渲染、換裝音樂", !!sr && op7 && (await DS(p)).pet === "bear" && !(await p.evaluate(() => window.__hub3d.running)) && (await want(p)) === "dress", J({ sr, op7 }));
+    ok("⑦ 點服裝店兩下（介紹卡 → 開始）→ 打開換裝畫面（夥伴小熊）、3D 小島停止渲染、換裝音樂", !!sr && op7 && (await DS(p)).pet === "bear" && !(await p.evaluate(() => window.__hub3d.running)) && (await want(p)) === "dress", J({ sr, op7 }));
     await p.click('.dr-item[data-id="hat"]'); await dReady(p);   // 頭上：花圈 → 帽子
     await p.click('.dr-pet[data-id="fox"]'); await dReady(p);
     await p.click('.dr-item[data-id="bow"]'); await dReady(p);  // 小狐狸：蝴蝶結
@@ -143,7 +148,8 @@ const glCount = () => { window.__gl = { made: 0, lost: 0 }; const g = HTMLCanvas
     ok("⑦ 小島上：小熊換成帽子＋翅膀、小狐狸戴蝴蝶結", w7[0] && w7[1], J([await worn(p, "bear"), await worn(p, "fox")]));
     // 服裝店浮標也開得了
     const ts = await p.evaluate(() => window.__hub3d.tagRect("dress")); await p.mouse.click((ts.x0 + ts.x1) / 2, (ts.y0 + ts.y1) / 2);
-    ok("⑦ 點服裝店浮標 → 也打開換裝", await dressOpen(p));
+    await pickOn(p, "dress"); await sleep(600); await p.evaluate(() => document.getElementById("pkGo").click());
+    ok("⑦ 點服裝店浮標 → 介紹卡 → 開始玩 → 也打開換裝", await dressOpen(p));
     await dReady(p); await p.click(".dr-done"); await sleep(900);
 
     // ⑨ 家長頁機率
@@ -265,4 +271,4 @@ const glCount = () => { window.__gl = { made: 0, lost: 0 }; const g = HTMLCanvas
   console.log(fails ? `\n${fails} FAIL / ${out.length}` : `\nALL PASS (${out.length})`);
   console.log("截圖：" + SHOTS);
   process.exit(fails ? 1 : 0);
-})().catch(e => { console.error("FATAL", e); process.exit(1); });
+})().catch(e => { console.log(out.join("\n")); console.error("FATAL", e); process.exit(1); });   // 中途炸掉也印出前面已經驗過的（10-12）

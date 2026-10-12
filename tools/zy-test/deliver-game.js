@@ -34,7 +34,12 @@ const spot = (p, m) => p.evaluate(m => {
   }
   return null;
 }, m);
-const tap3d = async (p, m) => { for (let k = 0; k < 3; k++) { const s = await spot(p, m); if (s) { await p.mouse.click(s.x, s.y); return s; } await sleep(500); } return null; };
+// 10-12 介紹卡：點一下建築＝開介紹卡（貓頭鷹唸名字），介紹卡開著再點同一棟＝開始 → 這裡的「點 3D 建築進遊戲」都是點兩下；
+// 第二下之前把唸過的話清掉（後面驗「進遊戲後唸了什麼」，不算介紹卡唸的名字）
+const pickOn = (p, m) => p.waitForFunction(m => { const b = document.getElementById("pick"); return !b.classList.contains("hidden") && b.dataset.mode === m && window.__hub3d.sel() === m; }, m, { timeout: 5000 }).then(() => true, () => false);
+const tap3d = async (p, m) => { for (let k = 0; k < 3; k++) { const s = await spot(p, m); if (!s) { await sleep(500); continue; }
+  await p.mouse.click(s.x, s.y); if (!(await pickOn(p, m))) continue; await sleep(900); const s2 = await spot(p, m); if (!s2) continue;
+  await p.evaluate(() => { if (window.__spoken) window.__spoken = []; }); await p.mouse.click(s2.x, s2.y); return s2; } return null; };
 async function reopen(p) {
   await p.reload(); await p.waitForFunction(() => document.getElementById("loading").classList.contains("hidden"), null, { timeout: 15000 });
   await p.evaluate(() => { const g = document.getElementById("startGate"); if (g && !g.classList.contains("hidden")) document.getElementById("startBtn").click(); });
@@ -54,7 +59,7 @@ async function reopen(p) {
   const sd = await tap3d(p, "deliver");
   const in1 = await inDeliver(p);
   const ui = await p.evaluate(() => ({ speak: document.getElementById("speakBtn").classList.contains("hidden"), prog: document.getElementById("progress").classList.contains("hidden"), home: getComputedStyle(document.getElementById("homeBtn")).visibility, kids: document.getElementById("deliverRoot").children.length, hub: window.__hub3d.running }));
-  ok("① 點彩虹島的配送站 → 進遊戲、場景準備好", !!sd && in1, J({ sd, in1 }));
+  ok("① 點彩虹島的配送站兩下（介紹卡 → 開始）→ 進遊戲、場景準備好", !!sd && in1, J({ sd, in1 }));
   ok("① 主程式「再聽」藏起來（配送站右上自己有 💡／🔊）、沒有進度點、🏠 在、3D 小島停止渲染", ui.speak && ui.prog && ui.home !== "hidden" && ui.kids > 0 && !ui.hub, J(ui));
   ok("① 配送站音樂（road）", (await want(p)) === "road", await want(p));
   await sleep(2500);
