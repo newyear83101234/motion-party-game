@@ -1,7 +1,7 @@
 // 注音小島「外殼」測試（拋光清單 B 組）：node tools/zy-test/shell.js [--shots 輸出資料夾]
 // 驗：結算按鈕延後出現、點畫面快轉、沒點也會自己演完；家長鎖（點一下不開、按住 2 秒才開）；
 //     ZY2 備份三位再還原資料一致、空的那位不動；舊 ZY1 碼還原到目前這一位；超過 14 天沒備份的提醒；
-//     新存檔翻牌預設 8 張；個人紀錄章（第一次玩不蓋、破紀錄才蓋）；開始畫面藏浮標／嚮導、新存檔貓頭鷹自我介紹；
+//     新存檔翻牌＝Lv1 8 張（v6 張數改由等級決定）；個人紀錄章（第一次玩不蓋、破紀錄才蓋）；開始畫面藏浮標／嚮導、新存檔貓頭鷹自我介紹；
 //     孵蛋演出三段；夜間模式；畫面上沒有漏注音的國字。加 --shots 會順便拍截圖。
 const path = require("path");
 const { launch, openGame, enterMode, hudOpen, URL } = require("./lib");
@@ -163,18 +163,18 @@ const btnState = p => p.evaluate(() => { const b = document.getElementById("resu
     ok("沒有錯誤（提醒段）", errs.length === 0, errs.join(" | "));
     await ctx.close();
   }
-  // ===== 6. 新存檔翻牌預設 8 張；選張數畫面；換人小字；圖鑑 =====
+  // ===== 6. 新存檔翻牌＝Lv1 8 張（v6 起不跳選張數）；換人小字；圖鑑 =====
   {
     const { ctx, p, errs } = await openGame(browser, { stickers: 40, stars: 0, query: "debug" });
     await p.evaluate(() => { localStorage.setItem("zy2_stickers", JSON.stringify(Object.fromEntries(["貓","狗","魚","鳥","牛","馬","羊","豬","雞","鴨","熊","蛇"].map(h => [h, 1])))); localStorage.removeItem("zy2_match_size"); });
     await p.evaluate(() => document.getElementById("playerBtn").click()); await sleep(150);
     await p.evaluate(() => document.querySelectorAll("#playerList .player")[1].click()); await sleep(300);
-    await p.evaluate(() => document.querySelector(".mode-card[data-mode=match]").click()); await sleep(350);
-    const pick = await p.evaluate(() => ({ open: !document.getElementById("matchPick").classList.contains("hidden"), on: document.querySelector("#matchSizes .msize.on")?.textContent || "", stacks: [...document.querySelectorAll("#matchSizes .mstack")].map(s => s.children.length) }));
-    ok("新存檔翻牌預設 8 張（簡單）、圖示是 1／2／3 張疊起來的牌", pick.open && pick.on.includes("8") && JSON.stringify(pick.stacks) === "[1,2,3]", JSON.stringify(pick));
-    await shot(p, "L-matchpick");
-    ok("選張數：沒有漏注音的國字", (await bareHan(p)).length === 0, (await bareHan(p)).join("、"));
-    await p.evaluate(() => document.getElementById("matchPick").classList.add("hidden"));
+    await p.evaluate(() => document.querySelector(".mode-card[data-mode=match]").click()); await sleep(900);   // v6：張數改由等級決定（新存檔＝Lv1＝8 張），不再跳選張數
+    const pick = await p.evaluate(() => ({ inGame: !document.getElementById("match").classList.contains("hidden"), pickOpen: !document.getElementById("matchPick").classList.contains("hidden"), cards: document.querySelectorAll("#board .card").length, lv: window.__zy.lvNow }));
+    ok("新存檔翻牌：直接開始 Lv1＝8 張（不跳選張數）", pick.inGame && !pick.pickOpen && pick.cards === 8 && pick.lv === 1, JSON.stringify(pick));
+    await shot(p, "L-match-lv1");
+    ok("翻牌 Lv1：沒有漏注音的國字", (await bareHan(p)).length === 0, (await bareHan(p)).join("、"));
+    await p.evaluate(() => { document.getElementById("homeBtn").click(); document.getElementById("confirmYes").click(); }); await sleep(1200);   // 回小島：3D 小島重新開始畫，等它順下來
     await hudOpen(p, "R");   // 🐻／「換人」平常收在右上「⋯」裡：先展開
     const tag = await p.evaluate(() => { const t = document.getElementById("playerTag"), b = document.getElementById("playerBtn"), r = t.getBoundingClientRect(), q = b.getBoundingClientRect(); return { shown: getComputedStyle(t).display !== "none" && getComputedStyle(t).visibility !== "hidden", below: r.top >= q.top + q.height * 0.6, cx: Math.abs((r.left + r.right) / 2 - (q.left + q.right) / 2) < 4 }; });
     ok("換人：頭像下方有「換人」小字", tag.shown && tag.below && tag.cx, JSON.stringify(tag));
@@ -184,6 +184,7 @@ const btnState = p => p.evaluate(() => { const b = document.getElementById("resu
     // 圖鑑：沒有 ⬅（🏠 回小島）、貼紙大圖
     await p.evaluate(() => document.querySelectorAll("#playerList .player")[0].click()); await sleep(300);   // 換回小熊（40 張）
     await p.evaluate(() => document.getElementById("albumBtn").click()); await sleep(700);
+    await p.waitForFunction(() => document.querySelector("#albumGrid .sticker:not(.empty) .em"), null, { timeout: 8000 }).catch(() => {});   // 背景圖慢一點到（剛從遊戲回來 3D 小島在重畫）
     const al = await p.evaluate(() => ({ back: getComputedStyle(document.getElementById("albumBack")).display, em: parseFloat(getComputedStyle(document.querySelector("#albumGrid .sticker:not(.empty) .em")).fontSize) / (Math.min(innerWidth, innerHeight) / 100), tilt: document.querySelector("#albumGrid .sticker:not(.empty)").style.rotate }));
     ok("圖鑑：沒有 ⬅（只留 🏠）、貼紙圖 8.5vmin、有歪一點", al.back === "none" && Math.abs(al.em - 8.5) < 0.2 && /deg/.test(al.tilt), JSON.stringify(al));
     await shot(p, "L-album");
