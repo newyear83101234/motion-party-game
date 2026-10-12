@@ -4,6 +4,7 @@
 import vm from 'node:vm';
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -156,6 +157,13 @@ function makeEnv(opts = {}) {
       createTextOutput: (s) => ({ s, mime: null, setMimeType(m) { this.mime = m; return this; }, getContent() { return this.s; } })
     },
     Utilities: {
+      DigestAlgorithm: { SHA_256: 'SHA_256' },
+      Charset: { UTF_8: 'UTF_8' },
+      // 跟 Apps Script 一樣：回 signed byte（-128..127）陣列
+      computeDigest: (alg, str, cs) => {
+        if (alg !== 'SHA_256' || cs !== 'UTF_8' || typeof str !== 'string') throw new Error('computeDigest stub 只支援 SHA_256 / UTF_8 / 字串');
+        return Array.from(crypto.createHash('sha256').update(str, 'utf8').digest()).map(b => (b > 127 ? b - 256 : b));
+      },
       formatDate: (d, tz, fmt) => {
         if (fmt !== 'yyyy-MM-dd') throw new Error('stub 只支援 yyyy-MM-dd');
         return new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
@@ -186,7 +194,11 @@ function makeEnv(opts = {}) {
   const topsData = () => (topsSheet() ? topsSheet().cells.slice(4).filter(r => r && r[0] !== '' && r[0] != null).map(r => r.slice(0, 5)) : []);
   const putTops = (rows) => { const s = topsSheet(); rows.forEach((row, i) => { s.cells[4 + i] = row.slice(); }); };
   const top = (p) => post({ k: 'top', p });
-  return { ctx, ss, clock, hooks, lockState, store, post, get, rowsSheet, findRow, topsSheet, topsData, putTops, top };
+  // 爬塔：「爬塔」分頁裡某代號那一列的 C–F 欄（雜湊、最高樓層、名次序號、到期日）
+  const towerSheet = () => ss.getSheetByName('爬塔');
+  const towerRow = (c) => { const s = towerSheet(); const r = s && s.cells.find(x => x && x[0] === c); return r ? [2, 3, 4, 5].map(i => (r[i] === undefined ? '' : r[i])) : null; };
+  const putTower = (c, vals) => { const s = towerSheet(); const r = s.cells.find(x => x && x[0] === c); vals.forEach((v, i) => { r[2 + i] = v; }); };
+  return { ctx, ss, clock, hooks, lockState, store, post, get, rowsSheet, findRow, topsSheet, topsData, putTops, top, towerSheet, towerRow, putTower };
 }
 
 // ═════════ A. 週次計算 ═════════
@@ -299,7 +311,7 @@ section(() => {
 section(() => {
   const E = makeEnv();
   const msg = E.ctx.setup();
-  eq(E.ss.getSheets().map(s => s.name), ['說明', '主題表', '本週', '陀螺榜'], 'D1 setup 建好四個分頁（預設工作表改名為說明）');
+  eq(E.ss.getSheets().map(s => s.name), ['說明', '主題表', '本週', '陀螺榜', '爬塔'], 'D1 setup 建好五個分頁（預設工作表改名為說明；爬塔是挑戰燈塔）');
   ok(String(msg).includes('就緒'), 'D2 setup 回傳訊息');
   eq(E.ss.tz, 'Asia/Taipei', 'D3 試算表時區設成台北');
   ok(!!E.ss.getRangeByName('PAUSE'), 'D4 有暫停儲存格（命名範圍 PAUSE）');
@@ -309,11 +321,11 @@ section(() => {
   eq(E.ss.getSheetByName('主題表').cells[1].slice(0, 7), ['2026-10-12', 'rescue', '救援週', '隻', 50, 150, 300], 'D8 主題表第一週內容');
   eq(E.rowsSheet().getLastRow(), 1, 'D9 本週分頁只有表頭');
   E.ctx.setup();
-  eq([E.ss.getSheets().length, E.ss.getSheetByName('主題表').getLastRow()], [4, 6], 'D10 setup 重跑不重複建立');
+  eq([E.ss.getSheets().length, E.ss.getSheetByName('主題表').getLastRow()], [5, 6], 'D10 setup 重跑不重複建立');
 
   // doGet 初始格式
   const g0 = E.get();
-  eq(Object.keys(g0), ['ok', 'w', 'theme', 'total', 'reached', 'plays', 'cheers', 'prev', 'paused', 'tops', 'now'], 'D11 doGet 欄位（多了 tops）');
+  eq(Object.keys(g0), ['ok', 'w', 'theme', 'total', 'reached', 'plays', 'cheers', 'prev', 'paused', 'tops', 'tower', 'now'], 'D11 doGet 欄位（多了 tops、tower）');
   eq(Object.keys(g0.theme), ['key', 'title', 'unit', 'desc', 'goals'], 'D12 theme 欄位');
   eq([g0.ok, g0.w, g0.theme.key, g0.theme.goals, g0.total, g0.plays, g0.cheers, g0.prev, g0.paused, g0.tops, g0.now],
     [true, '2026-10-12', 'rescue', [50, 150, 300], 0, 0, [0, 0, 0, 0], null, false, [], E.clock.now], 'D13 doGet 初始值（上週早於輪替起點 → prev=null；陀螺榜空）');
@@ -808,7 +820,7 @@ section(() => {
   E.ss.getRangeByName('TOPS_AUTO').setValue(true);
   const before = JSON.stringify(s.cells);
   E.ctx.setup();
-  eq([JSON.stringify(s.cells) === before, E.ss.getSheets().length, E.ss.getRangeByName('TOPS_AUTO').getValue()], [true, 4, true], 'TJ5 setup 重跑：資料、開關都不動');
+  eq([JSON.stringify(s.cells) === before, E.ss.getSheets().length, E.ss.getRangeByName('TOPS_AUTO').getValue()], [true, 5, true], 'TJ5 setup 重跑：資料、開關都不動');
 
   // 正式環境現況：舊的三個分頁在、沒有陀螺榜 → doGet／doPost 自己建
   const G = makeEnv();
@@ -885,6 +897,282 @@ section(() => {
   eq(d.filter(r => String(r[0]).startsWith("'")).map(r => [r[0], r[2], r[3]]).sort(), [["'+886宇宙", '不公開', false], ["'=1+1", '不公開', false], ["'@x", '不公開', false]].sort(), 'TM2 手打的怪詞句前面加 \'、一律不公開');
   E.clock.now += 31 * 1000;
   ok(!E.get().tops.some(x => /[=+@]/.test(x.p)), 'TM3 不會出現在榜上');
+});
+
+// ═════════ W. 挑戰燈塔（爬塔代號） ═════════
+const S1 = 'a'.repeat(32), S2 = 'b'.repeat(32), S3 = '0123456789abcdef0123456789abcdef';
+const sha = (s) => crypto.createHash('sha256').update('zy-tower:' + s, 'utf8').digest('hex');
+const CODE_IDS = ['rat', 'ox', 'tiger', 'rabbit', 'dragon', 'snake', 'horse', 'goat', 'monkey', 'rooster', 'dog', 'pig',
+  'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces'];
+const tw = (E, k, c, s, f) => E.post(f === undefined ? { k, c, s } : { k, c, s, f });
+const days = (E, n) => { E.clock.now += n * 86400000; };   // 往後 n 天
+
+// WA. 驗證：欄位數、型別、代號、秘密碼、f
+section(() => {
+  const E = makeEnv();
+  E.ctx.setup();
+  const bad = (b, why, tag) => eq(E.post(b), { ok: false, why }, 'WA ' + tag + ' ' + JSON.stringify(b));
+  for (const k of ['tw_claim', 'tw_ping', 'tw_leave']) {
+    bad({ k, c: 'rat' }, 'bad_body', '少 s');
+    bad({ k, s: S1 }, 'bad_body', '少 c');
+    bad({ k, c: 'rat', s: S1, f: 5 }, 'bad_body', '多 f');
+    bad({ k, c: 'rat', s: S1, x: 1 }, 'bad_body', '多一欄');
+    bad({ k, c: 'rat', s: S1, w: '2026-10-12' }, 'bad_body', '多 w');
+    bad({ k, c: 'nope', s: S1 }, 'bad_body', 'c 不在清單');
+    bad({ k, c: 'RAT', s: S1 }, 'bad_body', 'c 大小寫不同');
+    bad({ k, c: 'constructor', s: S1 }, 'bad_body', 'c 是物件屬性名');
+    bad({ k, c: 5, s: S1 }, 'bad_body', 'c 不是字串');
+    bad({ k, c: 'rat', s: 123 }, 'bad_body', 's 不是字串');
+    bad({ k, c: 'rat', s: 'a'.repeat(31) }, 'bad_body', 's 31 碼');
+    bad({ k, c: 'rat', s: 'a'.repeat(33) }, 'bad_body', 's 33 碼');
+    bad({ k, c: 'rat', s: 'A'.repeat(32) }, 'bad_body', 's 大寫');
+    bad({ k, c: 'rat', s: 'g'.repeat(32) }, 'bad_body', 's 非 hex');
+  }
+  bad({ k: 'tw_score', c: 'rat', s: S1 }, 'bad_body', 'score 少 f');
+  bad({ k: 'tw_score', c: 'rat', s: S1, f: 5, x: 1 }, 'bad_body', 'score 多一欄');
+  bad({ k: 'tw_score', c: 'rat', s: S1, g: 5 }, 'bad_body', 'score 欄位名 f 換成 g');
+  bad({ k: 'tw_score', c: 'rat', s: S1, f: '3' }, 'bad_body', 'f 是字串');
+  bad({ k: 'tw_score', c: 'rat', s: S1, f: null }, 'bad_body', 'f 是 null');
+  bad({ k: 'tw_score', c: 'rat', s: S1, f: [3] }, 'bad_body', 'f 是陣列');
+  bad({ k: 'tw_score', c: 'rat', s: S1, f: 0 }, 'bad_f', 'f=0');
+  bad({ k: 'tw_score', c: 'rat', s: S1, f: 101 }, 'bad_f', 'f=101');
+  bad({ k: 'tw_score', c: 'rat', s: S1, f: 1.5 }, 'bad_f', 'f=1.5');
+  bad({ k: 'tw_score', c: 'rat', s: S1, f: -3 }, 'bad_f', 'f=-3');
+  bad({ k: 'tw_other', c: 'rat', s: S1 }, 'bad_body', 'tw_ 開頭但不認得的 k');
+  bad({ k: 'tw_', c: 'rat', s: S1 }, 'bad_body', 'k=tw_');
+  bad([ 'tw_claim', 'rat', S1 ], 'bad_body', '陣列');
+  bad({ c: 'rat', s: S1 }, 'bad_body', '沒有 k');
+  eq(E.post('{壞掉'), { ok: false, why: 'bad_json' }, 'WA JSON 壞掉 → bad_json（沿用既有）');
+  eq(E.post(JSON.stringify({ k: 'tw_claim', c: 'rat', s: S1 }) + ' '.repeat(200)), { ok: false, why: 'bad_body' }, 'WA 超過長度上限 → bad_body');
+  eq(E.lockState.acquired, 0, 'WA 被拒的都沒去搶鎖');
+  eq(E.towerRow('rat'), ['', '', '', ''], 'WA 被拒的都沒寫進試算表');
+  // 邊界值接受：f=1、f=100 的格式都收（是否採納看 +20 夾住）
+  tw(E, 'tw_claim', 'rat', S1);
+  eq(tw(E, 'tw_score', 'rat', S1, 1), { ok: true, f: 1 }, 'WA f=1 收');
+  eq(tw(E, 'tw_score', 'rat', S1, 100), { ok: true, f: 21 }, 'WA f=100 收（夾成 +20）');
+  // 純函式
+  eq(E.ctx.hexOfBytes_([0, 1, 15, 16, 127, -128, -1]), '00010f107f80ff', 'WA hexOfBytes_ 處理 signed byte');
+  eq(E.ctx.PLAZA.TOWER_CODES.map(t => t.id), CODE_IDS, 'WA 24 個代號 id 與順序');
+  eq(E.ctx.PLAZA.TOWER_CODES.map(t => t.name).join(''), '鼠牛虎兔龍蛇馬羊猴雞狗豬牡羊座金牛座雙子座巨蟹座獅子座處女座天秤座天蠍座射手座摩羯座水瓶座雙魚座', 'WA 24 個中文名稱');
+});
+
+// WB. 雜湊與試算表內容：只存 SHA-256("zy-tower:"+s)
+section(() => {
+  const E = makeEnv();
+  E.ctx.setup();
+  const s = E.towerSheet();
+  eq(s.cells.slice(3, 27).map(r => [r[0], r[1]]), E.ctx.PLAZA.TOWER_CODES.map(t => [t.id, t.name]), 'WB1 setup 建好 24 列（A 代號、B 名稱）');
+  eq(s.cells[2].slice(0, 6), ['代號', '名稱', '秘密碼雜湊', '最高樓層', '名次序號', '到期日'], 'WB2 表頭');
+  ok(String(s.cells[0][0]).includes('沒有暱稱') && String(s.cells[1][0]).includes('清空'), 'WB3 上面兩列是給阿葉看的說明');
+  eq(tw(E, 'tw_claim', 'tiger', S1), { ok: true, f: 0 }, 'WB4 claim 空代號');
+  eq(E.towerRow('tiger'), [sha(S1), 0, '', '2026-10-21'], 'WB5 存的是 SHA-256("zy-tower:"+s) 小寫 hex、樓層 0、序號空、到期日＝今天+7');
+  eq(E.towerRow('tiger')[0].length, 64, 'WB6 雜湊 64 碼');
+  ok(!JSON.stringify(E.towerSheet().cells).includes(S1), 'WB7 整張分頁找不到明文秘密碼');
+  eq(E.ss.getSheets().length, 5, 'WB8 沒多建分頁');
+  E.ctx.setup();
+  eq([E.towerRow('tiger'), E.ss.getSheets().length], [[sha(S1), 0, '', '2026-10-21'], 5], 'WB9 setup 重跑不動資料');
+  // 分頁不存在：doPost 自己建
+  const G = makeEnv();
+  G.ctx.setup();
+  G.ss.sheets = G.ss.sheets.filter(x => x.name !== '爬塔');
+  eq(tw(G, 'tw_claim', 'pig', S2), { ok: true, f: 0 }, 'WB10 沒有爬塔分頁 → claim 自己建再寫');
+  eq(G.towerRow('pig')[0], sha(S2), 'WB11 寫進去了');
+  G.ss.sheets = G.ss.sheets.filter(x => x.name !== '爬塔');
+  G.clock.now += 31 * 1000;
+  eq(G.get().tower, { board: [], taken: [] }, 'WB12 沒有爬塔分頁 → doGet 照常、tower 空');
+  ok(!!G.towerSheet(), 'WB13 doGet 自動建好分頁');
+  eq([G.lockState.held, G.towerSheet().cells.slice(3, 27).length], [false, 24], 'WB14 建完釋放鎖、24 列');
+});
+
+// WC. claim / ping / leave / 過期
+section(() => {
+  const E = makeEnv();
+  E.ctx.setup();
+  eq(tw(E, 'tw_claim', 'leo', S1), { ok: true, f: 0 }, 'WC1 新代號 claim → ok f=0');
+  eq(tw(E, 'tw_claim', 'leo', S2), { ok: false, why: 'taken' }, 'WC2 別人再 claim → taken');
+  eq(E.towerRow('leo')[0], sha(S1), 'WC3 taken 沒動到原本的列');
+  eq(tw(E, 'tw_score', 'leo', S1, 15), { ok: true, f: 15 }, 'WC4 先爬到 15');
+  days(E, 3);
+  eq(tw(E, 'tw_claim', 'leo', S1), { ok: true, f: 15 }, 'WC5 同一人再 claim → ok、樓層保留');
+  eq(E.towerRow('leo'), [sha(S1), 15, 1, '2026-10-24'], 'WC6 到期日延長（今天 10-17 +7）、樓層與序號保留');
+  eq(tw(E, 'tw_ping', 'leo', S1), { ok: true, f: 15 }, 'WC7 ping 回目前樓層');
+  days(E, 5);   // 10-22：到期日 10-24，還沒過
+  eq(tw(E, 'tw_ping', 'leo', S1), { ok: true, f: 15 }, 'WC8 到期日當天之前 ping 仍 ok');
+  eq(E.towerRow('leo')[3], '2026-10-29', 'WC9 ping 把到期日延長到今天+7');
+  eq(tw(E, 'tw_ping', 'leo', S2), { ok: false, why: 'lost' }, 'WC10 別人的秘密碼 ping → lost');
+  eq(tw(E, 'tw_ping', 'dog', S1), { ok: false, why: 'lost' }, 'WC11 空代號 ping → lost');
+  eq(E.towerRow('dog'), ['', '', '', ''], 'WC12 lost 不會寫東西');
+  // 到期日當天仍有效、隔天過期
+  E.clock.now = tpe(2026, 10, 29, 23, 59, 0);
+  eq(tw(E, 'tw_claim', 'leo', S2), { ok: false, why: 'taken' }, 'WC13 到期日當天（今天 = 到期日）仍算有效');
+  E.clock.now = tpe(2026, 10, 30, 0, 1, 0);
+  eq(tw(E, 'tw_ping', 'leo', S1), { ok: false, why: 'lost' }, 'WC14 過了到期日（今天 > 到期日）ping → lost');
+  eq(E.towerRow('leo'), ['', '', '', ''], 'WC15 lost 的同時順便整列清掉（含雜湊）');
+  eq(tw(E, 'tw_claim', 'leo', S1), { ok: true, f: 0 }, 'WC16 原主人過期後 claim 得到的是全新的列（樓層歸零）');
+  // 過期後別人可以 claim，原列整列換掉
+  const F = makeEnv();
+  F.ctx.setup();
+  tw(F, 'tw_claim', 'ox', S1); tw(F, 'tw_score', 'ox', S1, 20);
+  tw(F, 'tw_claim', 'rat', S3);
+  days(F, 8);
+  eq(tw(F, 'tw_claim', 'ox', S2), { ok: true, f: 0 }, 'WC17 過了 7 天別人可以 claim');
+  eq(F.towerRow('ox'), [sha(S2), 0, '', '2026-10-29'], 'WC18 原列整列被換掉（雜湊是新的、樓層 0、序號空）');
+  eq(F.towerRow('rat'), ['', '', '', ''], 'WC19 其他過期列也在鎖內順便清了（含雜湊）');
+  // leave
+  const L = makeEnv();
+  L.ctx.setup();
+  tw(L, 'tw_claim', 'pig', S1); tw(L, 'tw_score', 'pig', S1, 9);
+  eq(tw(L, 'tw_leave', 'pig', S2), { ok: true }, 'WC20 非本人 leave → 也回 ok');
+  eq(L.towerRow('pig'), [sha(S1), 9, 1, '2026-10-21'], 'WC21 非本人 leave 什麼都沒動');
+  eq(tw(L, 'tw_leave', 'dog', S1), { ok: true }, 'WC22 空代號 leave → ok');
+  eq(tw(L, 'tw_leave', 'pig', S1), { ok: true }, 'WC23 本人 leave → ok（沒有 f）');
+  eq(L.towerRow('pig'), ['', '', '', ''], 'WC24 本人 leave 清整列（雜湊、樓層、序號、到期日）');
+  eq(tw(L, 'tw_claim', 'pig', S2), { ok: true, f: 0 }, 'WC25 leave 後別人立刻可以選');
+});
+
+// WD. score：+20 夾住、序號只在變高時更新
+section(() => {
+  const E = makeEnv();
+  E.ctx.setup();
+  tw(E, 'tw_claim', 'rat', S1); tw(E, 'tw_claim', 'ox', S2);
+  eq(tw(E, 'tw_score', 'rat', S1, 50), { ok: true, f: 20 }, 'WD1 從 0 一次報 50 → 夾成 20');
+  eq(E.towerRow('rat')[1], 20, 'WD2 試算表存夾住後的值');
+  eq(E.towerRow('rat')[2], 1, 'WD3 第一次變高 → 序號 1');
+  eq(tw(E, 'tw_score', 'ox', S2, 20), { ok: true, f: 20 }, 'WD4 另一人也到 20');
+  eq(E.towerRow('ox')[2], 2, 'WD5 序號＝目前全表最大序號+1');
+  eq(tw(E, 'tw_score', 'rat', S1, 20), { ok: true, f: 20 }, 'WD6 同樓層再報 → 不變');
+  eq(E.towerRow('rat')[2], 1, 'WD7 沒變高 → 序號不更新');
+  eq(tw(E, 'tw_score', 'rat', S1, 7), { ok: true, f: 20 }, 'WD8 報低於原本 → 不降、回原本樓層');
+  eq(E.towerRow('rat')[1], 20, 'WD9 試算表樓層沒降');
+  eq(tw(E, 'tw_score', 'rat', S1, 40), { ok: true, f: 40 }, 'WD10 剛好 +20 不夾');
+  eq(E.towerRow('rat')[2], 3, 'WD11 變高 → 序號換成最大+1');
+  eq(tw(E, 'tw_score', 'rat', S1, 61), { ok: true, f: 60 }, 'WD12 +21 → 夾成 +20');
+  eq(tw(E, 'tw_score', 'rat', S1, 100), { ok: true, f: 80 }, 'WD13 100 → 夾成 80');
+  eq(tw(E, 'tw_score', 'rat', S1, 100), { ok: true, f: 100 }, 'WD14 再報 100 → 100');
+  eq(tw(E, 'tw_score', 'rat', S1, 100), { ok: true, f: 100 }, 'WD15 已滿層再報 100 → 不變');
+  eq(tw(E, 'tw_score', 'rat', S2, 30), { ok: false, why: 'lost' }, 'WD16 別人的秘密碼 score → lost');
+  eq(tw(E, 'tw_score', 'dog', S1, 5), { ok: false, why: 'lost' }, 'WD17 空代號 score → lost');
+  eq(E.towerRow('ox').slice(0, 2), [sha(S2), 20], 'WD18 lost 沒動到別人的列');
+  days(E, 2);
+  tw(E, 'tw_score', 'ox', S2, 25);
+  eq(E.towerRow('ox')[3], '2026-10-23', 'WD19 score 把到期日延長到今天+7');
+  days(E, 9);
+  eq(tw(E, 'tw_score', 'ox', S2, 30), { ok: false, why: 'lost' }, 'WD20 過期後 score → lost');
+  eq(E.towerRow('ox'), ['', '', '', ''], 'WD21 過期的整列清掉');
+});
+
+// WE. doGet 的 tower 欄位
+section(() => {
+  const E = makeEnv();
+  E.ctx.setup();
+  const g0 = E.get();
+  eq(g0.tower, { board: [], taken: [] }, 'WE1 初始 tower 空');
+  // 7 個人：rat/ox 同樓層 20，其餘不同；dog 剛 claim（f=0）
+  const people = [['rat', S1], ['ox', S2], ['tiger', 'c'.repeat(32)], ['rabbit', 'd'.repeat(32)], ['dragon', 'e'.repeat(32)], ['snake', 'f'.repeat(32)], ['dog', '1'.repeat(32)]];
+  for (const [c, s] of people) tw(E, 'tw_claim', c, s);
+  const sc = (c, s, f) => tw(E, 'tw_score', c, s, f);
+  sc('ox', S2, 20);                       // 先達成 20
+  sc('rat', S1, 20);                      // 後達成 20
+  sc('tiger', 'c'.repeat(32), 10);
+  sc('rabbit', 'd'.repeat(32), 15);
+  sc('dragon', 'e'.repeat(32), 5);
+  sc('snake', 'f'.repeat(32), 3);         // 第 6 名
+  const g1 = E.get();
+  eq(g1.tower.board, [{ c: 'ox', f: 20 }, { c: 'rat', f: 20 }, { c: 'rabbit', f: 15 }, { c: 'tiger', f: 10 }, { c: 'dragon', f: 5 }], 'WE2 前 5：樓層高→低、同樓層序號小（先達成）在前；f=0 與第 6 名不上榜');
+  eq(g1.tower.taken, ['rat', 'ox', 'tiger', 'rabbit', 'dragon', 'snake', 'dog'], 'WE3 taken＝沒過期的代號（含 f=0 的），照設定順序');
+  const txt = JSON.stringify(g1.tower);
+  ok(!txt.includes(sha(S1)) && !/"(h|seq|exp)"/.test(txt) && !txt.includes('2026-'), 'WE4 tower 不含雜湊、序號、到期日');
+  eq(Object.keys(g1.tower), ['board', 'taken'], 'WE5 tower 只有 board、taken');
+  eq(g1.tower.board.every(x => Object.keys(x).join() === 'c,f'), true, 'WE6 board 每筆只有 c、f');
+  // 快取：claim/score/leave 有變 → 馬上看得到（不等 30 秒）
+  tw(E, 'tw_claim', 'pig', 'a1'.repeat(16));
+  eq(E.get().tower.taken.includes('pig'), true, 'WE7 claim 後清快取、馬上出現在 taken');
+  tw(E, 'tw_score', 'snake', 'f'.repeat(32), 40);
+  eq(E.get().tower.board.map(x => x.c), ['snake', 'ox', 'rat', 'rabbit', 'tiger'], 'WE8 score 後清快取、榜馬上更新（snake 從 3 變 23 → 第 1）');
+  tw(E, 'tw_leave', 'snake', 'f'.repeat(32));
+  const g2 = E.get();
+  eq([g2.tower.board.map(x => x.c), g2.tower.taken.includes('snake')], [['ox', 'rat', 'rabbit', 'tiger', 'dragon'], false], 'WE9 leave 後馬上從榜與 taken 消失');
+  // ping 不改榜與 taken → 不必清快取（仍可讀到一致資料）
+  tw(E, 'tw_ping', 'ox', S2);
+  eq(E.get().tower.board[0], { c: 'ox', f: 20 }, 'WE10 ping 後榜不變');
+  // 過期：不上榜、不算 taken；doGet 順便清整列
+  days(E, 8);
+  const g3 = E.get();
+  eq(g3.tower, { board: [], taken: [] }, 'WE11 全部過期 → 榜空、taken 空');
+  eq(['rat', 'ox', 'tiger', 'dog'].map(c => E.towerRow(c)), [['', '', '', ''], ['', '', '', ''], ['', '', '', ''], ['', '', '', '']], 'WE12 doGet 發現過期列 → 順便整列清掉（含雜湊）');
+  eq(E.lockState.held, false, 'WE13 清完釋放鎖');
+  // 過期但鎖被別人占著：不清、不影響回應
+  const H = makeEnv();
+  H.ctx.setup();
+  tw(H, 'tw_claim', 'goat', S1); tw(H, 'tw_score', 'goat', S1, 12);
+  days(H, 8);
+  H.lockState.held = true;
+  const gh = H.get();
+  eq(gh.tower, { board: [], taken: [] }, 'WE14 過期的在讀取時被濾掉');
+  eq(H.towerRow('goat')[0], sha(S1), 'WE15 拿不到鎖 → 不清（列還在），但回應照常');
+  H.lockState.held = false;
+  // 讀爬塔出錯不影響其他欄位
+  const I = makeEnv();
+  I.ctx.setup();
+  I.post({ w: '2026-10-12', k: 'goal', n: 4 });
+  I.ctx.readTower_ = () => { throw new Error('boom'); };
+  const gi = I.get();
+  eq([gi.ok, gi.total, gi.tower], [true, 4, { board: [], taken: [] }], 'WE16 讀爬塔丟例外 → 其他欄位照常、tower 空');
+});
+
+// WF. 暫停、每分鐘上限、鎖
+section(() => {
+  const E = makeEnv();
+  E.ctx.setup();
+  tw(E, 'tw_claim', 'rat', S1);
+  E.ss.getRangeByName('PAUSE').setValue(true);
+  for (const [k, f] of [['tw_claim', undefined], ['tw_ping', undefined], ['tw_leave', undefined], ['tw_score', 5]]) {
+    eq(tw(E, k, 'rat', S1, f), { ok: false, why: 'paused' }, `WF1 暫停中 ${k} → paused`);
+  }
+  eq(E.towerRow('rat')[0], sha(S1), 'WF2 暫停中沒動到資料（leave 也沒生效）');
+  E.ss.getRangeByName('PAUSE').setValue(false);
+  // 鎖拿不到 → busy
+  E.lockState.held = true;
+  for (const [k, f] of [['tw_claim', undefined], ['tw_ping', undefined], ['tw_leave', undefined], ['tw_score', 5]]) {
+    eq(tw(E, k, 'rat', S1, f), { ok: false, why: 'busy' }, `WF3 鎖被占著 ${k} → busy`);
+  }
+  E.lockState.held = false;
+  eq(tw(E, 'tw_ping', 'rat', S1), { ok: true, f: 0 }, 'WF4 鎖放開後恢復');
+  eq(E.lockState.held, false, 'WF5 用完釋放鎖');
+  // 每分鐘上限：跟同樂廣場、陀螺榜共用同一個 rl1 計數
+  E.ctx.PLAZA.RATE_LIMIT_PER_MIN = 3;
+  E.clock.now = tpe(2026, 10, 14, 15, 0, 0);
+  E.post({ w: '2026-10-12', k: 'goal', n: 1 });
+  tw(E, 'tw_ping', 'rat', S1);
+  eq(tw(E, 'tw_ping', 'rat', S1), { ok: true, f: 0 }, 'WF6 第 3 次（goal 1＋ping 2）還在上限內');
+  eq(tw(E, 'tw_ping', 'rat', S1), { ok: false, why: 'rate' }, 'WF7 tw_* 也算進全站每分鐘上限 → rate');
+  eq(E.post({ w: '2026-10-12', k: 'goal', n: 1 }), { ok: false, why: 'rate' }, 'WF8 同一個計數：同樂廣場也被擋');
+  E.clock.now += 61 * 1000;
+  eq(tw(E, 'tw_ping', 'rat', S1).ok, true, 'WF9 下一分鐘恢復');
+  // 例外 → errWhy_（不洩漏訊息）
+  const X = makeEnv({ noActive: true });
+  eq(tw(X, 'tw_claim', 'rat', S1), { ok: false, why: 'no_sheet' }, 'WF10 拿不到試算表 → no_sheet（沿用 errWhy_）');
+  // 不認得的 k 不會走到爬塔，原本的行為不變
+  eq(E.post({ k: 'twx', c: 'rat', s: S1 }), { ok: false, why: 'bad_body' }, 'WF11 k 不是 tw_ 開頭 → 走原本驗證（欄位不符 bad_body）');
+});
+
+// WG. 併發：兩人同時 claim 同一代號，只有一個成功（有鎖）
+section(() => {
+  const E = makeEnv({ lockMode: 'real' });
+  E.ctx.setup();
+  const r1 = tw(E, 'tw_claim', 'cancer', S1);
+  const r2 = tw(E, 'tw_claim', 'cancer', S2);
+  eq([r1, r2], [{ ok: true, f: 0 }, { ok: false, why: 'taken' }], 'WG1 先搶先得');
+  eq(E.towerRow('cancer')[0], sha(S1), 'WG2 試算表是先到的那個');
+  // 手動釋出：阿葉清空 C–F → 別人立刻可選、舊主人 ping → lost
+  E.putTower('cancer', ['', '', '', '']);
+  eq(tw(E, 'tw_ping', 'cancer', S1), { ok: false, why: 'lost' }, 'WG3 阿葉清空那列 → 舊主人 ping 是 lost');
+  eq(tw(E, 'tw_claim', 'cancer', S2), { ok: true, f: 0 }, 'WG4 別人可以選了');
+  // 阿葉手改到期日成別的格式（日期字串用斜線）仍看得懂；亂填 → 當過期
+  E.putTower('cancer', [sha(S2), 8, 3, '2026/10/20']);
+  eq(tw(E, 'tw_ping', 'cancer', S2), { ok: true, f: 8 }, 'WG5 到期日 2026/10/20 也讀得懂');
+  E.putTower('cancer', [sha(S2), 8, 3, '亂填']);
+  eq(tw(E, 'tw_ping', 'cancer', S2), { ok: false, why: 'lost' }, 'WG6 到期日看不懂 → 當過期（釋出）');
 });
 
 // TO. 靜態檢查：GAS 副本＝產生器輸出、沒有 log、權限沒變
