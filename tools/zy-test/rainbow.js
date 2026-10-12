@@ -190,7 +190,7 @@ const dressDone = async p => { await p.evaluate(() => { const b = document.query
     const { ctx, p, errs } = await openGame(browser, { w, h, stickers: 40, query: "debug&novoice&no3d" });
     const c = await p.evaluate(() => { const cs = [...document.querySelectorAll(".mode-card")].map(e => e.getBoundingClientRect()); const d = document.querySelector(".mode-card[data-mode=deliver]").getBoundingClientRect();
       return { n: cs.length, out: cs.filter(r => r.left < 0 || r.top < 0 || r.right > innerWidth || r.bottom > innerHeight).length, dv: d.width > 50 && d.height > 50, lab: document.querySelector(".mode-card[data-mode=deliver] .label").scrollWidth <= d.width + 1 }; });
-    ok(`?no3d ${w}×${h}：12 張卡都在畫面內、配送站卡字沒有超出卡片`, c.n === 12 && c.out === 0 && c.dv && c.lab, JSON.stringify(c));   // 10-12 多了偵探、陀螺
+    ok(`?no3d ${w}×${h}：13 張卡都在畫面內、配送站卡字沒有超出卡片`, c.n === 13 && c.out === 0 && c.dv && c.lab, JSON.stringify(c));   // 10-12 多了偵探、陀螺
     await p.evaluate(() => document.querySelector(".mode-card[data-mode=deliver]").click());
     const inD = await p.waitForFunction(() => window.__zy.mode === "deliver" && !document.getElementById("deliver").classList.contains("hidden"), null, { timeout: 15000 }).then(() => true, () => false);
     ok(`?no3d ${w}×${h}：點配送站卡 → 進配送站（卡片選單也能玩）`, inD, String(await p.evaluate(() => window.__zy.mode)));

@@ -13,7 +13,7 @@ async function bestFire(p) {
   const browser = await launch(); const allErrs = [];
   {
     const { ctx, p, errs } = await openGame(browser, { stickers: 40, query: "debug" });
-    ok("小島上有 10 個遊戲浮標（多了泡泡）", (await p.evaluate(() => document.querySelectorAll(".hub-tag:not(.civic):not(.rb)").length)) === 10);   // .rb＝彩虹島的浮標（10-12）
+    ok("小島上有 11 個遊戲浮標（多了泡泡、10-13 燈塔）", (await p.evaluate(() => document.querySelectorAll(".hub-tag:not(.civic):not(.rb)").length)) === 11);   // .rb＝彩虹島的浮標（10-12）
     ok("🏙️ 歸仁區按鈕在選單上", await vis(p, "townBtn"));
     await enterMode(p, "bubble");
     const ready = await p.waitForFunction(() => window.__zy.bubble && window.__zy.bubble.state() && window.__zy.bubble.state().level === 0, null, { timeout: 15000 }).then(() => true, () => false);

@@ -201,7 +201,7 @@ const setHidden = (p, h) => p.evaluate(h => { Object.defineProperty(document, "h
   {
     const { ctx, p, errs } = await open(browser);
     const r = await p.evaluate(async () => {
-      const V = await import("./js/zhuyin-voice.js?v=6"); await V.voiceReady;   // 跟遊戲同一個模組（同一份快取）
+      const V = await import("./" + document.querySelector("link[href*='zhuyin-voice.js']").getAttribute("href")); await V.voiceReady;   // 跟遊戲同一個模組（同一份快取）：版號照頁面上的 modulepreload（10-13 原本寫死 v=6，升版後拿到另一份模組）
       const man = await (await fetch("./voice/gemini_d/manifest.json")).json();
       const texts = Object.keys(man.files).filter(t => !Object.keys(man.split || {}).some(s => t.startsWith(s)));
       const fileOf = t => man.files[t], out = {};
