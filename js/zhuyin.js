@@ -9,6 +9,7 @@ import A from "./zhuyin-audio.js?v=2";               // 音訊引擎：一個 Au
 import * as RW from "./zhuyin-rewards.js?v=2";   // 獎勵系統（扭蛋機）純邏輯
 import { createClock } from "./zhuyin-clock.js?v=1";   // 日夜時鐘（真實 30 分鐘＝小島一天）
 import { createPlaza, PLAZA_URL } from "./zhuyin-plaza.js?v=1";   // ?v 要跟 zhuyin.html 的 modulepreload 一樣；10-12 小島同樂廣場（全島合作目標；只送匿名加總）；PLAZA_URL：注音戰鬥陀螺的全島陀螺榜也送到同一個後端
+import * as ST from "./zhuyin-stats.js?v=1";          // 10-12 家長頁「玩了什麼」本機遊玩紀錄（?v 要跟 zhuyin.html 的 modulepreload 一樣；只存本機、不上傳、不進備份碼）
 startAnnotate();                                      // 畫面上每個國字自動加注音（阿葉 10-10）
 
 const TONES = ["", "ˊ", "ˇ", "ˋ", "˙"];
@@ -402,7 +403,9 @@ const K = k => `zy${slot}_${k}`;
   for (const k of ["zy_stickers", "zy_stars", "zy_eggs", "zy_last_mode", ...Object.keys(MODES).map(m => "zy_intro_" + m)]) { try { localStorage.removeItem(k); } catch (e) {} }
 })();
 const save = { music: lsGet("zy_music", 1), hintWait: lsGet("zy_hint_wait", 20), talk: lsGet("zy_talk", 1) };   // talk：說明語音開關（家長設定，全家共用）   // hintWait：家長設定幾秒沒動作讓「🔊 提示」閃（0＝關閉）；遊戲永遠不自己唸答案
+let statsDirty = false;                               // 遊玩紀錄有還沒寫進 localStorage 的秒數（換存檔位前要先寫給舊的那位）
 function loadSlot(n) {
+  if (statsDirty && save.stats) { lsSet(K("stats"), save.stats); statsDirty = false; }   // 換人前，舊那位的遊玩秒數先存好
   slot = n; lsSet("zy_slot", n);
   save.stickers = lsGet(K("stickers"), {});           // { 國字: 1 } 第一次一次答對就貼上
   save.stars = lsGet(K("stars"), 0);                  // 累積星星（罐子）
@@ -417,6 +420,7 @@ function loadSlot(n) {
   save.tops = cleanTops(lsGet(K("tops"), null));       // 注音戰鬥陀螺（10-12）：tickets 陀螺券、starsBank 存著換券的星星、freeUsed 第一次免費用過了、best、home 我家排行、history 最近 10 句
   if (topsUnpend(save.tops)) lsSet(K("tops"), save.tops);   // 上次下場了還沒打完頁面就沒了（iPad 回收分頁、重新整理）＝那張券退回（里維必修 2）
   save.mix = lsGet(K("mix"), {});
+  save.stats = ST.clean(lsGet(K("stats"), null), ST.taipeiDay(Date.now()));   // 玩了什麼（家長頁）：最近 60 天的每日分鐘／次數＋每個遊戲累計；讀出來先清洗
   save.rw = RW.migrate({ eggs: save.eggs, rewards: lsGet(K("rewards"), null) });   // 扭蛋幣、寵物、點心、集章卡…（docs/zhuyin-rewards-spec.md）；舊的 eggs 自動搬成已收集的朋友
   RW.creditJar(save.rw, save.stars); lsSet(K("rewards"), save.rw);   // 搬家結果馬上存（不等下一次 persist）                     // 容易混淆的注音／聲調：{ "ㄅ|ㄆ": 次數, "t:1|2": 次數 }（家長頁顯示）
 }
@@ -523,7 +527,7 @@ function importCode(code) {
   if (!ok) for (const [k, v] of Object.entries(snap)) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }   // 寫一半失敗：整批放回原狀
   loadSlot(slot); return ok ? "ok" : "fail";
 }
-function clearSlot() { for (const k of ["stickers", "stars", "eggs", "intro", "last_mode", "resume", "match_size", "whack_up", "best", "hello", "mix", "bubble", "deliver", "detective", "tops", "rewards", "seen"]) { try { localStorage.removeItem(K(k)); } catch (e) {} } PZ(() => plaza.clearSlot(slot)); loadSlot(slot); }   // 同樂廣場「這位這週幫了多少」（zy_plaza_mine）也一起清
+function clearSlot() { for (const k of ["stickers", "stars", "eggs", "intro", "last_mode", "resume", "match_size", "whack_up", "best", "hello", "mix", "bubble", "deliver", "detective", "tops", "rewards", "seen", "stats"]) { try { localStorage.removeItem(K(k)); } catch (e) {} } statsDirty = false; PZ(() => plaza.clearSlot(slot)); loadSlot(slot); }   // 同樂廣場「這位這週幫了多少」（zy_plaza_mine）也一起清
 // 新存檔第一次進來（B8）：貓頭鷹先自我介紹；已經有進度的舊存檔不會突然被介紹
 function helloText() {
   if (lsGet(K("hello"), 0)) return null; lsSet(K("hello"), 1);
@@ -818,7 +822,21 @@ function bell() { const c = voiceCtx(); if (!c) return; const t = c.currentTime 
 
 // ---------- 畫面切換 / 嚮導 ----------
 let mode = null, round = [], idx = 0, results = [], locked = false, wrongThisQ = 0, combo = 0, earned = [], idleTimer = null, roundStars = 0, qToken = 0, roundTreats = 0, selfIntro = false;   // selfIntro：這一局是這個模式第一次玩、教學交給模組唸（10-12 偵探）
-const READING = new Set(["order", "hunt"]);          // 看注音自己讀的模式：題目完全不出聲，按提示才唸
+// ---------- 玩了什麼（家長頁，本機遊玩紀錄；邏輯在 js/zhuyin-stats.js）----------
+// 秒數：遊戲畫面看得到（不含選單／結算／讀取中）、分頁在前景、暫停選單沒開，才每秒 +1；每 10 秒寫一次，切背景／離開頁面時補寫
+const statsDay = () => ST.taipeiDay(Date.now());
+function statsSave() { if (statsDirty && lsSet(K("stats"), save.stats)) statsDirty = false; }
+function statsPlay(m) { if (ST.startPlay(save.stats, m, statsDay())) { statsDirty = true; statsSave(); } }
+function statsStars(m, n) { if (ST.addStars(save.stats, m, n, statsDay())) { statsDirty = true; statsSave(); } }
+let statsAcc = 0;
+setInterval(() => {
+  if (document.hidden || !mode || gamePaused) return;
+  const s = $(mode); if (!s || s.classList.contains("hidden")) return;
+  if (ST.addSec(save.stats, 1, statsDay())) { statsDirty = true; if (++statsAcc >= 10) { statsAcc = 0; statsSave(); } }
+}, 1000);
+document.addEventListener("visibilitychange", () => { if (document.hidden) statsSave(); });
+window.addEventListener("pagehide", statsSave);
+const READING = new Set(["order", "hunt"]);         // 看注音自己讀的模式：題目完全不出聲，按提示才唸
 function showScreen(id, keepIsle = false) {          // keepIsle：回選單但留在剛剛那座島（換裝畫面關掉時；從遊戲回來一律回主島）
   if (id !== "dress" && dressFrom) { dressFrom = ""; PZ(() => dressUI && dressUI.close(true)); }   // 換裝畫面還開著就要換畫面（保險）：先收掉，WebGL 才會釋放
   document.body.classList.toggle("on-dress", id === "dress");
@@ -970,7 +988,7 @@ async function startMode(m, resume) {
   if (!save.intro[m] && save.talk) { save.intro[m] = 1; persist(); if (SELF_INTRO.has(m)) selfIntro = true; else { introUntil = Date.now() + 6000; talk(MODES[m].intro, () => { introUntil = 0; }); } }   // 說明語音關著＝不算聽過（家長開回來時還會唸）；偵探／陀螺：交給模組唸（selfIntro）
   await ensure(m, tok);
   if (tok !== navToken) return;                        // 等圖的時候小孩已經點去別的地方
-  lsSet(K("last_mode"), m); markSeen(m);               // markSeen：小島浮標不再標「新」（10-12）
+  lsSet(K("last_mode"), m); markSeen(m); statsPlay(m);             // markSeen：小島浮標不再標「新」（10-12）
   mode = m; idx = 0; results = []; combo = 0; earned = []; locked = false; wrongThisQ = 0; retryDone = false; wrongN = []; roundTreats = 0;
   const pool = m === "order" ? WORDS.filter(w => w.c === "food") : WORDS;
   round = BOARD(m) ? [] : makeRound(pool, m);
@@ -1783,7 +1801,7 @@ function showResult() {
   const prevBest = save.best[mode] || 0, record = prevBest > 0 && roundStars > prevBest;   // 個人紀錄（B14）：第一次玩沒有紀錄可破
   if (roundStars > prevBest) save.best[mode] = roundStars;
   const jarFrom = RW.jarLeft(save.rw, save.stars);
-  save.stars += roundStars;
+  save.stars += roundStars; statsStars(mode, roundStars);   // 玩了什麼：這個遊戲累計星星
   pzAdd("star", roundStars); const pzGain = PZ(() => plaza.roundGain()); PZ(() => plaza.flushSoon(2500));   // 同樂廣場：收集週＝結算拿到的星星；這一局幫了多少（左上小字）；演出完合併送出
   const rwGain = { coins: RW.creditJar(save.rw, save.stars), stamp: RW.stampToday(save.rw, today()), cats: RW.categoryBonus(save.rw, CATS.map(c => ({ id: c.id, words: WORDS.filter(w => w.c === c.id).map(w => w.h) })), save.stickers), treats: roundTreats, fed: RW.feed(save.rw, roundTreats),
     tickets: topsCredit(roundStars) };                 // 10-12 陀螺券：這次的星星也存進陀螺的 starsBank（跟星星罐分開算，不扣罐子）
@@ -2218,7 +2236,7 @@ function renderSettings() {
   for (const b of document.querySelectorAll("#musicOpts button")) b.classList.toggle("on", +b.dataset.v === (save.music ? 1 : 0));
   for (const b of document.querySelectorAll("#talkOpts button")) b.classList.toggle("on", +b.dataset.v === (save.talk ? 1 : 0));
   for (const b of document.querySelectorAll("#plazaOpts button")) b.classList.toggle("on", +b.dataset.v === (plaza.isOn() ? 1 : 0));   // 同樂廣場開關（zy_plaza_on）
-  renderMix();
+  renderMix(); renderStats();
   const odds = $("rwOdds"); if (odds) { odds.innerHTML = ""; for (const t of RW.oddsText()) odds.appendChild(el("div", "", t)); }   // 機率公開：跟 js/zhuyin-rewards.js 的 RATES／PITY／GACHA_WEAR 同一份資料產生
   $("rwStats").textContent = `扭蛋幣 ${save.rw.coins}、金幣 ${save.rw.gold}、點心 ${save.rw.treats}、動物朋友 ${Object.keys(save.rw.pets).length}/${RW.PETS.length}、抽過 ${save.rw.pulls} 次`;
 }
@@ -2231,6 +2249,33 @@ function renderMix() {
   for (const [k, n] of list) {
     const tone = k.startsWith("t:"), [a, b] = (tone ? k.slice(2) : k).split("|"), name = x => tone ? TONE_NAME[+x] : x;
     const row = el("div", "mix-row" + (tone ? " tone" : "")); row.appendChild(el("span", "mix-a", name(a))); row.appendChild(el("span", "mix-x", "↔")); row.appendChild(el("span", "mix-a", name(b))); row.appendChild(el("span", "mix-n", `${n} 次`)); box.appendChild(row);
+  }
+}
+// 玩了什麼（目前這位，本機紀錄）：最近 7 天分鐘長條、每個遊戲次數／平均星星／最後一次、最常搞混的前 5 組（mix 只記符號，所以顯示注音不顯示國字）
+function renderStats() {
+  const st = save.stats, today = statsDay(), WD = ["日", "一", "二", "三", "四", "五", "六"];
+  $("statsName").textContent = `${SLOTS[slot - 1].e} ${SLOTS[slot - 1].name}`;
+  const days = ST.lastDays(st, 7, today), maxSec = Math.max(600, ...days.map(d => d.sec)), box = $("statsDays"); box.innerHTML = "";   // 長條至少以 10 分鐘為滿格（玩 1 分鐘不會畫成滿格）
+  for (const d of days) {
+    const m = Math.round(d.sec / 60), txt = d.sec === 0 ? "0 分" : m === 0 ? "<1 分" : m + " 分", dt = new Date(d.day + "T00:00:00Z");
+    const col = el("div", "st-day" + (d.sec === 0 ? " zero" : "") + (d.day === today ? " today" : "")), bw = el("div", "st-bar-box"), bar = el("div", "st-bar");
+    bar.style.height = (d.sec / maxSec * 100).toFixed(1) + "%"; bw.appendChild(bar); col.appendChild(bw);
+    col.appendChild(el("div", "st-min", txt)); col.appendChild(el("div", "st-date", `${dt.getUTCMonth() + 1}/${dt.getUTCDate()}`)); col.appendChild(el("div", "st-wd", d.day === today ? "今天" : `週${WD[dt.getUTCDay()]}`)); box.appendChild(col);
+  }
+  const mb = $("statsModes"); mb.innerHTML = "";
+  const head = el("div", "st-row head"); for (const t of ["遊戲", "次數", "平均星星", "最後玩"]) head.appendChild(el("span", t === "遊戲" ? "" : "n", t)); mb.appendChild(head);
+  for (const r of ST.modeRows(st)) {
+    const row = el("div", "st-row" + (r.played ? "" : " none")); row.appendChild(el("span", "nm", `${r.icon} ${r.name}`));
+    if (r.played) { row.appendChild(el("span", "n", `${r.plays} 次`)); row.appendChild(el("span", "av", `⭐ ${r.avg.toFixed(1)}`)); row.appendChild(el("span", "ls", ST.dayLabel(r.last, today) || "—")); }
+    else row.appendChild(el("span", "why", "還沒玩過"));
+    mb.appendChild(row);
+  }
+  const xb = $("statsMix"); xb.innerHTML = "";
+  const list = Object.entries(save.mix || {}).filter(([k, n]) => typeof n === "number").sort((a, b) => b[1] - a[1]).slice(0, 5);
+  if (!list.length) { xb.appendChild(el("div", "set-note", "還沒有記錄")); return; }
+  for (const [k, n] of list) {
+    const tone = k.startsWith("t:"), [a, b] = (tone ? k.slice(2) : k).split("|"), name = x => tone ? (TONE_NAME[+x] || "?") : x;
+    const row = el("div", "mix-row" + (tone ? " tone" : "")); row.appendChild(el("span", "mix-a", name(a))); row.appendChild(el("span", "mix-x", "↔")); row.appendChild(el("span", "mix-a", name(b))); row.appendChild(el("span", "mix-n", `${n} 次`)); xb.appendChild(row);
   }
 }
 function openSettings() {
@@ -2345,6 +2390,6 @@ function applyNight() {
 }
 applyNight(); setInterval(applyNight, 1000);
 document.addEventListener("visibilitychange", () => applyNight());   // 回到前景馬上對一次（背景的時間不補算）
-if (location.search.includes("debug")) window.__zy = { renderZ, parseZ, WORDS, stickerNode, zMissing, get wq() { return wq; }, get fq() { return fq; }, get idx() { return idx; }, get results() { return results; }, get wrong() { return wrongThisQ; }, get mode() { return mode; }, get round() { return round; }, get curOpts() { return curOpts; }, get bubble() { return bubbleGame; }, get bubbleSave() { return save.bubble; }, get bubbleTab() { return bubbleTab; }, get bubbleN() { return BUBBLE_N; }, setWeather, get weather() { return wxKind; }, get weatherFx() { return weather; }, get clock() { return clock; }, get oceanFx() { return ocean; }, toneVariant, pickDistractors, zToStr, get dress() { return dressUI; }, get dressFrom() { return dressFrom; }, get deliver() { return deliverGame; }, get deliverSave() { return save.deliver; }, get deliverRun() { return deliverRun; }, get plaza() { return plaza; }, get hub() { return hub; },
+if (location.search.includes("debug")) window.__zy = { renderZ, parseZ, WORDS, stickerNode, zMissing, get wq() { return wq; }, get fq() { return fq; }, get idx() { return idx; }, get results() { return results; }, get wrong() { return wrongThisQ; }, get mode() { return mode; }, get round() { return round; }, get curOpts() { return curOpts; }, get bubble() { return bubbleGame; }, get bubbleSave() { return save.bubble; }, get bubbleTab() { return bubbleTab; }, get bubbleN() { return BUBBLE_N; }, setWeather, get weather() { return wxKind; }, get weatherFx() { return weather; }, get clock() { return clock; }, get oceanFx() { return ocean; }, toneVariant, pickDistractors, zToStr, get dress() { return dressUI; }, get dressFrom() { return dressFrom; }, get deliver() { return deliverGame; }, get deliverSave() { return save.deliver; }, get deliverRun() { return deliverRun; }, get plaza() { return plaza; }, get stats() { return save.stats; }, get hub() { return hub; },
   get detective() { return detectiveGame; }, get detectiveSave() { return save.detective; }, get detectiveRun() { return detectiveRun; }, get tops() { return topsGame; }, get topsSave() { return save.tops; }, get topsPending() { return topsPending; }, get roundTreats() { return roundTreats; } };   // 測試用（tools/zy-test）；plaza＝同樂廣場（10-12）；detective／tops＝詞句小偵探、陀螺（10-12）
 if (DEBUG) window.__zyB = { exportCode, readCode, importCode, playHatchShow, applyNight, get rs() { return rs; }, get best() { return save.best; }, get matchSize() { return save.matchSize; } };   // 外殼測試用（tools/zy-test/shell.js）
