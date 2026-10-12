@@ -1,6 +1,6 @@
 // 注音小島回歸測試：node tools/zy-test/regress.js
 // 驗：語音規則（看注音的模式不出聲、聽力模式只唸題目一次、提示按鈕）、閒置／答錯 2 次提示閃、
-//     畫面上每個國字都有注音、存檔位切換／備份還原／清除、繼續玩、翻牌 8/16/24 排版、魚與氣球標籤不重疊
+//     畫面上每個國字都有注音、存檔位切換／備份還原／清除、繼續玩、翻牌 8/12/16/20/24 排版（v6 等級）、魚與氣球標籤不重疊
 const { launch, openGame, enterMode } = require("./lib");
 const out = []; const ok = (name, cond, info = "") => out.push(`${cond ? "PASS" : "FAIL"}  ${name}${info !== "" ? "  — " + info : ""}`);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -73,9 +73,10 @@ const overlaps = (p, sel) => p.evaluate(sel => { const r = [...document.querySel
       ok(`${name}：沒有漏注音的國字`, (await bareHan(p)).length === 0, (await bareHan(p)).join("、"));
       await p.evaluate(() => { for (const id of ["settings", "players"]) document.getElementById(id).classList.add("hidden"); });
     }
-    await p.evaluate(() => document.querySelector(".mode-card[data-mode=match]").click()); await sleep(300);
-    ok("翻牌選張數：沒有漏注音的國字", (await bareHan(p)).length === 0, (await bareHan(p)).join("、"));
-    await p.evaluate(() => document.getElementById("matchPickClose").click());
+    await p.evaluate(() => { window.__zy.setLv("match", 1); document.querySelector(".mode-card[data-mode=match]").click(); }); await sleep(800);   // v6：張數改由等級決定，點卡片直接開始（不再跳選張數）
+    ok("翻牌：點卡片直接開始（Lv1＝8 張）", await p.evaluate(() => !document.getElementById("match").classList.contains("hidden") && document.getElementById("matchPick").classList.contains("hidden") && document.querySelectorAll("#board .card").length === 8));
+    ok("翻牌畫面：沒有漏注音的國字", (await bareHan(p)).length === 0, (await bareHan(p)).join("、"));
+    await p.evaluate(() => { document.getElementById("homeBtn").click(); document.getElementById("confirmYes").click(); }); await sleep(300);
     ok("讀音字典沒有缺字", (await p.evaluate(() => [...window.__zy.zMissing])).length === 0, (await p.evaluate(() => [...window.__zy.zMissing])).join(""));
     ok("沒有錯誤（語音／注音段）", errs.length === 0, errs.join(" | "));
     await ctx.close();
@@ -130,10 +131,10 @@ const overlaps = (p, sel) => p.evaluate(sel => { const r = [...document.querySel
     ok("沒有錯誤（存檔段）", errs.length === 0, errs.join(" | "));
     await ctx.close();
   }
-  // ===== 4. 排版：翻牌 8/16/24 排滿、不超出畫面；魚／氣球標籤不重疊（橫、直、4:3）=====
+  // ===== 4. 排版：翻牌 8/12/16/20/24（v6 等級 Lv1–5）排滿、不超出畫面；魚／氣球標籤不重疊（橫、直、4:3）=====
   for (const [W, H, tag] of [[1180, 820, "橫"], [820, 1180, "直"], [1024, 768, "4:3"]]) {
     const { ctx, p, errs } = await openGame(browser, { w: W, h: H, stickers: 40, query: "debug" });
-    for (const n of [8, 16, 24]) {
+    for (const n of [8, 12, 16, 20, 24]) {
       await enterMode(p, "match", n); await settle(p);
       const r = await p.evaluate(() => { const cs = [...document.querySelectorAll("#board .card")].map(c => c.getBoundingClientRect()); const rows = new Map(); for (const b of cs) rows.set(Math.round(b.top), (rows.get(Math.round(b.top)) || 0) + 1);
         return { n: cs.length, rows: [...rows.values()], inside: cs.every(b => b.left >= 0 && b.top >= 0 && b.right <= innerWidth + 1 && b.bottom <= innerHeight + 1), han: document.querySelectorAll("#board .card .han").length, w: Math.round(cs[0].width) }; });

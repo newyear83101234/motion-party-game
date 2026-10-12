@@ -125,9 +125,9 @@ const backToMenu = async p => { await p.evaluate(() => { document.getElementById
     await pickOn(p, "gacha"); await sleep(500); await p.evaluate(() => document.getElementById("pkGo").click()); await sleep(1200);
     ok("點扭蛋浮標 → 介紹卡 → 開始玩 → onGacha", await gachaOpen());
     await gachaClose(); await sleep(500);
-    // 翻牌：點兩下 → 先開選張數
-    ok("點翻牌建築兩下 → 先跳出選張數", await tap2(p, "match", "matchPick"));   // 朋友剛好走過去擋到 → tap2 會重試
-    await p.evaluate(() => document.getElementById("matchPickClose").click()); await sleep(300);
+    // 翻牌：點兩下 → v6 起直接進翻牌（張數＝難度等級，不再跳選張數）
+    ok("點翻牌建築兩下 → 直接進翻牌（不跳選張數）", await tap2(p, "match") && await p.evaluate(() => document.getElementById("matchPick").classList.contains("hidden")));   // 朋友剛好走過去擋到 → tap2 會重試
+    await backToMenu(p);
     // 5 歲小孩的點法：按住 0.6 秒、拖著 15px 也要算點（第一下開介紹卡、第二下進遊戲；朋友會走過去擋到 → 最多試 3 次）
     const kidOnce = async (m, how) => { const s = await spot(p, m); if (!s) return false;
       await p.mouse.move(s.x, s.y); await p.mouse.down();

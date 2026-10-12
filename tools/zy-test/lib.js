@@ -39,14 +39,17 @@ async function openGame(browser, { w = 1180, h = 820, stickers = 20, stars = 0, 
   if (fakeSpeech) await p.evaluate(() => { window.__spoken = []; });   // 開始畫面的招呼語不算在測試裡
   return { ctx, p, errs };
 }
-// 從選單進某個模式（翻牌會先跳選張數，size 指定）
-async function enterMode(p, m, size) {
-  await p.evaluate(() => { for (const id of ["confirm", "players", "matchPick", "settings"]) document.getElementById(id)?.classList.add("hidden"); });
+// 從選單進某個模式。v6 起每個遊戲有難度等級 Lv1–5：測試預設一律玩 Lv1（＝原本的玩法；前面拿 3 星升級了也拉回 1），
+// opt 可以是數字（翻牌張數 8/12/16/20/24 → 對應 Lv1–5，原本的「選張數」畫面已經拿掉）或 { size, lv }
+async function enterMode(p, m, opt) {
+  const o = typeof opt === "object" && opt ? opt : { size: opt };
+  const lv = o.lv || (m === "match" && o.size ? Math.max(1, Math.min(5, (o.size / 2 - 2) / 2)) : 1);
+  await p.evaluate(() => { for (const id of ["confirm", "players", "matchPick", "settings", "lvUp"]) document.getElementById(id)?.classList.add("hidden"); });
   if (await p.evaluate(() => document.getElementById("menu").classList.contains("hidden"))) {
     await p.evaluate(() => { document.getElementById("homeBtn").click(); document.getElementById("confirmYes")?.click(); }); await p.waitForTimeout(300);
   }
+  await p.evaluate(([mm, l]) => { if (window.__zy && window.__zy.setLv) window.__zy.setLv(mm, l); }, [m, lv]);
   await p.evaluate(mm => { window.__spoken && (window.__spoken = []); document.querySelector(`.mode-card[data-mode=${mm}]`).click(); }, m);
-  if (m === "match") { await p.waitForTimeout(200); await p.evaluate(n => { const b = [...document.querySelectorAll("#matchSizes .msize")].find(x => x.textContent.includes(String(n))); (b || document.querySelector("#matchSizes .msize")).click(); }, size || 8); }
   await p.waitForFunction(mm => !document.getElementById(mm).classList.contains("hidden") && document.getElementById("loading").classList.contains("hidden"), m, { timeout: 15000 });
   await p.waitForTimeout(500);
 }
