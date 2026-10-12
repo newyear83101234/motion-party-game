@@ -1,19 +1,19 @@
 {
  "meta": {
   "generated_by": "tools/voice/build_lines.py",
-  "total_lines": 700,
-  "total_chars": 4252,
+  "total_lines": 736,
+  "total_chars": 4481,
   "by_cat": {
    "intro": 10,
    "praise": 8,
-   "guide": 258,
+   "guide": 264,
    "system": 4,
    "result": 7,
    "word": 162,
    "hatch": 28,
    "friend": 19,
    "order": 76,
-   "phrase": 53,
+   "phrase": 83,
    "dynamic": 74,
    "hunt": 1
   },
@@ -1736,6 +1736,36 @@
    "src": "zhuyin-deliver.js TASKS[].intro（該任務第一次玩）"
   },
   {
+   "id": "dlv_intro_8",
+   "text": "四張訂單，想想先送哪一家！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js TASKS[].intro（該任務第一次玩）"
+  },
+  {
+   "id": "dlv_intro_9",
+   "text": "單行道加吊橋，路線要想好喔！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js TASKS[].intro（該任務第一次玩）"
+  },
+  {
+   "id": "dlv_intro_10",
+   "text": "貨好多，車子一次可以載三樣！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js TASKS[].intro（該任務第一次玩）"
+  },
+  {
+   "id": "dlv_intro_11",
+   "text": "最後的大挑戰，加油！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js TASKS[].intro（該任務第一次玩）"
+  },
+  {
+   "id": "dlv_gift_coin",
+   "text": "送你扭蛋幣！",
+   "cat": "guide",
+   "src": "zhuyin-deliver.js LINES.gift(COIN_GIFT.h)（10-13 任務 9–12 第一次過關，居民送扭蛋幣）"
+  },
+  {
    "id": "dlv_win",
    "text": "東西都送到了，好厲害！",
    "cat": "guide",
@@ -1826,6 +1856,186 @@
    "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
   },
   {
+   "id": "dt_q_mom_cook",
+   "text": "媽媽在煮飯",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_baby_sleep",
+   "text": "寶寶在睡覺",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_dad_car",
+   "text": "爸爸開車回家",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_rain_out",
+   "text": "外面在下雨",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_wash_hand",
+   "text": "飯前要洗手",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_brush_am",
+   "text": "早上要刷牙",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_go_park",
+   "text": "我們去公園玩",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_eat_ice",
+   "text": "我想吃冰淇淋",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_cat_fish",
+   "text": "小貓愛吃魚",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_butterfly",
+   "text": "花園裡有蝴蝶",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_mom_buy",
+   "text": "媽媽在買菜",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_dad_book",
+   "text": "爸爸在買書",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_eat_candy",
+   "text": "弟弟在吃糖",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_horse_run",
+   "text": "小馬在跑步",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_read_book",
+   "text": "哥哥在看書",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_fish_swim",
+   "text": "小魚在水裡游",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_buy_flower",
+   "text": "媽媽在買花",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_cat_bed",
+   "text": "小貓睡在床上",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_eat_pear",
+   "text": "我愛吃梨子",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_rain_sky",
+   "text": "天空下雨了",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_milk_am",
+   "text": "早餐我喝牛奶",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_toy_clean",
+   "text": "玩完玩具要收好",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_bath_sleep",
+   "text": "洗完澡我們睡覺",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_sunny_walk",
+   "text": "天氣好我們去散步",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_grandma",
+   "text": "奶奶在說故事",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_teacher",
+   "text": "老師帶我們畫畫",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_bird_sing",
+   "text": "清晨小鳥在唱歌",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_zoo_day",
+   "text": "今天去動物園",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_red_apple",
+   "text": "紅色的蘋果很甜",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_duck_follow",
+   "text": "小鴨跟著媽媽走",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
    "id": "dt_intro",
    "text": "仔細聽，選出你聽到的那一句！",
    "cat": "guide",
@@ -1854,6 +2064,12 @@
    "text": "你聽得好仔細！",
    "cat": "praise",
    "src": "zhuyin-detective.js LINES.praise（答對，talk）"
+  },
+  {
+   "id": "dt_lvup",
+   "text": "新的一級打開了！",
+   "cat": "guide",
+   "src": "zhuyin-detective.js LINES.lvup（10-13 等級：升級橫幅出來時小狗說，talk）"
   },
   {
    "id": "dt_win",

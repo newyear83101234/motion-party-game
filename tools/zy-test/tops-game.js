@@ -193,6 +193,8 @@ function mock(PZ) {
     await p.evaluate(() => document.getElementById("homeBtn").click()); await sleep(300);
     await p.evaluate(() => { window.__spoken = []; document.querySelector(".mode-card[data-mode=detective]").click(); });
     await p.waitForFunction(() => window.__zy.mode === "detective" && window.__zy.detective && window.__zy.detective.state(), null, { timeout: 20000 });
+    await p.evaluate(() => { const b = document.querySelector("#detective .dt-go"); if (b) b.click(); });   // 10-13 偵探先出「選等級」畫面：按「開始」
+    await p.waitForFunction(() => window.__zy.detective.state().phase !== "pick", null, { timeout: 5000 });
     const total = (await p.evaluate(() => window.__zy.detective.state().total));
     for (let k = 0; k < total; k++) {
       await p.waitForFunction(() => { const s = window.__zy.detective.state(); return s && s.phase === "ask"; }, null, { timeout: 15000, polling: 30 });
@@ -210,6 +212,8 @@ function mock(PZ) {
     // 券滿 3 張：不再換、starsBank 最多 15
     const cap = await p.evaluate(() => { const t = window.__zy.topsSave, o = { tickets: t.tickets, starsBank: t.starsBank }; t.tickets = 3; t.starsBank = 14; return o; });
     await p.evaluate(() => document.getElementById("againBtn").click());
+    await p.waitForFunction(() => window.__zy.mode === "detective" && window.__zy.detective.state() && window.__zy.detective.state().phase === "pick", null, { timeout: 20000 });
+    await p.evaluate(() => document.querySelector("#detective .dt-go").click());   // 10-13：再玩一次也先出選等級畫面
     await p.waitForFunction(() => window.__zy.mode === "detective" && window.__zy.detective.state() && window.__zy.detective.state().phase === "ask", null, { timeout: 20000 });
     for (let k = 0; k < total; k++) {
       await p.waitForFunction(() => { const s = window.__zy.detective.state(); return s && s.phase === "ask"; }, null, { timeout: 15000, polling: 30 });

@@ -4,7 +4,7 @@
 //     ②自動通關任務 1（模組 debug 求解器，走跟手指一樣的入口）→ 結算：全部送到了、星數＝onWin、「下一關」、結算語音、3D 場景收掉
 //     ③存檔 zy1_deliver＝{lv:1, stars:{0:3}}、禮物（小花）進衣櫃、沒送錯的商品詞（帽子）有貼紙
 //     ④下一關＝任務 2 ⑤暫停選單：暫停時遊戲時鐘不走、繼續會走；回小島＝場景收乾淨、不留「繼續玩」
-//     ⑥再點配送站＝選關對話框（8 格：第 1 關 3 星、第 2 關黃框、其他鎖著）⑦重玩第 1 關不再送禮
+//     ⑥再點配送站＝選關對話框（12 格：第 1 關 3 星、第 2 關黃框、其他鎖著）⑦重玩第 1 關不再送禮
 //     ⑧換裝畫面：小花可以穿 ⑨存檔重開仍在 ⑩備份碼帶配送站進度 ⑪最後一關過了＝「選關」鈕、all＝1、彩虹披風進衣櫃
 //     ⑫全程 0 個 console error、新字都有注音 ⑬WebGL 要不到＝回小島 ⑭送完最後一件馬上按 🏠：存檔已更新（onSave）
 const { launch, openGame } = require("./lib");
@@ -107,7 +107,7 @@ async function reopen(p) {
   // ⑥ 選關對話框
   await p.evaluate(() => document.querySelector(".mode-card[data-mode=deliver]").click()); await sleep(500);
   const pk = await p.evaluate(() => { const bs = [...document.querySelectorAll("#deliverLevels .bb-lv")]; return { vis: !document.getElementById("deliverPick").classList.contains("hidden"), n: bs.length, s0: bs[0] && bs[0].querySelector(".s").textContent, next: bs.findIndex(b => b.classList.contains("next")), locked: bs.filter(b => b.disabled).length, mode: window.__zy.mode }; });
-  ok("⑥ 過過第 1 關後點配送站＝選關對話框：8 格、第 1 關 3 星、第 2 關黃框、6 格鎖著、還沒進遊戲", pk.vis && pk.n === 8 && pk.s0 === "⭐⭐⭐" && pk.next === 1 && pk.locked === 6 && pk.mode === null, J(pk));
+  ok("⑥ 過過第 1 關後點配送站＝選關對話框：12 格（10-13 加到 12 關）、第 1 關 3 星、第 2 關黃框、10 格鎖著、還沒進遊戲", pk.vis && pk.n === 12 && pk.s0 === "⭐⭐⭐" && pk.next === 1 && pk.locked === 10 && pk.mode === null, J(pk));
   await shot(p, "deliver-pick");
   // ⑦ 重玩第 1 關：不再送禮
   const closet0 = (await LS(p, "zy1_rewards")).closet.length;
@@ -144,18 +144,48 @@ async function reopen(p) {
   const bad = await p.evaluate(() => { const d = window.__zyB.readCode(window.__zyB.exportCode()); return d && d.slots[0] && d.slots[0].deliver; });
   ok("⑩ 備份碼讀回來的配送站資料是乾淨的格式", bad && bad.lv === 1 && J(bad.stars) === J({ 0: 3 }), J(bad));
 
-  // ⑪ 最後一關（任務 8：大人規劃關，吊橋＋單行道）過了 →「選關」
-  await p.evaluate(() => { localStorage.setItem("zy1_deliver", JSON.stringify({ lv: 7, stars: { 0: 3, 1: 3, 2: 3, 3: 3, 4: 3, 5: 3, 6: 3 } })); }); await reopen(p); await hubReady(p);
+  // ⑪ 10-13 舊存檔照顧：舊版 8 關都過了（lv:7、all:1、stars 0–7）→ 載入後第 9 關要開起來（lv 8）、all 清掉（12 關都過才算）；第 9–11 關鎖著
+  await p.evaluate(() => { localStorage.setItem("zy1_deliver", JSON.stringify({ lv: 7, all: 1, stars: { 0: 3, 1: 3, 2: 3, 3: 3, 4: 3, 5: 3, 6: 3, 7: 2 } })); }); await reopen(p); await hubReady(p);
+  const mig = await p.evaluate(() => window.__zy.deliverSave);
+  await p.evaluate(() => document.querySelector(".mode-card[data-mode=deliver]").click()); await sleep(500);
+  const pkm = await p.evaluate(() => { const bs = [...document.querySelectorAll("#deliverLevels .bb-lv")]; return { n: bs.length, open: bs.filter(b => !b.disabled).length, next: bs.findIndex(b => b.classList.contains("next")) }; });
+  ok("⑪ 舊存檔（8 關都過、all:1）：載入後 lv＝8、all 清掉、選關 12 格裡開 9 格（第 9 關是黃框的下一關）", mig.lv === 8 && !mig.all && pkm.n === 12 && pkm.open === 9 && pkm.next === 8, J({ mig, pkm }));
+  await shot(p, "deliver-pick-12");
+  await p.evaluate(() => document.getElementById("deliverPickClose").click()); await sleep(300);
+
+  // ⑪b 進階關：任務 9 第一次過關 → 送 1 枚扭蛋幣（沒有換裝）、結算鈕「下一關」；再玩一次不再送
   await p.evaluate(() => document.querySelector(".mode-card[data-mode=deliver]").click()); await sleep(400);
-  await p.evaluate(() => document.querySelectorAll("#deliverLevels .bb-lv")[7].click());
+  const own = rw => rw.coins - rw.jarCoins;   // 扭蛋幣裡「不是星星罐給的」那部分（罐子每 10 顆星也會給 1 枚，會跟配送站的幣混在一起）
+  const coinsA0 = own(await LS(p, "zy1_rewards")), closetA9 = (await LS(p, "zy1_rewards")).closet.length;
+  await p.evaluate(() => document.querySelectorAll("#deliverLevels .bb-lv")[8].click());
+  const inn9 = await inDeliver(p);
+  const wn9 = await autoWin(p); const rn9 = await resultOn(p);
+  const coinCard = await p.evaluate(() => { const g = document.querySelector(".dlv-gift"); return g ? g.textContent : ""; });
+  await finishResult(p);
+  const resn9 = await p.evaluate(() => ({ again: document.getElementById("againBtn").textContent.replace(/[ㄅ-ㄩˊˇˋ˙\s]/g, "") }));
+  const dvn9 = await LS(p, "zy1_deliver"), rwn9 = await LS(p, "zy1_rewards");
+  ok("⑪b 任務 9 第一次過關：onWin 帶 coin:1、沒有換裝（衣櫃件數不變）、扭蛋幣 +1、存檔 lv 9、結算鈕「下一關」", inn9 && rn9 && wn9 && wn9.task === 8 && wn9.coin === 1 && !wn9.gift && own(rwn9) === coinsA0 + 1 && rwn9.closet.length === closetA9 && dvn9.lv === 9 && dvn9.stars["8"] === wn9.stars && resn9.again.includes("下一關"), J({ wn9: wn9 && { task: wn9.task, stars: wn9.stars, coin: wn9.coin, gift: wn9.gift }, coinsA0, coins1: rwn9.coins, closetA9, closet: rwn9.closet.length, dvn9, resn9, coinCard }));
+  // 重玩任務 9：不再送幣
+  await p.evaluate(() => document.getElementById("againBtn").click()); await sleep(400);
+  await p.evaluate(() => { const ds = document.getElementById("deliverPick"); if (ds.classList.contains("hidden")) document.querySelector(".mode-card[data-mode=deliver]").click(); });
+  await sleep(300); await p.evaluate(() => document.querySelectorAll("#deliverLevels .bb-lv")[8].click());
+  const inn9b = await inDeliver(p); const wn9b = await autoWin(p); const rn9b = await resultOn(p); await finishResult(p);
+  const rwn9b = await LS(p, "zy1_rewards");
+  ok("⑪b 重玩任務 9：coin＝0、扭蛋幣沒有再增加", inn9b && rn9b && wn9b && wn9b.task === 8 && !wn9b.coin && own(rwn9b) === coinsA0 + 1, J({ wn9b: wn9b && { task: wn9b.task, coin: wn9b.coin }, coins: own(rwn9b), want: coinsA0 + 1 }));
+
+  // ⑪c 最後一關（任務 12：5 張單、容量 2、吊橋＋單行道）過了 →「選關」、all＝1、再 +1 枚扭蛋幣
+  await p.evaluate(() => { const o = JSON.parse(localStorage.getItem("zy1_deliver")); localStorage.setItem("zy1_deliver", JSON.stringify({ lv: 11, stars: { 0: 3, 1: 3, 2: 3, 3: 3, 4: 3, 5: 3, 6: 3, 7: 3, 8: 3, 9: 3, 10: 3 } })); }); await reopen(p); await hubReady(p);
+  const coinsB = own(await LS(p, "zy1_rewards"));
+  await p.evaluate(() => document.querySelector(".mode-card[data-mode=deliver]").click()); await sleep(400);
+  await p.evaluate(() => document.querySelectorAll("#deliverLevels .bb-lv")[11].click());
   const in11 = await inDeliver(p);
-  await shot(p, "deliver-play-task8");
+  await shot(p, "deliver-play-task12");
   const w11 = await autoWin(p); const r11 = await resultOn(p); await finishResult(p);
   const res11 = await p.evaluate(() => ({ again: document.getElementById("againBtn").textContent.replace(/[ㄅ-ㄩˊˇˋ˙\s]/g, ""), stars: document.querySelectorAll("#resultStars .star.on").length }));
   const dv11 = await LS(p, "zy1_deliver"), rw11 = await LS(p, "zy1_rewards");
-  ok("⑪ 任務 8 通關：結算鈕改成「選關」、all＝1、彩虹披風進衣櫃", in11 && r11 && w11 && w11.task === 7 && res11.again.includes("選關") && res11.stars === w11.stars && dv11.all === 1 && dv11.stars["7"] === w11.stars && rw11.closet.includes("cape_rainbow"), J({ w11: w11 && { task: w11.task, stars: w11.stars, trips: w11.trips, best: w11.bestTrips, gift: w11.gift }, res11, dv11 }));
+  ok("⑪c 任務 12 通關：結算鈕改成「選關」、all＝1、扭蛋幣 +1", in11 && r11 && w11 && w11.task === 11 && w11.coin === 1 && res11.again.includes("選關") && res11.stars === w11.stars && dv11.all === 1 && dv11.stars["11"] === w11.stars && own(rw11) === coinsB + 1, J({ w11: w11 && { task: w11.task, stars: w11.stars, trips: w11.trips, best: w11.bestTrips, coin: w11.coin }, res11, dv11, coinsB, coins: own(rw11) }));
   await p.evaluate(() => document.getElementById("againBtn").click()); await sleep(500);
-  ok("⑪ 按「選關」→ 打開選關（8 關都開、沒有黃框）", await p.evaluate(() => !document.getElementById("deliverPick").classList.contains("hidden") && [...document.querySelectorAll("#deliverLevels .bb-lv")].every(b => !b.disabled) && !document.querySelector("#deliverLevels .bb-lv.next")));
+  ok("⑪c 按「選關」→ 打開選關（12 關都開、沒有黃框）", await p.evaluate(() => !document.getElementById("deliverPick").classList.contains("hidden") && [...document.querySelectorAll("#deliverLevels .bb-lv")].length === 12 && [...document.querySelectorAll("#deliverLevels .bb-lv")].every(b => !b.disabled) && !document.querySelector("#deliverLevels .bb-lv.next")));
   await shot(p, "deliver-pick-all");
   await p.evaluate(() => document.getElementById("deliverPickClose").click()); await sleep(300);
 

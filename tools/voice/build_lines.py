@@ -220,9 +220,12 @@ for i, key, t in [("dlv_thanks", "thanks", "謝謝你！"), ("dlv_none", "none",
                   ("dlv_hello", "hello", "嗨！麻煩你囉！"), ("dlv_t1go", "t1go", "點小兔家，卡車就會出發！"), ("dlv_t1give", "t1give", "點車廂裡的帽子，交給小兔！")]:
     dl_must(f'{key}: "{t}"'); add(i, t, "guide", f"zhuyin-deliver.js LINES.{key}")
 DL_INTROS = re.findall(r'intro: "([^"]+)"', DLSRC.split("export const TASKS = [")[1].split("].map(")[0])
-assert len(DL_INTROS) == 7, f"配送站任務開場語解析失敗：{len(DL_INTROS)}"
+assert len(DL_INTROS) == 11, f"配送站任務開場語解析失敗：{len(DL_INTROS)}"   # 10-13 任務 9–12 各加一句（任務 1–8 有 7 句、9–12 有 4 句）
 for k, t in enumerate(DL_INTROS):
     add(f"dlv_intro_{k + 1}", t, "guide", "zhuyin-deliver.js TASKS[].intro（該任務第一次玩）")
+# 10-13 任務 9–12 第一次過關送 1 枚扭蛋幣：台詞走同一個 LINES.gift（「送你扭蛋幣！」；COIN_GIFT 在 zhuyin-deliver.js）
+dl_must('export const COIN_GIFT = { h: "扭蛋幣", emoji: "🪙" }')
+add("dlv_gift_coin", "送你扭蛋幣！", "guide", "zhuyin-deliver.js LINES.gift(COIN_GIFT.h)（10-13 任務 9–12 第一次過關，居民送扭蛋幣）")
 # 主程式接線（10-12）：結算語音（沒拿到新貼紙時；有新貼紙唸「拿到 N 張新貼紙！」）、引擎／3D 場景打不開時回小島貓頭鷹說
 for i, t in [("dlv_win", "東西都送到了，好厲害！"), ("dlv_fail", "配送站現在打不開，等一下再試試看！")]:
     must(t); add(i, t, "guide", "zhuyin.js 彩虹配送站接線（DELIVER_WIN_TALK／DELIVER_FAIL）")
@@ -256,6 +259,8 @@ DT_PRAISE = re.findall(r'"([^"]+)"', re.search(r"praise: \[([^\]]+)\]", DTSRC).g
 assert len(DT_PRAISE) == 3, f"詞句小偵探稱讚句解析失敗：{DT_PRAISE}"
 for k, t in enumerate(DT_PRAISE):
     add(f"dt_praise_{k + 1}", t, "praise", "zhuyin-detective.js LINES.praise（答對，talk）")
+dt_must('lvup: "新的一級打開了！"')
+add("dt_lvup", "新的一級打開了！", "guide", "zhuyin-detective.js LINES.lvup（10-13 等級：升級橫幅出來時小狗說，talk）")
 dt_must('export const WIN_TALK = "全部找到了，你是厲害的小偵探！"')
 add("dt_win", "全部找到了，你是厲害的小偵探！", "result", "zhuyin-detective.js WIN_TALK（主程式結算畫面唸）")
 

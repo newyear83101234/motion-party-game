@@ -55,13 +55,13 @@ async function answer(p, wrongFirst) {   // 用真的點擊答一題（wrongFirs
       const m = window.__dt.mod, { readRun, missing } = await import("/js/zhuyin-ann.js?v=6");
       const read = s => readRun(s.replace(/[^㐀-鿿]/g, "")).join(" ");
       const same = [], nulls = [];
-      for (const q of m.BANK) { const rs = q.options.map(read); if (new Set(rs).size !== 3) same.push(q.id); q.options.forEach(o => { if (readRun(o).some(x => !x)) nulls.push(o); }); }
+      for (const q of m.BANK) { const rs = q.options.map(read); if (new Set(rs).size !== q.options.length) same.push(q.id); q.options.forEach(o => { if (readRun(o).some(x => !x)) nulls.push(o); }); }
       const en = m.BANK.filter(q => q.enabled), dr = m.BANK.filter(q => !q.enabled);
       const reads = Object.fromEntries(en.flatMap(q => q.options).map(o => [o, read(o)]));
       const keys = Object.fromEntries(m.BANK.map(q => [q.id, m.keysOf(q)[0].join(",")]));
-      // 60 個種子：每題的正確答案位置三個都出現過、題目順序兩種都出現過
+      // 400 個種子（等級 1–4 輪流，Lv1–2 取 3 張卡、Lv3–4 取 4 張卡）：每題的正確答案在前三個位置都出現過、題目順序兩種都出現過
       const pos = {}, firsts = new Set();
-      for (let s = 1; s <= 60; s++) { const rd = m.pickRound(m.BANK, m.ROUND_N, m.rng(s)); firsts.add(rd[0].id); rd.forEach(q => { (pos[q.id] = pos[q.id] || new Set()).add(q.order.indexOf(0)); }); }
+      for (let s = 1; s <= 400; s++) { const rd = m.pickRound(m.BANK, m.ROUND_N, m.rng(s), { lv: 1 + (s % 4) }); firsts.add(rd[0].id); rd.forEach(q => { (pos[q.id] = pos[q.id] || new Set()).add(q.order.indexOf(0)); }); }
       const all5 = m.pickRound(m.BANK.map(q => ({ ...q, enabled: true })), m.ROUND_N, m.rng(3));
       const st = [m.starsFor(2, 2), m.starsFor(1, 2), m.starsFor(0, 2), m.starsFor(5, 5), m.starsFor(4, 5), m.starsFor(3, 5), m.starsFor(0, 5), m.starsFor(4, 4)].join("");
       const lens = m.BANK.map(q => q.options.map(o => [...o].length)).map(a => Math.max(...a) - Math.min(...a));
@@ -69,8 +69,8 @@ async function answer(p, wrongFirst) {   // 用真的點擊答一題（wrongFirs
         pos: Object.fromEntries(Object.entries(pos).map(([k, v]) => [k, [...v].sort().join("")])), firsts: [...firsts].sort().join(), all5: all5.length, all5uniq: new Set(all5.map(q => q.id)).size, st, maxLenDiff: Math.max(...lens), missing: [...missing] };
     });
     ok("題庫：checkBank 沒有問題（3 個選項、say＝正確選項、不只差標點、長度差 ≤1、每個錯誤選項都有差異字、有寫 enabled）", r.bad.length === 0 && r.maxLenDiff <= 1, JSON.stringify(r.bad));
-    ok("題庫：全部啟用（≥5 題，現為 13 題；含 smile、eyes）、id 不重複、沒有草稿", r.en.length >= 5 && r.en.length === r.bankN && new Set(r.en).size === r.en.length && r.en.includes("smile") && r.en.includes("eyes") && r.drafts === 0, JSON.stringify({ en: r.en, drafts: r.drafts }));
-    ok("題庫：每題三個選項念起來都不一樣（注音字典比對，含草稿）、沒有查不到讀音的字", r.same.length === 0 && r.nulls.length === 0 && r.missing.length === 0, JSON.stringify(r));
+    ok("題庫：全部啟用（≥5 題，現為 14 歌詞題＋30 生活句；含 smile、eyes）、id 不重複、沒有草稿", r.en.length >= 5 && r.en.length === r.bankN && new Set(r.en).size === r.en.length && r.en.includes("smile") && r.en.includes("eyes") && r.drafts === 0, JSON.stringify({ en: r.en, drafts: r.drafts }));
+    ok("題庫：每題所有選項（3～6 個）念起來都不一樣（注音字典比對，含草稿）、沒有查不到讀音的字", r.same.length === 0 && r.nulls.length === 0 && r.missing.length === 0, JSON.stringify(r));
     const WANT = {
       "你笑起來真好看": "ㄋㄧˇ ㄒㄧㄠˋ ㄑㄧˇ ㄌㄞˊ ㄓㄣ ㄏㄠˇ ㄎㄢˋ", "你看起來真好笑": "ㄋㄧˇ ㄎㄢˋ ㄑㄧˇ ㄌㄞˊ ㄓㄣ ㄏㄠˇ ㄒㄧㄠˋ", "你笑起來真好笑": "ㄋㄧˇ ㄒㄧㄠˋ ㄑㄧˇ ㄌㄞˊ ㄓㄣ ㄏㄠˇ ㄒㄧㄠˋ",
       "你看著我的眼睛說": "ㄋㄧˇ ㄎㄢˋ ㄓㄜ˙ ㄨㄛˇ ㄉㄜ˙ ㄧㄢˇ ㄐㄧㄥ ㄕㄨㄛ", "你看著我的眼睛唱": "ㄋㄧˇ ㄎㄢˋ ㄓㄜ˙ ㄨㄛˇ ㄉㄜ˙ ㄧㄢˇ ㄐㄧㄥ ㄔㄤˋ", "你看著我的眼神說": "ㄋㄧˇ ㄎㄢˋ ㄓㄜ˙ ㄨㄛˇ ㄉㄜ˙ ㄧㄢˇ ㄕㄣˊ ㄕㄨㄛ",
@@ -79,7 +79,7 @@ async function answer(p, wrongFirst) {   // 用真的點擊答一題（wrongFirs
     ok("讀音：兩題 6 個選項逐字對（看著＝ㄎㄢˋ ㄓㄜ˙、好看＝ㄏㄠˇ ㄎㄢˋ、好笑＝ㄏㄠˇ ㄒㄧㄠˋ、看起來＝ㄎㄢˋ ㄑㄧˇ ㄌㄞˊ）", wrongRead.length === 0, wrongRead.join(" | "));
     console.log("\n讀音表（啟用的題目）：\n" + Object.entries(r.reads).map(([k, v]) => `  ${k}　${v}`).join("\n"));
     ok("關鍵字（自動算差異）：smile＝笑、看（位置 1、6）；eyes＝睛、說（位置 6、7）", r.keys.smile === "1,6" && r.keys.eyes === "6,7", JSON.stringify(r.keys));
-    ok("隨機：60 個種子裡，每題正確答案在三個位置都出現過、第一題不固定（≥8 種不同的題當開場）", Object.keys(r.pos).length === r.bankN && Object.values(r.pos).every(v => v === "012") && r.firsts.split(",").length >= 8, JSON.stringify({ pos: r.pos, firsts: r.firsts }));
+    ok("隨機：400 個種子（等級 1–4）裡，每題正確答案在前三個位置都出現過、第一題不固定（≥8 種不同的題當開場）", Object.keys(r.pos).length === r.bankN && Object.values(r.pos).every(v => v.startsWith("012")) && r.firsts.split(",").length >= 8, JSON.stringify({ pos: r.pos, firsts: r.firsts }));
     ok("回合：題庫夠的時候一回合 5 題、不重複", r.all5 === 5 && r.all5uniq === 5, JSON.stringify(r));
     ok("星星：5 題回合 全對 3★、錯 1 題 2★、錯 2 題以上 1★；啟用不到 5 題（2 題、4 題）全對也只有 1★（不變成刷星星捷徑）", r.st === "11132111", r.st);
     ok("第 1 段：沒有錯誤", errs.length === 0, errs.join(" | "));

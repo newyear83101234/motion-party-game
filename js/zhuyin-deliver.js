@@ -7,7 +7,7 @@
 //   createDeliverGame(root, api) → { start(task), stop(), sayCurrent(), relayout(), state(), debug }
 //   api：say talk play later paused onSave onWin petImg isCleared hintWait（＋測試用 seed speed）
 //   onSave(info)：送完最後一件、算完成績就立刻呼叫（同一份 info）＝主程式馬上存檔（里維 10-12：過關演出 3.6–6 秒中按 🏠 進度不會丟）；onWin 只管轉場
-//   onWin({ task, stars, trips, bestTrips, dist, bestDist, wrong, gift, routeBest, orders })：gift＝第一次過關送的換裝 id（api.isCleared(task) 為真＝重玩＝null）；
+//   onWin({ task, stars, trips, bestTrips, dist, bestDist, wrong, gift, coin, routeBest, orders })：gift＝第一次過關送的換裝 id（api.isCleared(task) 為真＝重玩＝null）；coin＝1：任務 9–12 第一次過關送 1 枚扭蛋幣（主程式存檔時加）；
 //     orders＝[{ house, good, word（國字）, wrong（這張訂單送錯幾次） }]（10-12 主程式接線：沒送錯過的商品詞給貼紙）
 // 3D：自己的小 Three.js 場景（跟小島同一份 IMAGE/zy3d/vendor/three、同一套 Kenney＋自製模型、同樣的燈光與色票）；
 //   stop() 一定 dispose renderer、停 rAF；所有遊戲計時走 api.later（暫停凍得住），3D 動畫用自己的遊戲時鐘（暫停時不走）。
@@ -35,7 +35,7 @@ export const HOUSES = {
   P: { pet: "pig", name: "小豬", sign: "小豬家", color: "#a98be8", dark: "#7a5cc4", kit: "building-type-o", roof: "#a98be8", wall: "#f6f1ff", at: [9.75, -2.3], ry: 0 },
 };
 const HOUSE_IDS = ["B", "R", "P"];
-// 8 個任務第一次過關各送一件換裝（主對話 10-11 定；圖之後由換裝組產生 IMAGE/zhuyin/wear_<id>.webp，載不到退回 emoji）
+// 任務 1–8 第一次過關各送一件換裝（主對話 10-11 定；圖之後由換裝組產生 IMAGE/zhuyin/wear_<id>.webp，載不到退回 emoji）
 export const GIFTS = {
   flower: { h: "小花", emoji: "🌸" }, flower_crown: { h: "花圈", emoji: "💐" }, backpack: { h: "背包", emoji: "🎒" }, party_hat: { h: "派對帽", emoji: "🥳" },
   cape: { h: "披風", emoji: "🦸" }, wings: { h: "翅膀", emoji: "🪽" }, crown: { h: "皇冠", emoji: "👑" }, cape_rainbow: { h: "彩虹披風", emoji: "🌈" },
@@ -59,6 +59,7 @@ export const LINES = {
   t1go: "點小兔家，卡車就會出發！",
   t1give: "點車廂裡的帽子，交給小兔！",              // 任務 1 到站（點卡車／小兔／房子也都會交貨）
 };
+export const COIN_GIFT = { h: "扭蛋幣", emoji: "🪙" };    // 10-13 任務 9–12 第一次過關的禮物（台詞＝LINES.gift("扭蛋幣")＝「送你扭蛋幣！」）
 export const BADGE_ROUTE = "🚚 一趟就送完！";           // 任務 1–6：路線最佳的加分小徽章（不影響星星）
 export const STAMP_SELF = "自己讀到的！";               // 藏圖訂單沒按提示揭圖就送對
 
@@ -70,10 +71,13 @@ export const EDGES = [["W", "A"], ["A", "NW", 1], ["NW", "B", 1], ["B", "NE", 1]
   .map(([a, b, f]) => ({ id: a + "-" + b, a, b, len: Math.hypot(NODES[b][0] - NODES[a][0], NODES[b][1] - NODES[a][1]), loop: f === 1, bridge: f === 2 }));
 const RIVER = [4.6, 7.4];                                  // 河的兩岸（x）
 
-// ===================== 8 個任務 =====================
+// ===================== 12 個任務（1–8 原本的；9–12 是 10-13 加的進階關）=====================
 // cones：[路段, 位置 0–1]＝施工三角錐擋住整段路；lever＝有吊橋（開場是升起來的；點地圖上的吊橋或旁邊的開關圖釘就放下，放下後鎖住）；
 // oneway＝環狀路變順時針單行；hidden＝訂單藏圖（只剩國字注音、貨架只放圖）；speak＝居民開場唸訂單；
 // plan＝大人規劃關（星星看趟數＋路程；其他關星星只看送錯）。最佳趟數／路程由求解器算（tools/zy-test/deliver.js 驗證並印表）。
+// 10-13 進階關 9–12（阿葉：「小孩說每個遊戲都太簡單」）：全部藏圖＋規劃關（看趟數與路程）＋吊橋，訂單 4–5 張，逐關加難：
+//   9＝4 張單，容量 2（兩趟，沒有單行道）；10＝加單行道；11＝5 張單，容量 3（一趟載三樣、兩趟）；12＝5 張單，容量 2、單行道（要三趟）。每關求解器都有解，「貪心先送最近的」都比最佳路程差 ≥10%。
+//   第一次過關沒有新配件（換裝禮物只有 8 件）→ 改送 1 枚扭蛋幣（coin: true；主程式 deliverSave 加幣）。
 // 櫻木花道 10-12：任務 4＝第一個藏圖關用不易混的詞（牛奶、蘋果）、貨架 4 種；易混組（西瓜／香蕉、麵包／帽子）從任務 5 起
 export const TASKS = [
   { cap: 1, shelf: ["hat", "apple"], orders: [["B", "hat"]], cones: [["B-NE", 0.3], ["SW-A", 0.78]], speak: true, gift: "flower", intro: "點商品，再點卡車，就能裝貨喔！" },
@@ -84,6 +88,10 @@ export const TASKS = [
   { cap: 2, shelf: "all", orders: [["R", "banana"], ["P", "watermelon"]], cones: [], hidden: true, lever: true, oneway: true, gift: "wings", intro: "有箭頭的路是單行道喔！" },
   { cap: 2, shelf: "all", orders: [["B", "hat"], ["R", "apple"], ["P", "bread"]], cones: [], hidden: true, lever: true, plan: true, gift: "crown", intro: "貨太多了，要回倉庫再拿喔！" },
   { cap: 2, shelf: "all", orders: [["P", "bread"], ["B", "watermelon"], ["R", "banana"], ["P", "hat"]], cones: [], hidden: true, lever: true, oneway: true, plan: true, gift: "cape_rainbow", intro: "大挑戰！想想看怎麼送最快！" },
+  { cap: 2, shelf: "all", orders: [["B", "bread"], ["R", "hat"], ["P", "milk"], ["B", "apple"]], cones: [], hidden: true, lever: true, plan: true, coin: true, intro: "四張訂單，想想先送哪一家！" },
+  { cap: 2, shelf: "all", orders: [["P", "hat"], ["B", "bread"], ["R", "milk"], ["P", "watermelon"]], cones: [], hidden: true, lever: true, oneway: true, plan: true, coin: true, intro: "單行道加吊橋，路線要想好喔！" },
+  { cap: 3, shelf: "all", orders: [["R", "bread"], ["P", "apple"], ["B", "banana"], ["P", "watermelon"], ["R", "milk"]], cones: [], hidden: true, lever: true, oneway: true, plan: true, coin: true, intro: "貨好多，車子一次可以載三樣！" },
+  { cap: 2, shelf: "all", orders: [["P", "watermelon"], ["B", "bread"], ["R", "banana"], ["P", "hat"], ["B", "milk"]], cones: [], hidden: true, lever: true, oneway: true, plan: true, coin: true, intro: "最後的大挑戰，加油！" },
 ].map(t => ({ hidden: false, lever: false, oneway: false, speak: false, plan: false, intro: "", ...t, shelf: t.shelf === "all" ? Object.keys(GOODS) : t.shelf }));
 
 // ===================== 路網與求解器（純邏輯；示範手指、星星、測試都用這一套） =====================
@@ -1352,8 +1360,8 @@ export function createDeliverGame(root, api) {
     st.won = true; hideFinger(); D.hint.classList.remove("dlv-pulse");
     const best = st.best, r = { trips: st.trips, dist: r1(st.dist), wrong: st.wrong }, plan = T().plan;
     const stars = starsFor(r, best, plan), rb = routeBest(r, best);
-    const gift = api.isCleared && api.isCleared(st.ti) ? null : T().gift;
-    const info = { task: st.ti, stars, trips: r.trips, bestTrips: best.trips, dist: r.dist, bestDist: best.dist, wrong: r.wrong, routeBest: rb, gift,
+    const cleared = !!(api.isCleared && api.isCleared(st.ti)), gift = cleared ? null : T().gift, coin = !cleared && T().coin ? 1 : 0;   // coin＝10-13 進階關第一次過關送 1 枚扭蛋幣（主程式存檔時加）
+    const info = { task: st.ti, stars, trips: r.trips, bestTrips: best.trips, dist: r.dist, bestDist: best.dist, wrong: r.wrong, routeBest: rb, gift, coin,
       orders: T().orders.map(([h, g], i) => ({ house: h, good: g, word: GOODS[g].h, wrong: st.wrongAt[i] || 0 })) };   // orders：每張訂單送錯幾次（主程式算貼紙用）
     st.winInfo = info;
     try { if (api.onSave) api.onSave(info); } catch (e) { console.warn("[deliver] onSave", e); }   // 先存檔（禮物已照存檔前的 isCleared 算好），演出完才 onWin 轉場
@@ -1368,16 +1376,17 @@ export function createDeliverGame(root, api) {
       const cols = ["#ff5b5b", "#ff9a3d", "#ffd84a", "#62cf6b", "#4fa6ff", "#a678e8"];
       for (let i = 0; i < 18; i++) { const q = mk("i", "dlv-conf", D.fx); q.style.left = (4 + (i * 53) % 92) + "%"; q.style.background = cols[i % 6]; q.style.setProperty("--d", (i * 80) % 700 + "ms"); q.addEventListener("animationend", () => q.remove(), { once: true }); }
     }, 650);
-    if (gift) later(() => showGift(gift), 3500);                 // 星星蹦完、徽章亮著 1.4 秒以上才換禮物
-    later(() => { if (!st.winSent) { st.winSent = true; api.onWin(info); } }, gift ? 6000 : 3600);
+    if (gift || coin) later(() => showGift(gift || "coin"), 3500);   // 星星蹦完、徽章亮著 1.4 秒以上才換禮物（換裝或扭蛋幣）
+    later(() => { if (!st.winSent) { st.winSent = true; api.onWin(info); } }, gift || coin ? 6000 : 3600);
   }
   function showGift(id) {
-    const G = GIFTS[id], h = st.lastHouse || "B";
+    const G = id === "coin" ? COIN_GIFT : GIFTS[id], h = st.lastHouse || "B";
     for (const b of D.fx.querySelectorAll(".dlv-banner")) b.remove();
     W && W.residentHappy(h);
-    const card = mk("div", "dlv-gift", D.fx); picEl(mk("div", "dlv-gift-pic", card), imgUrl("wear_" + id), G.emoji); mk("div", "dlv-gift-t", card, LINES.gift(G.h));
+    const card = mk("div", "dlv-gift", D.fx); if (id === "coin") mk("span", "dlv-emoji", mk("div", "dlv-gift-pic", card), G.emoji); else picEl(mk("div", "dlv-gift-pic", card), imgUrl("wear_" + id), G.emoji);   // 扭蛋幣沒有圖，直接用 emoji（不送出載不到的請求）
+    mk("div", "dlv-gift-t", card, LINES.gift(G.h));
     speak(LINES.gift(G.h), "talk", true);
-    const closet = mk("div", "dlv-closet", D.fx, "👗"); closet.style.left = (L.Wd - L.btn * 1.4 - 2 * L.vm) + "px"; closet.style.top = (L.Hd * 0.42) + "px";
+    const closet = mk("div", "dlv-closet", D.fx, id === "coin" ? "🎁" : "👗"); closet.style.left = (L.Wd - L.btn * 1.4 - 2 * L.vm) + "px"; closet.style.top = (L.Hd * 0.42) + "px";
     later(() => {
       const a = rectOf(card), b = rectOf(closet);
       card.animate([{ transform: "none", opacity: 1 }, { transform: `translate(${b.x - a.x}px, ${b.y - a.y}px) scale(0.2)`, opacity: 0.4 }], { duration: 650 / SPD(), easing: "ease-in", fill: "forwards" });
