@@ -47,12 +47,12 @@ const ans = p => p.evaluate(() => { const i = window.__zy.curOpts.findIndex(o =>
     cols: document.querySelectorAll("#statsDays .st-day").length, today: document.querySelector("#statsDays .st-day.today .st-min")?.textContent, zero: document.querySelectorAll("#statsDays .st-day.zero").length,
     dates: [...document.querySelectorAll("#statsDays .st-date")].map(x => x.textContent).join("|"), wds: [...document.querySelectorAll("#statsDays .st-wd")].map(x => x.textContent).join("|"),
     fish: document.querySelector("#statsModes .st-row:nth-child(2)")?.textContent.replace(/\s/g, ""), none: document.querySelectorAll("#statsModes .st-row.none").length,
-    mix: [...document.querySelectorAll("#statsMix .mix-row")].map(x => x.textContent.replace(/\s/g, "")), name: document.getElementById("statsName").textContent,
+    mix: [...document.querySelectorAll("#mixList .mix-row")].map(x => x.textContent.replace(/\s/g, "")), name: document.getElementById("statsName").textContent,
     note: document.getElementById("statsSec").textContent.includes("只存在這台平板，不會上傳"), noann: !!document.querySelector(".dialog.settings.noann #statsSec"), anyAnn: document.querySelectorAll("#statsSec .ac").length }));
   ok("家長頁：7 天長條、最後一格是今天、有 6 天 0 分", ui.cols === 7 && /分/.test(ui.today || "") && ui.zero === 6 && /今天/.test(ui.wds) && /\d+\/\d+/.test(ui.dates), JSON.stringify(ui));
   ok("家長頁：釣魚排第一、1 次、平均星星、今天", /釣魚1次⭐[123]\.0今天/.test(ui.fish || ""), ui.fish);
   ok("家長頁：其餘 11 個遊戲「還沒玩過」", ui.none === 11, String(ui.none));
-  ok("家長頁：搞混前 5 組（次數多→少）", ui.mix.length === 5 && /^ㄏ↔ㄈ6次/.test(ui.mix[0]) && /^ㄅ↔ㄆ4次/.test(ui.mix[1]), JSON.stringify(ui.mix));
+  ok("家長頁：搞混（沿用原本「容易搞混」區塊，次數多→少）", ui.mix.length >= 5 && /^ㄏ↔ㄈ6次/.test(ui.mix[0]) && /^ㄅ↔ㄆ4次/.test(ui.mix[1]), JSON.stringify(ui.mix));
   ok("家長頁：寫明只存本機不上傳、不加注音", ui.note && ui.noann && ui.anyAnn === 0 && /小熊/.test(ui.name));
   // 備份碼不帶（本機紀錄）
   const bk = await p.evaluate(() => { const c = window.__zyB.exportCode(); return { stats: /stats/.test(c), days: /"days"/.test(JSON.stringify(window.__zyB.readCode(c))) }; });
@@ -64,7 +64,7 @@ const ans = p => p.evaluate(() => { const i = window.__zy.curOpts.findIndex(o =>
   const s2 = await st(p);
   ok("換到小兔：紀錄是空的；小熊的紀錄已寫進存檔", Object.keys(s2.modes).length === 0 && (await p.evaluate(() => JSON.parse(localStorage.getItem("zy1_stats")).modes.fish.plays)) === 1);
   await p.evaluate(() => { document.getElementById("settingsBtn").click(); }); await sleep(300);
-  ok("小兔的家長頁：全部「還沒玩過」", await p.evaluate(() => document.querySelectorAll("#statsModes .st-row.none").length === 12 && document.getElementById("statsMix").textContent.includes("還沒有記錄")));
+  ok("小兔的家長頁：全部「還沒玩過」", await p.evaluate(() => document.querySelectorAll("#statsModes .st-row.none").length === 12 && !document.getElementById("statsMix") && document.getElementById("mixList").textContent.includes("還沒有資料")));
   await p.evaluate(() => document.getElementById("settingsClose").click());
   await p.evaluate(() => document.getElementById("playerBtn").click()); await sleep(300);
   await p.evaluate(() => document.querySelectorAll("#playerList .player")[0].click()); await sleep(600);

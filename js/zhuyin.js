@@ -2270,7 +2270,8 @@ function renderStats() {
     else row.appendChild(el("span", "why", "還沒玩過"));
     mb.appendChild(row);
   }
-  const xb = $("statsMix"); xb.innerHTML = "";
+  const xb = $("statsMix"); if (!xb) return;   // 10-12：跟正下方「容易搞混的注音」重複 → 家長頁拿掉這塊，保留原本那段（有說明、列 6 組）
+  xb.innerHTML = "";
   const list = Object.entries(save.mix || {}).filter(([k, n]) => typeof n === "number").sort((a, b) => b[1] - a[1]).slice(0, 5);
   if (!list.length) { xb.appendChild(el("div", "set-note", "還沒有記錄")); return; }
   for (const [k, n] of list) {
