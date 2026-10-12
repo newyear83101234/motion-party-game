@@ -175,7 +175,7 @@ const opened = (p, m) => p.waitForFunction(m => { const t = document.querySelect
     });
     ok(`${t} ${w}×${h}：繼續玩有出現`, r.resume);
     ok(`${t} ${w}×${h}：上方兩排／繼續玩／膠囊／換人小字／貓頭鷹互不重疊、都在畫面內`, r.bad.length === 0 && r.out.length === 0, JSON.stringify(r));
-    ok(`${t} ${w}×${h}：浮標（平常收成圓形圖示）、橋頭路牌沒被任何按鈕／「繼續玩」膠囊擋到（收起來的也算位置）`, r.tags.length === 0 && r.shut === 10, r.tags.join(",") + ` 收著 ${r.shut} 個 繼續玩 ${JSON.stringify(r.resumeRect)} 🗺️ ${JSON.stringify(r.map)}`);
+    ok(`${t} ${w}×${h}：浮標（平常收成圓形圖示；主島 11 個＝10-13 加挑戰燈塔）、橋頭路牌沒被任何按鈕／「繼續玩」膠囊擋到（收起來的也算位置）`, r.tags.length === 0 && r.shut === 11, r.tags.join(",") + ` 收著 ${r.shut} 個 繼續玩 ${JSON.stringify(r.resumeRect)} 🗺️ ${JSON.stringify(r.map)}`);
     if (["W", "169", "43", "P34"].includes(t)) await p.screenshot({ path: require("path").join(SHOTS, `resume-${w}x${h}.png`) }).catch(() => {});
     // 浮標精簡（10-12）：一棟一棟按住展開名字——在畫面內、不碰上方圓鈕那兩排（收起來的也算位置）、名字那一橫排從左到右都沒被蓋住
     // （按住時浮標層疊到貓頭鷹對話框、膠囊上面，所以那兩個用「有沒有被蓋住」驗；手機直式只驗收合狀態：iPad 才是主要裝置）

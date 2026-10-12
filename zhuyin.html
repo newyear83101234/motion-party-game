@@ -54,6 +54,7 @@
   <link rel="stylesheet" href="css/zhuyin-plaza.css?v=1">
   <link rel="stylesheet" href="css/zhuyin-detective.css?v=1">
   <link rel="stylesheet" href="css/zhuyin-tops.css?v=1">
+  <link rel="stylesheet" href="css/zhuyin-tower.css?v=1">
 </head>
 <body class="gate-on">
   <!-- body.gate-on：開始畫面還沒按「開始玩」→ CSS 藏起小島浮標、嚮導、圓鈕（開始畫面只留一個標題、一顆按鈕） -->
@@ -124,6 +125,8 @@
       <!-- 10-12 詞句小偵探（彩虹島「詞句偵探社」）、注音戰鬥陀螺（歸仁區「陀螺競技場」）：卡片寫短名字（一格放得下），3D 浮標寫建築名 -->
       <button class="mode-card" data-mode="detective"><span class="big">🕵️</span><span class="label">偵探</span><span class="lock"></span></button>
       <button class="mode-card" data-mode="tops"><span class="big">🌀</span><span class="label">陀螺</span><span class="lock"></span></button>
+      <!-- 10-13 挑戰燈塔（爬塔；主島燈塔岬）：卡片寫「燈塔」，3D 浮標寫「挑戰燈塔」 -->
+      <button class="mode-card" data-mode="tower"><span class="big">🗼</span><span class="label">燈塔</span><span class="lock"></span></button>
     </div>
     <div class="menu-bottom">
       <button id="albumBtn" class="pill"><span>📒 貼紙</span><b id="menuStickers">0</b></button>
@@ -220,6 +223,12 @@
     <div id="topsRoot"></div>
   </section>
 
+  <!-- ===== 挑戰燈塔（10-13，主島燈塔岬；js/zhuyin-tower.js 自己在 #towerRoot 裡建畫面：燈塔、排行榜、選名字、樓層開場、結算；愛心 HUD 掛在 body）===== -->
+  <section id="tower" class="screen hidden">
+    <div class="topbar"></div>
+    <div id="towerRoot"></div>
+  </section>
+
   <!-- ===== 結算 ===== -->
   <!-- 結算演出（B1）：星星一顆顆蓋章 → 貼紙一張張貼 → 星星飛進右下的星星罐 → 按鈕最後才淡入；演出中點畫面＝快轉到最後 -->
   <section id="result" class="screen bg-map hidden">
@@ -297,6 +306,18 @@
       <div class="set-note"><b>不會送出：</b>名字、小熊／小兔／小貓是誰、裝置代號、個人成績或名次、位置。接收的程式拿不到 IP、不留紀錄，只存「每週全島加總」的數字（存在遊戲作者的 Google 試算表）。</div>
       <div class="set-note"><b>注音戰鬥陀螺的「全島陀螺榜」：</b>小朋友拼出的五個字詞句，戰力可能進全島前 5 名時，會送出那一句（只有那五個字，沒有名字或任何代號）；要遊戲作者審核過才會公開。下面的開關關掉就不會送出，全島榜只顯示島上原本的傳說陀螺；「我家排行」只存在這台平板。</div>
       <div class="set-pair"><span class="set-sub">參加全島合作<small>關掉就完全不送出、也不讀取大家的進度（小島上的 🎪 會收起來）</small></span><div class="seg" id="plazaOpts"><button class="opt" data-v="1">開</button><button class="opt" data-v="0">關</button></div></div>
+    </div>
+    <!-- 10-13 挑戰燈塔（爬塔排行榜）：白話說明送什麼、不送什麼＋放棄爬塔名字（米卡莎條件：家長閘門後、寫清楚送出什麼） -->
+    <div class="set-sec" id="towerSec">
+      <div class="set-label">🗼 挑戰燈塔（爬塔排行榜）</div>
+      <div class="set-note">小朋友從第 1 層爬到第 100 層。爬塔名字只能從 24 個固定代號（12 生肖＋12 星座）裡選，不能自己打字；選名字要在燈塔畫面由家長按住「選爬塔名字」2 秒。排行榜只顯示前 5 名的代號和樓層。</div>
+      <div class="set-note"><b>會送出的只有：</b>代號（例如「虎」）、最高樓層，以及一組只存在這台平板的隨機碼（伺服器只存它的雜湊，用來確認是這台平板在用這個代號）。</div>
+      <div class="set-note"><b>不會送出：</b>名字、小熊／小兔／小貓是誰、IP、每天有沒有玩。伺服器只記「代號到期日」（最後一次打開遊戲＋7 天）。</div>
+      <div class="set-note"><b>七天沒打開遊戲：</b>代號會放掉（別人可以選）、樓層歸零；燈塔徽章、拿過的星星和扭蛋幣都會保留。換平板或清除瀏覽器資料後，原本的代號也要等七天才會放掉（備份碼不含爬塔名字）。</div>
+      <div id="towerNetNote" class="set-note strong hidden">同樂廣場目前關著（或在本機測試）：不會送出也不會讀排行榜，爬塔照樣能玩。</div>
+      <div id="towerSecState" class="set-note strong"></div>
+      <div class="row wrap set-row"><button id="towerLeaveBtn" class="opt danger hidden">🏳️ 放棄爬塔名字</button></div>
+      <div id="towerSecMsg" class="set-note"></div>
     </div>
     <!-- 10-12 玩了什麼：本機遊玩紀錄（js/zhuyin-stats.js；只存在這台平板、不上傳、不進備份碼） -->
     <div class="set-sec" id="statsSec">

@@ -1,0 +1,261 @@
+/* ===================== 注音小島：挑戰燈塔（js/zhuyin-tower.js）=====================
+   版面：橫式＝上排標題＋我的名字、左邊一座燈塔（這一段 10 層，上面是守塔怪）＋1–100 小量尺、右邊我的卡＋排行榜＋開始鈕；
+         直式＝上排同上、中間燈塔、下面我的卡｜排行榜兩欄＋開始鈕。左上 28vmin 留給主程式的 🏠🎵。
+   覆蓋層（.tw-ov）：規則、選名字、樓層開場卡、守塔怪過關、降落傘、結算、模擬關卡。愛心 HUD（.tw-hud）掛在 body，蓋在遊戲畫面上、不擋操作。
+   燈塔配色＝3D 小島燈塔岬（紅白相間 #e2453c／#fff、燈 #fff3a0）。 */
+#towerRoot { position: absolute; inset: 0; }
+.tw-wrap { position: absolute; inset: 0; overflow: hidden; color: #1d2b45; display: flex; flex-direction: column; padding: 2vmin 3vmin 2.6vmin; gap: 2vmin; }
+.tw-wrap button { font-family: inherit; touch-action: manipulation; }
+
+/* ---------- 天空、雲、海 ---------- */
+.tw-sky { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+  background: radial-gradient(circle at 82% 12%, rgba(255,246,190,0.95) 0 6vmin, rgba(255,246,190,0) 18vmin), linear-gradient(180deg, #7fc8f5 0%, #b8e4ff 55%, #e2f6ff 100%); }
+.tw-cloud { position: absolute; top: calc(8% + var(--i) * 13%); left: -30vmin; width: 26vmin; height: 8vmin; border-radius: 8vmin; background: rgba(255,255,255,0.85);
+  box-shadow: 7vmin -3vmin 0 -0.5vmin rgba(255,255,255,0.85), 14vmin 0 0 -1vmin rgba(255,255,255,0.8); animation: twCloud calc(70s + var(--i) * 18s) linear infinite; animation-delay: calc(var(--i) * -19s); opacity: 0.8; }
+@keyframes twCloud { to { translate: calc(100vw + 60vmin) 0; } }
+.tw-sea { position: absolute; left: 0; right: 0; bottom: 0; height: 13%; background: linear-gradient(180deg, #5fb6e0, #3f97c9);
+  box-shadow: 0 -1.2vmin 0 rgba(255,255,255,0.45); }
+.tw-sea::before { content: ""; position: absolute; inset: -1.4vmin 0 auto; height: 2.4vmin; background: radial-gradient(circle at 2vmin 0, transparent 1.6vmin, #5fb6e0 1.7vmin) 0 0 / 4vmin 2.4vmin repeat-x; }
+
+/* ---------- 上排 ---------- */
+.tw-head { position: relative; z-index: 2; display: flex; align-items: center; gap: 2vmin; padding-left: 28vmin; min-height: 12vmin; flex: none; flex-wrap: wrap; }
+.tw-title { display: flex; align-items: center; gap: 1.4vmin; padding: 1.2vmin 3vmin 1.2vmin 2vmin; border-radius: 6vmin; background: linear-gradient(180deg, #ff7a6b, #e2453c); color: #fff;
+  font-size: max(18px, 4.8vmin); font-weight: 900; box-shadow: 0 0.8vmin 0 #a92c25, 0 1.4vmin 2.6vmin rgba(120,20,10,0.25); white-space: nowrap; }
+.tw-title-ico { font-size: 1.15em; }
+.tw-mepill { display: flex; align-items: center; gap: 1vmin; padding: 1vmin 2.4vmin 1vmin 1.4vmin; border-radius: 6vmin; background: rgba(255,255,255,0.95); font-size: max(16px, 4vmin); font-weight: 900;
+  color: #1b4fa0; box-shadow: 0 0.6vmin 0 rgba(27,79,160,0.25); white-space: nowrap; }
+.tw-mepill.none { color: #7a8597; font-weight: 700; }
+.tw-mp-e { font-size: 1.25em; }
+
+/* ---------- 主體 ---------- */
+.tw-body { position: relative; z-index: 1; flex: 1; min-height: 0; display: grid; gap: 3vmin; }
+.tw-land .tw-body { grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr); }
+/* 直式：上面左塔右「我的卡」、下面排行榜、最下面開始鈕（.tw-side 用 display:contents 讓三張卡直接排進格子） */
+.tw-port .tw-body { grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr); grid-template-rows: minmax(0, 1fr) auto auto; grid-template-areas: "tower me" "board board" "btns btns"; gap: 2vmin; }
+.tw-port .tw-towerbox { grid-area: tower; } .tw-port .tw-side { display: contents; }
+.tw-port .tw-mecard { grid-area: me; align-self: center; } .tw-port .tw-board { grid-area: board; } .tw-port .tw-btns { grid-area: btns; }
+.tw-port .tw-mc-lbl { display: none; }
+.tw-port .tw-bd-row { padding: 0.3vmin 1.2vmin; }
+.tw-port .tw-mepill { display: none; }   /* 直式：名字在右邊的卡片上就有了，上排只留標題 */
+
+/* 燈塔 */
+.tw-towerbox { position: relative; display: flex; align-items: stretch; justify-content: center; gap: 4vmin; min-height: 0; padding-right: 9vmin; }
+.tw-tower { position: relative; display: flex; flex-direction: column; width: max(150px, 30vmin); max-height: 82vmin; height: 100%; filter: drop-shadow(0 1.4vmin 1.8vmin rgba(20,50,90,0.25)); }
+.tw-port .tw-tower { width: max(120px, 30vmin); max-height: 96vmin; }
+.tw-port .tw-towerbox { gap: 2.4vmin; padding-right: 8vmin; }
+.tw-cap { position: relative; flex: none; height: max(36px, 8vmin); margin: 0 calc(10 * 0.5vmin); }
+.tw-roof { position: absolute; left: 50%; bottom: 0; width: 70%; height: 55%; translate: -50% 0; background: #e2453c; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.tw-lamp { position: absolute; left: 50%; top: 2%; width: 34%; height: 46%; translate: -50% 0; border-radius: 1vmin 1vmin 0 0; background: #fff3a0;
+  box-shadow: 0 0 3vmin 1.6vmin rgba(255,243,160,0.85); animation: twLamp 2.4s ease-in-out infinite alternate; }
+@keyframes twLamp { to { box-shadow: 0 0 5vmin 2.6vmin rgba(255,243,160,0.95); } }
+.tw-fl { --k: 0; position: relative; flex: 1 1 0; min-height: 0; display: flex; align-items: center; justify-content: space-between; gap: 1vmin; padding: 0 1.6vmin;
+  margin: 0 calc(var(--k) * 0.5vmin); background: #fff; color: #c03a32; border-left: 0.5vmin solid rgba(0,0,0,0.06); border-right: 0.5vmin solid rgba(0,0,0,0.12); font-weight: 900; }
+.tw-fl.odd { background: #e2453c; color: #fff; }
+.tw-fl::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 0.35vmin; background: rgba(0,0,0,0.07); }
+.tw-fl-n { min-width: max(26px, 6.4vmin); height: 78%; max-height: 6vmin; padding: 0 0.8vmin; border-radius: 3vmin; display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.9); color: #1b4fa0; font-size: max(13px, 3.2vmin); box-shadow: inset 0 -0.4vmin 0 rgba(27,79,160,0.15); }
+.tw-fl-ic { font-size: max(15px, 3.6vmin); line-height: 1; }
+.tw-fl-ok { position: absolute; left: 50%; top: 50%; translate: -50% -50%; font-size: max(12px, 2.8vmin); opacity: 0.9; pointer-events: none; }
+.tw-fl-flag { position: absolute; left: -4.2vmin; top: 50%; translate: 0 -60%; font-size: max(16px, 4vmin); }
+.tw-fl.done { filter: saturate(0.85) brightness(1.04); }
+.tw-fl.seen .tw-fl-n { background: #fff6d6; }
+.tw-fl.boss { background: linear-gradient(180deg, #ffe680, #ffc93c); color: #8a5a00; border-color: #d4a800; }
+.tw-fl.boss .tw-fl-ic { font-size: max(18px, 4.4vmin); animation: twBossIc 1.6s ease-in-out infinite alternate; }
+@keyframes twBossIc { to { scale: 1.15; rotate: 6deg; } }
+.tw-fl.cur { z-index: 2; box-shadow: 0 0 0 0.6vmin #ffd54a, 0 0 2.4vmin 0.8vmin rgba(255,213,74,0.9); animation: twCur 1.1s ease-in-out infinite alternate; }
+@keyframes twCur { to { box-shadow: 0 0 0 0.6vmin #ffd54a, 0 0 3.6vmin 1.4vmin rgba(255,213,74,0.95); } }
+.tw-fl.pop { animation: twFlPop 0.5s ease-out; }
+@keyframes twFlPop { 40% { scale: 1.06; } }
+.tw-base { flex: none; padding: 0.8vmin 1vmin; margin: 0 -1.6vmin; border-radius: 1.4vmin 1.4vmin 0.6vmin 0.6vmin; background: #9a8f84; color: #fff; text-align: center;
+  font-size: max(12px, 2.8vmin); font-weight: 900; box-shadow: inset 0 -0.6vmin 0 rgba(0,0,0,0.15); white-space: nowrap; }
+/* 我（在塔的右邊攀爬） */
+.tw-avatar { position: absolute; right: -10.5vmin; top: 50%; translate: 0 -50%; z-index: 3; width: max(40px, 9vmin); height: max(40px, 9vmin); border-radius: 50%; background: #fff;
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 0.6vmin #ffd54a, 0 1vmin 1.6vmin rgba(0,0,0,0.25); }
+.tw-avatar::before { content: ""; position: absolute; left: -2.6vmin; top: 50%; width: 2.6vmin; height: 0.6vmin; background: #ffd54a; border-radius: 1vmin; }
+.tw-av-e { font-size: max(22px, 5.4vmin); line-height: 1; animation: twBob 1.2s ease-in-out infinite alternate; }
+@keyframes twBob { to { translate: 0 -0.6vmin; } }
+.tw-avatar.gone { opacity: 0; transition: opacity 0.3s; }
+/* 1–100 小量尺 */
+.tw-meter { position: relative; flex: none; align-self: center; width: max(18px, 4vmin); height: min(70vmin, 86%); display: flex; flex-direction: column; gap: 0.5vmin; padding-top: 5vmin; }
+.tw-m-seg { position: relative; flex: 1; border-radius: 1vmin; background: rgba(255,255,255,0.6); overflow: hidden; box-shadow: inset 0 0 0 0.3vmin rgba(27,79,160,0.18); }
+.tw-m-seg::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--fill, 0) * 100%); background: linear-gradient(180deg, #ffe27a, #ffb300); }
+.tw-m-seg.on { box-shadow: inset 0 0 0 0.45vmin #1b4fa0; }
+.tw-m-top { position: absolute; top: 0; left: 50%; translate: -50% 0; font-size: max(16px, 3.8vmin); }
+.tw-m-cp { position: absolute; left: 100%; bottom: calc(var(--y) * (100% - 5vmin)); translate: 0.4vmin 50%; font-size: max(14px, 3.2vmin); }
+
+/* ---------- 右邊（直式＝下面）---------- */
+.tw-side { display: flex; flex-direction: column; gap: 2vmin; min-height: 0; justify-content: center; }
+.tw-port .tw-go { flex: 1 1 auto; }
+.tw-running .tw-btns, .tw-running .tw-gate { visibility: hidden; }   /* 爬塔中：主畫面的開始鈕、家長閘門藏起來 */
+.tw-card { position: relative; background: rgba(255,255,255,0.94); border-radius: 3vmin; padding: 1.8vmin 2.4vmin; box-shadow: 0 0.9vmin 0 rgba(27,79,160,0.16), 0 1.8vmin 3.4vmin rgba(20,50,90,0.14); }
+.tw-mc-row { display: flex; align-items: center; gap: 2vmin; }
+.tw-mc-e { flex: none; width: max(46px, 11vmin); height: max(46px, 11vmin); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: max(26px, 6.6vmin);
+  background: radial-gradient(circle at 35% 30%, #fffbe6, #ffe08a); box-shadow: 0 0 0 0.6vmin #ffd54a; }
+.tw-mc-lbl { font-size: max(12px, 2.8vmin); color: #6a7a92; font-weight: 700; }
+.tw-mc-name { font-size: max(18px, 5vmin); font-weight: 900; color: #1b4fa0; }
+.tw-mc-name.none { font-size: max(15px, 3.8vmin); color: #8792a5; }
+.tw-mc-st { display: flex; flex-wrap: wrap; gap: 1vmin; margin-top: 1.4vmin; }
+.tw-chip { display: inline-flex; align-items: center; gap: 0.8vmin; padding: 0.6vmin 1.6vmin; border-radius: 4vmin; background: #eef4ff; color: #1b4fa0; font-weight: 900; font-size: max(12px, 3vmin); white-space: nowrap; }
+.tw-chip.gold { background: #fff3c4; color: #8a5a00; }
+.tw-chip.big { font-size: max(15px, 4vmin); padding: 1vmin 2.2vmin; }
+/* 家長閘門：按住 2 秒（底色一路填滿）；太早放開＝晃一下＋小字變色 */
+.tw-gate { position: relative; overflow: hidden; display: flex; align-items: center; gap: 1.6vmin; width: 100%; margin-top: 1.6vmin; padding: 1.2vmin 2.2vmin; border-radius: 3vmin;
+  background: #f1f6ff; border: 0.45vmin dashed #1b4fa0; color: #1b4fa0; text-align: left; -webkit-touch-callout: none; }
+.tw-gate.small { padding: 0.8vmin 1.8vmin; }
+.tw-gate-ic { position: relative; z-index: 1; font-size: max(20px, 5vmin); }
+.tw-gate.small .tw-gate-ic { font-size: max(16px, 3.8vmin); }
+.tw-gate-t { position: relative; z-index: 1; display: flex; flex-direction: column; font-weight: 900; font-size: max(14px, 3.6vmin); }
+.tw-gate.small .tw-gate-t { font-size: max(12px, 3vmin); }
+.tw-gate-t small { font-size: 0.72em; color: #6a7a92; font-weight: 700; transition: color 0.2s; }
+.tw-gate.tip .tw-gate-t small { color: #c2410c; }
+.tw-ring { position: absolute; inset: 0; z-index: 0; background: linear-gradient(90deg, rgba(255,213,74,0.85) calc(var(--p, 0) * 100%), transparent 0); }
+.tw-gate.nudge { animation: twNudge 0.4s ease-in-out; }
+@keyframes twNudge { 25% { translate: -1vmin 0; } 75% { translate: 1vmin 0; } }
+/* 排行榜 */
+.tw-bd-h { display: flex; align-items: center; gap: 1vmin; font-size: max(15px, 4vmin); font-weight: 900; color: #8a5a00; margin-bottom: 1vmin; }
+.tw-bd-list { list-style: none; display: flex; flex-direction: column; gap: 0.7vmin; }
+.tw-bd-row { display: grid; grid-template-columns: max(22px, 5vmin) max(24px, 5.4vmin) minmax(0, 1fr) auto; align-items: center; gap: 1vmin; padding: 0.5vmin 1.2vmin; border-radius: 2vmin;
+  background: #f6f8fc; font-size: max(13px, 3.3vmin); font-weight: 900; }
+.tw-bd-row.me { background: #fff3c4; box-shadow: inset 0 0 0 0.4vmin #ffd54a; }
+.tw-bd-rk { text-align: center; color: #6a7a92; }
+.tw-bd-e { font-size: 1.3em; text-align: center; }
+.tw-bd-nm { white-space: nowrap; overflow: hidden; color: #1d2b45; }
+.tw-bd-you { margin-left: 0.8vmin; padding: 0 1vmin; border-radius: 2vmin; background: #1b4fa0; color: #fff; font-size: 0.72em; vertical-align: middle; }
+.tw-bd-f { color: #c03a32; white-space: nowrap; }
+.tw-bd-empty { font-size: max(13px, 3.3vmin); color: #6a7a92; font-weight: 700; padding: 1vmin 0.4vmin; }
+.tw-btns { display: flex; align-items: center; gap: 2vmin; flex-wrap: wrap; }
+.tw-go { flex: 1 1 auto; display: inline-flex; align-items: center; justify-content: center; gap: 1.4vmin; font-size: max(18px, 5.4vmin); padding: 2vmin 4vmin; border-radius: 4vmin; white-space: nowrap; }
+.tw-small { display: inline-flex; align-items: center; gap: 0.8vmin; padding: 1.2vmin 2.4vmin; border-radius: 4vmin; background: #fff; color: #1b4fa0; font-weight: 900;
+  font-size: max(13px, 3.4vmin); border: 0.45vmin solid #1b4fa0; box-shadow: 0 0.6vmin 0 #b9d7f0; white-space: nowrap; }
+.tw-small:active { translate: 0 0.4vmin; box-shadow: none; }
+
+/* ---------- 貓頭鷹 ---------- */
+.tw-owl { position: absolute; left: 2vmin; bottom: 2vmin; z-index: 7; pointer-events: none; display: flex; align-items: flex-end; gap: 1vmin; max-width: min(78vw, 92vmin); transition: opacity 0.3s, translate 0.3s; }
+.tw-owl img { flex: none; width: max(56px, 14vmin); height: auto; filter: drop-shadow(0 1vmin 1vmin rgba(0,0,0,0.25)); }
+.tw-bubble { position: relative; margin-bottom: 6vmin; padding: 1.6vmin 2.6vmin; border-radius: 3vmin; background: #fff; color: #1d2b45; font-weight: 900; font-size: max(15px, 4vmin);
+  box-shadow: 0 1vmin 2vmin rgba(0,0,0,0.18); }
+.tw-bubble::before { content: ""; position: absolute; left: -1.6vmin; bottom: 2vmin; border: 1.2vmin solid transparent; border-right-color: #fff; border-left: 0; }
+.tw-owl.hide { opacity: 0; translate: 0 3vmin; pointer-events: none; }
+.tw-owl.pop .tw-bubble { animation: twPop 0.35s ease-out; }
+
+/* ---------- 覆蓋層 ---------- */
+.tw-ovs { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.tw-ov { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 14vmin 4vmin 3vmin; pointer-events: auto;
+  background: rgba(16,40,80,0.32); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); animation: twFade 0.25s ease-out; }
+@keyframes twFade { from { opacity: 0; } }
+.tw-ovc { position: relative; max-width: min(94vw, 128vmin); max-height: 100%; overflow: auto; padding: 3vmin 4vmin; border-radius: 4vmin; background: #fff; text-align: center;
+  box-shadow: 0 1.4vmin 0 rgba(27,79,160,0.18), 0 3vmin 6vmin rgba(10,30,60,0.3); animation: twPop 0.35s cubic-bezier(.3,1.5,.6,1); }
+@keyframes twPop { from { scale: 0.7; opacity: 0; } }
+.tw-ovt { font-size: max(19px, 5.6vmin); font-weight: 900; color: #1b4fa0; margin-bottom: 1.6vmin; }
+.tw-ovd { font-size: max(15px, 4vmin); font-weight: 700; color: #34435c; margin-bottom: 2.4vmin; line-height: 1.5; text-align: left; }
+.tw-ovc .big-btn { display: inline-flex; align-items: center; justify-content: center; gap: 1.2vmin; }
+/* 規則 */
+.tw-rl { list-style: none; display: flex; flex-direction: column; gap: 1.2vmin; text-align: left; margin-bottom: 2.4vmin; }
+.tw-rl li { display: flex; align-items: flex-start; gap: 1.6vmin; padding: 1vmin 1.6vmin; border-radius: 2vmin; background: #f4f8ff; font-size: max(14px, 3.6vmin); font-weight: 700; line-height: 1.45; }
+.tw-rl-ic { flex: none; font-size: 1.3em; line-height: 1.1; }
+/* 選名字 */
+.tw-pick { width: min(94vw, 128vmin); }
+.tw-pk-msg { min-height: 1.2em; font-size: max(14px, 3.6vmin); font-weight: 900; color: #c2410c; }
+.tw-pk-sec { margin: 0.6vmin 0 0.6vmin; text-align: left; font-size: max(14px, 3.6vmin); font-weight: 900; color: #6a7a92; }
+.tw-pk-g { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1vmin; }   /* 6 格一排：生肖、星座各兩排 */
+.tw-pk-b { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.2vmin; min-height: max(56px, 11.6vmin); padding: 0.8vmin 0.4vmin;
+  border-radius: 2.6vmin; background: #f4f8ff; border: 0.45vmin solid #d4e2f6; font-weight: 900; color: #1d2b45; }
+.tw-pk-e { font-size: max(22px, 5.4vmin); line-height: 1.1; }
+.tw-pk-n { font-size: max(12px, 3.2vmin); white-space: nowrap; }
+.tw-port .tw-pk-n { font-size: max(11px, 2.7vmin); }
+.tw-pk-b.sel { background: #fff3c4; border-color: #ffb300; box-shadow: 0 0 0 0.6vmin rgba(255,179,0,0.35); scale: 1.04; }
+.tw-pk-b.mine { border-color: #1b4fa0; }
+.tw-pk-b.taken { opacity: 0.55; filter: grayscale(0.85); background: #eceff3; }
+.tw-pk-tag { position: absolute; top: -1.4vmin; right: -0.6vmin; padding: 0.2vmin 1vmin; border-radius: 2vmin; background: #7a8597; color: #fff; font-size: max(10px, 2.3vmin); white-space: nowrap; }
+.tw-pk-tag.mine { background: #1b4fa0; }
+.tw-pk-b.nudge { animation: twNudge 0.4s ease-in-out; }
+.tw-pk-rules { margin-top: 2vmin; padding: 1.2vmin 2vmin; border-radius: 2vmin; background: #fff7e0; text-align: left; font-size: max(13px, 3.3vmin); font-weight: 700; color: #6b4a00; line-height: 1.5; }
+.tw-pk-parent { margin-top: 1.2vmin; text-align: left; font-size: max(11px, 2.5vmin); color: #6a7a92; line-height: 1.5; }
+.tw-pk-btns { position: sticky; bottom: -3vmin; z-index: 2; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2vmin; margin: 1.6vmin -4vmin -3vmin; padding: 1.6vmin 4vmin 2.4vmin;
+  background: linear-gradient(180deg, rgba(255,255,255,0.85), #fff 30%); }   /* 「就選 X」一直看得到（格子多時卡片可以捲） */
+.tw-pk-ok[disabled] { opacity: 0.45; filter: grayscale(0.6); }
+/* 樓層開場卡 */
+.tw-fi { min-width: min(86vw, 64vmin); }
+.tw-fi-num { font-size: max(34px, 11vmin); font-weight: 900; color: #e2453c; line-height: 1.1; text-shadow: 0 0.6vmin 0 rgba(226,69,60,0.18); }
+.tw-fi-game { display: inline-flex; align-items: center; gap: 1.6vmin; margin: 1.2vmin 0; padding: 1vmin 3vmin; border-radius: 5vmin; background: #eef4ff; font-size: max(18px, 5vmin); font-weight: 900; color: #1b4fa0; }
+.tw-fi-ico { font-size: 1.4em; }
+.tw-fi.boss { box-shadow: 0 0 0 1vmin #ffd54a, 0 1.4vmin 0 1vmin #d4a800, 0 3vmin 6vmin rgba(10,30,60,0.3); }
+.tw-fi.boss .tw-fi-num { color: #b57a00; }
+.tw-fi.boss .tw-fi-ico { animation: twBossIc 0.8s ease-in-out infinite alternate; }
+.tw-fi-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 1vmin; margin-bottom: 1.2vmin; }
+.tw-tag { display: inline-flex; align-items: center; gap: 0.6vmin; padding: 0.6vmin 1.6vmin; border-radius: 3vmin; background: #fff3c4; color: #8a5a00; font-weight: 900; font-size: max(13px, 3.3vmin); }
+.tw-fi-hearts { display: flex; justify-content: center; gap: 1.2vmin; margin: 1vmin 0 2.4vmin; }
+.tw-fi-hearts .tw-ht { font-size: max(26px, 7vmin); }
+.tw-ht { font-style: normal; display: inline-block; line-height: 1; }
+.tw-ht.off { opacity: 0.35; }
+.tw-ht.grow { animation: twGrow 0.8s cubic-bezier(.3,1.6,.5,1); }
+@keyframes twGrow { from { scale: 0.2; } 60% { scale: 1.35; } }
+.tw-start { font-size: max(20px, 6vmin); padding: 2vmin 6vmin; }
+/* 守塔怪過關／登頂 */
+.tw-bw { min-width: min(86vw, 66vmin); }
+.tw-bw-ic { font-size: max(48px, 14vmin); line-height: 1.1; animation: twBossIc 0.9s ease-in-out infinite alternate; }
+.tw-rew { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.2vmin; margin: 1vmin 0 2.4vmin; }
+.tw-bw-btns, .tw-res-btns { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2.4vmin; }
+.tw-climb, .tw-again { font-size: max(20px, 6vmin); padding: 2.2vmin 6vmin; }
+.tw-summit { overflow: hidden; }
+.tw-cf { position: absolute; top: -3vmin; left: var(--x); width: 1.6vmin; height: 2.4vmin; background: var(--c); border-radius: 0.3vmin; animation: twCf 2.4s ease-in var(--d) infinite; }
+@keyframes twCf { to { translate: 0 90vmin; rotate: 540deg; } }
+/* 降落傘：從現在的樓層慢慢飄回存檔點；愛心變泡泡往上飄走 */
+.tw-ov-fall { background: rgba(16,40,80,0.12); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.tw-fall { position: absolute; inset: 0; pointer-events: none; }
+.tw-para { position: absolute; left: 50%; top: 14%; display: flex; flex-direction: column; align-items: center; translate: -50% 0; animation: twSway 1.6s ease-in-out infinite alternate; }   /* 位置由 JS 從小人飄到存檔點 */
+.tw-para-c { font-size: max(52px, 15vmin); line-height: 1; }
+.tw-para-e { font-size: max(30px, 8vmin); margin-top: -2vmin; padding: 0.6vmin; border-radius: 50%; background: #fff; box-shadow: 0 0 0 0.6vmin #ffd54a; }
+@keyframes twSway { from { rotate: -9deg; } to { rotate: 9deg; } }
+.tw-fbub { position: absolute; left: 40%; top: 50%; margin: -4vmin 0 0 -4vmin; width: max(40px, 9vmin); height: max(40px, 9vmin); display: flex; align-items: center; justify-content: center;
+  font-size: max(18px, 4.4vmin); border-radius: 50%; border: 0.35vmin solid rgba(255,255,255,0.9); background: radial-gradient(circle at 30% 28%, rgba(255,255,255,0.95), rgba(190,230,255,0.5) 45%, rgba(120,200,255,0.22) 72%);
+  animation: twBubUp 3s ease-out calc(var(--i) * 0.35s) forwards; opacity: 0; }
+@keyframes twBubUp { 0% { opacity: 0; translate: 0 0; scale: 0.6; } 15% { opacity: 1; scale: 1; } 100% { opacity: 0; translate: calc((var(--i) - 1) * 6vmin) -46vmin; scale: 1.3; } }
+/* 結算：一座塔＋旗子 */
+.tw-res { display: flex; align-items: center; gap: 4vmin; text-align: left; }
+.tw-port .tw-res { flex-direction: column; text-align: center; gap: 2vmin; }
+.tw-mini { position: relative; flex: none; width: max(56px, 11vmin); height: min(58vmin, 46vh); display: flex; flex-direction: column; padding-top: 6vmin; margin: 0 8vmin 0 9vmin; }
+.tw-port .tw-mini { height: min(34vmin, 26vh); }
+.tw-mini-s { flex: 1; background: #fff; border-left: 0.4vmin solid rgba(0,0,0,0.06); border-right: 0.4vmin solid rgba(0,0,0,0.12); }
+.tw-mini-s.odd { background: #e2453c; }
+.tw-mini-top { position: absolute; top: 0; left: 50%; translate: -50% 0; font-size: max(22px, 5.4vmin); }
+.tw-flag { position: absolute; left: 100%; bottom: calc(var(--y) * (100% - 6vmin)); display: flex; align-items: center; gap: 0.4vmin; translate: -0.6vmin 50%; font-weight: 900; color: #1b4fa0; white-space: nowrap; }
+.tw-flag-i { font-size: max(22px, 5.6vmin); }
+.tw-flag-n { font-size: max(14px, 3.6vmin); padding: 0 1vmin; border-radius: 2vmin; background: #fff; box-shadow: 0 0.4vmin 0 rgba(27,79,160,0.18); }
+.tw-flag.now { animation: twFlagIn 0.8s cubic-bezier(.3,1.5,.6,1) 0.3s both; }
+.tw-flag.prev { opacity: 0.5; left: auto; right: 100%; flex-direction: row-reverse; translate: 0.6vmin 50%; }   /* 上次的旗子在塔的左邊 */
+.tw-flag.prev .tw-flag-i { transform: scaleX(-1); }
+@keyframes twFlagIn { from { opacity: 0; translate: -0.6vmin -40%; scale: 0.5; } }
+.tw-res-info { display: flex; flex-direction: column; gap: 1.2vmin; min-width: 0; }
+.tw-res-l { font-size: max(15px, 4.2vmin); font-weight: 900; color: #34435c; }
+.tw-res-l.good { color: #1f8a3a; }
+.tw-res-btns { justify-content: flex-start; margin-top: 1.4vmin; }
+.tw-port .tw-res-btns { justify-content: center; }
+.tw-res-sub { display: flex; flex-wrap: wrap; gap: 1.4vmin; }
+.tw-res-tip { font-size: max(13px, 3.3vmin); font-weight: 700; color: #8a5a00; background: #fff7e0; border-radius: 2vmin; padding: 1vmin 1.6vmin; }
+/* 模擬關卡（主程式 playFloor 還沒接上時） */
+.tw-stub { min-width: min(86vw, 60vmin); }
+.tw-stub-q { font-size: max(18px, 5vmin); font-weight: 900; margin: 1vmin 0 2.4vmin; }
+.tw-stub-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 2vmin; }
+
+/* ---------- 小提示（⭐ +1）---------- */
+.tw-toast { position: absolute; z-index: 8; left: 78%; top: 13%; translate: -50% 0; padding: 1.4vmin 3.4vmin; border-radius: 5vmin; background: #fff3c4; color: #8a5a00; font-size: max(20px, 6vmin); font-weight: 900;
+  box-shadow: 0 1vmin 2vmin rgba(0,0,0,0.18); pointer-events: none; white-space: nowrap; animation: twToast 1.8s ease-out forwards; }
+@keyframes twToast { 0% { opacity: 0; scale: 0.6; } 15% { opacity: 1; scale: 1.1; } 25% { scale: 1; } 80% { opacity: 1; translate: -50% -3vmin; } 100% { opacity: 0; translate: -50% -6vmin; } }
+
+/* ---------- 愛心 HUD（掛在 body；蓋在遊戲畫面上、不擋操作）---------- */
+.tw-hud { position: fixed; z-index: 19; left: 2vmin; top: 15.5vmin; display: flex; align-items: center; gap: 1vmin; padding: 0.7vmin 1.8vmin; border-radius: 5vmin;
+  background: rgba(27,79,160,0.84); color: #fff; font-weight: 900; font-size: max(14px, 3.4vmin); pointer-events: none; box-shadow: 0 0.6vmin 1.4vmin rgba(0,0,0,0.2); white-space: nowrap; }
+.tw-hud.hidden { display: none; }
+.tw-hud-h { display: inline-flex; gap: 0.4vmin; }
+.tw-hud .tw-ht { font-size: max(16px, 3.8vmin); }
+.tw-hud-x { padding: 0.2vmin 1.2vmin; border-radius: 3vmin; background: #ffd54a; color: #5a3d00; font-size: 0.85em; }
+.tw-hud-x.hidden { display: none; }
+.tw-hbub { position: fixed; z-index: 30; width: max(34px, 7.4vmin); height: max(34px, 7.4vmin); margin: calc(max(34px, 7.4vmin) / -2) 0 0 calc(max(34px, 7.4vmin) / -2); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: max(15px, 3.6vmin); pointer-events: none; border: 0.3vmin solid rgba(255,255,255,0.9);
+  background: radial-gradient(circle at 30% 28%, rgba(255,255,255,0.95), rgba(190,230,255,0.5) 45%, rgba(120,200,255,0.22) 72%); animation: twHBub 2s ease-out forwards; }
+@keyframes twHBub { 0% { scale: 0.5; opacity: 0.4; } 15% { scale: 1.05; opacity: 1; } 50% { translate: 2vmin -10vmin; } 100% { translate: -1vmin -22vmin; scale: 1.25; opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .tw-cloud, .tw-lamp, .tw-fl.cur, .tw-av-e, .tw-fl.boss .tw-fl-ic, .tw-bw-ic, .tw-cf { animation: none; }
+}

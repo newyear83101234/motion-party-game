@@ -68,7 +68,30 @@ var PLAZA = {
   TOPS_WHY: { len: 'bad_len', notcommon: 'bad_char', formula: 'bad_formula', blocked: 'blocked' },
   TOPS_NOTE: '勾「公開」才會上榜；請不要公開看起來像人名、小名、學校、地址的詞句',
   TOPS_AUTO_LABEL: '← 自動公開：打勾＝擠進前 5 名的新詞句直接公開、不用審核（建議不要勾）',
-  TOPS_CHECK: '審核：像人名、小名、暱稱、學校、地址、髒話、品牌、藝人、政治、宗教的都不要勾。不公開的把「狀態」改成「不公開」（別刪整列，刪了同一句下次又會跑來）。待審核放 7 天會自動刪。'
+  TOPS_CHECK: '審核：像人名、小名、暱稱、學校、地址、髒話、品牌、藝人、政治、宗教的都不要勾。不公開的把「狀態」改成「不公開」（別刪整列，刪了同一句下次又會跑來）。待審核放 7 天會自動刪。',
+
+  // 挑戰燈塔（爬塔代號）：24 個固定代號，選了別人就不能選；一週沒來＝代號釋出、紀錄歸零
+  SHEET_TOWER: '爬塔',
+  TOWER_ACTIONS: ['tw_claim', 'tw_ping', 'tw_leave', 'tw_score'],
+  TOWER_S_RE: /^[0-9a-f]{32}$/,    // 秘密碼：前端 128-bit 隨機轉 hex
+  TOWER_SALT: 'zy-tower:',         // 雜湊 = SHA-256(TOWER_SALT + s)，試算表只存雜湊
+  TOWER_DAYS: 7,                   // 到期日 = 最後活動日 + 幾天
+  TOWER_MAX_F: 100,                // 樓層上限
+  TOWER_STEP: 20,                  // 一次最多比原本多幾層（超過就夾住，不拒收）
+  TOWER_SHOW: 5,                   // 榜上顯示前幾名
+  TOWER_LOCK_SWEEP_MS: 1000,       // doGet 順便清過期列時，等鎖最久幾毫秒（拿不到就算了）
+  TOWER_HEADER_ROW: 3,
+  TOWER_COLS: ['代號', '名稱', '秘密碼雜湊', '最高樓層', '名次序號', '到期日'],
+  TOWER_NOTE1: '挑戰燈塔代號：這裡只存「秘密碼的雜湊、最高樓層、名次序號、到期日」，沒有暱稱、沒有 IP、沒有每天登入的紀錄。',
+  TOWER_NOTE2: '強制釋出某個代號：把那一列的「秘密碼雜湊～到期日」（C～F 欄）清空即可。到期日＝最後活動日＋7 天，過了會自動釋出。請不要新增或刪除列。',
+  TOWER_CODES: [
+    { id: 'rat', name: '鼠' }, { id: 'ox', name: '牛' }, { id: 'tiger', name: '虎' }, { id: 'rabbit', name: '兔' },
+    { id: 'dragon', name: '龍' }, { id: 'snake', name: '蛇' }, { id: 'horse', name: '馬' }, { id: 'goat', name: '羊' },
+    { id: 'monkey', name: '猴' }, { id: 'rooster', name: '雞' }, { id: 'dog', name: '狗' }, { id: 'pig', name: '豬' },
+    { id: 'aries', name: '牡羊座' }, { id: 'taurus', name: '金牛座' }, { id: 'gemini', name: '雙子座' }, { id: 'cancer', name: '巨蟹座' },
+    { id: 'leo', name: '獅子座' }, { id: 'virgo', name: '處女座' }, { id: 'libra', name: '天秤座' }, { id: 'scorpio', name: '天蠍座' },
+    { id: 'sagittarius', name: '射手座' }, { id: 'capricorn', name: '摩羯座' }, { id: 'aquarius', name: '水瓶座' }, { id: 'pisces', name: '雙魚座' }
+  ]
 };
 
 // ───────────────────────────── 2. 純邏輯 ─────────────────────────────
@@ -287,7 +310,7 @@ function themeOut_(t) {
  * 組 doGet 的回應（now 由呼叫端在回應前補上，因為這份會被快取）
  * prev：上一週結果；上一週早於 ROTATION_START（還沒開始的週）就回 null。
  */
-function buildGetPayload_(cur, curTheme, curRow, prevW, prevTheme, prevRow, paused, tops) {
+function buildGetPayload_(cur, curTheme, curRow, prevW, prevTheme, prevRow, paused, tops, tower) {
   var total = curRow ? curRow.total : 0;
   var prev = null;
   if (prevW >= PLAZA.ROTATION_START) {
@@ -305,6 +328,7 @@ function buildGetPayload_(cur, curTheme, curRow, prevW, prevTheme, prevRow, paus
     prev: prev,
     paused: !!paused,
     tops: (tops || []).slice(0, PLAZA.TOPS_SHOW),
+    tower: tower || { board: [], taken: [] },
     now: 0
   };
 }
@@ -446,12 +470,162 @@ function topsSubmit_(rows, p, power, auto, today) {
   return { rows: topsCap_(out, added), status: status, added: !!added };
 }
 
+// ───────────── 2c. 挑戰燈塔（爬塔代號）（純邏輯） ─────────────
+// 一列＝{ c 代號 id, name 顯示名稱, h 秘密碼雜湊（空＝沒人用）, f 最高樓層, seq 名次序號（0＝沒有）, exp 到期日 'YYYY-MM-DD' }
+// 隱私：不存暱稱、IP、每日登入日、時間戳；到期日只到日，＝最後活動日＋7 天。
+
+/** 是不是爬塔的送出（k 是 tw_ 開頭）：是就回解析好的物件，不是回 null */
+function towerBodyOf_(raw) {
+  if (typeof raw !== 'string' || raw.length === 0 || raw.length > PLAZA.MAX_BODY) return null;
+  var obj;
+  try { obj = JSON.parse(raw); } catch (e) { return null; }
+  return obj && typeof obj === 'object' && !Array.isArray(obj) && typeof obj.k === 'string' && obj.k.indexOf('tw_') === 0 ? obj : null;
+}
+
+/** 代號 id 在 24 個固定代號裡的位置；不在清單回 -1 */
+function towerCodeIndex_(c) {
+  if (typeof c !== 'string') return -1;
+  for (var i = 0; i < PLAZA.TOWER_CODES.length; i++) if (PLAZA.TOWER_CODES[i].id === c) return i;
+  return -1;
+}
+
+/**
+ * 驗證爬塔送出：欄位剛好是 k、c、s（tw_score 多一個 f），多／少／型別錯＝bad_body；
+ * c 不在清單、s 格式不對＝bad_body；f 不是 1..100 的整數＝bad_f。回 {ok:true, k, c, s, f?} 或 {ok:false, why}
+ */
+function validateTower_(obj) {
+  var bad = function (why) { return { ok: false, why: why }; };
+  var k = obj.k;
+  if (PLAZA.TOWER_ACTIONS.indexOf(k) < 0) return bad('bad_body');
+  var keys = Object.keys(obj), isScore = k === 'tw_score';
+  if (keys.length !== (isScore ? 4 : 3) || keys.indexOf('c') < 0 || keys.indexOf('s') < 0 || (isScore && keys.indexOf('f') < 0)) return bad('bad_body');
+  if (towerCodeIndex_(obj.c) < 0) return bad('bad_body');
+  if (typeof obj.s !== 'string' || !PLAZA.TOWER_S_RE.test(obj.s)) return bad('bad_body');
+  var out = { ok: true, k: k, c: obj.c, s: obj.s };
+  if (isScore) {
+    if (typeof obj.f !== 'number') return bad('bad_body');
+    if (!isFinite(obj.f) || Math.floor(obj.f) !== obj.f || obj.f < 1 || obj.f > PLAZA.TOWER_MAX_F) return bad('bad_f');
+    out.f = obj.f;
+  }
+  return out;
+}
+
+/** 位元組陣列（Apps Script 的 computeDigest 回 -128..127 的 signed byte）→ 小寫 hex */
+function hexOfBytes_(bytes) {
+  var s = '';
+  for (var i = 0; i < bytes.length; i++) {
+    var b = bytes[i] < 0 ? bytes[i] + 256 : bytes[i];
+    s += (b < 16 ? '0' : '') + b.toString(16);
+  }
+  return s;
+}
+
+/** 到期日：今天（台北 'YYYY-MM-DD'）＋7 天 */
+function towerExpiryOf_(today) { return ymdFromUtcMs_(ymdToUtcMs_(today) + PLAZA.TOWER_DAYS * PLAZA.DAY_MS); }
+
+/** 今天 > 到期日＝過期（沒有合法到期日也當過期） */
+function towerExpired_(exp, today) { return !exp || today > exp; }
+
+/** 有人用著（有雜湊、沒過期） */
+function towerLive_(r, today) { return !!r.h && !towerExpired_(r.exp, today); }
+
+/** 「爬塔」一列原始值（A–F）→ 列物件（名稱用程式設定的，不信試算表）；代號不在清單回 null */
+function towerRowFromValues_(v, dateFmt) {
+  v = v || [];
+  var i = towerCodeIndex_(String(v[0] == null ? '' : v[0]).trim());
+  if (i < 0) return null;
+  return {
+    c: PLAZA.TOWER_CODES[i].id, name: PLAZA.TOWER_CODES[i].name,
+    h: String(v[2] == null ? '' : v[2]).trim(),
+    f: toInt_(v[3]), seq: toInt_(v[4]),
+    exp: normalizeYmd_(v[5], dateFmt) || ''
+  };
+}
+
+/** 列物件 → C–F 欄的值（沒人用＝四欄全空） */
+function towerRowToValues_(r) {
+  return r.h ? [safeText_(r.h), r.f, r.seq || '', r.exp] : ['', '', '', ''];
+}
+
+function towerClone_(r) { return { c: r.c, name: r.name, h: r.h, f: r.f, seq: r.seq, exp: r.exp, row: r.row }; }
+
+/** 清掉所有過期列（整列，含雜湊）；回新陣列，不改原本的 */
+function towerSweep_(rows, today) {
+  return rows.map(function (r) {
+    var x = towerClone_(r);
+    if (x.h && towerExpired_(x.exp, today)) { x.h = ''; x.f = 0; x.seq = 0; x.exp = ''; }
+    return x;
+  });
+}
+
+/**
+ * 套用一個爬塔動作（先清過期列）。hash＝SHA-256("zy-tower:"+s) 的 hex；f 只有 tw_score 用。
+ * 回 { rows: 新的全部列, res: 要給前端的物件 }
+ */
+function towerApply_(rows, act, c, hash, f, today) {
+  var out = towerSweep_(rows, today), me = null, i;
+  for (i = 0; i < out.length; i++) if (out[i].c === c) me = out[i];
+  if (!me) return { rows: out, res: { ok: false, why: 'server' } };
+  var mine = !!me.h && me.h === hash;           // 清過期後 h 非空＝還在用
+  var lost = { ok: false, why: 'lost' };
+  var res;
+  if (act === 'tw_claim') {
+    if (!me.h) { me.h = hash; me.f = 0; me.seq = 0; me.exp = towerExpiryOf_(today); res = { ok: true, f: 0 }; }
+    else if (mine) { me.exp = towerExpiryOf_(today); res = { ok: true, f: me.f }; }
+    else res = { ok: false, why: 'taken' };
+  } else if (act === 'tw_ping') {
+    if (mine) { me.exp = towerExpiryOf_(today); res = { ok: true, f: me.f }; }
+    else res = lost;
+  } else if (act === 'tw_score') {
+    if (mine) {
+      var nf = Math.max(me.f, Math.min(f, me.f + PLAZA.TOWER_STEP));   // 一次最多 +20，超過夾住
+      if (nf > me.f) {                                                  // 真的變高才換名次序號
+        var mx = 0;
+        for (i = 0; i < out.length; i++) if (out[i].seq > mx) mx = out[i].seq;
+        me.seq = mx + 1;
+      }
+      me.f = nf; me.exp = towerExpiryOf_(today);
+      res = { ok: true, f: nf };
+    } else res = lost;
+  } else if (act === 'tw_leave') {
+    if (mine) { me.h = ''; me.f = 0; me.seq = 0; me.exp = ''; }
+    res = { ok: true };                          // 不是他的也回 ok（不透露資訊）
+  } else {
+    res = { ok: false, why: 'bad_body' };
+  }
+  return { rows: out, res: res };
+}
+
+/** 榜：沒過期且 f>0，樓層高→低、同樓層序號小（先達成）在前；最多 n 筆 [{c, f}] */
+function towerBoard_(rows, today, n) {
+  var live = rows.filter(function (r) { return towerLive_(r, today) && r.f > 0; });
+  live.sort(function (a, b) {
+    if (b.f !== a.f) return b.f - a.f;
+    var sa = a.seq || 1e15, sb = b.seq || 1e15;
+    return sa !== sb ? sa - sb : (a.c < b.c ? -1 : 1);
+  });
+  return live.slice(0, n).map(function (r) { return { c: r.c, f: r.f }; });
+}
+
+/** 被用著（沒過期）的代號 id，照設定順序 */
+function towerTaken_(rows, today) {
+  return PLAZA.TOWER_CODES.filter(function (t) {
+    return rows.some(function (r) { return r.c === t.id && towerLive_(r, today); });
+  }).map(function (t) { return t.id; });
+}
+
+/** doGet 的 tower 欄位（只有 c 與 f、taken；不含雜湊、序號、到期日） */
+function towerPublic_(rows, today) {
+  return { board: towerBoard_(rows, today, PLAZA.TOWER_SHOW), taken: towerTaken_(rows, today) };
+}
+
 // ───────────────────────────── 3. Apps Script 層 ─────────────────────────────
 
 /**
  * 讀取：GET 網頁應用程式網址
  * 回 {ok, w, theme:{key,title,unit,desc,goals:[銅,銀,金]}, total, reached, plays, cheers:[4], prev:{w,theme,total,reached}|null, paused,
- *    tops:[{p, power}]（全島陀螺榜：只有「公開」的前 5 名，戰力高→低）, now}
+ *    tops:[{p, power}]（全島陀螺榜：只有「公開」的前 5 名，戰力高→低）,
+ *    tower:{board:[{c, f}]（挑戰燈塔前 5 名，沒過期且 f>0）, taken:[被用著的代號 id]}, now}
  */
 function doGet(e) {
   try {
@@ -471,8 +645,10 @@ function doGet(e) {
       var rows = readRows_(ss, fmt);
       var tops = [];
       try { tops = readPublicTops_(ss, fmt, now); } catch (e2) { tops = []; } // 陀螺榜出問題不影響同樂廣場
+      var tower = { board: [], taken: [] };
+      try { tower = readTower_(ss, fmt, now); } catch (e3) { tower = { board: [], taken: [] }; } // 爬塔出問題不影響其他欄位
       payload = buildGetPayload_(cur, resolveTheme_(cur, ov), rows[cur] || null,
-        prevW, resolveTheme_(prevW, ov), rows[prevW] || null, readPaused_(ss), tops);
+        prevW, resolveTheme_(prevW, ov), rows[prevW] || null, readPaused_(ss), tops, tower);
       cache.put(ck, JSON.stringify(payload), PLAZA.GET_CACHE_SEC);
     }
     payload.now = now;
@@ -489,6 +665,9 @@ function doGet(e) {
  *
  * 陀螺榜：內容是 {k:"top", p:"五個國字"} → 回 {ok:true, power, status:"public"|"pending"|"below"} 或 {ok:false, why}
  * why 另有：bad_len / bad_char / bad_formula / blocked（詞句不收）
+ *
+ * 挑戰燈塔：內容是 {k:"tw_claim"|"tw_ping"|"tw_leave"|"tw_score", c:代號, s:秘密碼 32 碼 hex[, f:樓層 1..100（只有 tw_score）]}
+ * 回 {ok:true, f?} 或 {ok:false, why}；why 另有：bad_f / taken（代號被別人用著）/ lost（代號已不是你的或已過期）
  */
 function doPost(e) {
   try {
@@ -496,6 +675,8 @@ function doPost(e) {
     var raw = e && e.postData && typeof e.postData.contents === 'string' ? e.postData.contents : '';
     var top = topsBodyOf_(raw);
     if (top) return json_(postTop_(top, now));
+    var tw = towerBodyOf_(raw);
+    if (tw) return json_(postTower_(tw, now));
     var v = validatePost_(raw, now);
     if (!v.ok) return json_(v);
 
@@ -598,7 +779,7 @@ function ensureSheets_(ss) {
     rs.getRange(2, 13, 1000, 1).setNumberFormat('@');
     rs.setFrozenRows(1);
   }
-  return { info: info, themes: th, rows: rs, tops: ensureTopsSheet_(ss) };
+  return { info: info, themes: th, rows: rs, tops: ensureTopsSheet_(ss), tower: ensureTowerSheet_(ss) };
 }
 
 /**
@@ -733,6 +914,126 @@ function readPublicTops_(ss, fmt, now) {
   }
   if (!pub.length) return [];
   return topsPublicTop_(topsPrep_(pub, today, topsCalc_(topsDict()), false), PLAZA.TOPS_SHOW);
+}
+
+// ───────────── 挑戰燈塔（Apps Script 層） ─────────────
+
+/**
+ * 「爬塔」分頁：沒有才建立（已存在就完全不動）。固定 24 列（代號 id＋中文名稱），程式之後只改內容、不增減列。
+ *   第 1–2 列給阿葉看的說明；第 3 列表頭；第 4–27 列是 24 個代號。
+ * 呼叫端要拿著鎖（或在 setup 裡），避免兩個請求同時建立。
+ */
+function ensureTowerSheet_(ss) {
+  var sh = ss.getSheetByName(PLAZA.SHEET_TOWER);
+  if (sh) return sh;
+  sh = ss.insertSheet(PLAZA.SHEET_TOWER);
+  var n = PLAZA.TOWER_COLS.length, hr = PLAZA.TOWER_HEADER_ROW, cnt = PLAZA.TOWER_CODES.length;
+  sh.getRange(1, 1, 2, 1).setValues([[PLAZA.TOWER_NOTE1], [PLAZA.TOWER_NOTE2]]);
+  sh.getRange(1, 1, 2, 1).setFontWeight('bold');
+  sh.getRange(hr, 1, 1, n).setValues([PLAZA.TOWER_COLS]).setFontWeight('bold');
+  var vals = PLAZA.TOWER_CODES.map(function (t) { return [t.id, t.name]; });
+  sh.getRange(hr + 1, 1, cnt, 2).setValues(vals);
+  sh.getRange(hr + 1, 3, cnt, 1).setNumberFormat('@');   // 雜湊一律當文字
+  sh.getRange(hr + 1, 6, cnt, 1).setNumberFormat('@');   // 到期日一律當文字
+  sh.setFrozenRows(hr);
+  sh.setColumnWidth(3, 260);
+  return sh;
+}
+
+/** 讀「爬塔」分頁：回 24 個代號的列物件（每列帶 row＝試算表列號）；表裡找不到的代號不會出現 */
+function readTowerRows_(sh, fmt) {
+  var last = sh.getLastRow();
+  if (last < 1) return [];
+  var all = sh.getRange(1, 1, last, PLAZA.TOWER_COLS.length).getValues();
+  var out = [], seen = {};
+  for (var i = 0; i < all.length; i++) {
+    var r = towerRowFromValues_(all[i], fmt);
+    if (!r || seen[r.c]) continue;                 // 不是代號列（說明、表頭）或重複代號：略過
+    seen[r.c] = true;
+    r.row = i + 1;
+    out.push(r);
+  }
+  return out;
+}
+
+/** 只把有變的列寫回（C–F 四欄）。回有寫的列數 */
+function writeTowerChanged_(sh, oldRows, newRows) {
+  var n = 0;
+  for (var i = 0; i < newRows.length; i++) {
+    var a = towerRowToValues_(oldRows[i]), b = towerRowToValues_(newRows[i]);
+    if (JSON.stringify(a) === JSON.stringify(b)) continue;
+    sh.getRange(newRows[i].row, 3, 1, 4).setValues([b]);
+    n++;
+  }
+  return n;
+}
+
+/** 爬塔送出（doPost 的 k:"tw_*"）。回要給前端的物件 */
+function postTower_(obj, now) {
+  var v = validateTower_(obj);
+  if (!v.ok) return v;
+  var hash = hexOfBytes_(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, PLAZA.TOWER_SALT + v.s, Utilities.Charset.UTF_8));
+
+  var cache = CacheService.getScriptCache();
+  var rk = 'rl1:' + Math.floor(now / 60000);
+  if (toInt_(cache.get(rk)) >= PLAZA.RATE_LIMIT_PER_MIN) return { ok: false, why: 'rate' };
+  var ss = getSS_();
+  if (readPaused_(ss)) return { ok: false, why: 'paused' };
+  var fmt = makeDateFmt_(ss);
+
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(PLAZA.LOCK_WAIT_MS)) return { ok: false, why: 'busy' };
+  var res, changed = false;
+  try {
+    var cnt = toInt_(cache.get(rk));
+    if (cnt >= PLAZA.RATE_LIMIT_PER_MIN) return { ok: false, why: 'rate' };
+    cache.put(rk, String(cnt + 1), 120);
+    var sh = ensureTowerSheet_(ss);
+    var today = taipeiYmd_(now);
+    var rows = readTowerRows_(sh, fmt);
+    var r = towerApply_(rows, v.k, v.c, hash, v.f, today);
+    res = r.res;
+    writeTowerChanged_(sh, rows, r.rows);
+    changed = JSON.stringify(towerPublic_(rows, today)) !== JSON.stringify(towerPublic_(r.rows, today));
+    SpreadsheetApp.flush();
+  } finally {
+    lock.releaseLock();
+  }
+  if (changed) cache.remove('get2:' + weekKeyOf_(now));   // 榜或「已被選走」有變：別人馬上看得到
+  return res;
+}
+
+/**
+ * doGet 用：{ board:[{c,f}] 前 5 名, taken:[代號 id] }（過期的不算）。分頁不存在就建立（拿得到鎖才建）。
+ * 發現有過期列就短時間 tryLock 順便清整列（拿不到就算了，不影響回應）。
+ */
+function readTower_(ss, fmt, now) {
+  var sh = ss.getSheetByName(PLAZA.SHEET_TOWER);
+  if (!sh) {
+    var lk = LockService.getScriptLock();
+    if (lk.tryLock(3000)) {
+      try { ensureTowerSheet_(ss); } finally { lk.releaseLock(); }
+    }
+    return { board: [], taken: [] };
+  }
+  var today = taipeiYmd_(now);
+  var rows = readTowerRows_(sh, fmt);
+  var stale = rows.some(function (r) { return r.h && towerExpired_(r.exp, today); });
+  if (stale) {
+    var lock = LockService.getScriptLock();
+    if (lock.tryLock(PLAZA.TOWER_LOCK_SWEEP_MS)) {
+      try {
+        var cur = readTowerRows_(sh, fmt);          // 拿到鎖後重讀，避免蓋掉剛寫的
+        var swept = towerSweep_(cur, today);
+        writeTowerChanged_(sh, cur, swept);
+        SpreadsheetApp.flush();
+        rows = swept;
+      } finally {
+        lock.releaseLock();
+      }
+    }
+  }
+  return towerPublic_(rows, today);
 }
 
 /**

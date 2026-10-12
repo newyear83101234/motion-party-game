@@ -23,7 +23,8 @@ SOURCES = ["zhuyin.html", "js/zhuyin.js", "js/zhuyin-words.js",
            "js/zhuyin-deliver.js",   # 10-12 彩虹配送站：商品、訂單、居民台詞、結算小字
            "js/zhuyin-detective.js", "js/zhuyin-detective-bank.js",   # 10-12 詞句小偵探：介面字、台詞、題庫句子（含 enabled:false 的草稿）
            "js/zhuyin-tops.js",      # 10-12 注音戰鬥陀螺：介面字、台詞、加成名稱（小孩打的字／候選字的注音直接用 js/zhuyin-tops-dict.json，不靠這裡）
-           "js/zhuyin-plaza.js"]     # 10-12 小島同樂廣場：主題名稱與說明、進度句、加油貼紙、台詞
+           "js/zhuyin-plaza.js",     # 10-12 小島同樂廣場：主題名稱與說明、進度句、加油貼紙、台詞
+           "js/zhuyin-tower.js", "js/zhuyin-tower-core.js"]   # 10-13 挑戰燈塔：介面字、台詞、規則、24 個代號名（生肖、星座）
 HAN = re.compile(r"[\u3400-\u9fff]+")
 TONES = "ˊˇˋ˙"
 

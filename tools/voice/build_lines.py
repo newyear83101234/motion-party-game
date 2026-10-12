@@ -75,7 +75,7 @@ def must(snippet):
 
 # ---- 1. 開場語（第一次進模式唸）----
 for m, need, intro in MODES:
-    if m in ("detective", "tops"):   # 10-12：這兩個的開場語＝模組自己的教學句（下面 dt_intro／tp_intro 已登記同一句），不重複錄
+    if m in ("detective", "tops", "tower"):   # 10-12：這兩個的開場語＝模組自己的教學句（下面 dt_intro／tp_intro 已登記同一句），不重複錄；10-13 挑戰燈塔同（tw_intro）
         continue
     add(f"intro_{m}", intro, "intro", "MODES.intro（zhuyin.js:12-19）")
 
@@ -347,7 +347,7 @@ for t in ["仔細聽，選出你聽到的那一句！", "用注音拼出五個�
 must('talk(g.name + "！")')
 GI_BLOCK = SRC.split("const GAME_INFO = {")[1].split("\n};")[0]
 GAME_INFO = re.findall(r'^\s+(\w+): \{ name: "([^"]+)"', GI_BLOCK, re.M)
-assert len(GAME_INFO) == 14, f"GAME_INFO 解析失敗：{len(GAME_INFO)}"   # 12 個遊戲＋扭蛋機＋寵物服裝店
+assert len(GAME_INFO) == 15, f"GAME_INFO 解析失敗：{len(GAME_INFO)}"   # 12 個遊戲＋扭蛋機＋寵物服裝店＋10-13 挑戰燈塔
 for m, nm in GAME_INFO:
     add(f"pick_{m}", nm + "！", "guide", "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）")
 
@@ -375,6 +375,26 @@ LV_WARM = [t for t in re.findall(r'"([^"]*)"', SRC.split("const LV_WARM = [")[1]
 assert len(LV_WARM) == 4, f"LV_WARM 解析失敗：{LV_WARM}"
 for i, t in enumerate(LV_WARM):
     add(f"lv_warm_{i + 1}", t, "guide", "zhuyin.js LV_WARM（v6 在最高級連 2 次 1 星：建議回上一級暖身）")
+# ---- 10-13 挑戰燈塔（爬塔）----
+# 台詞都在 js/zhuyin-tower.js 的 LINES（貓頭鷹：開場、愛心規則、每段新東西、補心、金色愛心、守塔怪、存檔點、降落傘、結算、選名字）；全部用 talk()。
+# 樓層數字只顯示不唸（不錄「第 N 層」）；遊戲名字沿用上面的 pick_ 台詞；題目詞沿用詞庫音檔。
+# 24 個代號名（12 生肖＋12 星座，js/zhuyin-tower-core.js 的 CODES）：選名字時點一下唸（talk）。
+# 第 100 層最後用積木拼「登頂」（SUMMIT_WORD）：積木題會唸這個詞 → 跟詞庫一樣用 word 類別錄。
+TWSRC = (ROOT / "js" / "zhuyin-tower.js").read_text(encoding="utf-8")
+TWCORE = (ROOT / "js" / "zhuyin-tower-core.js").read_text(encoding="utf-8")
+TW_LINES = re.findall(r'^\s+(\w+): "([^"]+)",', TWSRC.split("export const LINES = {")[1].split("\n};")[0], re.M)
+assert len(TW_LINES) == 32, f"挑戰燈塔台詞解析失敗：{len(TW_LINES)}"
+for key, t in TW_LINES:
+    add(f"tw_{key}", t, "guide", f"zhuyin-tower.js LINES.{key}（10-13 挑戰燈塔）")
+TW_CODES = re.findall(r'\{ id: "(\w+)", e: "[^"]+", name: "([^"]+)" \}', TWCORE.split("export const CODES = [")[1].split("];")[0])
+assert len(TW_CODES) == 24, f"挑戰燈塔代號解析失敗：{len(TW_CODES)}"
+for cid, nm in TW_CODES:
+    add(f"tw_code_{cid}", nm, "guide", "zhuyin-tower-core.js CODES（選爬塔名字時點一下唸）")
+must('intro: "這是挑戰燈塔！爬到最頂樓，就是燈塔王！"')   # MODES.tower 的開場語＝模組 LINES.intro（tw_intro），不另外錄
+assert 'h: "登頂", z: "ㄉㄥ ㄉㄧㄥˇ"' in TWCORE, "挑戰燈塔 SUMMIT_WORD 改了，請更新 build_lines.py"
+add("word_登頂", "登頂", "word", "zhuyin-tower-core.js SUMMIT_WORD（第 100 層用積木拼出登頂）", zhuyin="ㄉㄥ ㄉㄧㄥˇ", word_cat="thing")
+for i, t in [("tw_fail", "燈塔現在打不開，等一下再試試看！")]:
+    must(t); add(i, t, "guide", "zhuyin.js 挑戰燈塔接線（10-13）")
 
 # ---- 5. 動態句：全部展開成完整句子 ----
 DYNAMIC = []

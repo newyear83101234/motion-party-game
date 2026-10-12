@@ -169,6 +169,35 @@ GET 回應多一個欄位 `"tops":[{"p":"宇宙強爸爸","power":4643}, …]`�
 
 `gas/TopsPower.gs`、`gas/TopsDict.gs` 由 `python tools/tops/build_gas.py` 從 `js/zhuyin-tops-power.js`、`js/zhuyin-tops-dict.json` 產生（同時寫到 `tools/tops/gas/` 和這裡）。前端公式或字典改了 → 跑 `build_gas.py` → `node test-core.mjs`（會檢查副本＝前端、抽 50 句比對戰力）→ 下面的部署步驟。沒重新部署的話，伺服器還是舊公式。
 
+## 挑戰燈塔（爬塔代號）
+
+挑戰燈塔爬 1–100 層，排行榜只列前 5 名。小孩不能自由打字，所以只能選 24 個固定代號（12 生肖＋12 星座），選了別人就不能選；**一週沒來＝代號釋出、紀錄歸零**。
+
+**存什麼、不存什麼（白話）**
+- 存：每個代號一列——「秘密碼的雜湊」（一串打亂後看不出原文的亂碼，秘密碼本人只在小孩的裝置上）、最高樓層、名次序號（誰先爬到，用來決定同樓層誰排前面）、到期日（只到「日」，＝最後一次活動日＋7 天）。
+- 不存：每天登入的日期或任何時間戳、暱稱、IP、裝置資料、明文秘密碼。所有請求都是 POST，不用網址帶參數。
+- 雜湊算法：`SHA-256("zy-tower:" + 秘密碼)`，小寫 hex。
+
+**協定**（POST，text/plain 的 JSON，欄位必須剛好這些，多／少／型別不對＝`bad_body`）
+- `{"k":"tw_claim","c":代號,"s":秘密碼}`：空的或已過期的代號 → `{ok:true,f:0}`；自己的 → 延長到期日、`{ok:true,f:目前樓層}`；別人用著 → `{ok:false,why:"taken"}`
+- `{"k":"tw_ping","c":…,"s":…}`：是自己的且沒過期 → 延長到期日、`{ok:true,f}`；否則 `{ok:false,why:"lost"}`
+- `{"k":"tw_score","c":…,"s":…,"f":1..100}`：新樓層＝`max(原本, min(f, 原本+20))`（一次最多 +20，超過夾住不拒收）；真的變高才換名次序號；`f` 不是 1..100 的整數＝`bad_f`
+- `{"k":"tw_leave","c":…,"s":…}`：是自己的 → 清整列；不是也回 `{ok:true}`（不透露資訊）
+- `c` 只能是這 24 個：rat 鼠、ox 牛、tiger 虎、rabbit 兔、dragon 龍、snake 蛇、horse 馬、goat 羊、monkey 猴、rooster 雞、dog 狗、pig 豬、aries 牡羊座、taurus 金牛座、gemini 雙子座、cancer 巨蟹座、leo 獅子座、virgo 處女座、libra 天秤座、scorpio 天蠍座、sagittarius 射手座、capricorn 摩羯座、aquarius 水瓶座、pisces 雙魚座。`s` 是 32 碼小寫 hex。
+- 共用全站每分鐘上限（`rate`）、暫停開關（`paused`）、鎖（`busy`）；例外只回代碼。
+
+**讀取**：GET 回應多一個 `"tower":{"board":[{"c":"leo","f":37}, …],"taken":["leo","rat", …]}`。`board` 最多 5 筆（沒過期且樓層>0；樓層高→低、同樓層名次序號小的在前），`taken` 是沒過期的代號。只有 c 與 f，不含雜湊、序號、到期日。claim／score／leave 讓榜或 taken 有變時會清掉 GET 快取，別人馬上看得到。
+
+**到期怎麼處理**：沒有排程觸發器。claim／ping／score／leave 在鎖內順便把所有過期列整列清掉（含雜湊）；GET 讀榜時會濾掉過期的，發現有過期列就短暫等鎖（1 秒）順便清，拿不到鎖就算了。
+
+**阿葉怎麼手動釋出代號**：開試算表「爬塔」分頁，找到那個代號那一列，把 **C～F 四欄**（秘密碼雜湊、最高樓層、名次序號、到期日）清空就好——別人馬上就能選，原本的人下次 ping／送樓層會收到 `lost`。**不要新增或刪除列**，也不用動 A、B 欄。
+
+**部署注意**
+- 「爬塔」分頁第一次用到時會自己建（setup、第一次的 POST／GET 都會建；固定 24 列）；不需要先手動跑 setup，但跑了也無妨（重跑不會動資料）。
+- 沒用到新的 Apps Script 服務（只多用 `Utilities.computeDigest`），`appsscript.json` 的 scope 不用改，阿葉不用重新授權。
+- 部署前先 `node test-core.mjs` 全過。下一個版號是 v4（v1＝同樂廣場、v2＝加陀螺榜、v3＝送出代號 i 防重複計數；v4＝挑戰燈塔）。
+- 測試（W 段）：欄位／型別／代號／秘密碼／f 驗證、雜湊＝SHA-256、claim／ping／leave／score 各種情境、過期（到期日當天仍有效、隔天釋出且整列清掉）、+20 夾住與序號、doGet 的 tower（前 5、排序、排除過期與 f=0、不含雜湊）、暫停／上限／鎖、手動清空釋出。
+
 ## 改程式後重新部署（網址不變）
 
 ```bash

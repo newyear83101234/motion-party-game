@@ -39,11 +39,11 @@ const fits = p => p.evaluate(() => { const d = document.querySelector("#games .d
     const L = await listInfo(p);
     ok("清單分三組：主島、歸仁區、彩虹島（照這個順序）", L.map(g => g.isle).join() === "main,town,rainbow" && L.map(g => g.name).join() === "主島,歸仁區,彩虹島", JSON.stringify(L.map(g => [g.isle, g.name])));
     const main = L[0], town = L[1], rb = L[2];
-    ok("主島：10 張卡（9 個遊戲＋扭蛋機），釣魚排第一、扭蛋機排最後", main.cards.length === 10 && main.cards[0].m === "fish" && main.cards[9].m === "gacha", JSON.stringify(main.cards.map(c => c.m)));
+    ok("主島：11 張卡（9 個遊戲＋10-13 挑戰燈塔＋扭蛋機），釣魚排第一、燈塔在扭蛋機前、扭蛋機排最後", main.cards.length === 11 && main.cards[0].m === "fish" && main.cards[9].m === "tower" && main.cards[10].m === "gacha", JSON.stringify(main.cards.map(c => c.m)));
     ok("主島：卡片寫短名字（≤ 3 個字一行放得下：打地鼠、跳跳蛙、泡泡、氣球、扭蛋機…）", ["打地鼠", "跳跳蛙", "泡泡", "氣球", "扭蛋機"].every(n => main.cards.some(c => c.name === n)) && main.cards.every(c => c.name.length <= 3), JSON.stringify(main.cards.map(c => c.name)));
     const oneLine = await p.evaluate(() => [...document.querySelectorAll("#gamesList .gl-name")].filter(e => e.getBoundingClientRect().height > parseFloat(getComputedStyle(e).fontSize) * 2).map(e => e.parentNode.dataset.mode));
     ok("清單卡片的名字都一行（沒有斷行）", oneLine.length === 0, oneLine.join(","));
-    ok("主島（20 張）：青蛙、泡泡鎖著（🔒），其他沒鎖、有星星（3 格）", main.cards.filter(c => c.locked).map(c => c.m).sort().join() === "bubble,frog" && main.cards.filter(c => !c.locked && c.m !== "gacha").every(c => c.stars === 3), JSON.stringify(main.cards));
+    ok("主島（20 張）：青蛙、泡泡、燈塔鎖著（🔒），其他沒鎖、有星星（3 格）", main.cards.filter(c => c.locked).map(c => c.m).sort().join() === "bubble,frog,tower" && main.cards.filter(c => !c.locked && c.m !== "gacha").every(c => c.stars === 3), JSON.stringify(main.cards));
     const st = await p.evaluate(() => ({ fish: document.querySelectorAll('#gamesList .gl-card[data-mode=fish] .pk-stars i.on').length, order: document.querySelectorAll('#gamesList .gl-card[data-mode=order] .pk-stars i.on').length, gacha: document.querySelector('#gamesList .gl-card[data-mode=gacha] .gl-meta').textContent }));
     ok("星星＝最佳成績（釣魚 3 顆、點餐 1 顆）、扭蛋機顯示扭蛋幣", st.fish === 3 && st.order === 1 && st.gacha.includes("🪙"), JSON.stringify(st));
     ok("歸仁區（20 張 < 30）：整組鎖著、標題寫「🔒 30」（要 30 張貼紙）、陀螺卡有 🔒", town.locked && town.lock === "🔒 30" && town.cards.length === 1 && town.cards[0].m === "tops" && town.cards[0].locked, JSON.stringify(town));

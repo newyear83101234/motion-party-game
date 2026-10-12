@@ -1168,4 +1168,4 @@ body:not(.on-menu) #mapBtn, body:not(.hub3d) #mapBtn { display: none; }
 .gl-card:active:not(.locked) { scale: 0.95; }
 .gl-card.shake { animation: bbZoneShake 0.4s; }
 @media (orientation: landscape) { .gl-list { grid-template-columns: 2fr 3fr; } .gl-group[data-isle=town] .gl-grid { grid-template-columns: repeat(2, 1fr); } }   /* 橫式：歸仁區（2fr：標題「歸仁區 🔒 30」要一行放得下）、彩虹島（3 個）並排 */
-@media (orientation: landscape) { .gl-group[data-isle=main] .gl-grid { grid-template-columns: repeat(5, 1fr); } }   /* 橫式比較寬：主島一排 5 個（兩排放完，iPad 4:3 不用捲） */
+@media (orientation: landscape) { .gl-group[data-isle=main] .gl-grid { grid-template-columns: repeat(6, 1fr); } .gl-group[data-isle=main] .gl-card .gl-name { font-size: 3.9vmin; } }   /* 橫式比較寬：主島一排 6 個（10-13 加挑戰燈塔＝11 張，兩排放完，iPad 4:3 不用捲；6 欄時 3 個字加注音要 3.9vmin 才放得下） */
