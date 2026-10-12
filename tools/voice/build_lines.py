@@ -44,7 +44,15 @@ lines = []
 # 整句送 TTS 的替換寫法（畫面/manifest 的 key 仍是原字；10-12 實測原字 TTS 一再唸糊，換寫法 2/2 清楚）
 TTS_SUB = {"撞出場了！": "壯出場了！",          # 撞 3 次聽成 zheng/qiao/zhan；同音「壯」2/2 zhuang4
            "這關好好玩！": "這關，好好玩！",   # 批次 3 次都糊；加逗號 2/2 清楚
-           "積木！": "雞木！"}                 # 10-13 介紹卡遊戲名：批次 3 次都聽成 ji2 mo4；同音「雞」
+           "積木！": "雞木！",                 # 10-13 介紹卡遊戲名：批次 3 次都聽成 ji2 mo4；同音「雞」
+           # 10-13 v6 第一輪 3 次都唸偏的（盲聽：牛→niao2、虎→hu2、狗→gao3；長→xiang4、金星→jing1 xin1；沙→xia1；層→ci4；爬→pa1；字→ci4）：
+           # 單字代號加驚嘆號、長句在唸錯的字前面斷句（畫面上的字不變）
+           "虎": "老虎",                       # 代號「虎」單字唸 3 次都偏（hu2／hu4）：點一下唸「老虎」（牛、狗等跟詞庫同字的代號直接用詞庫錄音，見挑戰燈塔段）
+           "長得像的積木出現了！還有金星沙漏！": "長得像的積木，出現了！還有，金星沙漏！",
+           "沙子蓋滿以前答對，就是金星喔！": "沙子，蓋滿以前答對，就是金星喔！",
+           "這層是練習，答錯也沒關係！": "這一層樓，是練習，答錯也沒關係！",
+           "好棒！這就是你的爬塔名字！": "好棒！這就是你的，爬塔名字！",
+           "好久沒來，爬塔名字放掉了。徽章還在喔！": "好久沒來，爬塔的名字，放掉了。徽章還在喔！"}
 
 
 # 句子裡個別字詞的 TTS 讀音替換（10-12 實測）：券 TTS 常唸成 ㄐㄩㄢˋ（台灣標準 ㄑㄩㄢˋ）→ 同音「勸」；
@@ -388,7 +396,10 @@ for key, t in TW_LINES:
     add(f"tw_{key}", t, "guide", f"zhuyin-tower.js LINES.{key}（10-13 挑戰燈塔）")
 TW_CODES = re.findall(r'\{ id: "(\w+)", e: "[^"]+", name: "([^"]+)" \}', TWCORE.split("export const CODES = [")[1].split("];")[0])
 assert len(TW_CODES) == 24, f"挑戰燈塔代號解析失敗：{len(TW_CODES)}"
+HAVE_TEXT = {l["text"] for l in lines} | {w["h"] for w in WORDS}   # 詞庫的詞在檔案後面（第 6 段）才登記，這裡直接看 WORDS
 for cid, nm in TW_CODES:
+    if nm in HAVE_TEXT:   # 牛、蛇、馬、羊、雞、狗、豬＝詞庫已經有這個字：直接用詞庫的錄音（manifest 用文字當鑰匙，再錄一次會蓋掉釣魚等遊戲的學習詞錄音，10-13 踩到）
+        continue
     add(f"tw_code_{cid}", nm, "guide", "zhuyin-tower-core.js CODES（選爬塔名字時點一下唸）")
 must('intro: "這是挑戰燈塔！爬到最頂樓，就是燈塔王！"')   # MODES.tower 的開場語＝模組 LINES.intro（tw_intro），不另外錄
 assert 'h: "登頂", z: "ㄉㄥ ㄉㄧㄥˇ"' in TWCORE, "挑戰燈塔 SUMMIT_WORD 改了，請更新 build_lines.py"

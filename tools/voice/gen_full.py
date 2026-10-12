@@ -192,7 +192,7 @@ def finalize(state):
     files, durs, review = {}, {}, []
     for l in LINES:
         r = state["lines"].get(l["id"])
-        if not r or not (OUT / r["file"]).exists():
+        if not r or "chosen" not in r or not (OUT / r["file"]).exists():   # 10-13：還在重生中、沒定案的句子先跳過（不然整理 manifest 會當掉；下次跑會接著錄）
             continue
         files[l["text"]] = r["file"]
         durs[r["file"]] = r["attempts"][r["chosen"]]["duration"]

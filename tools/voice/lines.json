@@ -1,12 +1,12 @@
 {
  "meta": {
   "generated_by": "tools/voice/build_lines.py",
-  "total_lines": 836,
-  "total_chars": 5272,
+  "total_lines": 829,
+  "total_chars": 5269,
   "by_cat": {
    "intro": 10,
    "praise": 8,
-   "guide": 363,
+   "guide": 356,
    "system": 4,
    "result": 7,
    "word": 163,
@@ -2891,7 +2891,8 @@
    "id": "lv_new_build_3",
    "text": "長得像的積木出現了！還有金星沙漏！",
    "cat": "guide",
-   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）",
+   "tts_text": "長得像的積木，出現了！還有，金星沙漏！"
   },
   {
    "id": "lv_new_build_4",
@@ -3029,7 +3030,8 @@
    "id": "lv_hg_tip",
    "text": "沙子蓋滿以前答對，就是金星喔！",
    "cat": "guide",
-   "src": "zhuyin.js HG_TIP（v6 第一次開到有金星沙漏的第 3 級）"
+   "src": "zhuyin.js HG_TIP（v6 第一次開到有金星沙漏的第 3 級）",
+   "tts_text": "沙子，蓋滿以前答對，就是金星喔！"
   },
   {
    "id": "lv_warm_1",
@@ -3077,13 +3079,15 @@
    "id": "tw_lost",
    "text": "好久沒來，爬塔名字放掉了。徽章還在喔！",
    "cat": "guide",
-   "src": "zhuyin-tower.js LINES.lost（10-13 挑戰燈塔）"
+   "src": "zhuyin-tower.js LINES.lost（10-13 挑戰燈塔）",
+   "tts_text": "好久沒來，爬塔的名字，放掉了。徽章還在喔！"
   },
   {
    "id": "tw_practice",
    "text": "這層是練習，答錯也沒關係！",
    "cat": "guide",
-   "src": "zhuyin-tower.js LINES.practice（10-13 挑戰燈塔）"
+   "src": "zhuyin-tower.js LINES.practice（10-13 挑戰燈塔）",
+   "tts_text": "這一層樓，是練習，答錯也沒關係！"
   },
   {
    "id": "tw_seg_look",
@@ -3233,7 +3237,8 @@
    "id": "tw_picked",
    "text": "好棒！這就是你的爬塔名字！",
    "cat": "guide",
-   "src": "zhuyin-tower.js LINES.picked（10-13 挑戰燈塔）"
+   "src": "zhuyin-tower.js LINES.picked（10-13 挑戰燈塔）",
+   "tts_text": "好棒！這就是你的，爬塔名字！"
   },
   {
    "id": "tw_taken",
@@ -3254,16 +3259,11 @@
    "src": "zhuyin-tower-core.js CODES（選爬塔名字時點一下唸）"
   },
   {
-   "id": "tw_code_ox",
-   "text": "牛",
-   "cat": "guide",
-   "src": "zhuyin-tower-core.js CODES（選爬塔名字時點一下唸）"
-  },
-  {
    "id": "tw_code_tiger",
    "text": "虎",
    "cat": "guide",
-   "src": "zhuyin-tower-core.js CODES（選爬塔名字時點一下唸）"
+   "src": "zhuyin-tower-core.js CODES（選爬塔名字時點一下唸）",
+   "tts_text": "老虎"
   },
   {
    "id": "tw_code_rabbit",
@@ -3278,44 +3278,8 @@
    "src": "zhuyin-tower-core.js CODES（選爬塔名字時點一下唸）"
   },
   {
-   "id": "tw_code_snake",
-   "text": "蛇",
-   "cat": "guide",
-   "src": "zhuyin-tower-core.js CODES（選爬塔名字時點一下唸）"
-  },
-  {
-   "id": "tw_code_horse",
-   "text": "馬",
-   "cat": "guide",
-   "src": "zhuyin-tower-core.js CODES（選爬塔名字時點一下唸）"
-  },
-  {
-   "id": "tw_code_goat",
-   "text": "羊",
-   "cat": "guide",
-   "src": "zhuyin-tower-core.js CODES（選爬塔名字時點一下唸）"
-  },
-  {
    "id": "tw_code_monkey",
    "text": "猴",
-   "cat": "guide",
-   "src": "zhuyin-tower-core.js CODES（選爬塔名字時點一下唸）"
-  },
-  {
-   "id": "tw_code_rooster",
-   "text": "雞",
-   "cat": "guide",
-   "src": "zhuyin-tower-core.js CODES（選爬塔名字時點一下唸）"
-  },
-  {
-   "id": "tw_code_dog",
-   "text": "狗",
-   "cat": "guide",
-   "src": "zhuyin-tower-core.js CODES（選爬塔名字時點一下唸）"
-  },
-  {
-   "id": "tw_code_pig",
-   "text": "豬",
    "cat": "guide",
    "src": "zhuyin-tower-core.js CODES（選爬塔名字時點一下唸）"
   },

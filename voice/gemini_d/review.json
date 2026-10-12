@@ -1,7 +1,7 @@
 {
  "how": "每句由 Gemini 3.8 Flash 盲聽寫（不給答案），拼音跟正確讀音比對；詞庫詞以遊戲注音為準。AI 聽寫本身也會錯，所以這份是『請人耳確認』清單，不代表一定唸錯。",
- "count": 83,
- "suspicious": 83,
+ "count": 101,
+ "suspicious": 101,
  "items": [
   {
    "text": "第一聲不用加符號，按這個空白格就好",
@@ -2863,6 +2863,676 @@
      "pinyin": "hui4 fei1 de5 man2 tou5",
      "why": [
       "頭 應 tou2 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "挑戰燈塔！",
+   "file": "guide_f1cbe7e4.mp3",
+   "level": "可疑",
+   "why": [
+    "挑 應 tiao1 聽到 tiao3"
+   ],
+   "heard": "挑戰燈塔",
+   "pinyin": "tiao3 zhan4 deng1 ta3",
+   "correct": "tiao1 zhan4 deng1 ta3",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "挑戰燈塔！",
+     "pinyin": "tiao3 zhan4 deng1 ta3",
+     "why": [
+      "挑 應 tiao1 聽到 tiao3"
+     ]
+    },
+    {
+     "sent": "挑戰燈塔！",
+     "pinyin": "tiao3 zhan4 deng1 ta3",
+     "why": [
+      "挑 應 tiao1 聽到 tiao3"
+     ]
+    },
+    {
+     "sent": "挑戰燈塔！",
+     "pinyin": "tiao3 zhan4 deng1 ta3",
+     "why": [
+      "挑 應 tiao1 聽到 tiao3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "長得像的注音變多了！",
+   "file": "guide_194e1896.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "長得像的注音變多了",
+   "pinyin": "zhang3 de5 xiang4 de5 zhu4 yin1 bian4 duo1 le5",
+   "correct": "chang2 de5 xiang4 de5 zhu4 yin1 bian4 duo1 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "長得像的注音變多了！",
+     "pinyin": "jiang3 de5 xiang4 de5 chu1 yin1 bian4 duo1 le5",
+     "why": [
+      "長 應 chang2 聽到 jiang3",
+      "注 應 zhu4 聽到 chu1"
+     ]
+    },
+    {
+     "sent": "長得像的注音變多了！",
+     "pinyin": "zhang3 de5 xiang4 de5 zhu4 yin1 bian4 duo1 le5",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "長得像的注音變多了！",
+     "pinyin": "chang4 de5 xiang4 de5 zhu4 yin1 bian4 duo1 le5",
+     "why": [
+      "長 應 chang2 聽到 chang4"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "長得像的食物變多了！還有金星沙漏！",
+   "file": "guide_31c0fddb.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "長得像的食物變多了，還有金星沙漏",
+   "pinyin": "zhang3 de5 xiang4 de5 shi2 wu4 bian4 duo1 le5 hai2 you3 jin1 xing1 sha1 lou4",
+   "correct": "chang2 de5 xiang4 de5 shi2 wu4 bian4 duo1 le5 hai2 you3 jin1 xing1 sha1 lou4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "長得像的食物變多了！還有金星沙漏！",
+     "pinyin": "zhang3 de5 xiang4 de5 shi2 wu4 bian4 duo1 le5 hai2 you3 jin1 xing1 sha1 lou4",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "長得像的食物變多了！還有金星沙漏！",
+     "pinyin": "zhang3 de5 xiang4 de5 shi2 wu4 bian4 duo1 le5 hai2 you3 jin1 xing1 sha1 lou4",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "長得像的食物變多了！還有金星沙漏！",
+     "pinyin": "zhang3 de5 xiang4 de5 shi2 wu4 bian4 duo1 le5 hai2 you3 jin1 xing1 sha1 lou4",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "長得像的積木出現了！還有金星沙漏！",
+   "file": "guide_aad1e2f2.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "長得像的積木出現了，還有金星沙漏",
+   "pinyin": "zhang3 de5 xiang4 de5 ji1 mu4 chu1 xian4 le5 hai2 you3 jin1 xing1 sha1 lou4",
+   "correct": "chang2 de5 xiang4 de5 ji1 mu4 chu1 xian4 le5 hai2 you3 jin1 xing1 sha1 lou4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "長得像的積木，出現了！還有，金星沙漏！",
+     "pinyin": "zhang3 de5 xiang4 de5 ji1 mu4 chu1 xian4 lou5 hai2 you3 jin1 xing1 sha1 lou4",
+     "why": [
+      "長 應 chang2 聽到 zhang3",
+      "了 應 le5 聽到 lou5"
+     ]
+    },
+    {
+     "sent": "長得像的積木，出現了！還有，金星沙漏！",
+     "pinyin": "zhang3 de5 xiang4 de5 ji1 mu4 chu1 xian4 luo5 hai2 you3 jin1 xing1 sha1 lou4",
+     "why": [
+      "長 應 chang2 聽到 zhang3",
+      "了 應 le5 聽到 luo5"
+     ]
+    },
+    {
+     "sent": "長得像的積木，出現了！還有，金星沙漏！",
+     "pinyin": "zhang3 de5 xiang4 de5 ji1 mu4 chu1 xian4 le5 hai2 you3 jin1 xing1 sha1 lou4",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "藏了長得像的東西！",
+   "file": "guide_b9c5698c.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "藏了長得像的東西",
+   "pinyin": "cang2 le5 zhang3 de5 xiang4 de5 dong1 xi1",
+   "correct": "cang2 le5 chang2 de5 xiang4 de5 dong1 xi1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "藏了長得像的東西！",
+     "pinyin": "cang2 le5 zhang3 de5 xiang4 de5 dong1 xi1",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "藏了長得像的東西！",
+     "pinyin": "cang2 le5 zhang3 de5 xiang4 de5 dong1 xi1",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "藏了長得像的東西！",
+     "pinyin": "cang2 le5 zhang3 de5 xiang4 de5 dong1 xi1",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "沒有偷看時間了！還有長得像的注音！",
+   "file": "guide_059775f8.mp3",
+   "level": "可疑",
+   "why": [
+    "了 應 le5 聽到 luo5",
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "沒有偷看時間囉，還有長得像的注音",
+   "pinyin": "mei2 you3 tou1 kan4 shi2 jian1 luo5 hai2 you3 zhang3 de5 xiang4 de5 zhu4 yin1",
+   "correct": "mei2 you3 tou1 kan4 shi2 jian1 le5 hai2 you3 chang2 de5 xiang4 de5 zhu4 yin1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "沒有偷看時間了！還有長得像的注音！",
+     "pinyin": "miao1 tou2 kan4 shi2 jian1 lo5 hai2 you3 zhang3 de5 xiang4 de5 zhu4 yin1",
+     "why": [
+      "音節數不同：應 15（mei2 you3 tou1 kan4 shi2 jian1 le5 hai2 you3 chang2 de5 xiang4 de5 zhu4 yin1），聽到 14（miao1 tou2 kan4 shi2 jian1 lo5 hai2 you3 zhang3 de5 xiang4 de5 zhu4 yin1）"
+     ]
+    },
+    {
+     "sent": "沒有偷看時間了！還有長得像的注音！",
+     "pinyin": "miao1 tou1 kan4 shi2 jian1 le5 hai2 you3 zhang3 de5 xiang4 de5 zhu4 yin1",
+     "why": [
+      "音節數不同：應 15（mei2 you3 tou1 kan4 shi2 jian1 le5 hai2 you3 chang2 de5 xiang4 de5 zhu4 yin1），聽到 14（miao1 tou1 kan4 shi2 jian1 le5 hai2 you3 zhang3 de5 xiang4 de5 zhu4 yin1）"
+     ]
+    },
+    {
+     "sent": "沒有偷看時間了！還有長得像的注音！",
+     "pinyin": "mei2 you3 tou1 kan4 shi2 jian1 luo5 hai2 you3 zhang3 de5 xiang4 de5 zhu4 yin1",
+     "why": [
+      "了 應 le5 聽到 luo5",
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "這是挑戰燈塔！爬到最頂樓，就是燈塔王！",
+   "file": "guide_7f6a574d.mp3",
+   "level": "可疑",
+   "why": [
+    "挑 應 tiao1 聽到 tiao3"
+   ],
+   "heard": "這是挑戰燈塔，爬到最頂樓，就是燈塔王！",
+   "pinyin": "zhe4 shi4 tiao3 zhan4 deng1 ta3 pa2 dao4 zui4 ding3 lou2 jiu4 shi4 deng1 ta3 wang2",
+   "correct": "zhe4 shi4 tiao1 zhan4 deng1 ta3 pa2 dao4 zui4 ding3 lou2 jiu4 shi4 deng1 ta3 wang2",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "這是挑戰燈塔！爬到最頂樓，就是燈塔王！",
+     "pinyin": "zhe4 shi4 tiao3 zhan4 deng1 ta3 pao3 dao4 zui4 ding3 lou2 jiu4 shi4 deng1 ta3 wang2",
+     "why": [
+      "挑 應 tiao1 聽到 tiao3",
+      "爬 應 pa2 聽到 pao3"
+     ]
+    },
+    {
+     "sent": "這是挑戰燈塔！爬到最頂樓，就是燈塔王！",
+     "pinyin": "zhe4 shi4 tiao3 zhan4 deng1 ta3 pa2 dao4 zui4 ding3 lou2 jiu4 shi4 deng1 ta3 wang2",
+     "why": [
+      "挑 應 tiao1 聽到 tiao3"
+     ]
+    },
+    {
+     "sent": "這是挑戰燈塔！爬到最頂樓，就是燈塔王！",
+     "pinyin": "zhe4 shi4 tiao3 zhan4 deng1 ta3 pa2 dao4 zui4 ding3 lou2 jiu4 shi4 deng1 ta3 wang2",
+     "why": [
+      "挑 應 tiao1 聽到 tiao3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "這層是練習，答錯也沒關係！",
+   "file": "guide_abc8c38e.mp3",
+   "level": "可疑",
+   "why": [
+    "係 應 xi4 聽到 xi1"
+   ],
+   "heard": "這一層樓是練習，答錯也沒關係",
+   "pinyin": "zhe4 yi1 ceng2 lou2 shi4 lian4 xi2 da2 cuo4 ye3 mei2 guan1 xi1",
+   "correct": "zhe4 yi1 ceng2 lou2 shi4 lian4 xi2 da2 cuo4 ye3 mei2 guan1 xi4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "這一層樓，是練習，答錯也沒關係！",
+     "pinyin": "zhe4 lou2 shi4 lian4 xi2 da2 cuo4 ye3 mei2 guan1 xi5",
+     "why": [
+      "音節數不同：應 13（zhe4 yi1 ceng2 lou2 shi4 lian4 xi2 da2 cuo4 ye3 mei2 guan1 xi4），聽到 11（zhe4 lou2 shi4 lian4 xi2 da2 cuo4 ye3 mei2 guan1 xi5）"
+     ]
+    },
+    {
+     "sent": "這一層樓，是練習，答錯也沒關係！",
+     "pinyin": "zhe4 yi1 ceng2 lou2 shi4 lian4 xi2 da2 cuo4 ye3 mei2 guan1 xi1",
+     "why": [
+      "係 應 xi4 聽到 xi1"
+     ]
+    },
+    {
+     "sent": "這一層樓，是練習，答錯也沒關係！",
+     "pinyin": "zhe4 ceng2 lou2 shi4 lian4 xi2 da2 cuo4 ye3 mei2 guan1 xi5",
+     "why": [
+      "音節數不同：應 13（zhe4 yi1 ceng2 lou2 shi4 lian4 xi2 da2 cuo4 ye3 mei2 guan1 xi4），聽到 12（zhe4 ceng2 lou2 shi4 lian4 xi2 da2 cuo4 ye3 mei2 guan1 xi5）"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "接下來的答案很像，要看仔細喔！",
+   "file": "guide_882974eb.mp3",
+   "level": "可疑",
+   "why": [
+    "仔 應 zai3 聽到 zi3"
+   ],
+   "heard": "接下來的答案很像，要看仔細唷",
+   "pinyin": "jie1 xia4 lai2 de5 da2 an4 hen3 xiang4 yao4 kan4 zi3 xi4 yo1",
+   "correct": "jie1 xia4 lai2 de5 da2 an4 hen3 xiang4 yao4 kan4 zai3 xi4 o1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "接下來的答案很像，要看仔細喔！",
+     "pinyin": "jie1 xia4 lai2 de5 da2 an4 hen3 xiang4 yao4 kan4 zi3 xi4 yo1",
+     "why": [
+      "仔 應 zai3 聽到 zi3"
+     ]
+    },
+    {
+     "sent": "接下來的答案很像，要看仔細喔！",
+     "pinyin": "jie1 xia4 lai2 de5 da2 an4 hao3 xiang4 yao4 kan4 zi3 xi4 yo1",
+     "why": [
+      "很 應 hen3 聽到 hao3",
+      "仔 應 zai3 聽到 zi3"
+     ]
+    },
+    {
+     "sent": "接下來的答案很像，要看仔細喔！",
+     "pinyin": "jie1 xia4 lai2 de5 da2 an4 hen3 xiang4 yao4 kan4 zi3 xi4 yo1",
+     "why": [
+      "仔 應 zai3 聽到 zi3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "守塔怪的連續挑戰！每題都換遊戲！",
+   "file": "guide_89fcbbe1.mp3",
+   "level": "可疑",
+   "why": [
+    "挑 應 tiao1 聽到 tiao3"
+   ],
+   "heard": "守塔怪的連續挑戰，每題都換遊戲",
+   "pinyin": "shou3 ta3 guai4 de5 lian2 xu4 tiao3 zhan4 mei3 ti2 dou1 huan4 you2 xi4",
+   "correct": "shou3 ta3 guai4 de5 lian2 xu4 tiao1 zhan4 mei3 ti2 dou1 huan4 you2 xi4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "守塔怪的連續挑戰！每題都換遊戲！",
+     "pinyin": "xiao3 ta3 guai4 de5 lian2 xu4 tiao3 zhan4 mei3 ti2 dou1 huan4 you2 xi4",
+     "why": [
+      "守 應 shou3 聽到 xiao3",
+      "挑 應 tiao1 聽到 tiao3"
+     ]
+    },
+    {
+     "sent": "守塔怪的連續挑戰！每題都換遊戲！",
+     "pinyin": "xiao3 ta3 guai4 de5 lian2 xu4 tiao3 zhan4 mei3 ti2 dou1 huan4 you2 xi4",
+     "why": [
+      "守 應 shou3 聽到 xiao3",
+      "挑 應 tiao1 聽到 tiao3"
+     ]
+    },
+    {
+     "sent": "守塔怪的連續挑戰！每題都換遊戲！",
+     "pinyin": "shou3 ta3 guai4 de5 lian2 xu4 tiao3 zhan4 mei3 ti2 dou1 huan4 you2 xi4",
+     "why": [
+      "挑 應 tiao1 聽到 tiao3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "最後的挑戰！三關都過就登頂！",
+   "file": "guide_ed5dc55c.mp3",
+   "level": "可疑",
+   "why": [
+    "挑 應 tiao1 聽到 tiao3"
+   ],
+   "heard": "最後的挑戰，三關都過，就登頂。",
+   "pinyin": "zui4 hou4 de5 tiao3 zhan4 san1 guan1 dou1 guo4 jiu4 deng1 ding3",
+   "correct": "zui4 hou4 de5 tiao1 zhan4 san1 guan1 dou1 guo4 jiu4 deng1 ding3",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "最後的挑戰！三關都過就登頂！",
+     "pinyin": "zui4 hou4 de5 tiao3 zhan4 san1 guan1 dou1 guo4 jiu4 deng1 ding3",
+     "why": [
+      "挑 應 tiao1 聽到 tiao3"
+     ]
+    },
+    {
+     "sent": "最後的挑戰！三關都過就登頂！",
+     "pinyin": "zui4 hou4 de5 tiao3 zhan4 san1 guan1 dou1 guo4 jiu4 deng1 ding3",
+     "why": [
+      "挑 應 tiao1 聽到 tiao3"
+     ]
+    },
+    {
+     "sent": "最後的挑戰！三關都過就登頂！",
+     "pinyin": "zui4 hou4 de5 tiao3 zhan4 san1 guan1 dou1 guo4 jiu4 deng1 ding3",
+     "why": [
+      "挑 應 tiao1 聽到 tiao3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "打敗守塔怪了！這裡是存檔點！",
+   "file": "guide_a248b8bb.mp3",
+   "level": "可疑",
+   "why": [
+    "檔 應 dang4 聽到 dang3"
+   ],
+   "heard": "打敗手塔怪了，這裡是存檔點",
+   "pinyin": "da3 bai4 shou3 ta3 guai4 le5 zhe4 li3 shi4 cun2 dang3 dian3",
+   "correct": "da3 bai4 shou3 ta3 guai4 le5 zhe4 li3 shi4 cun2 dang4 dian3",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "打敗守塔怪了！這裡是存檔點！",
+     "pinyin": "da3 bai4 shou3 ta3 guai4 le5 zhe4 li3 shi4 cun2 dang3 dian3",
+     "why": [
+      "檔 應 dang4 聽到 dang3"
+     ]
+    },
+    {
+     "sent": "打敗守塔怪了！這裡是存檔點！",
+     "pinyin": "da3 bai4 shou3 ta3 guai4 le5 zhe4 li3 shi4 cun2 dang3 dian3",
+     "why": [
+      "檔 應 dang4 聽到 dang3"
+     ]
+    },
+    {
+     "sent": "打敗守塔怪了！這裡是存檔點！",
+     "pinyin": "da2 bai4 shou3 ta3 kuai4 le5 zhe4 li3 shi4 cun2 dang3 dian3",
+     "why": [
+      "打 應 da3 聽到 da2",
+      "怪 應 guai4 聽到 kuai4",
+      "檔 應 dang4 聽到 dang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "拿到燈塔徽章和扭蛋幣！",
+   "file": "guide_906dac27.mp3",
+   "level": "可疑",
+   "why": [
+    "和 應 he2 聽到 han4"
+   ],
+   "heard": "拿到燈塔徽章和扭蛋幣",
+   "pinyin": "na2 dao4 deng1 ta3 hui1 zhang1 han4 niu3 dan4 bi4",
+   "correct": "na2 dao4 deng1 ta3 hui1 zhang1 he2 niu3 dan4 bi4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "拿到燈塔徽章和扭蛋幣！",
+     "pinyin": "na2 dao4 deng1 ta3 hui1 zhang1 han4 niu3 dan4 bi4",
+     "why": [
+      "和 應 he2 聽到 han4"
+     ]
+    },
+    {
+     "sent": "拿到燈塔徽章和扭蛋幣！",
+     "pinyin": "na2 dao4 deng1 ta3 hui1 zhang1 han4 niu3 dan4 bi4",
+     "why": [
+      "和 應 he2 聽到 han4"
+     ]
+    },
+    {
+     "sent": "拿到燈塔徽章和扭蛋幣！",
+     "pinyin": "na2 dao4 deng1 ta3 hui1 zhang1 han4 niu3 dan4 bi4",
+     "why": [
+      "和 應 he2 聽到 han4"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "休息好了，再來挑戰！",
+   "file": "guide_09e07443.mp3",
+   "level": "可疑",
+   "why": [
+    "挑 應 tiao1 聽到 tiao3",
+    "息 應 xi1 唸成輕聲"
+   ],
+   "heard": "休息好了，再來挑戰",
+   "pinyin": "xiu1 xi5 hao3 le5 zai4 lai2 tiao3 zhan4",
+   "correct": "xiu1 xi1 hao3 le5 zai4 lai2 tiao1 zhan4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "休息好了，再來挑戰！",
+     "pinyin": "xiu1 xi2 hao3 le5 zai4 lai2 tiao3 zhan4",
+     "why": [
+      "息 應 xi1 聽到 xi2",
+      "挑 應 tiao1 聽到 tiao3"
+     ]
+    },
+    {
+     "sent": "休息好了，再來挑戰！",
+     "pinyin": "xiu1 xi5 hao3 le5 zai4 lai2 tiao3 zhan4",
+     "why": [
+      "挑 應 tiao1 聽到 tiao3",
+      "息 應 xi1 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "休息好了，再來挑戰！",
+     "pinyin": "xiu1 xi5 hao3 le5 zai4 lai2 tiao3 zhan4",
+     "why": [
+      "挑 應 tiao1 聽到 tiao3",
+      "息 應 xi1 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "先去泡泡灣玩玩，再回來挑戰吧！",
+   "file": "guide_cfb0870f.mp3",
+   "level": "可疑",
+   "why": [
+    "挑 應 tiao1 聽到 tiao3"
+   ],
+   "heard": "先去泡泡灣玩玩，再回來挑戰吧",
+   "pinyin": "xian1 qu4 pao4 pao4 wan1 wan2 wan2 zai4 hui2 lai2 tiao3 zhan4 ba5",
+   "correct": "xian1 qu4 pao4 pao4 wan1 wan2 wan2 zai4 hui2 lai2 tiao1 zhan4 ba5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "先去泡泡灣玩玩，再回來挑戰吧！",
+     "pinyin": "xian1 qu4 pao4 pao4 wan1 wan2 wan5 zai4 hui2 lai2 tiao3 zhan4 ba5",
+     "why": [
+      "挑 應 tiao1 聽到 tiao3",
+      "玩 應 wan2 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "先去泡泡灣玩玩，再回來挑戰吧！",
+     "pinyin": "xian1 qu4 pao4 pao4 wan1 wan2 wan2 zai4 hui2 lai2 tiao3 zhan4 ba5",
+     "why": [
+      "挑 應 tiao1 聽到 tiao3"
+     ]
+    },
+    {
+     "sent": "先去泡泡灣玩玩，再回來挑戰吧！",
+     "pinyin": "xian1 qu4 pao4 pao4 wan1 wan2 wan5 zai4 hui2 lai2 tiao3 zhan4 ba5",
+     "why": [
+      "挑 應 tiao1 聽到 tiao3",
+      "玩 應 wan2 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "爬塔辛苦了，送你星星！",
+   "file": "guide_dae69dd6.mp3",
+   "level": "可疑",
+   "why": [
+    "了 應 le5 聽到 lou5"
+   ],
+   "heard": "爬塔辛苦囉，送你星星",
+   "pinyin": "pa2 ta3 xin1 ku3 lou5 song4 ni3 xing1 xing1",
+   "correct": "pa2 ta3 xin1 ku3 le5 song4 ni3 xing1 xing1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "爬塔辛苦了，送你星星！",
+     "pinyin": "pa2 ta3 xin1 ku3 lou5 song4 ni3 xing1 xing1",
+     "why": [
+      "了 應 le5 聽到 lou5"
+     ]
+    },
+    {
+     "sent": "爬塔辛苦了，送你星星！",
+     "pinyin": "pai1 pai1 xin1 ku3 le5 song4 ni3 xing1 xing1",
+     "why": [
+      "爬 應 pa2 聽到 pai1",
+      "塔 應 ta3 聽到 pai1"
+     ]
+    },
+    {
+     "sent": "爬塔辛苦了，送你星星！",
+     "pinyin": "ta3 ta5 xin1 ku3 la5 song4 ni3 xin1 xin5",
+     "why": [
+      "爬 應 pa2 聽到 ta3",
+      "了 應 le5 聽到 la5",
+      "星 應 xing1 聽到 xin1",
+      "星 應 xing1 聽到 xin5",
+      "塔 應 ta3 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "登頂了！你是燈塔王！",
+   "file": "guide_c6308361.mp3",
+   "level": "可疑",
+   "why": [
+    "了 應 le5 聽到 la5"
+   ],
+   "heard": "登頂啦！你是登塔王！",
+   "pinyin": "deng1 ding3 la5 ni3 shi4 deng1 ta3 wang2",
+   "correct": "deng1 ding3 le5 ni3 shi4 deng1 ta3 wang2",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "登頂了！你是燈塔王！",
+     "pinyin": "deng1 ding3 la5 ni3 shi4 deng1 ta3 wang2",
+     "why": [
+      "了 應 le5 聽到 la5"
+     ]
+    },
+    {
+     "sent": "登頂了！你是燈塔王！",
+     "pinyin": "deng1 ding3 la5 ni3 shi4 deng1 ta3 wang2",
+     "why": [
+      "了 應 le5 聽到 la5"
+     ]
+    },
+    {
+     "sent": "登頂了！你是燈塔王！",
+     "pinyin": "deng1 ding3 la5 ni3 shi4 deng1 ta3 wang2",
+     "why": [
+      "了 應 le5 聽到 la5"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "連不上網路，等等再試！",
+   "file": "guide_66d01617.mp3",
+   "level": "可疑",
+   "why": [
+    "不 應 bu4 聽到 bu2"
+   ],
+   "heard": "連不上網路，等等再試",
+   "pinyin": "lian2 bu2 shang4 wang3 lu4 deng3 deng3 zai4 shi4",
+   "correct": "lian2 bu4 shang4 wang3 lu4 deng3 deng3 zai4 shi4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "連不上網路，等等再試！",
+     "pinyin": "lian2 bu2 shang4 wang3 lu4 deng3 deng3 zai4 shi4",
+     "why": [
+      "不 應 bu4 聽到 bu2"
+     ]
+    },
+    {
+     "sent": "連不上網路，等等再試！",
+     "pinyin": "lian2 bu2 shang4 wang3 lu4 en4 deng3 deng3 zai4 shi4",
+     "why": [
+      "音節數不同：應 9（lian2 bu4 shang4 wang3 lu4 deng3 deng3 zai4 shi4），聽到 10（lian2 bu2 shang4 wang3 lu4 en4 deng3 deng3 zai4 shi4）"
+     ]
+    },
+    {
+     "sent": "連不上網路，等等再試！",
+     "pinyin": "lian2 bu2 shang4 wang3 lu4 deng3 deng3 zai4 shi4",
+     "why": [
+      "不 應 bu4 聽到 bu2"
      ]
     }
    ]

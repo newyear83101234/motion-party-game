@@ -54,8 +54,9 @@ def main():
         elif "sig" not in rec:
             rec["sig"] = sig(l); adopted += 1               # 第一次用這支：現有錄音視為跟目前台詞一致
     gone = [i for i in state["lines"] if i not in by_id]
+    pending = [l for l in lines if l["id"] in state["lines"] and "chosen" not in state["lines"][l["id"]]]   # 上次重生到一半（還沒定案）：接著錄
 
-    print(f"\n新句子 {len(new)}、改過要重錄 {len(changed)}、程式裡已經沒有的 {len(gone)}（保留不刪）、第一次登記簽名 {adopted}")
+    print(f"\n新句子 {len(new)}、改過要重錄 {len(changed)}、上次沒錄完 {len(pending)}、程式裡已經沒有的 {len(gone)}（保留不刪）、第一次登記簽名 {adopted}")
     for l in new[:40]:
         print("  ＋", l["id"], l["text"])
     for l, rec in changed[:40]:
@@ -73,7 +74,7 @@ def main():
     STATE_P.write_text(json.dumps(state, ensure_ascii=False, indent=1), encoding="utf-8")
     REV_P.write_text(json.dumps(rev, ensure_ascii=False, indent=1, sort_keys=True), encoding="utf-8")
 
-    if new or changed:
+    if new or changed or pending:
         run([sys.executable, str(HERE / "gen_batch.py")])
     else:
         run([sys.executable, str(HERE / "gen_full.py"), "--finalize"])   # 沒有要錄的也重寫一次 manifest（帶 rev）
