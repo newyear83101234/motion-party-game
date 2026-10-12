@@ -36,7 +36,12 @@ const spot = (p, m) => p.evaluate(m => {
   }
   return null;
 }, m);
-const tap3d = async (p, m) => { for (let k = 0; k < 3; k++) { const s = await spot(p, m); if (s) { await p.mouse.click(s.x, s.y); return s; } await sleep(500); } return null; };
+// 10-12 介紹卡：點一下建築＝開介紹卡（貓頭鷹唸名字），介紹卡開著再點同一棟＝開始 → 這裡的「點 3D 建築進遊戲」都是點兩下；
+// 第二下之前把唸過的話清掉（後面驗「進遊戲後唸了什麼」，不算介紹卡唸的名字）
+const pickOn = (p, m) => p.waitForFunction(m => { const b = document.getElementById("pick"); return !b.classList.contains("hidden") && b.dataset.mode === m && window.__hub3d.sel() === m; }, m, { timeout: 5000 }).then(() => true, () => false);
+const tap3d = async (p, m) => { for (let k = 0; k < 3; k++) { const s = await spot(p, m); if (!s) { await sleep(500); continue; }
+  await p.mouse.click(s.x, s.y); if (!(await pickOn(p, m))) continue; await sleep(900); const s2 = await spot(p, m); if (!s2) continue;
+  await p.evaluate(() => { if (window.__spoken) window.__spoken = []; }); await p.mouse.click(s2.x, s2.y); return s2; } return null; };
 // 玩完一回合：第一題先點錯一張（wrongFirst），其餘直接點答案；每題答對後按「下一題／完成」
 async function playRound(p, wrongFirst) {
   const total = (await DS(p)).total;
@@ -75,7 +80,7 @@ const resultLayout = p => p.evaluate(() => {
   // ① 小島 → 彩虹島 → 偵探社
   await p.evaluate(() => document.getElementById("rainbowBtn").click()); await sleep(3800);
   const tag = await p.evaluate(() => { const t = document.querySelector(".hub-tag[data-mode=detective]"); return t && { rb: t.classList.contains("rb"), fresh: t.classList.contains("fresh"), open: t.classList.contains("open"), ico: t.querySelector(".ht-ico").textContent, word: t.querySelector(".ht-word").textContent.replace(/[ㄅ-ㄩˊˇˋ˙\s]/g, ""), disp: getComputedStyle(t).display, locked: t.classList.contains("locked") }; });
-  ok("① 彩虹島上有偵探社浮標：🕵️、剛開放＝展開「新 偵探社」、沒鎖", tag && tag.rb && tag.fresh && tag.open && tag.ico === "🕵️" && tag.word === "偵探社" && tag.disp !== "none" && !tag.locked, J(tag));
+  ok("① 彩虹島上有偵探社浮標：🕵️「偵探社」、沒鎖、平常收成圓形圖示（10-12 晚起沒有「新」）", tag && tag.rb && !tag.fresh && !tag.open && tag.ico === "🕵️" && tag.word === "偵探社" && tag.disp !== "none" && !tag.locked, J(tag));
   const rbInfo = await p.evaluate(() => window.__hub3d.rainbow()), g = await p.evaluate(() => window.__hub3d.graph());
   ok("① 偵探社蓋好了、門口接到路網（彩虹島沒有斷頭路、整個路網連通）", rbInfo.ready.includes("detective") && rbInfo.doors.includes("detective") && rbInfo.deadEnds.length === 0 && g.components === 1, J({ ready: rbInfo.ready, doors: rbInfo.doors, dead: rbInfo.deadEnds, comp: g.components }));
   await shot(p, "detective-island");
@@ -83,7 +88,7 @@ const resultLayout = p => p.evaluate(() => {
   const sd = await tap3d(p, "detective");
   const in1 = await inGame(p);
   const ui = await p.evaluate(() => ({ speak: document.getElementById("speakBtn").classList.contains("hidden"), prog: document.getElementById("progress").classList.contains("hidden"), home: getComputedStyle(document.getElementById("homeBtn")).visibility, kids: document.getElementById("detectiveRoot").children.length, hub: window.__hub3d.running }));
-  ok("① 點 3D 偵探社 → 進遊戲", !!sd && in1, J({ sd, in1 }));
+  ok("① 點 3D 偵探社兩下（介紹卡 → 開始）→ 進遊戲", !!sd && in1, J({ sd, in1 }));
   ok("① 主程式「再聽」藏起來（偵探上面自己有 🔊）、沒有進度點、🏠 在、3D 小島停止渲染", ui.speak && ui.prog && ui.home !== "hidden" && ui.kids > 0 && !ui.hub, J(ui));
   ok("① 偵探音樂（calm）", (await want(p)) === "calm", await want(p));
   // ② 教學只唸一次

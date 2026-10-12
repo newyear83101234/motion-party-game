@@ -36,7 +36,12 @@ const spot = (p, m) => p.evaluate(m => {
   }
   return null;
 }, m);
-const tap3d = async (p, m) => { for (let k = 0; k < 3; k++) { const s = await spot(p, m); if (s) { await p.mouse.click(s.x, s.y); return s; } await sleep(500); } return null; };
+// 10-12 介紹卡：點一下建築＝開介紹卡（貓頭鷹唸名字），介紹卡開著再點同一棟＝開始 → 這裡的「點 3D 建築進遊戲」都是點兩下；
+// 第二下之前把唸過的話清掉（後面驗「進遊戲後唸了什麼」，不算介紹卡唸的名字）
+const pickOn = (p, m) => p.waitForFunction(m => { const b = document.getElementById("pick"); return !b.classList.contains("hidden") && b.dataset.mode === m && window.__hub3d.sel() === m; }, m, { timeout: 5000 }).then(() => true, () => false);
+const tap3d = async (p, m) => { for (let k = 0; k < 3; k++) { const s = await spot(p, m); if (!s) { await sleep(500); continue; }
+  await p.mouse.click(s.x, s.y); if (!(await pickOn(p, m))) continue; await sleep(900); const s2 = await spot(p, m); if (!s2) continue;
+  await p.evaluate(() => { if (window.__spoken) window.__spoken = []; }); await p.mouse.click(s2.x, s2.y); return s2; } return null; };
 // 拼好一句（模組 debug.setPhrase）→ 下場 → 等「開戰」→ 快轉打完 → 結算
 async function playMatch(p, phrase, shots) {
   if (!(await p.evaluate(ph => window.__zy.tops.debug.setPhrase(ph), phrase))) return { err: "setPhrase" };
@@ -123,7 +128,7 @@ function mock(PZ) {
     await hubReady(p);
     await p.evaluate(() => document.getElementById("townBtn").click()); await sleep(3800);
     const tag = await p.evaluate(() => { const t = document.querySelector(".hub-tag[data-mode=tops]"); return t && { civic: t.classList.contains("civic"), tw: t.classList.contains("tw"), fresh: t.classList.contains("fresh"), open: t.classList.contains("open"), ico: t.querySelector(".ht-ico").textContent, word: t.querySelector(".ht-word").textContent.replace(/[ㄅ-ㄩˊˇˋ˙\s]/g, ""), disp: getComputedStyle(t).display, vis: getComputedStyle(t).visibility, locked: t.classList.contains("locked") }; });
-    ok("① 歸仁區有陀螺競技場浮標：🌀、剛開放＝展開「新 陀螺競技場」、沒鎖", tag && tag.civic && tag.tw && tag.fresh && tag.open && tag.ico === "🌀" && tag.word === "陀螺競技場" && tag.disp !== "none" && tag.vis !== "hidden" && !tag.locked, J(tag));
+    ok("① 歸仁區有陀螺競技場浮標：🌀「陀螺競技場」、沒鎖、平常收成圓形圖示（10-12 晚起沒有「新」）", tag && tag.civic && tag.tw && !tag.fresh && !tag.open && tag.ico === "🌀" && tag.word === "陀螺競技場" && tag.disp !== "none" && tag.vis !== "hidden" && !tag.locked, J(tag));
     const tw = await p.evaluate(() => window.__hub3d.town()), g = await p.evaluate(() => window.__hub3d.graph());
     ok("① 競技場蓋好了、門口接到路網（整個路網連通、門口有 27 個）", J(tw.games) === J([{ mode: "tops", ready: true, locked: false, door: true }]) && g.components === 1 && g.doors.includes("tops") && g.doors.length === 27, J({ games: tw.games, comp: g.components, doors: g.doors.length }));
     const vis = await p.evaluate(() => { const t = document.querySelector(".hub-tag[data-mode=tops]").getBoundingClientRect(); const ob = ["townBtn", "rainbowBtn", "plazaBtn", "hudLBtn", "hudRBtn"].map(id => document.getElementById(id).getBoundingClientRect()).concat([document.querySelector("#menu > .menu-bottom").getBoundingClientRect()]);
@@ -139,7 +144,7 @@ function mock(PZ) {
     const sd = await tap3d(p, "tops");
     const in1 = await inTops(p);
     const ui = await p.evaluate(() => ({ speak: document.getElementById("speakBtn").classList.contains("hidden"), prog: document.getElementById("progress").classList.contains("hidden"), home: getComputedStyle(document.getElementById("homeBtn")).visibility, hub: window.__hub3d.running }));
-    ok("① 點 3D 競技場（第一次免費）→ 進遊戲打字畫面", !!sd && in1, J({ sd, in1 }));
+    ok("① 點 3D 競技場兩下（介紹卡 → 開始；第一次免費）→ 進遊戲打字畫面", !!sd && in1, J({ sd, in1 }));
     ok("① 主程式「再聽」藏起來、沒有進度點、🏠 在、3D 小島停止渲染、road 音樂", ui.speak && ui.prog && ui.home !== "hidden" && !ui.hub && (await want(p)) === "road", J({ ui, bgm: await want(p) }));
     await sleep(1500);
     const sp1 = await spoken(p);
@@ -160,7 +165,7 @@ function mock(PZ) {
     // 剛玩過：歸仁區的浮標收成圖示；按住展開
     await p.evaluate(() => document.getElementById("townBtn").click()); await sleep(3800);
     const lod = await p.evaluate(() => window.__hub3d.lod());
-    ok("② 玩過之後：競技場浮標不再標「新」、收成圓形圖示", !lod.fresh.includes("tops") && !lod.open.includes("tops"), J(lod));
+    ok("② 玩過之後：競技場浮標還是圓形圖示", !lod.open.includes("tops") && !lod.sel, J(lod));
     await shot(p, "tops-town-icons");
     await p.evaluate(() => window.__hub3d.openOne("tops")); await sleep(900);
     ok("② 按住競技場：浮標展開名字", (await p.evaluate(() => window.__hub3d.lod())).open.includes("tops"));

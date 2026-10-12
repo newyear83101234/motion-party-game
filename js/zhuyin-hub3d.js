@@ -1,6 +1,7 @@
 // ===================== 注音小島 3D 選單（等角小島）=====================
 // zhuyin.js 在選單需要時用動態 import() 載入；載入失敗／沒有 WebGL2／逾時 → zhuyin.js 退回原本卡片選單。
-// 每棟建築＝一個遊戲：點建築（或上方浮標）＝點那張 .mode-card，解鎖判斷、翻牌選張數都沿用 zhuyin.js 原本的程式；扭蛋機呼叫 opts.onGacha()。
+// 每棟建築＝一個遊戲：點一下建築（或上方浮標）＝開介紹卡（opts.onPick，10-12），再點一次／按「開始玩」＝點那張 .mode-card，解鎖判斷、翻牌選張數都沿用 zhuyin.js 原本的程式；扭蛋機呼叫 opts.onGacha()。
+// 點遠方的島（地面、建築、橋）或橋頭路牌＝飛過去（10-12）。
 // 版面（阿葉 10-10：島大一點、不用每格都是關卡、路全部串起來）：4×4 個街區、井字路＋中央圓環；
 //   9 個街區放遊戲建築＋扭蛋機（棋盤狀錯開，浮標才不會擠在一起），其餘 7 個是景點（花園、燈塔、遊樂場、雕像廣場、公園、旋轉木馬、海灘）。
 // 寵物（hub.setPets）照路網隨機逛，雙向靠右走、前面有人就等、等太久就掉頭；裝飾（hub.setDecor）依序擺在預留的放置點。
@@ -1567,18 +1568,20 @@ function syncTownTags() {
   tagLayer.classList.toggle("in-town", town.place !== "main");   // 不在主島：主島浮標收起來
   tagLayer.classList.toggle("at-town", town.place === "town"); tagLayer.classList.toggle("at-rainbow", town.place === "rainbow");
   try { opts.onPlace(town.place, !!town.open, { town: !!town.open, rainbow: !!rb.open }); } catch (e) {}
+  syncSigns();                                         // 路牌：還沒開的島 🔒
 }
 function placeTownTags() {
   if (town.place !== "town") return;                   // 不在新市區：設施浮標是 display:none，不用每格量
   const W = innerWidth, H = innerHeight;
   for (const c of CIVIC) {
     if (!c.tag) continue;
-    setOpen(c.tag, wantOpen(c.tag, false));             // 浮標精簡（10-12）：拉近／按住才展開名字（LOD 狀態是上一格 placeTags 算的）
+    setOpen(c.tag, wantOpen(c.tag));                    // 浮標精簡（10-12）：拉近／按住才展開名字（LOD 狀態是上一格 placeTags 算的）
     if (tagLive() || c.tw0 === undefined) { c.tw0 = c.tag.offsetWidth; c.th0 = c.tag.offsetHeight; }   // 大小變了才重量（展開的 0.2 秒跟著變寬、一直置中）
     const w = c.tw0, h = c.th0;
     _v.copy(c.anchor).project(camera); const x = (_v.x + 1) / 2 * W, y = (1 - _v.y) / 2 * H;
     const off = x < -w || x > W + w || y < -h || y > H + h; c.tag.style.visibility = off ? "hidden" : "";
     if (!off) c.tag.style.translate = `${(x - w / 2).toFixed(1)}px ${(y - h - TAIL).toFixed(1)}px`;   // 位置放 translate（transform 留給輕跳、拉遠縮小）
+    c.rect = off ? null : { x0: x - w / 2, x1: x + w / 2, y0: y - h - TAIL, y1: y - TAIL };   // 路牌浮標要讓開（10-12）
   }
 }
 // 鏡頭飛去新市區／彩虹島／回小島：在擺好的鏡頭上加一個偏移（相機座標），慢慢滑過去；太陽（陰影範圍）跟著移
@@ -1589,6 +1592,7 @@ const PLACE = { main: { x: 0, z: 0, zoom: 1 }, town: { x: DIST.x + 2.3, z: DIST.
 const placeZoom = P => innerWidth > innerHeight && P.zoomL ? P.zoomL : P.zoom;
 function goPlace(p) {
   if (!PLACE[p]) p = "main";
+  deselect();                                            // 換島＝介紹卡收起來（清單選別座島的遊戲：pickMode 飛過去之後再選）
   if (town.place === "rainbow" && p !== "rainbow") rb.awake = performance.now() + 3000;   // 離開彩虹島：動畫再跑 3 秒（鏡頭還在滑）
   town.place = p; town.off.x += user.px; town.off.y += user.py; user.px = user.py = 0; town.zoomTgt = placeZoom(PLACE[p]); syncTownTags();   // 拖過的量併進偏移、一起滑過去（不會跳一下）
   town.sunFrom = [sun.target.position.x, sun.target.position.z]; town.offFrom = [town.off.x, town.off.y];   // 太陽從現在的位置慢慢移到新地點
@@ -2067,6 +2071,87 @@ function tapRbLock() {
 }
 
 // =========================================================
+// 橋頭路牌（10-12 阿葉：「進入彩虹島除了點左邊按鈕，地圖上也要有地方可以點」）：
+// 主島往彩虹島、往歸仁區的橋頭各一支小木牌（3D：柱子＋箭頭形木板＋圓形圖示），到了那邊橋頭各一支「回小島」。
+// 浮標（.hub-sign，DOM）＝木牌底色的小牌子「圖示＋地名＋箭頭」，名字常駐（導航不是遊戲）；只顯示人在的那座島的；
+// 木牌不在畫面裡（主島取景只顧遊戲建築）→ 浮標貼在畫面邊（沒有尾巴），一樣點得到。點了＝tapIsle（還沒開＝貓頭鷹說上鎖台詞）
+// =========================================================
+const SIGNS = [], signHits = [];
+const signBoardGeo = () => { const s = new THREE.Shape(); s.moveTo(-0.28, -0.12); s.lineTo(0.17, -0.12); s.lineTo(0.31, 0); s.lineTo(0.17, 0.12); s.lineTo(-0.28, 0.12); s.closePath(); const g = new THREE.ExtrudeGeometry(s, { depth: 0.06, bevelEnabled: false }); g.translate(0, 0, -0.03); return g; };
+function buildSigns() {
+  const T = town.bridge, B = rb.bridge; if (!T || !B) return;
+  const icons = { rainbow: "🌈", town: "🏙️", main: "🏝️" }, bg = { rainbow: "#b583f2", town: "#4fb6f0", main: "#7ad66b" };
+  const isleXZ = { main: [0, 0], town: [DIST.x, DIST.z], rainbow: [RB.x, RB.z] };
+  // 位置：橋頭的人行道上（朝鏡頭那側；跟垃圾桶、消防栓一樣是街道設施，寵物走車道不會撞到）——主島西橋頭南邊緊鄰打地鼠，不能再往外
+  const SW_C = RW / 2 + SW / 2;                          // 人行道中線離路中線多遠
+  for (const [at, go, x, z] of [["main", "rainbow", B.xa + 0.35, SW_C], ["rainbow", "main", B.xb - 0.3, SW_C], ["main", "town", T.cx + SW_C, T.z0 + 0.35], ["town", "main", T.cx + SW_C, T.z1 - 0.4]]) {
+    const y = groundY(x, z), g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = Math.PI / 4; scene.add(g);   // 正面朝鏡頭（+x+z）
+    const [gx, gz] = isleXZ[go], dir = Math.sign((gx - x) - (gz - z)) || 1;   // 那座島在畫面左邊還是右邊（區域 +x＝畫面右）
+    mesh(cyl(0.045, 0.055, 1.0, 8), mat("#8a5a32"), { y: 0.5, parent: g });
+    const bd = mesh(signBoardGeo(), mat("#c98a55"), { y: 0.86, parent: g }); bd.scale.x = dir;
+    mesh(new THREE.CircleGeometry(0.105, 20), signMat(icons[go], bg[go]), { x: -0.05 * dir, y: 0.86, z: 0.035, parent: g, shadow: false });
+    blob(x, z, 0.5, y);
+    const hit = new THREE.Mesh(box(0.9, 1.3, 0.9), new THREE.MeshBasicMaterial({ visible: false })); hit.position.set(x, y + 0.65, z); scene.add(hit);
+    const s = { at, go, x, y: y + 1.12, z, dir, g, ico: icons[go] }; hit.userData.sign = s; signHits.push(hit); SIGNS.push(s);
+    exRects.push([x - 0.6, x + 0.6, z - 0.6, z + 0.6]);   // 不種樹
+  }
+}
+function makeSignTags() {
+  const L = (opts.labels || {}).signs || {};
+  for (const s of SIGNS) {
+    const t = document.createElement("button"); t.className = "hub-sign" + (s.dir < 0 ? " left" : ""); t.type = "button"; t.dataset.at = s.at; t.dataset.go = s.go; t._sign = s;
+    t.innerHTML = '<span class="sg-arr" aria-hidden="true">➜</span><span class="sg-ico"></span><span class="sg-word"></span><span class="sg-lock"></span>';
+    t.querySelector(".sg-ico").textContent = s.ico; t.querySelector(".sg-word").textContent = L[s.go] || "";
+    t.setAttribute("aria-label", L[s.go] || s.go);
+    t.addEventListener("click", () => tapIsle(s.go));
+    tagLayer.appendChild(t); s.tag = t; if (tagRO) tagRO.observe(t);
+  }
+  syncSigns();
+}
+function syncSigns() {                                 // 還沒開的島：箭頭換成 🔒
+  for (const s of SIGNS) { if (!s.tag) continue; const lk = (s.go === "town" && !town.open) || (s.go === "rainbow" && !rb.open); s.tag.classList.toggle("locked", lk); const e = s.tag.querySelector(".sg-lock"), t = lk ? "🔒" : ""; if (e.textContent !== t) e.textContent = t; }
+}
+// 浮標位置：投影＋夾在畫面裡（上面介面底以下、畫面底以上）；擠在一起的交給 nudge（跟遊戲浮標一起排）
+function signRects(list, sc) {
+  const W = innerWidth, H = innerHeight, M = 8;
+  for (const s of SIGNS) {
+    if (s.at !== town.place || !s.tag) continue;
+    if (tagLive() || !s.tw0) { s.tw0 = s.tag.offsetWidth; s.th0 = s.tag.offsetHeight; }
+    const w = s.tw0 * sc, h = s.th0 * sc; if (!w) continue;
+    _v.set(s.x, s.y, s.z).project(camera);
+    const x = (_v.x + 1) / 2 * W, y = (1 - _v.y) / 2 * H;
+    const cx = Math.max(M + w / 2, Math.min(W - M - w / 2, x)), cy = Math.max((view.sgTop || 0) + h + TAIL + M, Math.min((view.sgBot || H) - M, y));
+    list.push({ d: s, ax: cx, x0: cx - w / 2, x1: cx + w / 2, y0: cy - h - TAIL, y1: cy - TAIL, w0: s.tw0, h0: s.th0, edge: Math.abs(cx - x) > 1 || Math.abs(cy - y) > 1 });
+  }
+}
+// 路牌浮標讓開遊戲浮標（遊戲浮標排好了才排路牌，路牌不推遊戲浮標——不然按住展開的名字會被推去撞「繼續玩」膠囊）：
+// 碰到遊戲浮標、固定介面或另一支路牌 → 在木牌附近往下／上／左／右挪一格、兩格，找第一個空的地方（先找都不碰的；找不到再找
+// 「只要不碰固定介面和別支路牌」的——跟遊戲浮標疊一點沒關係，遊戲浮標畫在路牌上面）；挪過了就沒有尾巴（不再指著木牌）。
+// 不挪太遠（挪到別座島的橋頭旁邊會指錯方向）：附近都放不下又會碰到固定介面／別支路牌＝這一格先藏起來（地點鈕還在）
+function dodgeSigns(list, tags) {
+  const W = innerWidth, M = 8, top = (view.sgTop || 0) + M, bot = (view.sgBot || innerHeight) - M, done = [];
+  const over = (r, o, gx, gy) => o && r.x0 < o.x1 + gx && r.x1 > o.x0 - gx && r.y0 < o.y1 + TAIL + gy && r.y1 + TAIL + gy > o.y0;
+  const hard = r => fitObs.some(o => over(r, o, 0, 0)) || done.some(o => over(r, o, 12, 8));
+  const soft = r => tags.some(o => over(r, o, 12, 8));
+  for (const r of list) {
+    let moved = false, hide = false;
+    if (hard(r) || soft(r)) {
+      const w = r.x1 - r.x0, h = r.y1 - r.y0 + TAIL, b = { x0: r.x0, x1: r.x1, y0: r.y0, y1: r.y1 };
+      let q = null;
+      out: for (const strict of [true, false]) for (const k of [1, 2]) for (const [dx, dy] of [[0, 1], [0, -1], [-1, 0], [1, 0], [-1, 1], [1, 1], [-1, -1], [1, -1]]) {
+        const ox = dx * k * (w * 0.6 + 12), oy = dy * k * (h + 10), c = { x0: b.x0 + ox, x1: b.x1 + ox, y0: b.y0 + oy, y1: b.y1 + oy };
+        if (c.x0 < M || c.x1 > W - M || c.y0 < top || c.y1 > bot || hard(c) || (strict && soft(c))) continue;
+        q = c; break out;
+      }
+      if (q) { Object.assign(r, q); r.ax = (q.x0 + q.x1) / 2; moved = true; } else hide = hard(r);
+    }
+    if (!hide) done.push(r);                            // 下一支路牌要讓開這一支
+    const s = r.d, e = !!(r.edge || moved); if (e !== !!s.edge) { s.edge = e; s.tag.classList.toggle("edge", e); }
+    if (hide !== !!s.hid) { s.hid = hide; s.tag.style.visibility = hide ? "hidden" : ""; }
+  }
+}
+
+// =========================================================
 // 樹、花（第一段；全部 InstancedMesh）
 // =========================================================
 let TREE_GEOS, BUSH_GEO;
@@ -2383,9 +2468,10 @@ async function applyDecor() {
 // =========================================================
 const cardOf = m => document.querySelector(`.mode-card[data-mode=${m}]`);
 let tagRO = null;
-// 浮標內容：平常只看得到圓形圖示（.ht-ico）；名字那段（.ht-more：「新」＋國字／🔒 N）收合時寬度 0，展開時 0.2 秒拉開
+// 浮標內容：平常只看得到圓形圖示（.ht-ico）；名字那段（.ht-more：國字／🔒 N）收合時寬度 0，展開時 0.2 秒拉開
 // .ht-txt 永遠是自然寬度（收合時被 .ht-in 裁掉）→ 不管現在收著還是開著，都量得到「收合／展開」各多大（tagSizes）
-const TAG_HTML = '<span class="ht-row"><span class="ht-ico"></span><span class="ht-more"><span class="ht-in"><span class="ht-txt"><span class="ht-new">新</span><span class="ht-word"></span><span class="ht-lock"></span></span></span></span></span><span class="ht-badge">🔒</span>';
+// （10-12 晚 阿葉：「不用把新的遊戲特別標出來，小孩玩久就知道了」→ 拿掉「新」，每棟一律平常只有圓形圖示）
+const TAG_HTML = '<span class="ht-row"><span class="ht-ico"></span><span class="ht-more"><span class="ht-in"><span class="ht-txt"><span class="ht-word"></span><span class="ht-lock"></span></span></span></span></span><span class="ht-badge">🔒</span>';
 function makeTags() {
   for (const d of DEFS) {
     const t = document.createElement("button"); t.className = "hub-tag" + (d.isle === "rainbow" ? " rb" : d.isle === "town" ? " civic tw" : ""); t.type = "button"; t.dataset.mode = d.mode; t._def = d;   // 彩虹島的浮標多一個 .rb（只在彩虹島顯示）；歸仁區的遊戲（陀螺競技場）＝.civic（跟設施一樣只在歸仁區顯示、同一種底色）＋.tw
@@ -2400,7 +2486,7 @@ function makeTags() {
   if ("ResizeObserver" in window) { tagRO = new ResizeObserver(es => { tagDirty = true; if (es.some(e => e.target.classList.contains("ht-txt"))) needFit = true; }); DEFS.forEach(d => { tagRO.observe(d.tag); tagRO.observe(d.tag.querySelector(".ht-txt")); }); }
 }
 // ----- 浮標精簡（10-12 阿葉：「關卡變多了，名字一直顯示太雜亂」）-----
-// 平常只有圓形圖示；名字只在這些時候展開：拉近（≥ 1.25 倍）全部、手指按住某棟（那一棟）、剛解鎖還沒玩過（＋「新」）。拉遠（≤ 0.7 倍）圖示縮小一點
+// 平常只有圓形圖示；名字只在這些時候展開：拉近（≥ 1.25 倍）全部、手指按住某棟（那一棟）、介紹卡開著的那一棟（sel）。拉遠（≤ 0.7 倍）圖示縮小一點
 // 倍數以「人在的那座島」的預設倍數為準（歸仁區預設就 1.3 倍）；只顯示人在的那座島的浮標（本來就是）
 const ZOOM_MIN = 0.5, ZOOM_MAX = 1.6, NEAR_Z = 1.25, FAR_Z = 0.7, FAR_SCALE = 0.78;
 const LOD = { near: false, far: false, press: null, pressUntil: 0 };
@@ -2419,7 +2505,7 @@ function lodStep() {
   const up = now < (LOD.zUntil || 0); if (up !== !!LOD.zUp) { LOD.zUp = up; tagLayer.classList.toggle("pressing", up); }
 }
 function setOpen(tag, on) { if (tag._open !== on) { tag._open = on; tag.classList.toggle("open", on); tagAnimUntil = performance.now() + 350; } }   // 拉開那 0.2 秒每格量現在的寬度（位置、尾巴才跟得上）
-const wantOpen = (tag, fresh) => !!fresh || LOD.near || LOD.press === tag;
+const wantOpen = tag => LOD.near || LOD.press === tag || (!!sel && sel.tag === tag);
 function pressTag(tag) { LOD.press = tag || null; LOD.pressUntil = Infinity; }   // 按下去那一刻：那一棟的名字彈出來
 function releaseTag(keep) { if (!LOD.press) return; if (keep) LOD.pressUntil = performance.now() + 700; else LOD.press = null; }   // 放開：再留 0.7 秒（點一下也看得到名字）；拖曳／雙指＝馬上收
 // 收合／展開各多大（px，不含拉遠縮小；現在收著還是開著都量得到）：.ht-txt 是名字那段的自然寬度
@@ -2477,16 +2563,98 @@ function bounce(d, shake) {
   const tg = d.tag; tg.classList.remove("pop", "hop"); void tg.offsetWidth; tg.classList.add("pop");
 }
 function preloadCard(d) { if (d.free) return; try { cardOf(d.mode)?.dispatchEvent(new PointerEvent("pointerdown")); } catch (e) {} }
-function tapBuilding(d) {
-  if (isleOf(d) !== town.place) return;                  // 只能點「人在的那座島」上的建築（別座島的浮標是藏著的）
-  const now = performance.now(); if (now < tapLockUntil) return; tapLockUntil = now + 700;
-  preloadCard(d); bounce(d, d.locked);
+// ----- 介紹卡（10-12 阿葉：「點下去想看是哪些關卡時就直接進入了，沒辦法決定是不是要玩這關」）-----
+// 點一下遊戲建築／浮標＝選起來（sel）：浮標展開名字＋黃框、鏡頭平滑移過去（不縮放，建築放在介紹卡上面那塊空間的中間）、
+// 主程式（opts.onPick）在下面彈出介紹卡、貓頭鷹唸名字；同一棟再點一次＝開始（跟以前點一下一樣：playDef）；點別棟＝換那棟。
+// 點空白處、拖曳、縮放、換島、離開選單＝收起來（opts.onPick(null)）。沒給 opts.onPick（舊用法）＝點一下就開始
+let sel = null;
+const focus = { on: false };                            // 介紹卡開著：每格把鏡頭往「這棟在空間中間」的位置帶（介紹卡大小、飛去別座島的途中都跟得上）
+function selectDef(d) {
+  if (sel && sel !== d) sel.tag.classList.remove("sel");
+  sel = d; d.tag.classList.add("sel"); focus.on = true;
+  preloadCard(d); bounce(d);
+  try { opts.onPick(d.mode, { locked: !!d.locked, isle: isleOf(d), need: d.free ? RAINBOW_NEED : 0 }); } catch (e) { console.warn("[hub3d] onPick", e); }
+}
+function deselect() {
+  focus.on = false;
+  if (!sel) return;
+  sel.tag.classList.remove("sel"); sel = null;
+  try { opts.onPick(null); } catch (e) {}
+}
+function playDef(d) {                                    // 開始玩（介紹卡的「開始玩」、同一棟點第二次）
+  if (d.locked) {                                        // 鎖著：晃一下＋貓頭鷹說還差幾張（介紹卡留著）
+    bounce(d, true);
+    later(() => { if (!shown) return; if (d.mode === "dress") { try { opts.onCivic("rainbowLocked", { need: RAINBOW_NEED }); } catch (e) {} } else cardOf(d.mode)?.click(); }, 120);
+    return;
+  }
+  deselect(); preloadCard(d); bounce(d);
   later(() => {
     if (!shown) return;
     if (d.mode === "gacha") { try { opts.onGacha(); } catch (e) {} }
-    else if (d.mode === "dress") { try { if (d.locked) opts.onCivic("rainbowLocked", { need: RAINBOW_NEED }); else opts.onDress(); } catch (e) {} }   // 寵物服裝店（10-12）
+    else if (d.mode === "dress") { try { opts.onDress(); } catch (e) {} }   // 寵物服裝店（10-12）
     else cardOf(d.mode)?.click();
-  }, d.locked ? 120 : 260);
+  }, 260);
+}
+function tapBuilding(d) {
+  if (isleOf(d) !== town.place) { tapIsle(isleOf(d)); return; }   // 別座島上的建築＝那座島（10-12：點遠方的島＝飛過去）
+  const now = performance.now(); if (now < tapLockUntil) return; tapLockUntil = now + 450;   // 0.45 秒內連點兩下只算一下（不會一點就開始）
+  if (sel === d || !opts.onPick) playDef(d); else selectDef(d);
+}
+// ----- 點遠方的島／橋頭路牌＝飛過去（10-12 阿葉：「地圖上也要有地方可以點擊進入，不然都只看到那邊空的很奇怪」）-----
+// 還沒開的島：貓頭鷹說上鎖台詞（跟按地點鈕一樣的 onCivic），不飛過去
+function tapIsle(p) {
+  if (!PLACE[p] || p === town.place) return;
+  const now = performance.now(); if (now < tapLockUntil) return; tapLockUntil = now + 700;
+  deselect();
+  if (p === "town" && !town.open) { try { opts.onCivic("townLocked", { need: DIST_NEED }); } catch (e) {} return; }
+  if (p === "rainbow" && !rb.open) { try { opts.onCivic("rainbowLocked", { need: RAINBOW_NEED }); } catch (e) {} return; }
+  if (opts.onIsle) { try { opts.onIsle(p); return; } catch (e) {} }
+  goPlace(p);
+}
+// 地面上的一點屬於哪座島（橋＝通往「另一頭」那座島）；海＝null
+function isleAt(x, z) {
+  if (sdRainbow(x, z) < 0.9) return "rainbow";
+  if (sdDist(x, z) < 0.9) return "town";
+  const B = rb.bridge; if (B && x < B.xa + 0.3 && x > B.xb - 0.3 && Math.abs(z) < 1.4) return town.place === "rainbow" ? "main" : "rainbow";
+  const T = town.bridge; if (T && Math.abs(x - T.cx) < 1.4 && z < T.z0 + 0.3 && z > T.z1 - 0.3) return town.place === "town" ? "main" : "town";
+  if (sdIsland(x, z) < 0.9) return "main";
+  return null;
+}
+// 鏡頭目標（user.px／py）：這棟（建築主體到浮標頂的中間）放在「上面介面底」到「介紹卡頂」之間的正中間；以飛到目的地後的位置／倍數算
+function focusTarget(d) {
+  const W = innerWidth, H = innerHeight, z = town.zoomTgt || user.zoom, k = view.k * z, inv = baseCam.matrixWorldInverse;
+  if (!k) return null;
+  _v.copy(d.body).add(d.root.position).applyMatrix4(inv); const bx = _v.x, by = _v.y;
+  _v.copy(d.anchor).applyMatrix4(inv); const ax = _v.x, ay = _v.y;
+  const th = ((d.th0 || 60) + TAIL) / k;                 // 浮標高（相機單位）
+  const cx = (bx + ax) / 2, cy = (by + ay + th) / 2;
+  const a = opts.pickArea ? opts.pickArea() : null;      // 介紹卡現在的頂（px）
+  const y0 = Math.max(0, view.freeTop || 0), y1 = a && a.top > y0 + 40 ? a.top - 8 : H;
+  const tx = W / 2, ty = (y0 + y1) / 2;
+  // 不夾可拖範圍：那棟就在畫面中間＝一定看得到島（直式介紹卡佔掉下面快一半，島前排的釣魚、青蛙要往上移很多，夾了會被卡片蓋住）
+  return { px: cx - view.cx - town.tgt.x - (tx - W / 2) / k, py: cy - view.cy - town.tgt.y + (ty - H / 2) / k };
+}
+function stepFocus(dt) {
+  if (!focus.on || !sel) {                               // 收卡後：被帶出可拖範圍的鏡頭慢慢回到範圍裡（拖曳中不動）
+    if (!focus.over || ptrs.size) return;
+    const r = clampXY(user.px, user.py), k = 1 - Math.exp(-dt * 4);
+    user.px += (r.px - user.px) * k; user.py += (r.py - user.py) * k;
+    if (Math.abs(r.px - user.px) + Math.abs(r.py - user.py) < 0.01) { user.px = r.px; user.py = r.py; focus.over = false; }
+    return;
+  }
+  const t = focusTarget(sel); if (!t) return;
+  const k = 1 - Math.exp(-dt * 6);
+  user.px += (t.px - user.px) * k; user.py += (t.py - user.py) * k;
+  focus.over = true;
+}
+// 從清單（🗺️ 全部遊戲）選：人不在那座島就先飛過去，再開那棟的介紹卡。那座島還沒開＝false（主程式自己說）
+function pickMode(m) {
+  const d = DEFS.find(x => x.mode === m); if (!d || dead) return false;
+  const p = isleOf(d);
+  if ((p === "town" && !town.open) || (p === "rainbow" && !rb.open)) return false;
+  if (p !== town.place) goPlace(p);
+  selectDef(d);
+  return true;
 }
 function tapPet(a) {
   if (a.jump) return;
@@ -2503,18 +2671,23 @@ function pick(cx, cy) {
   const pm = raycaster.intersectObjects(vis.map(a => a.obj), true).find(h => h.object.isMesh);
   const bm = raycaster.intersectObjects(DEFS.map(d => d.pivot), true).find(h => h.object.isMesh);
   const agentOf = o => { while (o && !o.userData.agent) o = o.parent; return o && o.userData.agent; };
+  const defHit = d => isleOf(d) === town.place ? { def: d } : { isle: isleOf(d) };   // 別座島上的建築＝點那座島（10-12）
   if (pm && (!bm || pm.distance < bm.distance)) return { pet: agentOf(pm.object) };   // 真的點到寵物身上、而且寵物在建築前面
-  if (bm) { let o = bm.object; while (o && !o.userData.def) o = o.parent; if (o) return { def: o.userData.def }; }
+  if (bm) { let o = bm.object; while (o && !o.userData.def) o = o.parent; if (o) return defHit(o.userData.def); }
   const ph = raycaster.intersectObjects(vis.filter(a => !a.atDoor).map(a => a.hit), false);   // 寵物身邊一圈（小孩點不準）：停在門口的不算
   if (ph.length) return { pet: ph[0].object.userData.pet };
   const bh = raycaster.intersectObjects(hitBoxes, false);
-  if (bh.length) return { def: bh[0].object.userData.def };
+  if (bh.length) return defHit(bh[0].object.userData.def);
   const ch = raycaster.intersectObjects(civHits, false);
-  if (ch.length) return { civic: ch[0].object.userData.civic };
+  if (ch.length) return town.place === "town" ? { civic: ch[0].object.userData.civic } : { isle: "town" };   // 不在歸仁區：點設施＝飛過去
   const rh = raycaster.intersectObjects(rbHits.filter(o => o.userData.folk || !rb.open), false);   // 彩虹島居民（點房子也算）、還沒接好的彩虹橋
-  if (rh.length) return rh[0].object.userData.folk ? { folk: rh[0].object.userData.folk } : { rbLock: true };
+  if (rh.length) return rh[0].object.userData.folk ? (town.place === "rainbow" ? { folk: rh[0].object.userData.folk } : { isle: "rainbow" }) : { rbLock: true };
+  const sh = raycaster.intersectObjects(signHits, false);   // 橋頭路牌（10-12）：在這座島上的＝它指的那座島；別座島上的＝那座島
+  if (sh.length) { const s = sh[0].object.userData.sign; return { isle: s.at === town.place ? s.go : s.at }; }
+  if (raycaster.ray.intersectPlane(GROUND, _v)) { const p = isleAt(_v.x, _v.z); if (p && p !== town.place) return { isle: p }; }   // 遠方的島（地面、橋）
   return null;
 }
+const GROUND = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
 // ---------- 手勢：輕點、拖曳平移、雙指縮放 ----------
 const ptrs = new Map(); let pinch = null;
@@ -2523,7 +2696,7 @@ function bindInput(cv) {
     try { cv.setPointerCapture(e.pointerId); } catch (er) {}
     const p0 = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, t0: performance.now(), moved: 0, multi: ptrs.size > 0 };
     ptrs.set(e.pointerId, p0);
-    if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; a.multi = b.multi = true; pinch = { d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, z0: user.zoom }; releaseTag(false); }
+    if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; a.multi = b.multi = true; pinch = { d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, z0: user.zoom }; releaseTag(false); deselect(); }   // 雙指縮放＝收起介紹卡
     else { const hit = p0.hit = pick(e.clientX, e.clientY); if (hit && hit.def) preloadCard(hit.def);   // 10-12：按下那一刻就記住點到誰（按住期間取景可能在動，放開再算會偏到隔壁棟）
       pressTag(hit && hit.def && isleOf(hit.def) === town.place ? hit.def.tag : hit && hit.civic && town.place === "town" ? hit.civic.tag : null); }   // 按住建築：那一棟的名字彈出來
   });
@@ -2535,7 +2708,7 @@ function bindInput(cv) {
       const [a, b] = [...ptrs.values()];
       zoomAt((a.x + b.x) / 2, (a.y + b.y) / 2, Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, pinch.z0 * Math.hypot(a.x - b.x, a.y - b.y) / pinch.d0)));
       panBy(dx / 2, dy / 2);
-    } else if (p.moved >= TAP_MOVE) { panBy(dx, dy); releaseTag(false); }   // 超過點擊容許範圍才算拖曳（按住彈出的名字收回）
+    } else if (p.moved >= TAP_MOVE) { panBy(dx, dy); releaseTag(false); deselect(); }   // 超過點擊容許範圍才算拖曳（按住彈出的名字收回、介紹卡收起來）
   });
   const up = e => {
     const p = ptrs.get(e.pointerId); if (!p) return; ptrs.delete(e.pointerId);
@@ -2543,26 +2716,35 @@ function bindInput(cv) {
     releaseTag(e.type === "pointerup" && !p.multi && p.moved < TAP_MOVE);
     if (e.type === "pointerup" && !p.multi && p.moved < TAP_MOVE && performance.now() - p.t0 < TAP_MS) {
       const hit = p.hit || pick(p.x0, p.y0) || pick(e.clientX, e.clientY);   // 以按下去那一刻點到的為準（小孩常按著不放、或按著滑一下）
+      if (!hit || !hit.def) deselect();                  // 點空白處／寵物／設施／居民／別座島＝收起介紹卡
       if (hit && hit.pet) tapPet(hit.pet); else if (hit && hit.def) tapBuilding(hit.def); else if (hit && hit.civic) tapCivic(hit.civic);
-      else if (hit && hit.folk) tapFolk(hit.folk); else if (hit && hit.rbLock) tapRbLock();
+      else if (hit && hit.folk) tapFolk(hit.folk); else if (hit && hit.rbLock) tapRbLock(); else if (hit && hit.isle) tapIsle(hit.isle);
     }
   };
   cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
-  cv.addEventListener("wheel", e => { e.preventDefault(); zoomAt(e.clientX, e.clientY, Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, user.zoom * Math.exp(-e.deltaY * 0.0015)))); }, { passive: false });
+  cv.addEventListener("wheel", e => { e.preventDefault(); deselect(); zoomAt(e.clientX, e.clientY, Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, user.zoom * Math.exp(-e.deltaY * 0.0015)))); }, { passive: false });
 }
-function panBy(dx, dy) { const k = view.k * user.zoom; user.px -= dx / k; user.py += dy / k; clampPan(); }
+function panBy(dx, dy) { const k = view.k * user.zoom, from = { px: user.px, py: user.py }; user.px -= dx / k; user.py += dy / k; clampPan(from); }
 function zoomAt(sx, sy, nz) {
-  const W = innerWidth, H = innerHeight, k1 = view.k * user.zoom, k2 = view.k * nz;
+  const W = innerWidth, H = innerHeight, k1 = view.k * user.zoom, k2 = view.k * nz, from = { px: user.px, py: user.py };
   user.px += (sx - W / 2) / k1 - (sx - W / 2) / k2; user.py -= (sy - H / 2) / k1 - (sy - H / 2) / k2;   // 縮放時手指下的那一點不動
-  user.zoom = nz; clampPan();
+  user.zoom = nz; clampPan(from);
 }
 // 島比畫面大：可以拖過去看海邊的景點（±7、±4.5）；拉遠（< 1 倍，10-12 最遠 0.5）時可拖的範圍慢慢收向「三座島的中間」、範圍變小——
 // 拉到最遠一定看得到三座島（不管人在哪座島）、不會拖到整片海
-function clampPan() {
+function clampXY(px, py) {
   const t = Math.max(0, Math.min(1, (1 - user.zoom) / (1 - ZOOM_MIN))), c = view.isles;
   const dy = ((view.placeY ?? innerHeight / 2) - innerHeight / 2) / (view.k * user.zoom);   // 三座島放在上下介面之間的中線（直式上面兩排按鈕比較高）
   const ox = c ? (c.x - view.cx - town.tgt.x) * t : 0, oy = c ? (c.y + dy - view.cy - town.tgt.y) * t : 0, hx = 7 - 4 * t, hy = 4.5 - 2 * t;
-  user.px = Math.max(ox - hx, Math.min(ox + hx, user.px)); user.py = Math.max(oy - hy, Math.min(oy + hy, user.py));
+  return { px: Math.max(ox - hx, Math.min(ox + hx, px)), py: Math.max(oy - hy, Math.min(oy + hy, py)) };
+}
+// 拖曳／縮放後夾回可拖範圍。介紹卡（10-12）會把鏡頭帶到範圍外（島邊的建築要移到卡片上面）：收卡後每格慢慢收回範圍（stepFocus），
+// 這時候拖曳只能往範圍裡拖、不能更往外（from＝拖之前的位置；不會一拖就「跳」回範圍裡）
+function clampPan(from) {
+  const r = clampXY(user.px, user.py);
+  if (!from || !focus.over) { user.px = r.px; user.py = r.py; return; }   // 平常（沒被介紹卡帶出範圍）＝跟以前一樣直接夾
+  const f = clampXY(from.px, from.py), soft = (v, c, v0, c0) => v0 === c0 ? c : v0 > c0 ? Math.max(c, Math.min(v0, v)) : Math.min(c, Math.max(v0, v));
+  user.px = soft(user.px, r.px, from.px, f.px); user.py = soft(user.py, r.py, from.py, f.py);
 }
 
 // =========================================================
@@ -2572,7 +2754,7 @@ const baseCam = new THREE.OrthographicCamera();
 function setCamDir(cam, az) { cam.position.set(Math.sin(az) * Math.cos(CAM_EL), Math.sin(CAM_EL), Math.cos(az) * Math.cos(CAM_EL)).multiplyScalar(60); cam.lookAt(0, 0, 0); cam.updateMatrixWorld(); }
 function obstacles() {
   const out = [];
-  for (const sel of ["#menu > h1", "#resumeBtn", "#townBtn", "#townTag", "#rainbowBtn", "#rainbowTag", "#menu > .menu-bottom", "#guide img", "#guideText", "#owlPeek", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#speakBtn", "#settingsBtn", "#hudLBtn", "#hudRBtn"]) {   // 收起來的按鈕／貓頭鷹只是 visibility:hidden，照樣量得到＝照樣避開
+  for (const sel of ["#menu > h1", "#resumeBtn", "#townBtn", "#townTag", "#rainbowBtn", "#rainbowTag", "#menu > .menu-bottom", "#guide img", "#guideText", "#owlPeek", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#speakBtn", "#settingsBtn", "#hudLBtn", "#hudRBtn", "#mapBtn", "#plazaBtn"]) {   // （10-12 加 🗺️ 全部遊戲、🎪 同樂廣場——直式 🎪 在上面第二排，以前沒算）收起來的按鈕／貓頭鷹只是 visibility:hidden，照樣量得到＝照樣避開
     const e = document.querySelector(sel); if (!e || !e.offsetParent) continue;
     const r = e.getBoundingClientRect(); if (r.width < 2 || r.height < 2) continue;
     if (sel === "#resumeBtn") {                          // 繼續玩會輕跳（softHop：只往上跳 1.2vmin）：量「靜止位置」再往上多留跳的高度——
@@ -2604,7 +2786,10 @@ function fit() {
   const freeBot = Math.min(H, ...obs.filter(o => o.y0 > H * 0.5 && o.x0 < W / 2 && o.x1 > W / 2 && !(o.owl && W > H)).map(o => o.y0));
   view.placeY = (freeTop + freeBot) / 2;
   // 浮標大小用「收合／展開」兩種（10-12 浮標精簡）：按住、拉近展開名字時鏡頭不會跟著重擺
-  const sig = [W, H, ...sizes.map((s, i) => `${s.cw},${s.ch},${s.ow},${s.oh},${MAIN_DEFS[i].fresh ? 1 : 0}`), ...obs.map(o => `${o.x0 | 0},${o.y0 | 0},${o.x1 | 0},${o.y1 | 0}`)].join("|");
+  view.freeTop = freeTop; view.freeBot = freeBot;          // 介紹卡把選到的那棟移到中間用（10-12）
+  view.sgTop = Math.max(0, ...obs.filter(o => o.y1 < H * 0.4).map(o => o.y1));   // 路牌浮標貼邊時的上下界：上面一整排介面（不管在左在右）的底、下面一整排的頂（10-12）
+  view.sgBot = Math.min(H, ...obs.filter(o => o.y0 > H * 0.6).map(o => o.y0));
+  const sig = [W, H, ...sizes.map(s => `${s.cw},${s.ch},${s.ow},${s.oh}`), ...obs.map(o => `${o.x0 | 0},${o.y0 | 0},${o.x1 | 0},${o.y1 | 0}`)].join("|");
   if (sig === fitSig) return true;                     // 畫面大小、障礙物、浮標大小都沒變 → 不用重算
   fitSig = sig;
   setCamDir(baseCam, Math.PI / 4);
@@ -2622,8 +2807,8 @@ function fit() {
     for (const x of [min.x, max.x]) for (const y of [min.y, max.y]) for (const z of [min.z, max.z]) { _v.set(x, y, z).applyMatrix4(inv); x0 = Math.min(x0, _v.x); x1 = Math.max(x1, _v.x); y0 = Math.min(y0, _v.y); y1 = Math.max(y1, _v.y); }
     _v.copy(d.body).add(d.root.position).applyMatrix4(inv); const bx = _v.x, by = _v.y;
     _v.copy(d.anchor).applyMatrix4(inv);
-    const s = sizes[i], fr = d.fresh;                  // 平常的樣子：圓形圖示；剛解鎖還沒玩過的＝一直展開
-    return { x0, x1, y0, y1, bx, by, ax: _v.x, ay: _v.y, rw: fr ? s.ow : s.cw, rh: fr ? s.oh : s.ch, ow: s.ow, oh: s.oh };
+    const s = sizes[i];                                // 平常的樣子：圓形圖示（10-12 晚起沒有一直展開的「新」）
+    return { x0, x1, y0, y1, bx, by, ax: _v.x, ay: _v.y, rw: s.cw, rh: s.ch, ow: s.ow, oh: s.oh };
   });
   // 以遊戲建築的範圍當「島」來置中（海邊景點可以超出）
   let ix0 = Infinity, ix1 = -Infinity, iy0 = Infinity, iy1 = -Infinity;
@@ -2736,7 +2921,7 @@ function frame(ms) {
   if (needFit && fit()) needFit = false;
   const W = innerWidth, H = innerHeight, k = view.k * user.zoom;
   setCamDir(camera, Math.PI / 4 + Math.sin(t * 0.09) * 0.022);
-  stepPlace(dt);
+  stepPlace(dt); stepFocus(dt);
   const cx = view.cx + user.px + town.off.x + Math.sin(t * 0.13) * 0.12, cy = view.cy + user.py + town.off.y + Math.sin(t * 0.1 + 1) * 0.08;
   camera.left = cx - W / 2 / k; camera.right = cx + W / 2 / k; camera.top = cy + H / 2 / k; camera.bottom = cy - H / 2 / k;
   camera.updateProjectionMatrix();
@@ -2758,18 +2943,20 @@ function placeTags(t) {
   tagPos.length = 0; rbPos.length = 0;
   for (const d of DEFS) {
     if (d.isle && d.isle !== town.place) continue;     // 不在那座島（彩虹島、歸仁區的遊戲建築）：那邊的浮標是 display:none，不用每格量
-    setOpen(d.tag, wantOpen(d.tag, d.fresh));
+    setOpen(d.tag, wantOpen(d.tag));
     if (tagLive() || d.tw0 === undefined) { d.tw0 = d.tag.offsetWidth; d.th0 = d.tag.offsetHeight; }   // 大小變了才重量：展開那 0.2 秒寬度一直變，旁邊的浮標跟著慢慢讓開
     const w0 = d.tw0, h0 = d.th0; if (!w0) continue;
     _v.copy(d.anchor); _v.y += d.pivot.position.y; _v.project(camera);
     const x = (_v.x + 1) / 2 * W, y = (1 - _v.y) / 2 * H, w = w0 * sc, h = h0 * sc;
     (d.isle ? rbPos : tagPos).push({ d, ax: x, x0: x - w / 2, x1: x + w / 2, y0: y - h - TAIL, y1: y - TAIL, w0, h0, obs: d.tag._open ? fitObsMax : undefined });
   }
+  const sgPos = []; signRects(sgPos, sc);              // 橋頭路牌（10-12）
   if (tagRO) tagDirty = false;                         // 沒有 ResizeObserver 的舊瀏覽器：每格量
   nudge(tagPos, fitObs); if (rbPos.length) nudge(rbPos, fitObs);
-  for (const list of [tagPos, rbPos]) for (const r of list) {
+  if (sgPos.length) dodgeSigns(sgPos, town.place === "main" ? tagPos : town.place === "rainbow" ? rbPos : [...rbPos, ...CIVIC.map(c => c.rect)]);   // 遊戲浮標排好了，路牌再讓開它們
+  for (const list of [tagPos, rbPos, sgPos]) for (const r of list) {
     const cx = (r.x0 + r.x1) / 2;                      // 位置放 translate（transform 留給輕跳、拉遠縮小，以浮標底部中間為準縮放）
-    const tr = `${(cx - r.w0 / 2).toFixed(1)}px ${(r.y1 - r.h0).toFixed(1)}px`, zi = Math.round(r.y1);   // 值沒變就不寫（效能體檢 10-12：少一次樣式失效）
+    const tr = `${(cx - r.w0 / 2).toFixed(1)}px ${(r.y1 - r.h0).toFixed(1)}px`, zi = r.d.tag === LOD.press || r.d === sel ? 99990 : Math.round(r.y1) - (r.d.go ? 5000 : 0);   // 值沒變就不寫（效能體檢 10-12：少一次樣式失效）；按住／介紹卡開著的那棟疊在最上面、路牌（r.d.go）一律在遊戲浮標下面
     if (tr !== r.d.trW) { r.d.trW = tr; r.d.tag.style.translate = tr; } if (zi !== r.d.ziW) { r.d.ziW = zi; r.d.tag.style.zIndex = String(zi); } r.d.tagRect = r;
     const tx = Math.round((r.ax - cx) / sc); if (tx !== r.d.tx) { r.d.tx = tx; r.d.tag.style.setProperty("--tx", tx + "px"); }   // 浮標被挪開：尾巴還是指著建築
   }
@@ -2950,7 +3137,9 @@ function celeTick(t, dt) {
 // 對外介面
 // =========================================================
 export async function createHub(o) {
-  opts = { friends: () => [], onFriend: () => {}, onFail: () => {}, onGacha: () => {}, onDress: () => {}, onCivic: () => {}, onPlace: () => {}, stickers: () => 0, newbie: () => false, fresh: () => [], labels: {}, ...o };   // fresh：剛解鎖還沒玩過的模式（浮標名字一直展開＋「新」）
+  opts = { friends: () => [], onFriend: () => {}, onFail: () => {}, onGacha: () => {}, onDress: () => {}, onCivic: () => {}, onPlace: () => {}, stickers: () => 0, newbie: () => false, labels: {}, onPick: null, pickArea: null, onIsle: null, ...o };
+  // onPick(mode, info)｜onPick(null)：點一下遊戲建築＝開介紹卡／收起來（10-12；沒給＝點一下就開始）；pickArea()：介紹卡現在的 { top }（鏡頭把選到的那棟放在它上面）；
+  // onIsle(p)：點遠方的島／路牌要飛過去（主程式出音效再呼叫 goPlace；沒給＝直接 goPlace）
   renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
   try {
     dpr = Math.min(window.devicePixelRatio || 1, 1.5);   // 效能體檢 10-12：iPad（DPR 2）起始用 1.5（像素少 44%，有反鋸齒、看不出糊）；太慢再自動往下降（frame()）
@@ -2988,7 +3177,8 @@ export async function createHub(o) {
     DEFS.forEach(startDef);
     buildRainbow();                                      // 10-12 彩虹島（建築的點擊盒、樹要讓開的範圍 startDef 已經放好）
     for (const [x, z] of RB_SLOTS) slot(x, z);            // 彩虹島的裝飾放置點排在最後面
-    buildTrees(); buildBlobs(); makeTownTags();
+    buildSigns();                                        // 10-12 橋頭路牌（樹要讓開：在 buildTrees 前面）
+    buildTrees(); buildBlobs(); makeTownTags(); makeSignTags();
     agentBlob = blobMesh(40, 0.3); agentBlob.count = 0; scene.add(agentBlob);
     refresh();
     renderer.compile(scene, camera);
@@ -3030,8 +3220,6 @@ function refresh() {
     syncTag(d, card);
   }
   syncTown(refreshed); syncRainbow(refreshed);
-  const fr = new Set((opts.fresh && opts.fresh()) || []);   // 剛解鎖、還沒玩過：名字一直展開＋「新」（玩過一次就收成圖示；主程式 opts.fresh 給清單）
-  for (const d of DEFS) { d.fresh = fr.has(d.mode) && !d.locked; d.tag.classList.toggle("fresh", d.fresh); }
   refreshed = true;
   needFit = true;
 }
@@ -3042,7 +3230,7 @@ function setDecor(list) { decorWant = (list || []).slice(); applyDecor(); }
 function show() {
   if (dead) return;
   wake();
-  shown = true; user.zoom = 1; user.px = user.py = 0; needFit = true;
+  shown = true; user.zoom = 1; user.px = user.py = 0; needFit = true; focus.over = false;
   if (town.place !== "main") { town.place = "main"; town.zoomTgt = 0; town.tgt.x = town.tgt.y = town.off.x = town.off.y = 0; town.sunFrom = town.offFrom = null; sun.position.set(-7, 15, 6); sun.target.position.set(0, 0, 0); sun.target.updateMatrixWorld(); syncTownTags(); }   // 從遊戲回來：回到主島
   startLoop();
   if (!restStarted) { restStarted = true; later(() => { if (window.requestIdleCallback) requestIdleCallback(() => loadRest(), { timeout: 400 }); else loadRest(); }, 60); }   // 選單先畫出來，再抓建築模型
@@ -3051,7 +3239,7 @@ function show() {
 // 選單看不到（遊戲、配送站、換裝）：停迴圈，畫布縮成 2×2（全螢幕的繪圖緩衝區放掉——不然配送／換裝自己的全螢幕 WebGL 加上這張，iPad 同時有兩張大畫布）
 let slept = false;
 function hide() {
-  shown = false; stopLoop(); for (const p of ptrs.keys()) ptrs.delete(p); pinch = null; LOD.press = null;
+  shown = false; stopLoop(); for (const p of ptrs.keys()) ptrs.delete(p); pinch = null; LOD.press = null; deselect();
   if (renderer && !dead && !slept) { slept = true; try { renderer.setPixelRatio(1); renderer.setSize(2, 2, false); } catch (e) {} }
   // 陰影貼圖（1024²＋深度貼圖）也放掉（效能體檢 10-12）：回選單 wake() 設 shadowDirty，three 下一格自己重建
   const sm = sun && sun.shadow.map; if (sm && !dead) { try { if (sm.depthTexture) { sm.depthTexture.dispose(); sm.depthTexture = null; } sm.dispose(); } catch (e) {} sun.shadow.map = null; }
@@ -3091,14 +3279,18 @@ function use(plugin) {
   let p = null; try { p = plugin(ctx) || {}; } catch (e) { console.warn("[hub3d] 外掛載入失敗", e); return null; }
   plugins.push(p); return p;
 }
-const api = { show, hide, resume, refresh, dispose, setPets, setDecor, use, goPlace, place: () => town.place, celebrate, whenBuilt: () => builtP };   // celebrate：10-12 同樂廣場慶祝裝飾；whenBuilt：建築全部長好（效能體檢 10-12）
+// 10-12 介紹卡／全部遊戲清單：start(m)＝介紹卡的「開始玩」；deselect()＝✕；pick(m)＝清單點一張（飛過去＋開介紹卡）；selected()＝現在開著哪棟；
+// games()＝每個遊戲在哪座島、鎖著沒＋三座島開了沒（清單分組用）
+function games() { return { list: DEFS.map(d => ({ mode: d.mode, isle: isleOf(d), locked: !!d.locked })), open: { main: true, town: !!town.open, rainbow: !!rb.open }, need: { town: DIST_NEED, rainbow: RAINBOW_NEED } }; }
+const api = { show, hide, resume, refresh, dispose, setPets, setDecor, use, goPlace, place: () => town.place, celebrate, whenBuilt: () => builtP,   // celebrate：10-12 同樂廣場慶祝裝飾；whenBuilt：建築全部長好（效能體檢 10-12）
+  start: m => { const d = DEFS.find(x => x.mode === m); if (d && !dead && shown) playDef(d); }, deselect, pick: pickMode, selected: () => sel ? sel.mode : null, games };
 
 // 測試／除錯用（網址有 ?debug 才掛；tools/zy-test/hub3d.js、tools/render3d/render_bg.js）
 if (DEBUG) window.__hub3d = {
   get frames() { return frames; }, get running() { return running; }, get fitOk() { return view.fitOk; }, get ready() { return built; },
   get fit() { return { k: view.k, kMax: view.kMax, kRest: view.kRest, tier: view.fitTier, obs: fitObs.map(o => o.sel), zoom: user.zoom, dpr }; },   // kRest：只看平常樣子（圓形圖示）時島能多大；tier：1＝展開也避開（多留）、2＝展開也避開、0＝只顧平常樣子
   screenOf(m) { const d = DEFS.find(x => x.mode === m); _v.copy(d.body).applyMatrix4(d.root.matrixWorld).project(camera); return { x: (_v.x + 1) / 2 * innerWidth, y: (1 - _v.y) / 2 * innerHeight }; },
-  hitAt(x, y) { const h = pick(x, y); return h ? (h.pet ? "pet:" + h.pet.id : h.def ? h.def.mode : h.civic ? "civic:" + h.civic.id : h.folk ? "folk:" + h.folk.h.id : h.rbLock ? "rbLock" : null) : null; },
+  hitAt(x, y) { const h = pick(x, y); return h ? (h.pet ? "pet:" + h.pet.id : h.def ? h.def.mode : h.civic ? "civic:" + h.civic.id : h.folk ? "folk:" + h.folk.h.id : h.rbLock ? "rbLock" : h.isle ? "isle:" + h.isle : null) : null; },
   tagRect(m) { const r = DEFS.find(x => x.mode === m).tag.getBoundingClientRect(); return { x0: r.left, x1: r.right, y0: r.top, y1: r.bottom }; },
   petScreen(id) { const p = pets.get(id); if (!p) return null; _v.set(0, PET_H * 0.45 * (STAGE_SCALE[p.stage] || 1), 0).applyMatrix4(p.holder.matrixWorld).project(camera); return { x: (_v.x + 1) / 2 * innerWidth, y: (1 - _v.y) / 2 * innerHeight }; },
   pets: () => [...pets.keys()],
@@ -3121,11 +3313,17 @@ if (DEBUG) window.__hub3d = {
   finger: () => !!finger,
   tags(on) { tagLayer.style.visibility = on ? "" : "hidden"; },
   // 浮標精簡（10-12）：拉近／拉遠狀態、按住的是哪棟、哪些展開著、哪些是「新」；openAll(true)＝全部展開（false 還原）
-  lod: () => ({ near: LOD.near, far: LOD.far, press: LOD.press ? (LOD.press._def ? LOD.press._def.mode : "civic") : null, open: DEFS.filter(d => d.tag._open).map(d => d.mode), fresh: DEFS.filter(d => d.fresh).map(d => d.mode), stale: DEFS.filter(d => d.tw0 !== undefined && d.tag.offsetWidth && Math.abs(d.tw0 - d.tag.offsetWidth) > 1).map(d => `${d.mode}:${d.tw0}/${d.tag.offsetWidth}`), zoom: +user.zoom.toFixed(3), px: +user.px.toFixed(2), py: +user.py.toFixed(2) }),
+  lod: () => ({ near: LOD.near, far: LOD.far, press: LOD.press ? (LOD.press._def ? LOD.press._def.mode : "civic") : null, open: DEFS.filter(d => d.tag._open).map(d => d.mode), sel: sel ? sel.mode : null, stale: DEFS.filter(d => d.tw0 !== undefined && d.tag.offsetWidth && Math.abs(d.tw0 - d.tag.offsetWidth) > 1).map(d => `${d.mode}:${d.tw0}/${d.tag.offsetWidth}`), zoom: +user.zoom.toFixed(3), px: +user.px.toFixed(2), py: +user.py.toFixed(2) }),
   openAll(on) { LOD.near = !!on; LOD.forceNear = !!on; },
   openOne(m) { const d = DEFS.find(x => x.mode === m), c = CIVIC.find(x => x.id === m); pressTag(d ? d.tag : c ? c.tag : null); },   // 跟手指按住那一棟一樣（null＝放掉）
   focus(m, z = 1.5) { const d = DEFS.find(x => x.mode === m) || SPOTS.find(x => x.id === m); if (!d) { user.zoom = 1; user.px = user.py = 0; return; } user.zoom = z; _v.set(d.x, 1, d.z).applyMatrix4(camera.matrixWorldInverse); user.px = _v.x - view.cx; user.py = _v.y - view.cy; },
   setPets, setDecor, use, goPlace,
+  // 10-12 路牌／點遠方的島：每支路牌（在哪座島、指去哪、3D 位置在螢幕上哪裡、浮標框、貼邊沒、鎖著沒）；isleScreen(p)＝那座島中心在螢幕上的位置；proj(x,y,z)＝世界座標→螢幕
+  signs: () => SIGNS.map(s => { _v.set(s.x, s.y - 0.3, s.z).project(camera); const r = s.tag ? s.tag.getBoundingClientRect() : null;
+    return { at: s.at, go: s.go, x: +s.x.toFixed(2), z: +s.z.toFixed(2), sx: Math.round((_v.x + 1) / 2 * innerWidth), sy: Math.round((1 - _v.y) / 2 * innerHeight), shown: !!(r && r.width), rect: r && { x0: r.left, x1: r.right, y0: r.top, y1: r.bottom }, edge: !!s.edge, locked: !!(s.tag && s.tag.classList.contains("locked")) }; }),
+  isleScreen(p) { const c = { main: [-2.4, 2.4], town: [DIST.x - 1.5, DIST.z + 1.5], rainbow: [RB.x + 1.6, RB.z + 2.8] }[p]; _v.set(c[0], 0, c[1]).project(camera); return { x: (_v.x + 1) / 2 * innerWidth, y: (1 - _v.y) / 2 * innerHeight }; },   // 地面上空曠的一點（不是建築）
+  proj(x, y, z) { _v.set(x, y, z).project(camera); return { x: (_v.x + 1) / 2 * innerWidth, y: (1 - _v.y) / 2 * innerHeight }; },
+  isleAt: (x, z) => isleAt(x, z), sel: () => sel ? sel.mode : null, focusing: () => focus.on, place: () => town.place,
   cam(z, px = 0, py = 0) { user.zoom = z; user.px = px; user.py = py; },   // 宣傳片運鏡（tools/promo）
   events(on) { town.nextEvent = on ? performance.now() + 25000 : 1e15; },   // 錄影時關掉隨機火災／生病
   town: () => ({ open: town.open, place: town.place, off: [+town.off.x.toFixed(2), +town.off.y.toFixed(2)], locked: CIVIC.filter(c => c.locked).map(c => c.id), ready: CIVIC.filter(c => c.ready).map(c => c.id), fires: town.fires.length, busy: ["fire", "hospital"].filter(k => town[k + "Busy"]), patrol: !!(town.patrol && town.patrol.e),

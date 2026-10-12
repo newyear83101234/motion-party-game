@@ -663,10 +663,8 @@ body.hub3d .hub-tags.pressing { z-index: 16; }   /* 手指按住某棟：名字�
 .hub-tag .ht-txt { display: flex; align-items: center; gap: 0.8vmin; width: max-content; padding: 0 0.9vmin 0 0.3vmin; }
 .hub-tag .ht-word { font-size: 4.8vmin; line-height: 1; white-space: nowrap; padding: 0.1vmin 0; }   /* 有注音的字至少 4.6vmin（注音＝字的 0.38，太小看不清） */
 .hub-tag .ht-lock { display: none; font-size: 3.2vmin; line-height: 1; white-space: nowrap; color: #fff; background: #4a5568; border-radius: 2vmin; padding: 0.6vmin 1.2vmin; }
-/* 剛解鎖還沒玩過：名字前面一個加注音的「新」（跟 🏙️ 的小紅標一樣：字 4.6vmin、白字 #cf3030 底＝對比 5.1:1）；玩過一次就收成圖示 */
-.hub-tag .ht-new { display: none; font-size: 4.6vmin; font-weight: 900; line-height: 1; white-space: nowrap; color: #fff; background: #cf3030; border-radius: 2.4vmin; padding: 0.5vmin 0.2vmin 0.5vmin 0.8vmin; }
-.hub-tag .ht-new .ac { margin-right: 0.5em; }
-.hub-tag.fresh .ht-new { display: block; }
+/* 介紹卡開著的那一棟（10-12）：名字展開＋黃框、疊在其他浮標上面（z-index 蓋過 hub3d 每格寫的） */
+.hub-tag.sel { z-index: 99990 !important; box-shadow: 0 0 0 0.8vmin #ffd54a, 0 0.6vmin 0 0.8vmin rgba(36,81,92,0.22), 0 1.2vmin 2.8vmin rgba(20,50,80,0.3); }
 .hub-tag.locked { background: #eef1f5; } .hub-tag.locked::after { border-top-color: #eef1f5; }
 .hub-tag.locked .ht-row { opacity: 0.8; }   /* 對比 ≥ 4.5:1（寧次 10-10） */
 .hub-tag.locked .ht-lock { display: block; }
@@ -1020,3 +1018,91 @@ body.night .owl-peek img { filter: drop-shadow(0 0 0.8vmin rgba(255,255,255,0.8)
 .st-row.none .nm { color: #99a; font-weight: normal; }
 .st-row.none .why { grid-column: 2 / -1; text-align: right; }
 @media (orientation: portrait) { .st-bar-box { height: 20vmin; } .st-row { grid-template-columns: minmax(0, 1fr) 12vmin 20vmin 17vmin; font-size: 3.5vmin; } }
+
+/* ===== 10-12 小島介紹卡（點一下建築：下面彈出；再點一次那棟／按「開始玩」才進遊戲）===== */
+/* 橫式：一排（圖示｜名字＋說明＋星星｜開始玩）在下面中間；直式：圖示＋文字一排、開始玩整排在下面。開始鈕 ≥ 72px 高（5 歲手指） */
+.pick { position: absolute; z-index: 30; left: 50%; bottom: max(2.4vmin, env(safe-area-inset-bottom, 0px)); translate: -50% 0; width: min(96vw, 140vmin);
+  display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "ico body go"; align-items: center; column-gap: 3vmin; row-gap: 2.2vmin;
+  background: #fff; border-radius: 5vmin; padding: 2.6vmin 3.4vmin; box-shadow: 0 1vmin 0 rgba(36,81,92,0.18), 0 2vmin 5vmin rgba(20,50,80,0.35);
+  animation: pickIn 0.3s cubic-bezier(.2,1.4,.4,1) both; }
+@keyframes pickIn { from { opacity: 0; transform: translateY(6vmin); } to { opacity: 1; transform: none; } }
+.pick.swap { animation: pickSwap 0.3s ease-out; }   /* 換一棟：彈一下 */
+@keyframes pickSwap { 0% { scale: 0.96; } 55% { scale: 1.02; } 100% { scale: 1; } }
+.pk-ico { grid-area: ico; width: 17vmin; height: 17vmin; border-radius: 50%; background: #fff6d6; border: 0.7vmin solid var(--yellow); display: grid; place-items: center; font-size: 10vmin; line-height: 1; }
+.pk-body { grid-area: body; min-width: 0; display: flex; flex-direction: column; gap: 1vmin; }
+.pk-name { font-size: 6.4vmin; font-weight: 900; color: #24515c; line-height: 1.3; }
+.pk-desc { font-size: 4.6vmin; font-weight: bold; color: #3d4a57; line-height: 1.55; text-wrap: balance; }   /* 有注音的字 ≥ 4.6vmin */
+.pk-row { display: flex; align-items: center; gap: 2vmin; flex-wrap: wrap; }
+.pk-meta:empty, .pk-lock:empty, .pk-row:has(.pk-meta:empty):has(.pk-lock:empty) { display: none; }
+.pk-stars { display: inline-flex; gap: 0.4vmin; } .pk-stars i { font-style: normal; font-size: 4.6vmin; line-height: 1; } .pk-stars i:not(.on) { filter: grayscale(1); opacity: 0.28; }
+.pk-txt { font-size: 4.6vmin; font-weight: bold; color: #24515c; white-space: nowrap; }
+.pk-lock { font-size: 4.6vmin; font-weight: bold; color: #fff; background: #4a5568; border-radius: 3vmin; padding: 0.8vmin 2.2vmin; white-space: nowrap; }
+.pk-go { grid-area: go; min-height: max(72px, 13vmin); font-size: 5.6vmin; padding: 1.4vmin 3.6vmin; border-radius: 5vmin; white-space: nowrap; animation: pkPulse 1.8s ease-in-out 0.8s infinite; }
+@keyframes pkPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+.pk-go:active { animation: none; }
+.pick.locked .pk-go { display: none; }   /* 鎖著：沒有開始鈕 */
+.pk-x { position: absolute; right: -1.4vmin; top: -1.4vmin; width: max(9vmin, 44px); height: max(9vmin, 44px); border-radius: 50%; background: #fff; color: #24515c; font-size: 4.6vmin; font-weight: 900; line-height: 1;
+  box-shadow: 0 0.4vmin 1.2vmin rgba(0,0,0,0.3); }
+.pk-x::before { content: ""; position: absolute; inset: -1vmin; }
+@media (orientation: portrait) {
+  .pick { grid-template-columns: auto 1fr; grid-template-areas: "ico body" "go go"; }
+  .pk-go { width: 100%; }
+}
+/* 介紹卡開著：貓頭鷹（直式在下面）、左下膠囊（橫式在下面）淡出——只用 opacity／visibility，位置照樣佔著（小島不會因此重擺） */
+body.pick-on #guide { opacity: 0; transition: opacity 0.2s; }
+body.pick-on #guide, body.pick-on #guide * { pointer-events: none !important; }
+@media (orientation: landscape) { body.pick-on #menu > .menu-bottom { opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0s 0.2s; } }
+
+/* ===== 10-12 橋頭路牌浮標：木牌底色的小牌子「箭頭＋圖示＋地名」（導航不是遊戲：名字常駐、字小一點，不搶遊戲浮標的戲）===== */
+.hub-sign { position: absolute; left: 0; top: 0; pointer-events: auto; display: flex; align-items: center; gap: 0.5vmin; background: #8a5a32; color: #fff; font-weight: bold;
+  border: 0.4vmin solid #f1dcc0; border-radius: 1.2vmin; padding: 0.3vmin 0.9vmin; will-change: translate, transform; touch-action: none;
+  transform-origin: 50% 100%; transform: scale(var(--fs, 1)); transition: transform 0.2s ease; box-shadow: 0 0.5vmin 0 rgba(70,40,15,0.35), 0 1vmin 2vmin rgba(20,50,80,0.25); }
+.hub-sign::before { content: ""; position: absolute; inset: -1.2vmin -0.6vmin; }   /* 隱形點擊區 */
+.hub-sign::after { content: ""; position: absolute; left: calc(50% + var(--tx, 0px)); bottom: -1.3vmin; margin-left: -1.1vmin; border: 1.1vmin solid transparent; border-top: 1.1vmin solid #f1dcc0; border-bottom: 0; }
+.hub-sign.edge::after { display: none; }   /* 木牌在畫面外、浮標貼邊：沒有尾巴 */
+.hub-sign .sg-ico { font-size: 3vmin; line-height: 1; }
+.hub-sign .sg-word { font-size: 3.6vmin; line-height: 1.1; white-space: nowrap; }   /* 比遊戲浮標的名字（4.8vmin）小：導航小牌子，不搶戲（注音 0.38 倍在 iPad 約 10px，還看得清） */
+.hub-sign .sg-arr { order: 9; font-size: 3.2vmin; line-height: 1; color: #ffe08a; }
+.hub-sign.left .sg-arr { order: -1; transform: scaleX(-1); }   /* 那座島在畫面左邊：箭頭放前面、朝左 */
+.hub-sign .sg-lock { order: 10; font-size: 2.8vmin; line-height: 1; } .hub-sign .sg-lock:empty { display: none; }
+.hub-sign.locked .sg-arr { display: none; }
+.hub-sign:active { filter: brightness(1.1); }
+.hub-tags.far .hub-sign { --fs: 0.78; }
+.hub-tags.in-town .hub-sign[data-at=main], .hub-tags:not(.at-town) .hub-sign[data-at=town], .hub-tags:not(.at-rainbow) .hub-sign[data-at=rainbow] { display: none; }   /* 只顯示人在的那座島的路牌 */
+
+/* ===== 10-12 🗺️ 全部遊戲：圓鈕（左上那組，跟 🏙️／🌈 同一欄：橫式在 🌈 下面、直式第三排最左邊）＋全畫面清單 ===== */
+#mapBtn { position: relative; flex: none; z-index: 2; }
+#mapBtn .nav-ico { display: inline-block; line-height: 1; }
+body:not(.on-menu) #mapBtn, body:not(.hub3d) #mapBtn { display: none; }
+.hud-l > #mapBtn { position: absolute; left: 0; top: calc(100% + 16vmin); }   /* 橫式：🌈（100%＋2vmin，高 12vmin）下面一格；「繼續玩」在 🌈 右邊（16vmin），不會碰到 */
+/* 直式：上面第二排（🏙️／🌈／🎪）已經滿了，🗺️ 自己一排（第三排最左邊）：有「繼續玩」＝跟它同一排（膠囊置中、左緣離 🗺️ 還有空）；
+   沒有「繼續玩」＝貼紙那排往下讓一格（不然會碰到 🗺️）——小島能用的高度跟有「繼續玩」時一樣 */
+@media (orientation: portrait) {
+  body.hub3d .hud-l::after { content: ""; order: 3; flex-basis: 100%; height: 0; }
+  body.hub3d .hud-l > #mapBtn { position: relative; left: auto; top: auto; order: 4; margin-top: 1.2vmin; width: max(10vmin, 44px); height: max(10vmin, 44px); font-size: 5vmin; }
+  body.hub3d:not(.has-resume) #menu > .menu-bottom { margin-top: calc(max(10vmin, 44px) + 0.6vmin); }
+}
+.games-box { position: relative; width: min(94vw, 132vmin); max-height: 96vh; gap: 1.2vmin; padding: 2vmin 2.6vmin; }   /* ✕ 在右上角（同介紹卡）：比下面一顆「回去」少一排 */
+.games-box > .q { font-size: 5.4vmin; line-height: 1.4; }
+.gl-list { width: 100%; min-height: 0; overflow-y: auto; touch-action: pan-y; display: grid; grid-template-columns: 1fr; gap: 2vmin; padding: 0.8vmin; }   /* 直式一組一排；橫式：主島一整排，歸仁區、彩虹島並排在下面（見下面 landscape） */
+.gl-group[data-isle=main] { grid-column: 1 / -1; }
+.gl-group { min-width: 0; }
+.gl-head { display: flex; align-items: center; flex-wrap: wrap; gap: 1.2vmin; margin-bottom: 0.8vmin; color: #24515c; }
+.gl-head .gl-hi { font-size: 4.6vmin; line-height: 1; } .gl-head .gl-hn { font-size: 4.6vmin; font-weight: 900; line-height: 1.3; }
+.gl-head .gl-hl { font-size: 3.6vmin; font-weight: bold; color: #fff; background: #4a5568; border-radius: 3vmin; padding: 0.5vmin 1.6vmin; white-space: nowrap; }   /* 只有數字和圖示（沒有要注音的字）：小一點，標題一行放得下 */
+.gl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6vmin; }   /* 直式 3 欄（3 個字加注音一行要約 23vmin），放不下可以上下捲 */
+.gl-group[data-isle=town] .gl-grid { grid-template-columns: repeat(3, 1fr); }
+.gl-group[data-isle=rainbow] .gl-grid { grid-template-columns: repeat(3, 1fr); }
+.gl-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.2vmin; min-width: 0; background: #f3faff; border: 0.5vmin solid #9fcdf5; border-radius: 3vmin;
+  padding: 0.8vmin 0.4vmin; box-shadow: 0 0.6vmin 0 #a9c9e6; color: #24515c; }
+.gl-card .gl-ico { font-size: 5.6vmin; line-height: 1.1; }
+.gl-card .gl-name { font-size: 4.6vmin; font-weight: 900; line-height: 1.3; text-align: center; white-space: nowrap; }   /* 短名字 ≤ 3 個字：一行 */
+.gl-card .gl-meta { min-height: 3.4vmin; display: flex; align-items: center; justify-content: center; }
+.gl-card .pk-stars i { font-size: 3.4vmin; } .gl-card .pk-txt { font-size: 3.4vmin; }
+.gl-card .gl-lock { font-size: 3.4vmin; font-weight: bold; color: #fff; background: #4a5568; border-radius: 2vmin; padding: 0.4vmin 1.2vmin; white-space: nowrap; }
+.gl-card.locked { background: #eef1f5; border-color: #c4ccd8; color: #5f6b80; box-shadow: 0 0.6vmin 0 #a9b3c2; }
+.gl-card.locked .gl-ico { filter: grayscale(1); opacity: 0.5; }
+.gl-card:active:not(.locked) { scale: 0.95; }
+.gl-card.shake { animation: bbZoneShake 0.4s; }
+@media (orientation: landscape) { .gl-list { grid-template-columns: 2fr 3fr; } .gl-group[data-isle=town] .gl-grid { grid-template-columns: repeat(2, 1fr); } }   /* 橫式：歸仁區（2fr：標題「歸仁區 🔒 30」要一行放得下）、彩虹島（3 個）並排 */
+@media (orientation: landscape) { .gl-group[data-isle=main] .gl-grid { grid-template-columns: repeat(5, 1fr); } }   /* 橫式比較寬：主島一排 5 個（兩排放完，iPad 4:3 不用捲） */

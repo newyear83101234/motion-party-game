@@ -24,10 +24,10 @@
        一層等一層，線上 4Mbps 實測多卡約 3 秒（tools/zy-test/loadprofile.js）。網址要跟實際 import 的完全一樣（含 ?v=） -->
   <link rel="modulepreload" href="js/zhuyin.js?v=28" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-words.js" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-ann.js?v=7" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-ui.js?v=7" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-ann.js?v=8" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-ui.js?v=8" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-voice.js?v=6" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=10" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=11" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-weather.js?v=5">
   <link rel="modulepreload" href="js/zhuyin-clock.js?v=1">
   <link rel="modulepreload" href="js/zhuyin-ocean.js?v=3">
@@ -79,6 +79,8 @@
     <!-- 10-12 第二顆地點鈕：🌈 彩虹島（在 🏙️ 下面一排；人在彩虹島時變 🏝️ 回小島） -->
     <button id="rainbowBtn" class="round-btn hidden" title="彩虹島" aria-label="彩虹島"><span class="nav-ico">🌈</span><span class="nav-new" aria-hidden="true">新</span></button>
     <div id="rainbowTag" class="player-tag town-tag hidden"><span class="nav-word">彩虹島</span></div>
+    <!-- 10-12 🗺️ 全部遊戲（小孩用）：跟地點鈕同一欄——橫式在 🌈 下面、直式在第三排最左邊 -->
+    <button id="mapBtn" class="round-btn" title="全部遊戲" aria-label="全部遊戲"><span class="nav-ico">🗺️</span></button>
     <button id="hudLBtn" class="hud-handle" aria-label="更多按鈕" aria-expanded="false"><i></i><i></i><i></i></button>
     <button id="homeBtn" class="round-btn fold" title="回首頁">🏠</button>
     <button id="musicBtn" class="round-btn fold" title="音樂">🎵</button>
@@ -95,6 +97,14 @@
 
   <!-- 嚮導貓頭鷹（只在選單出現）：講完一陣子就縮成右下角的「探頭」（#owlPeek），點探頭再出來講一次；點貓頭鷹或對話框＝馬上收起來 -->
   <div id="guide" class="guide hidden"><img src="IMAGE/zhuyin/guide_owl.webp" alt=""><div id="guideText" class="guideText"></div><button id="owlPeek" class="owl-peek" aria-label="貓頭鷹，點一下再聽一次"><img src="IMAGE/zhuyin/guide_owl.webp" alt=""></button></div>
+
+  <!-- 10-12 小島介紹卡：點一下遊戲建築／浮標就從下面彈出來（大圖示、名字、這裡玩什麼、星星或鎖、開始玩、✕）；再點一次那棟或按「開始玩」才進遊戲 -->
+  <div id="pick" class="pick hidden" role="dialog" aria-labelledby="pkName">
+    <div id="pkIco" class="pk-ico"></div>
+    <div class="pk-body"><div id="pkName" class="pk-name"></div><div id="pkDesc" class="pk-desc"></div><div class="pk-row"><span id="pkMeta" class="pk-meta"></span><span id="pkLock" class="pk-lock"></span></div></div>
+    <button id="pkGo" class="big-btn pk-go">▶️ 開始玩</button>
+    <button id="pkClose" class="pk-x" aria-label="關閉">✕</button>
+  </div>
 
   <!-- ===== 選單（注音小島） ===== -->
   <section id="menu" class="screen bg-map">
@@ -254,6 +264,8 @@
   <div id="deliverPick" class="overlay hidden"><div class="dialog"><div class="q">🚚 要玩第幾關？</div><div id="deliverLevels" class="bb-levels dv-levels"></div><button id="deliverPickClose" class="big-btn alt small">↩️ 回去</button></div></div>
   <!-- 小島同樂廣場（10-12）：全畫面卡片，內容由 js/zhuyin-plaza.js 建（本週主題＋大進度條＋加油貼紙牆） -->
   <div id="plaza" class="overlay hidden"></div>
+  <!-- 10-12 🗺️ 全部遊戲：依主島／歸仁區／彩虹島分組，點一張＝鏡頭飛過去並開那棟的介紹卡 -->
+  <div id="games" class="overlay hidden"><div class="dialog games-box"><div class="q">🗺️ 全部遊戲</div><button id="gamesClose" class="pk-x" aria-label="關閉">✕</button><div id="gamesList" class="gl-list"></div></div></div>
   <div id="matchPick" class="overlay hidden"><div class="dialog"><div class="q">🃏 要翻幾張牌？</div><div id="matchSizes" class="row wrap"></div><button id="matchPickClose" class="big-btn alt small">↩️ 回去</button></div></div>
   <!-- 家長設定（B6）：整頁給家長看 → noann 不加注音、靠左、分段 -->
   <div id="settings" class="overlay hidden"><div class="dialog settings noann">

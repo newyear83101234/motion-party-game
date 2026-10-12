@@ -4,7 +4,9 @@
 //     貓頭鷹：不出聲的話看字時間＋4 秒收起、點一下馬上收、點探頭彈出來再講一次、唸完 4 秒收、有新的話（guideSay／天氣直接改字）自動彈出；
 //     星星罐有幣：整顆膠囊沒有動畫（不放大）、只有幣圖示在跳、星星和數字不動；🏙️ 白底、圖示不晃，有新東西才有加注音的「新」小紅標＋輕跳；
 //     橫式／直式／手機直式：上方兩排、繼續玩、膠囊、換人小字互不重疊也都在畫面內；
-//     小島浮標（10-12 精簡）：平常收成圓形圖示、一棟一棟按住展開名字，兩種樣子都不被按鈕擋到；沒有錯誤
+//     小島浮標（10-12 精簡）：平常收成圓形圖示、一棟一棟按住展開名字，兩種樣子都不被按鈕擋到；沒有錯誤；
+//     10-12：🗺️ 全部遊戲圓鈕（左上地點鈕那欄：橫式 🌈 下面、直式第三排）跟其他介面不重疊；「▶ 繼續玩」膠囊不蓋住任何浮標（收合／一棟一棟展開都算）、
+//     橋頭路牌浮標也不被按鈕擋到——寬螢幕 1873×1014、1366×768、4:3 1024×768、直式 768×1024 都驗
 const { launch, openGame, enterMode } = require("./lib");
 const out = []; const ok = (name, cond, info = "") => out.push(`${cond ? "PASS" : "FAIL"}  ${name}${info !== "" ? "  — " + info : ""}`);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -16,6 +18,8 @@ const isOpen = (p, side) => p.evaluate(s => document.getElementById("hud" + s).c
 const folded = p => p.evaluate(() => document.getElementById("guide").classList.contains("fold"));
 const center = (p, sel) => p.evaluate(s => { const r = document.querySelector(s).getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, sel);
 const FOLD = ["homeBtn", "musicBtn", "playerBtn", "playerTag", "settingsBtn"];
+const SHOTS = process.env.ZY_SHOTS || require("path").join(process.env.TEMP || ".", "zy-hud-shots");
+try { require("fs").mkdirSync(SHOTS, { recursive: true }); } catch (e) {}
 // 浮標展開完（0.2 秒拉開；headless 軟體繪圖一格可能 0.2 秒以上）再多等兩三格讓位置跟上
 const opened = (p, m) => p.waitForFunction(m => { const t = document.querySelector(`.hub-tag[data-mode=${m}]`); return t.classList.contains("open") && t.querySelector(".ht-more").getBoundingClientRect().width >= t.querySelector(".ht-txt").getBoundingClientRect().width - 1; }, m, { timeout: 5000 }).catch(() => {}).then(() => sleep(400));
 
@@ -34,7 +38,7 @@ const opened = (p, m) => p.waitForFunction(m => { const t = document.querySelect
     await ready(p); await sleep(300);
     const st = await p.evaluate(ids => ids.map(id => { const e = document.getElementById(id), s = getComputedStyle(e), r = e.getBoundingClientRect(); return { id, vis: s.visibility, w: Math.round(r.width) }; }), FOLD);
     ok("收起來：家長按鈕看不到，但位置還佔著（3D 小島擺浮標照樣避開）", st.every(x => x.vis === "hidden" && x.w > 10), JSON.stringify(st));
-    ok("收起來：🏙️ 新市區、🌈 彩虹島、兩個把手、貼紙、星星罐看得到", (await shown(p, "townBtn")) && (await shown(p, "townTag")) && (await shown(p, "rainbowBtn")) && (await shown(p, "rainbowTag")) && (await shown(p, "hudLBtn")) && (await shown(p, "hudRBtn")) && (await shown(p, "albumBtn")) && await p.evaluate(() => getComputedStyle(document.querySelector("#menu .jarBtn")).visibility === "visible"));
+    ok("收起來：🏙️ 新市區、🌈 彩虹島、兩個把手、🗺️ 全部遊戲、貼紙、星星罐看得到", (await shown(p, "townBtn")) && (await shown(p, "townTag")) && (await shown(p, "rainbowBtn")) && (await shown(p, "rainbowTag")) && (await shown(p, "hudLBtn")) && (await shown(p, "hudRBtn")) && (await shown(p, "mapBtn")) && (await shown(p, "albumBtn")) && await p.evaluate(() => getComputedStyle(document.querySelector("#menu .jarBtn")).visibility === "visible"));
     // 點把手展開（真的用滑鼠點）
     let c = await center(p, "#hudLBtn"); await p.mouse.click(c.x, c.y); await sleep(300);
     ok("點左邊把手：左邊展開（🏠🎵 出現）、右邊不動", (await isOpen(p, "L")) && !(await isOpen(p, "R")) && (await shown(p, "homeBtn")) && (await shown(p, "musicBtn")));
@@ -92,6 +96,7 @@ const opened = (p, m) => p.waitForFunction(m => { const t = document.querySelect
       return { home: [R("homeBtn").left / v, R("homeBtn").top / v].map(x => +x.toFixed(1)), music: [R("musicBtn").left / v, R("musicBtn").top / v].map(x => +x.toFixed(1)), hv: vis("homeBtn"), mv: vis("musicBtn"),
         handles: ["hudLBtn", "hudRBtn"].map(id => getComputedStyle(document.getElementById(id)).display), speak: getComputedStyle(document.getElementById("speakBtn")).display }; });
     ok("遊戲裡：🏠 在左上 (2,2)vmin、🎵 在 (16,2)vmin、看得到；把手不見；🔊 提示在", Math.abs(gm.home[0] - 2) < 0.2 && Math.abs(gm.home[1] - 2) < 0.2 && Math.abs(gm.music[0] - 16) < 0.2 && gm.hv === "visible" && gm.mv === "visible" && gm.handles.every(d => d === "none") && gm.speak !== "none", JSON.stringify(gm));
+    ok("遊戲裡：🗺️ 全部遊戲收起來", await p.evaluate(() => getComputedStyle(document.getElementById("mapBtn")).display === "none"));
     c = await center(p, "#homeBtn"); await p.mouse.click(c.x, c.y); await sleep(300);
     ok("遊戲裡點 🏠：跳暫停", await p.evaluate(() => !document.getElementById("confirm").classList.contains("hidden")));
     await p.evaluate(() => document.getElementById("confirmYes").click()); await sleep(800);
@@ -147,27 +152,31 @@ const opened = (p, m) => p.waitForFunction(m => { const t = document.querySelect
     await ctx.close();
   }
   // ===== 3. 橫式（含繼續玩）／直式 iPad／手機直式／4:3：互不重疊、都在畫面內 =====
-  for (const [w, h, t] of [[1180, 820, "L"], [820, 1180, "P"], [390, 844, "M"], [1024, 768, "43"]]) {
+  for (const [w, h, t] of [[1180, 820, "L"], [820, 1180, "P"], [390, 844, "M"], [1024, 768, "43"], [1873, 1014, "W"], [1366, 768, "169"], [768, 1024, "P34"]]) {   // 10-12：阿葉的寬螢幕截圖 1873×1014（膠囊蓋到打地鼠）、1366×768、直式 768×1024
     const { ctx, p, errs } = await openGame(browser, { w, h, stickers: 64, stars: 47, query: Q });
     await p.evaluate(() => import("./js/zhuyin-words.js").then(({ WORDS }) => { localStorage.setItem("zy1_resume", JSON.stringify({ mode: "fish", idx: 2, results: [3, 3], combo: 2, earned: [], words: WORDS.slice(0, 10).map(x => [x.h, 1]), t: Date.now() })); }));
     await p.evaluate(() => document.getElementById("homeBtn").click()); await sleep(400);   // 選單上按 🏠＝重畫選單（繼續玩出現）
     await ready(p);
     const r = await p.evaluate(() => {
-      const ids = ["#hudLBtn", "#hudRBtn", "#townBtn", "#townTag", "#rainbowBtn", "#rainbowTag", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn", "#resumeBtn", "#menu > .menu-bottom", "#guide > img", "#guideText", "#owlPeek"];
+      const ids = ["#hudLBtn", "#hudRBtn", "#townBtn", "#townTag", "#rainbowBtn", "#rainbowTag", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn", "#resumeBtn", "#menu > .menu-bottom", "#guide > img", "#guideText", "#owlPeek", "#mapBtn", "#plazaBtn"];
       const box = ids.map(s => { const e = document.querySelector(s); const q = e.getBoundingClientRect(); return { s, q, on: getComputedStyle(e).display !== "none" && q.width > 0 }; }).filter(x => x.on);
       const bad = [], out = [];
       for (let i = 0; i < box.length; i++) {
         const a = box[i].q; if (a.left < -1 || a.top < -1 || a.right > innerWidth + 1 || a.bottom > innerHeight + 1) out.push(box[i].s);
         for (let j = i + 1; j < box.length; j++) { const b = box[j].q;
           if ((box[i].s === "#townBtn" && box[j].s === "#townTag") || (box[i].s === "#rainbowBtn" && box[j].s === "#rainbowTag") || (box[i].s.startsWith("#guide") && box[j].s === "#owlPeek") || (box[i].s === "#guideText" && box[j].s === "#owlPeek")) continue;   // 新市區小字故意黏在圓鈕後面；探頭就在貓頭鷹的位置
+          if (box[i].s === "#menu > .menu-bottom" && box[j].s === "#plazaBtn") continue;   // 橫式 🎪 本來就在膠囊那排裡面
           if (a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1) bad.push(box[i].s + "×" + box[j].s); }
       }
       const tags = []; for (const tg of document.querySelectorAll(".hub-tag:not(.civic):not(.rb)")) { const q = tg.getBoundingClientRect(); for (const x of box) { const b = x.q; if (q.left < b.right && q.right > b.left && q.top < b.bottom && q.bottom > b.top) tags.push(tg.dataset.mode + "×" + x.s); } }
-      return { bad, out, tags, resume: !document.getElementById("resumeBtn").classList.contains("hidden"), shut: [...document.querySelectorAll(".hub-tag:not(.civic):not(.rb)")].filter(t => !t.classList.contains("open")).length };
+      for (const sg of document.querySelectorAll(".hub-sign")) { const q = sg.getBoundingClientRect(); if (!q.width || getComputedStyle(sg).visibility === "hidden") continue; if (q.left < 0 || q.top < 0 || q.right > innerWidth || q.bottom > innerHeight) tags.push("路牌" + sg.dataset.go + "×出畫面"); for (const x of box) { if (x.s === "#guideText" || x.s === "#owlPeek") continue; const b = x.q; if (q.left < b.right && q.right > b.left && q.top < b.bottom && q.bottom > b.top) tags.push("路牌" + sg.dataset.go + "×" + x.s); } }   // 路牌（10-12）：不被按鈕、膠囊擋到（貓頭鷹對話框會收起來，不算）
+      const rb = document.getElementById("resumeBtn").getBoundingClientRect(), mp = document.getElementById("mapBtn").getBoundingClientRect();
+      return { bad, out, tags, resume: !document.getElementById("resumeBtn").classList.contains("hidden"), resumeRect: [rb.left, rb.top, rb.right, rb.bottom].map(Math.round), map: [mp.left, mp.top, mp.right, mp.bottom].map(Math.round), shut: [...document.querySelectorAll(".hub-tag:not(.civic):not(.rb)")].filter(t => !t.classList.contains("open")).length };
     });
     ok(`${t} ${w}×${h}：繼續玩有出現`, r.resume);
     ok(`${t} ${w}×${h}：上方兩排／繼續玩／膠囊／換人小字／貓頭鷹互不重疊、都在畫面內`, r.bad.length === 0 && r.out.length === 0, JSON.stringify(r));
-    ok(`${t} ${w}×${h}：浮標（平常收成圓形圖示）沒被任何按鈕擋到（收起來的也算位置）`, r.tags.length === 0 && r.shut >= 8, r.tags.join(",") + ` 收著 ${r.shut} 個`);
+    ok(`${t} ${w}×${h}：浮標（平常收成圓形圖示）、橋頭路牌沒被任何按鈕／「繼續玩」膠囊擋到（收起來的也算位置）`, r.tags.length === 0 && r.shut === 10, r.tags.join(",") + ` 收著 ${r.shut} 個 繼續玩 ${JSON.stringify(r.resumeRect)} 🗺️ ${JSON.stringify(r.map)}`);
+    if (["W", "169", "43", "P34"].includes(t)) await p.screenshot({ path: require("path").join(SHOTS, `resume-${w}x${h}.png`) }).catch(() => {});
     // 浮標精簡（10-12）：一棟一棟按住展開名字——在畫面內、不碰上方圓鈕那兩排（收起來的也算位置）、名字那一橫排從左到右都沒被蓋住
     // （按住時浮標層疊到貓頭鷹對話框、膠囊上面，所以那兩個用「有沒有被蓋住」驗；手機直式只驗收合狀態：iPad 才是主要裝置）
     if (t !== "M") {
@@ -175,7 +184,7 @@ const opened = (p, m) => p.waitForFunction(m => { const t = document.querySelect
       for (const m of ["fish", "order", "build", "hunt", "match", "tone", "whack", "frog", "bubble", "gacha"]) {
         await p.evaluate(m => window.__hub3d.openOne(m), m); await opened(p, m);
         const c = await p.evaluate(m => {
-          const ids = ["#hudLBtn", "#hudRBtn", "#townBtn", "#townTag", "#rainbowBtn", "#rainbowTag", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn", "#resumeBtn"];
+          const ids = ["#hudLBtn", "#hudRBtn", "#townBtn", "#townTag", "#rainbowBtn", "#rainbowTag", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn", "#resumeBtn", "#mapBtn"];
           const tg = document.querySelector(`.hub-tag[data-mode=${m}]`), q = tg.getBoundingClientRect(), bad = [];
           if (!tg.classList.contains("open")) bad.push("沒展開");
           if (q.left < 0 || q.top < 0 || q.right > innerWidth || q.bottom > innerHeight) bad.push("出畫面");

@@ -1,12 +1,12 @@
 {
  "meta": {
   "generated_by": "tools/voice/build_lines.py",
-  "total_lines": 674,
-  "total_chars": 4120,
+  "total_lines": 688,
+  "total_chars": 4167,
   "by_cat": {
    "intro": 10,
    "praise": 8,
-   "guide": 241,
+   "guide": 255,
    "system": 4,
    "result": 5,
    "word": 155,
@@ -2422,6 +2422,90 @@
    "cat": "guide",
    "src": "zhuyin.js 詞句小偵探／陀螺接線（10-12）",
    "tts_text": "拿到一張陀螺勸了！"
+  },
+  {
+   "id": "pick_fish",
+   "text": "釣魚！",
+   "cat": "guide",
+   "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
+  },
+  {
+   "id": "pick_order",
+   "text": "點餐！",
+   "cat": "guide",
+   "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
+  },
+  {
+   "id": "pick_build",
+   "text": "積木！",
+   "cat": "guide",
+   "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
+  },
+  {
+   "id": "pick_hunt",
+   "text": "尋寶！",
+   "cat": "guide",
+   "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
+  },
+  {
+   "id": "pick_match",
+   "text": "翻牌！",
+   "cat": "guide",
+   "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
+  },
+  {
+   "id": "pick_tone",
+   "text": "聲調氣球！",
+   "cat": "guide",
+   "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
+  },
+  {
+   "id": "pick_whack",
+   "text": "打地鼠！",
+   "cat": "guide",
+   "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
+  },
+  {
+   "id": "pick_frog",
+   "text": "跳跳蛙！",
+   "cat": "guide",
+   "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
+  },
+  {
+   "id": "pick_bubble",
+   "text": "泡泡救援灣！",
+   "cat": "guide",
+   "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
+  },
+  {
+   "id": "pick_deliver",
+   "text": "彩虹配送站！",
+   "cat": "guide",
+   "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
+  },
+  {
+   "id": "pick_detective",
+   "text": "詞句小偵探！",
+   "cat": "guide",
+   "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
+  },
+  {
+   "id": "pick_tops",
+   "text": "戰鬥陀螺！",
+   "cat": "guide",
+   "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
+  },
+  {
+   "id": "pick_gacha",
+   "text": "扭蛋機！",
+   "cat": "guide",
+   "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
+  },
+  {
+   "id": "pick_dress",
+   "text": "寵物服裝店！",
+   "cat": "guide",
+   "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
   },
   {
    "id": "unlock_need_1",

@@ -3,7 +3,7 @@
 // 八個模式：釣魚 / 點餐 / 積木 / 尋寶 / 翻牌 / 聲調氣球 / 打地鼠 / 跳跳蛙（後兩個 2026-10-10 加）。長期動力：貼紙圖鑑（每個詞一張貼紙）＋星星罐孵蛋（解鎖朋友）。
 // 設計依據：櫻木花道（遊戲設計）＋寧次（UI/UX）2026-09-09 審查報告；規格見 memory project-zhuyin-game.md
 import { WORDS, PHRASES, CATS, FRIENDS } from "./zhuyin-words.js";
-import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js?v=7";
+import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js?v=8";
 import { voiceUnlock, voiceSay, voiceStop, voiceSpeaking, voicePreload, voiceCtx, voiceBind } from "./zhuyin-voice.js?v=6";
 import A from "./zhuyin-audio.js?v=2";               // 音訊引擎：一個 AudioContext、music／sfx／voice／ambience 四條 bus（docs/zhuyin-v5-plan.md §5）
 import * as RW from "./zhuyin-rewards.js?v=2";   // 獎勵系統（扭蛋機）純邏輯
@@ -27,6 +27,25 @@ const MODES = {                                     // 每模式：題數、解�
   deliver: { rounds: 1, need: 20, intro: "把貨物送到大家的家！", bgm: "road" },   // 10-12 彩虹配送站（彩虹島；need＝hub3d 的 RAINBOW_NEED）
   detective: { rounds: 1, need: 20, intro: "仔細聽，選出你聽到的那一句！", bgm: "calm" },   // 10-12 詞句小偵探（彩虹島「詞句偵探社」；開場語＝模組的 LINES.intro，第一次玩由模組自己唸）
   tops: { rounds: 1, need: 30, intro: "用注音拼出五個字，變成戰鬥陀螺！", bgm: "road" },   // 10-12 注音戰鬥陀螺（歸仁區「陀螺競技場」；need＝歸仁區開放門檻；開場語由模組每次自己唸）
+};
+// 小島介紹卡／🗺️ 全部遊戲清單（10-12 阿葉：「點下去想看是哪些關卡時就直接進入了」「這樣會不知道還有哪些關卡」）：
+// name＝介紹卡的大標題（貓頭鷹唸「名字！」，tools/voice/build_lines.py 的 pick_ 台詞）；desc＝一句話說這裡玩什麼（給 5 歲聽得懂）；ico 沒寫＝用卡片的圖示；
+// short＝🗺️ 清單卡片上的短名字（≤ 3 個字：加了注音一行才放得下；沒寫＝跟 name 一樣）
+const GAME_INFO = {
+  fish: { name: "釣魚", desc: "聽聲音，釣起對的魚" },
+  order: { name: "點餐", desc: "看注音，把餐點拿給客人" },
+  build: { name: "積木", desc: "把注音積木放進格子裡" },
+  hunt: { name: "尋寶", desc: "看注音，找到藏起來的東西" },
+  match: { name: "翻牌", desc: "翻開牌，把注音和圖配成對" },
+  tone: { name: "聲調氣球", short: "氣球", desc: "聽聲音，戳破對的聲調氣球" },
+  whack: { name: "打地鼠", desc: "聽聲音，敲對的地鼠" },
+  frog: { name: "跳跳蛙", desc: "聽聲音，跳到對的荷葉上" },
+  bubble: { name: "泡泡救援灣", short: "泡泡", desc: "發射泡泡，救出小動物" },
+  deliver: { name: "彩虹配送站", short: "配送站", desc: "看訂單，把貨物送到家" },
+  detective: { name: "詞句小偵探", short: "偵探社", desc: "仔細聽，選出你聽到的那句話" },
+  tops: { name: "戰鬥陀螺", short: "陀螺", desc: "用注音拼五個字，跟陀螺對戰" },
+  gacha: { name: "扭蛋機", ico: "🎁", desc: "投扭蛋幣，抽寵物和禮物" },
+  dress: { name: "寵物服裝店", short: "服裝店", ico: "🎀", desc: "幫寵物換上漂亮的衣服" },
 };
 const SELF_INTRO = new Set(["detective", "tops"]);     // 模組自己唸教學（卡片／鍵盤等教學講完才出來）：主程式不唸 MODES.intro，免得念兩次
 const TOPS_STARS = 15, TOPS_MAX = 3;                   // 注音戰鬥陀螺（docs/zhuyin-tops-spec.md §1）：每 15 顆星星換 1 張陀螺券、最多存 3 張；第一次免費
@@ -426,11 +445,7 @@ function loadSlot(n) {
 }
 loadSlot(slot);
 const persist = () => [lsSet(K("stickers"), save.stickers), lsSet(K("stars"), save.stars), lsSet(K("eggs"), save.eggs), lsSet(K("intro"), save.intro), lsSet(K("match_size"), save.matchSize), lsSet(K("best"), save.best), lsSet(K("bubble"), save.bubble), lsSet(K("deliver"), save.deliver), lsSet(K("detective"), save.detective), lsSet(K("tops"), save.tops), lsSet(K("rewards"), save.rw), lsSet("zy_music", save.music), lsSet("zy_hint_wait", save.hintWait), lsSet("zy_talk", save.talk)].every(Boolean);
-// 玩過哪些模式（10-12 小島浮標精簡：剛解鎖、還沒玩過的浮標名字一直展開＋「新」，玩過一次就收成圖示）：zy{n}_seen＝{ 模式: 1 }（服裝店記 dress）
-// 舊存檔沒有這欄 → 聽過開場語、有個人紀錄、上次玩的、泡泡／配送站有進度的也算玩過（不然改版後每棟都突然變「新」）
-const seenGet = () => { const s = lsGet(K("seen"), {}); return s && typeof s === "object" ? s : {}; };
-const playedMode = m => !!(seenGet()[m] || save.intro[m] || save.best[m] || lsGet(K("last_mode"), null) === m || (m === "bubble" && save.bubble.lv > 0) || (m === "deliver" && save.deliver.lv > 0) || (m === "detective" && save.detective.seen.length > 0) || (m === "tops" && (save.tops.freeUsed || save.tops.history.length > 0)));
-function markSeen(m) { const s = seenGet(); if (!s[m]) { s[m] = 1; lsSet(K("seen"), s); } }
+// （10-12 晚 阿葉：「不用把新的遊戲特別標出來，小孩玩久就知道了」→ 小島浮標的「新」拿掉，記「玩過哪些」的 zy{n}_seen 也不再寫）
 const slotSummary = n => ({ stickers: Object.keys(lsGet(`zy${n}_stickers`, {})).length, stars: lsGet(`zy${n}_stars`, 0) });
 try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}   // 請瀏覽器不要自動清掉存檔
 // 備份碼（B6）：ZY2＝三個存檔位一次包起來（換平板或瀏覽器被清掉時可以還原）；舊的 ZY1（只有一位）照樣能還原到目前這一位
@@ -670,7 +685,7 @@ function hasWebGL() {                                 // Three.js r163 起只支
   try { const gl = document.createElement("canvas").getContext("webgl2"); if (!gl) return false; const x = gl.getExtension("WEBGL_lose_context"); if (x) x.loseContext(); return true; } catch (e) { return false; }
 }
 function importHub() {
-  const url = "./zhuyin-hub3d.js?v=10";
+  const url = "./zhuyin-hub3d.js?v=11";
   if (window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports("importmap")) return import(url);
   return new Promise((ok, no) => {                    // 舊 iPad（iOS 16.3 以前）不支援 importmap → 補 es-module-shims 再載
     const s = document.createElement("script"); s.src = "IMAGE/zy3d/vendor/es-module-shims/es-module-shims.js";
@@ -685,9 +700,12 @@ function initHub() {
   const ready = importHub().then(m => m.createHub({ host: $("menu"), onFriend: f => { play("tap"); say(f.name); }, onFail: hubFail, newbie: () => stickerCount() === 0,
     onGacha: () => { play("select"); openGacha(); },   // 獎勵系統（docs/zhuyin-rewards-spec.md）
     stickers: stickerCount, onCivic: (k, info) => PZ(() => civicEvent(k, info)), onPlace: (p, open, st) => PZ(() => { placeButtons(p, st || { town: open }); if (!mode) playBgm(menuBgmKey(p)); }),   // 換島＝換選單音樂
-    onDress: () => PZ(() => { play("select"); markSeen("dress"); openDress(save.rw.partner, "menu"); if (hub) hub.refresh(); }),   // 10-12 寵物服裝店（彩虹島）→ 換裝畫面（先選夥伴）；去過一次浮標就不再標「新」
-    fresh: () => [...Object.keys(MODES).filter(m => stickerCount() >= MODES[m].need && !playedMode(m)), ...(seenGet().dress ? [] : ["dress"])],   // 剛解鎖、還沒玩過：小島浮標名字一直展開＋「新」（鎖著的 hub3d 自己略過）
-    labels: { gacha: { ico: "🎁", word: "扭蛋" }, dress: { ico: "🎀", word: "服裝店" }, detective: { word: "偵探社" }, tops: { word: "陀螺競技場" } } }))   // 偵探社／陀螺競技場：浮標寫建築名（卡片選單的卡片寫短的「偵探」「陀螺」）
+    onDress: () => PZ(() => { play("select"); openDress(save.rw.partner, "menu"); }),   // 10-12 寵物服裝店（彩虹島）→ 換裝畫面（先選夥伴）
+    onPick: (m, info) => PZ(() => (m ? showPick(m, info) : hidePick())),   // 10-12 點一下建築＝介紹卡；收起來＝null
+    pickArea: () => { const r = $("pick").getBoundingClientRect(); return r.height ? { top: r.top } : null; },
+    onIsle: p => { play("whoosh"); hub.goPlace(p); },     // 10-12 點遠方的島／橋頭路牌＝飛過去（跟地點鈕一樣的音效）
+    labels: { gacha: { ico: "🎁", word: "扭蛋" }, dress: { ico: "🎀", word: "服裝店" }, detective: { word: "偵探社" }, tops: { word: "陀螺競技場" },   // 偵探社／陀螺競技場：浮標寫建築名（卡片選單的卡片寫短的「偵探」「陀螺」）
+      signs: { rainbow: "彩虹島", town: "歸仁區", main: "回小島" } } }))   // 10-12 橋頭路牌的字
     .then(h => { if (settled) { h.dispose(); return null; } settled = true; hub = h; document.body.classList.add("hub3d"); initWeather(); return h; },
       e => { if (!settled) { settled = true; hubFail(e && e.message || e); } return null; });
   const late = new Promise(r => setTimeout(() => { if (!settled) { settled = true; hubFail("逾時"); } r(null); }, 8000));
@@ -777,6 +795,92 @@ function placeButtons(p, st = {}) {
 // 「繼續玩」出現時 body 加 has-resume：橫式它放在 🌈 圓鈕右邊，「彩虹島」小字收起來（css/zhuyin.css）
 new MutationObserver(() => document.body.classList.toggle("has-resume", !$("resumeBtn").classList.contains("hidden"))).observe($("resumeBtn"), { attributes: true, attributeFilter: ["class"] });
 const goIsle = k => { if (!hub) return; play("whoosh"); hub.goPlace(hub.place() === k ? "main" : k); };   // 再按一次（變成 🏝️ 的那顆）＝回主島
+
+// ---------- 小島介紹卡（10-12 阿葉：「點下去想看是哪些關卡時就直接進入了，沒辦法決定是不是要玩這關」）----------
+// 點一下建築／浮標（hub3d opts.onPick）→ 下面彈出介紹卡：大圖示、名字、一句「這裡玩什麼」、最佳星星（或關卡進度、扭蛋幣、陀螺券）、
+// 鎖著＝「再收集 N 張貼紙」沒有開始鈕；「▶️ 開始玩」＝hub.start（跟同一棟再點一次一樣）；✕＝收起來。貓頭鷹唸名字。
+// 介紹卡開著：貓頭鷹（直式在下面）、左下膠囊（橫式在下面）先淡出（body.pick-on；位置照樣佔著，小島不重擺）
+let pickMode = null;
+const modeIco = m => (GAME_INFO[m] && GAME_INFO[m].ico) || document.querySelector(`.mode-card[data-mode=${m}] .big`)?.textContent || "🎮";
+const starRow = n => { const w = el("span", "pk-stars"); for (let i = 0; i < 3; i++) w.appendChild(el("i", i < n ? "on" : "", "⭐")); return w; };
+// 介紹卡／清單上的「成績」：一般遊戲＝最佳星星；泡泡、配送站＝過了幾關；陀螺＝陀螺券；扭蛋機＝扭蛋幣；服裝店＝沒有
+function pickMeta(m) {
+  if (m === "gacha") return el("span", "pk-txt", `🪙 ${save.rw.coins + save.rw.gold}`);
+  if (m === "dress") return null;
+  if (m === "bubble" || m === "deliver") { const n = Object.keys(save[m].stars || {}).length; return n ? el("span", "pk-txt", `🏁 已經過了 ${n} 關`) : starRow(0); }
+  if (m === "tops") return el("span", "pk-txt", `🎟️ ${save.tops.tickets + (save.tops.freeUsed ? 0 : 1)}`);
+  return starRow(m === "detective" ? save.detective.best : save.best[m] || 0);
+}
+const pickNeed = (m, info = {}) => m === "dress" ? (info.locked ? Math.max(1, (info.need || 20) - stickerCount()) : 0) : MODES[m] ? Math.max(0, MODES[m].need - stickerCount()) : 0;
+function showPick(m, info = {}) {
+  const g = GAME_INFO[m]; if (!g || mode) return;
+  pickMode = m;
+  const need = pickNeed(m, info), lockedM = need > 0, box = $("pick");
+  $("pkIco").textContent = modeIco(m); $("pkName").textContent = g.name; $("pkDesc").textContent = g.desc;
+  const meta = $("pkMeta"); meta.innerHTML = ""; const mt = lockedM ? null : pickMeta(m); if (mt) meta.appendChild(mt);
+  $("pkLock").textContent = lockedM ? `🔒 再收集 ${need} 張貼紙` : "";
+  box.classList.toggle("locked", lockedM); box.dataset.mode = m;
+  if (box.classList.contains("hidden")) { box.classList.remove("hidden"); } else { box.classList.remove("swap"); void box.offsetWidth; box.classList.add("swap"); }   // 換一棟：彈一下
+  document.body.classList.add("pick-on");
+  play("tap"); talk(g.name + "！");                      // 貓頭鷹唸名字（說明語音關著就不唸）
+}
+function hidePick() {
+  if (!pickMode && $("pick").classList.contains("hidden")) return;
+  pickMode = null; $("pick").classList.add("hidden"); document.body.classList.remove("pick-on");
+}
+$("pkGo").onclick = () => { const m = pickMode; if (m && hub) hub.start(m); };
+$("pkClose").onclick = () => { play("tap"); if (hub) hub.deselect(); else hidePick(); };
+// 介紹卡開著時點了別的介面（膠囊、地點鈕、把手…）＝收起來；點小島（畫布、浮標）交給 hub3d（點別棟＝換、點空白＝收）
+document.addEventListener("pointerdown", e => {   // （只算真的手指：hub3d 預載用的假 pointerdown 會打在隱藏的 .mode-card 上，不能把卡片收掉）
+  if (!pickMode || !e.isTrusted || !e.target.closest || e.target.closest("#pick, .hub-stage, .hub-tags, .mode-cards")) return;
+  if (hub) hub.deselect(); else hidePick();
+}, { capture: true, passive: true });
+
+// ---------- 🗺️ 全部遊戲（10-12 阿葉：「這樣會不知道還有哪些關卡」）----------
+// 全畫面清單：依「主島／歸仁區／彩虹島」分組，每張卡＝圖示＋名字＋星星（或鎖）；點一張＝鏡頭飛到那座島那棟建築、開它的介紹卡。
+// 還沒開的島：標題寫還差幾張貼紙，那組的卡點了只會晃一下、貓頭鷹說上鎖台詞（不飛過去）
+const ISLE_NAME = { main: ["🏝️", "主島"], town: ["🏙️", "歸仁區"], rainbow: ["🌈", "彩虹島"] };
+function renderGames() {
+  const box = $("gamesList"); box.innerHTML = ""; if (!hub || !hub.games) return;
+  const G = hub.games(), n = stickerCount();
+  for (const isle of ["main", "town", "rainbow"]) {
+    const list = G.list.filter(x => x.isle === isle && GAME_INFO[x.mode]); if (!list.length) continue;
+    const ord = Object.keys(GAME_INFO); list.sort((a, b) => ord.indexOf(a.mode) - ord.indexOf(b.mode));   // 照 GAME_INFO 的順序（大致是解鎖順序；扭蛋機、服裝店排最後）
+    const open = G.open[isle], sec = el("section", "gl-group" + (open ? "" : " locked")); sec.dataset.isle = isle;
+    const hd = el("div", "gl-head"); hd.appendChild(el("span", "gl-hi", ISLE_NAME[isle][0])); hd.appendChild(el("span", "gl-hn", ISLE_NAME[isle][1]));
+    if (!open) hd.appendChild(el("span", "gl-hl", `🔒 ${G.need[isle]}`));   // 跟小島浮標、清單卡片一樣寫「🔒 要幾張貼紙」（橫式歸仁區那欄窄，寫一整句會擠到彩虹島）
+    sec.appendChild(hd);
+    const grid = el("div", "gl-grid");
+    for (const x of list) {
+      const need = MODES[x.mode] ? Math.max(0, MODES[x.mode].need - n) : (x.locked ? 1 : 0), lk = !open || need > 0;
+      const b = el("button", "gl-card" + (lk ? " locked" : "")); b.type = "button"; b.dataset.mode = x.mode;
+      b.appendChild(el("span", "gl-ico", modeIco(x.mode))); b.appendChild(el("span", "gl-name", GAME_INFO[x.mode].short || GAME_INFO[x.mode].name));
+      const meta = el("span", "gl-meta");
+      if (lk) meta.appendChild(el("span", "gl-lock", open ? `🔒 ${MODES[x.mode].need}` : "🔒")); else { const mt = pickMeta(x.mode); if (mt) meta.appendChild(mt); }
+      b.appendChild(meta);
+      b.onclick = () => pickFromList(x.mode, isle, open);
+      grid.appendChild(b);
+    }
+    sec.appendChild(grid); box.appendChild(sec);
+  }
+}
+function openGames() { if (!hub || mode) return; play("select"); hub.deselect(); renderGames(); $("games").classList.remove("hidden"); $("gamesList").scrollTop = 0; }
+function closeGames() { $("games").classList.add("hidden"); }
+function pickFromList(m, isle, open) {
+  if (!hub) return;
+  if (!open) {                                         // 還沒開的島：晃一下＋上鎖台詞（跟點地圖上那座島一樣）
+    const b = document.querySelector(`#gamesList .gl-card[data-mode=${m}]`); if (b) { b.classList.remove("shake"); void b.offsetWidth; b.classList.add("shake"); }
+    civicEvent(isle === "town" ? "townLocked" : "rainbowLocked", { need: hub.games().need[isle] }); return;
+  }
+  closeGames();
+  if (hub.place() !== isle) play("whoosh");
+  hub.pick(m);
+}
+$("mapBtn").onclick = openGames;
+$("gamesClose").onclick = () => { play("select"); closeGames(); };
+$("games").addEventListener("click", e => { if (e.target === $("games")) closeGames(); });   // 點清單外面的暗處＝關
+// 🗺️ 在左上那組（#hudL，跟 🏙️／🌈 地點鈕同一欄）：橫式在 🌈 下面、直式在第三排最左邊（css/zhuyin.css）。
+// （試過放右上「⋯」旁邊：🐻 被擠往左，4:3 的「換人」小字會碰到「繼續玩」）
 // 彩虹配送站（mode "deliver"，10-12）：真的遊戲在「泡泡救援灣」段後面的 buildDeliver（卡片 .mode-card[data-mode=deliver]、畫面 #deliver／#deliverRoot）
 // 歸仁區（hub3d 的城市設施與事件）：唸設施名字、警笛／鐘聲、救火、救護；還沒蓋好 → 說還差幾張貼紙（阿葉 10-11）
 function civicEvent(k, info = {}) {
@@ -988,7 +1092,7 @@ async function startMode(m, resume) {
   if (!save.intro[m] && save.talk) { save.intro[m] = 1; persist(); if (SELF_INTRO.has(m)) selfIntro = true; else { introUntil = Date.now() + 6000; talk(MODES[m].intro, () => { introUntil = 0; }); } }   // 說明語音關著＝不算聽過（家長開回來時還會唸）；偵探／陀螺：交給模組唸（selfIntro）
   await ensure(m, tok);
   if (tok !== navToken) return;                        // 等圖的時候小孩已經點去別的地方
-  lsSet(K("last_mode"), m); markSeen(m); statsPlay(m);             // markSeen：小島浮標不再標「新」（10-12）
+  lsSet(K("last_mode"), m); statsPlay(m);             // 10-12：小島浮標已不標「新」（markSeen 已移除）；statsPlay＝家長頁本機遊玩紀錄
   mode = m; idx = 0; results = []; combo = 0; earned = []; locked = false; wrongThisQ = 0; retryDone = false; wrongN = []; roundTreats = 0;
   const pool = m === "order" ? WORDS.filter(w => w.c === "food") : WORDS;
   round = BOARD(m) ? [] : makeRound(pool, m);
@@ -1651,7 +1755,7 @@ function renderDeliverPick() {
 // 第一次玩：教學交給模組唸（start({ intro:true })：卡片等教學講完才出來）；之後 intro:false（主程式本來就不唸開場語，見 SELF_INTRO）。
 // 答對一題（模組的 onCorrect）＝點心 +1、同樂廣場讀字週 +1；演出完（onWin）存檔 save.detective＝{ seen, best }，結算走共用 showResult（星星＝模組算的、點心再 +2、唸 WIN_TALK）。
 let detectiveMod = null, detectiveGame = null, detectiveRun = null, detectiveWinTalk = "";
-const importDetective = () => detectiveMod || (detectiveMod = import("./zhuyin-detective.js?v=1").catch(e => { detectiveMod = null; throw e; }));
+const importDetective = () => detectiveMod || (detectiveMod = import("./zhuyin-detective.js?v=2").catch(e => { detectiveMod = null; throw e; }));
 const DETECTIVE_FAIL = "偵探社現在打不開，等一下再試試看！";
 async function buildDetective() {
   const tok = navToken; let m;

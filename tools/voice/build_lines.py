@@ -321,6 +321,15 @@ for i, t in [("dt_fail", "偵探社現在打不開，等一下再試試看！"),
 for t in ["仔細聽，選出你聽到的那一句！", "用注音拼出五個字，變成戰鬥陀螺！"]:
     must(f'intro: "{t}"')   # MODES 的開場語要跟模組的教學句一樣（上面才不用另外錄）
 
+# ---- 10-12 小島介紹卡：點一下遊戲建築，貓頭鷹唸遊戲名字（talk(g.name + "！")；名字在 zhuyin.js 的 GAME_INFO）----
+# 「再收集 N 張貼紙」只顯示在卡片上不唸；點地圖上還沒開的島／路牌＝上面已登記的 town_locked、rb_locked
+must('talk(g.name + "！")')
+GI_BLOCK = SRC.split("const GAME_INFO = {")[1].split("\n};")[0]
+GAME_INFO = re.findall(r'^\s+(\w+): \{ name: "([^"]+)"', GI_BLOCK, re.M)
+assert len(GAME_INFO) == 14, f"GAME_INFO 解析失敗：{len(GAME_INFO)}"   # 12 個遊戲＋扭蛋機＋寵物服裝店
+for m, nm in GAME_INFO:
+    add(f"pick_{m}", nm + "！", "guide", "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）")
+
 # ---- 5. 動態句：全部展開成完整句子 ----
 DYNAMIC = []
 must("再收集 ${MODES[m].need - stickerCount()} 張貼紙就可以玩囉！")
