@@ -4,7 +4,7 @@
 // 設計依據：櫻木花道（遊戲設計）＋寧次（UI/UX）2026-09-09 審查報告；規格見 memory project-zhuyin-game.md
 import { WORDS, PHRASES, CATS, FRIENDS } from "./zhuyin-words.js";
 import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js?v=8";
-import { voiceUnlock, voiceSay, voiceStop, voiceSpeaking, voicePreload, voiceCtx, voiceBind } from "./zhuyin-voice.js?v=6";
+import { voiceUnlock, voiceSay, voiceStop, voiceSpeaking, voicePreload, voiceCtx, voiceBind } from "./zhuyin-voice.js?v=7";
 import A from "./zhuyin-audio.js?v=2";               // 音訊引擎：一個 AudioContext、music／sfx／voice／ambience 四條 bus（docs/zhuyin-v5-plan.md §5）
 import * as RW from "./zhuyin-rewards.js?v=2";   // 獎勵系統（扭蛋機）純邏輯
 import { createClock } from "./zhuyin-clock.js?v=1";   // 日夜時鐘（真實 30 分鐘＝小島一天）

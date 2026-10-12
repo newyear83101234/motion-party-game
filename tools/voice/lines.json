@@ -2439,7 +2439,8 @@
    "id": "pick_build",
    "text": "積木！",
    "cat": "guide",
-   "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
+   "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）",
+   "tts_text": "雞木！"
   },
   {
    "id": "pick_hunt",

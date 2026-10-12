@@ -78,6 +78,46 @@ body.pnoguide #guide, body.pnoguide #guide * { visibility: hidden !important; } 
 #promo .chap .bar span { width: 3.4vmin; height: 1.1vmin; border-radius: 1vmin; background: #d6e2ea; }
 #promo .chap .bar span.on { background: ${YEL}; }
 @keyframes pcIn { 0% { opacity: 0; translate: -50% -4vmin; } 100% { opacity: 1; translate: -50% 0; } }
+/* 常駐章節進度條（參考《開工吧！社畜人生！》）：位置照場景給 --bx（中心 %）、--by（vmin）；每章一段，播到的那段慢慢填滿 */
+#promo .cbar { position: absolute; left: var(--bx, 50%); top: var(--by, 1.6vmin); translate: -50% 0; display: flex; align-items: center; gap: 1.1vmin; height: 4.8vmin; padding: 0 1.8vmin 0 0.7vmin;
+  background: rgba(255,255,255,0.96); border-radius: 3vmin; box-shadow: 0 0.5vmin 1.6vmin rgba(20,50,80,0.28); white-space: nowrap; animation: pcIn 0.4s ease-out both; }
+#promo .cbar .n { background: ${NAVY}; color: #fff; font-weight: 900; font-size: 2.5vmin; line-height: 1; border-radius: 2vmin; padding: 0.55vmin 1.1vmin; }
+#promo .cbar .t { color: ${NAVY}; font-weight: 900; font-size: 2.8vmin; }
+#promo .cbar .seg { display: flex; gap: 0.5vmin; margin-left: 0.4vmin; }
+#promo .cbar .seg i { position: relative; width: 3.2vmin; height: 1vmin; border-radius: 1vmin; background: #d6e2ea; overflow: hidden; }
+#promo .cbar .seg i b { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: ${TEAL}; border-radius: 1vmin; }
+#promo .cbar .seg i.done b { width: 100%; }
+#promo .cbar.cmp .t { display: none; }
+#promo .cbar .seg i.now b { animation: segFill var(--d, 8s) linear both; }
+@keyframes segFill { from { width: 0; } to { width: 100%; } }
+/* 說明泡泡：白底圓角＋左邊黃色圓形圖示＋一句短話，出現在動作旁邊（--ax/--ay＝錨點在泡泡上的位置） */
+#promo .tip { position: absolute; display: flex; align-items: center; gap: 1.3vmin; background: #fff; border-radius: 4.2vmin; padding: 0.9vmin 2.6vmin 0.9vmin 0.9vmin; white-space: nowrap;
+  box-shadow: 0 0.6vmin 0 rgba(20,50,80,0.16), 0 1.4vmin 3vmin rgba(20,50,80,0.3); translate: var(--tx, -50%) var(--ty, -50%); transform-origin: var(--ox, 50%) var(--oy, 50%); animation: tipIn 0.42s cubic-bezier(.2,1.6,.4,1) both; }
+#promo .tip .e { width: 6vmin; height: 6vmin; flex: none; border-radius: 50%; background: ${YEL}; display: grid; place-items: center; font-size: 3.5vmin; box-shadow: inset 0 -0.5vmin 0 #d9a520; }
+#promo .tip .t { font-size: 4vmin; font-weight: 900; color: ${NAVY}; letter-spacing: 0.1vmin; }
+#promo .tip.out { animation: tipOut 0.22s ease-in both; }
+@keyframes tipIn { 0% { opacity: 0; scale: 0.5; } 100% { opacity: 1; scale: 1; } }
+@keyframes tipOut { 0% { opacity: 1; scale: 1; } 100% { opacity: 0; scale: 0.8; } }
+/* 手指點按示範：👆＋白色圓形漣漪（點的那一刻在 x,y） */
+#promo .fing { position: absolute; width: 0; height: 0; }
+#promo .fing .rp { position: absolute; left: -4.5vmin; top: -4.5vmin; width: 9vmin; height: 9vmin; border-radius: 50%; border: 0.75vmin solid rgba(255,255,255,0.95); box-shadow: 0 0 1.6vmin rgba(255,255,255,0.9), inset 0 0 1.2vmin rgba(255,255,255,0.6); opacity: 0; animation: rip 0.5s ease-out 0.05s both; }
+#promo .fing .h { position: absolute; left: -3.9vmin; top: -1vmin; font-size: 8.5vmin; line-height: 1; filter: drop-shadow(0 0.7vmin 0.8vmin rgba(0,0,0,0.4)); transform-origin: 45% 5%; animation: fingTap 0.9s ease-out both; }
+#promo .fing.quick .h { animation-duration: 0.42s; } #promo .fing.quick .rp { animation-duration: 0.36s; }
+@keyframes fingTap { 0% { opacity: 0; translate: 2.4vmin 3.2vmin; scale: 1.15; } 14% { opacity: 1; translate: 0 0; scale: 0.86; } 34% { scale: 1; } 72% { opacity: 1; translate: 0 0; } 100% { opacity: 0; translate: 1.4vmin 2vmin; } }
+@keyframes rip { 0% { opacity: 0.95; scale: 0.25; } 100% { opacity: 0; scale: 1.5; } }
+/* 片尾功能總結卡 */
+#promo .ecard { position: absolute; left: 50%; top: 45%; translate: -50% -50%; width: min(92vw, 146vmin); background: rgba(255,255,255,0.97); border-radius: 4vmin; padding: 3vmin 4vmin 3.4vmin; text-align: center;
+  box-shadow: 0 1.6vmin 0 rgba(20,60,110,0.25), 0 3vmin 7vmin rgba(10,40,80,0.35); animation: pbIn 0.5s cubic-bezier(.2,1.4,.4,1) both; }
+#promo .ecard .lg { display: inline-flex; font-size: 14vmin; font-weight: 900; line-height: 1.05; }
+#promo .ecard .lg .c { -webkit-text-stroke: 1.6vmin ${NAVY}; paint-order: stroke fill; text-shadow: 0 1vmin 0 ${NAVY}; animation: ttlPop 0.5s cubic-bezier(.2,1.7,.35,1) both; animation-delay: calc(var(--i) * 80ms + 200ms); }
+#promo .ecard .lg .c:nth-child(1), #promo .ecard .lg .c:nth-child(2) { color: ${YEL}; } #promo .ecard .lg .c:nth-child(3), #promo .ecard .lg .c:nth-child(4) { color: #3fc7c2; }
+#promo .ecard .ver { margin-top: 1.6vmin; font-size: 5vmin; font-weight: 900; color: ${NAVY}; white-space: nowrap; animation: upIn 0.4s 0.55s both; }
+#promo .ecard .ver b { color: #e8564f; margin-right: 1.2vmin; }
+#promo .ecard .feat { margin-top: 2vmin; display: flex; flex-wrap: wrap; justify-content: center; gap: 1.2vmin 1.4vmin; animation: upIn 0.4s 0.8s both; }
+#promo .ecard .feat span { background: #eaf3fa; color: ${NAVY}; font-weight: 900; font-size: 3.3vmin; border-radius: 3vmin; padding: 0.8vmin 2vmin; white-space: nowrap; }
+#promo .ecard .feat span i { font-style: normal; color: ${TEAL}; margin-right: 0.9vmin; }
+#promo .ecta { position: absolute; left: 50%; top: 84%; translate: -50% -50%; white-space: nowrap; background: ${YEL}; color: ${NAVY}; font-size: 5.6vmin; font-weight: 900; border-radius: 5vmin; padding: 1.5vmin 5vmin;
+  box-shadow: 0 1.1vmin 0 #c99a1d, 0 2.4vmin 4vmin rgba(10,40,80,0.35); animation: stampIn 0.4s 1.2s cubic-bezier(.3,1.6,.5,1) both; }
 /* 說明小膠囊（預設左下；.right＝右下；.top＝章節膠囊下面） */
 #promo .pill { position: absolute; left: 3vmin; bottom: 4vmin; display: flex; align-items: center; gap: 1.6vmin; background: #fff; border-radius: 6vmin; padding: 1.5vmin 3.4vmin 1.5vmin 2vmin;
   box-shadow: 0 0.8vmin 0 #b9c6d6, 0 1.6vmin 3vmin rgba(20,50,80,0.3); animation: ppIn 0.4s cubic-bezier(.2,1.5,.4,1) both; white-space: nowrap; }
@@ -166,7 +206,7 @@ body.pnoguide #guide, body.pnoguide #guide * { visibility: hidden !important; } 
 @media (orientation: portrait) {
   #promo .kin { font-size: 7.6vmin; padding: 2vmin 4vmin 2.2vmin 5vmin; }
   #promo .cbig { top: 46vmin; } #promo .cbig .n { font-size: 15vmin; } #promo .cbig .t { font-size: 6.4vmin; }
-  #promo .chap { top: 46vmin; } #promo .pill { bottom: 30vmin; } #promo .pill.top { top: 58vmin; } #promo .ff { top: 58vmin; } #promo .pill.lonly { display: none; } #promo .pill.pmid { left: 50%; bottom: auto; top: 64%; translate: -50% 0; animation-name: ppInT; }
+  #promo .chap { top: 46vmin; } #promo .pill { bottom: 30vmin; } #promo .pill.top { top: 58vmin; } #promo .ff { top: 58vmin; right: auto; left: 3vmin; } #promo .pill.lonly { display: none; } #promo .pill.pmid { left: 50%; bottom: auto; top: 64%; translate: -50% 0; animation-name: ppInT; }
   #promo .banner { top: 36%; } #promo .banner b { font-size: 7vmin; }
   #promo .plate { width: 90vw; height: 30vmin; } #promo .ttl { font-size: 17vmin; }
   #promo .soonT { top: 13%; font-size: 7.4vmin; }
@@ -174,6 +214,8 @@ body.pnoguide #guide, body.pnoguide #guide * { visibility: hidden !important; } 
   #promo .scard .pic { height: 18vmin; } #promo .scard .lb { margin: 0; text-align: left; font-size: 5vmin; height: 6.4vmin; }
   #promo .stamp { top: 81%; } #promo .more { top: 88%; }
   #promo .eplate { top: 34%; } #promo .ettl { top: 32%; } #promo .etag { top: 47%; font-size: 4.6vmin; } #promo .erow { top: 54%; } #promo .esm { top: 70%; }
+  #promo .ecard { top: 44%; padding: 4vmin 3vmin 4.4vmin; } #promo .ecard .lg { font-size: 15vmin; } #promo .ecard .ver { font-size: 4.8vmin; white-space: normal; }
+  #promo .ecard .feat span { font-size: 3.6vmin; } #promo .ecta { top: 76%; font-size: 5.4vmin; }
 }
 `;
 // 頁面裡的疊字小工具
@@ -182,8 +224,56 @@ const OVERLAY = (NCHAP) => {
   const mk = (cls, html, parent = root) => { const d = document.createElement("div"); d.className = cls; d.innerHTML = html; parent.appendChild(d); return d; };
   const chars = (s, cls = "c") => [...s].map((ch, i) => ch === " " ? `<span class="sp"></span>` : `<span class="${cls}" style="--i:${i}">${ch}</span>`).join("");
   const img = n => `IMAGE/zhuyin/${n}.webp`;
+  const vmin = () => Math.min(innerWidth, innerHeight) / 100;
   window.__promo = {
-    clear(sel) { root.querySelectorAll(sel || ":scope > *").forEach(x => x.remove()); },
+    clear(sel) { root.querySelectorAll(sel || ":scope > :not(.cbar)").forEach(x => x.remove()); },   // 預設不清常駐章節條
+    // 常駐章節進度條：n 第幾章、t 短標題、d 這一章大約幾秒（那一段照這個速度填滿）、pos＝[中心 x %, top vmin]
+    bar(n, t, d, pos) {
+      let b = root.querySelector(".cbar");
+      if (!b) { b = mk("cbar", `<span class="n"></span><span class="t"></span><span class="seg">${Array.from({ length: NCHAP }, () => "<i><b></b></i>").join("")}</span>`); }
+      b.querySelector(".n").textContent = String(n).padStart(2, "0"); b.querySelector(".t").textContent = t;
+      if (d) b.querySelectorAll(".seg i").forEach((s, k) => { s.className = k < n - 1 ? "done" : k === n - 1 ? "now" : ""; s.style.setProperty("--d", d + "s"); const f = s.querySelector("b"); f.style.animation = "none"; void f.offsetWidth; f.style.animation = ""; });
+      if (pos) this.barPos(pos);
+    },
+    barPos(pos) { const b = root.querySelector(".cbar"); if (b) { b.style.setProperty("--bx", pos[0] + "%"); b.style.setProperty("--by", pos[1] + "vmin"); b.classList.toggle("cmp", !!pos[2]); } },
+    barTitle(t) { const b = root.querySelector(".cbar"); if (b) b.querySelector(".t").textContent = t; },
+    barOff() { root.querySelectorAll(".cbar").forEach(x => x.remove()); },
+    // 說明泡泡：錨點 (x, y) 像素；side＝泡泡在錨點的哪一邊（above／below／left／right／c）；放好後夾在畫面裡
+    tip(e, t, x, y, side = "c") {
+      root.querySelectorAll(".tip").forEach(o => o.remove());
+      const d = mk("tip", `<span class="e">${e}</span><span class="t">${t}</span>`);
+      const S = { above: ["-50%", "-100%", "50%", "100%"], below: ["-50%", "0%", "50%", "0%"], left: ["-100%", "-50%", "100%", "50%"], right: ["0%", "-50%", "0%", "50%"], c: ["-50%", "-50%", "50%", "50%"] }[side] || ["-50%", "-50%", "50%", "50%"];
+      d.style.setProperty("--tx", S[0]); d.style.setProperty("--ty", S[1]); d.style.setProperty("--ox", S[2]); d.style.setProperty("--oy", S[3]);
+      d.style.left = x + "px"; d.style.top = y + "px"; d.style.animation = "none";
+      const m = 2 * vmin(), r = d.getBoundingClientRect();
+      if (r.left < m) x += m - r.left; if (r.right > innerWidth - m) x -= r.right - (innerWidth - m);
+      if (r.top < m) y += m - r.top; if (r.bottom > innerHeight - m) y -= r.bottom - (innerHeight - m);
+      d.style.left = x + "px"; d.style.top = y + "px"; d.style.animation = "";
+    },
+    // 說明泡泡放在某個元素旁邊（sel＝CSS 選擇器或 {left,top,right,bottom}）；gap 單位 vmin
+    tipEl(e, t, sel, side = "above", gap = 1.4) {
+      const el = typeof sel === "string" ? document.querySelector(sel) : null, r = el ? el.getBoundingClientRect() : sel;
+      if (!r || (el && !r.width)) return false;
+      const g = gap * vmin(), cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2;
+      const p = { above: [cx, r.top - g], below: [cx, r.bottom + g], left: [r.left - g, cy], right: [r.right + g, cy], c: [cx, cy] }[side];
+      this.tip(e, t, p[0], p[1], side); return true;
+    },
+    tipAt(e, t, xp, yp) { this.tip(e, t, innerWidth * xp / 100, innerHeight * yp / 100, "c"); },
+    tipOut() { root.querySelectorAll(".tip").forEach(o => o.classList.add("out")); },
+    // 手指點按：(x, y) 像素，或 sel＝元素（點它的中心）；quick＝打字那種快速連點
+    tap(x, y, quick) {
+      if (typeof x === "string") { const el = document.querySelector(x); if (!el) return false; const r = el.getBoundingClientRect(); if (!r.width) return false; quick = y; x = r.left + r.width / 2; y = r.top + r.height / 2; }
+      if (x == null || y == null) return false;
+      const f = mk("fing" + (quick ? " quick" : ""), `<span class="rp"></span><span class="h">👆</span>`); f.style.left = x + "px"; f.style.top = y + "px";
+      setTimeout(() => f.remove(), quick ? 500 : 950); return true;
+    },
+    endCard() {
+      this.clear(); this.barOff();
+      mk("stage", `<div class="sun"></div><div class="sunGlow"></div>`);
+      const feats = ["彩虹島", "配送站", "寵物換裝", "戰鬥陀螺", "詞句小偵探", "同樂廣場"].map((f, i) => `<span><i>0${i + 1}</i>${f}</span>`).join("");
+      mk("ecard", `<div class="lg">${chars("注音小島")}</div><div class="ver"><b>v5</b>—— 三座島、十二個遊戲</div><div class="feat">${feats}</div>`);
+      mk("ecta", "網址在留言，一起來玩！ →");
+    },
     clean(on) { document.body.classList.toggle("pclean", on); },
     vig(on) { this.clear(".vig"); if (on) mk("vig", ""); },
     // 開場斜色條：pos＝{ left, top, rot }（百分比／度），small＝要變小的字的索引
@@ -216,7 +306,7 @@ const OVERLAY = (NCHAP) => {
     },
     // 上次說的「即將推出」：剪影卡（items＝[[圖, 之前的字, 上線後的字]]）→ live() 翻成彩色＋打勾＋換字
     soon(items) {
-      this.clear(); mk("soonBg", ""); mk("soonT", "上次說的<em>「即將推出」</em>");
+      this.clear(); this.barOff(); mk("soonBg", ""); mk("soonT", "上次說的<em>「即將推出」</em>");
       mk("cards", items.map(([pic, a, b], i) => `<div class="scard" style="--i:${i}"><div class="pic">${pic.startsWith("em:") ? `<span class="em">${pic.slice(3)}</span>` : `<img src="${img(pic)}">`}<span class="q">?</span><span class="ok">✔</span></div><div class="lb"><span class="a">${a}</span><span class="b">${b}</span></div></div>`).join(""));
     },
     live() { const c = root.querySelector(".cards"); if (c) c.classList.add("on"); },
@@ -242,13 +332,13 @@ async function preview(dir) {
   await pg.addStyleTag({ content: CSS }); await pg.evaluate(OVERLAY, NCHAP);
   const tag = PORTRAIT ? "P" : "L";
   const snap = async (name, fn, wait, arg) => { await pg.evaluate(() => __promo.clear()); await pg.evaluate(fn, arg); await pg.waitForTimeout(wait); await pg.screenshot({ path: path.join(dir, `ov-${tag}-${name}.jpg`), quality: 85, type: "jpeg" }); };
-  await snap("1-kin", () => { __promo.vig(true); __promo.kin("上次說的「即將推出」", "navy", { left: -3, top: 16, rot: -4 }, [4, 9]); }, 1300);
+  await snap("1-kin", () => { __promo.vig(true); __promo.kin("注音小島 大更新！", "navy", { left: -3, top: 16, rot: -4 }, []); }, 1300);
   await snap("2-logo", t => __promo.logo(t), 2600, LOGO_NEW);
-  await snap("3-cbig", () => { __promo.cbig(4, "注音戰鬥陀螺", "拼 5 個字變陀螺"); __promo.chap(4, "注音戰鬥陀螺"); __promo.pill("🌀", "注音戰鬥陀螺", "字不一樣，陀螺就不一樣"); __promo.ff(true, "快轉"); }, 900);
-  await snap("4-pilltop", () => { __promo.chap(6, "泡泡新區・同樂廣場"); __promo.pill("🎪", "同樂廣場", "全島一起合作", "top"); }, 900);
+  await snap("3-cbig", () => { __promo.cbig(4, "注音戰鬥陀螺", "拼 5 個字變陀螺"); __promo.bar(4, "戰鬥陀螺", 6, [50, 1.6]); __promo.ff(true, "三倍速"); __promo.tipAt("⌨️", "拼不出的鍵會變灰", 50, 70); __promo.tap(innerWidth * 0.3, innerHeight * 0.6); }, 600);
+  await snap("4-bar", () => { __promo.bar(6, "同樂廣場", 3, [50, 4]); __promo.tipAt("🐧", "大家一起救了 168 隻", 50, 50); }, 2400);
   await snap("5-soon", s => __promo.soon(s), 1600, SOON);
   await snap("6-live", s => { __promo.soon(s); setTimeout(() => { __promo.live(); __promo.stamp("全部上線！"); __promo.more("還有更多驚喜，等你來發現！"); }, 1200); }, 2900, SOON);
-  await snap("7-end", () => __promo.end(), 2200);
+  await snap("7-end", () => __promo.endCard(), 2400);
   await browser.close(); console.log("預覽：" + dir);
 }
 
@@ -324,6 +414,8 @@ if (require.main === module) (async () => {
   let F = 0, last = null, GAMESFX = false;
   // 音效時間軸：事件發生的那一格記下來，最後 ffmpeg 照時間點疊上（k＝檔名或別名、vol、rate）
   const SFX = []; const sfx = (k, dt = 0, vol = 1, rate = 1) => SFX.push({ k, t: F / FPS + dt, vol, rate, src: "promo" });
+  // 時間標記：精華版（make_promo_v3_cut.js）照這些時間點剪；存在 %TEMP%\zy_promo3_marks(_p).json
+  const MARKS = {}; const MARK = (k, dt = 0) => { MARKS[k] = +(F / FPS + dt).toFixed(3); };
   // 心跳點：左上角 2px、幾乎透明，每格換一點點顏色 → 每一格一定有東西要重畫（beginFrame 沒變化就不給截圖）；順便收走這一格遊戲發出的音效
   const beat = () => p.evaluate(f => {
     let d = document.getElementById("promoBeat"); if (!d) { d = document.createElement("div"); d.id = "promoBeat"; d.style.cssText = "position:fixed;left:0;top:0;width:2px;height:2px;z-index:100001;pointer-events:none"; document.body.appendChild(d); }
@@ -378,15 +470,26 @@ if (require.main === module) (async () => {
   const wipeIn = async () => { await E(() => __promo.wipe()); sfx("whoosh", 0, 0.7); await rec(10); };
   const wipeOut = async () => { await E(() => __promo.wipeOut()); await rec(13); await E(() => __promo.clear(".wipe")); };
   const t0 = Date.now(), lap = n => console.log(`${n}：到第 ${F} 格（${(F / FPS).toFixed(1)} 秒，花了 ${((Date.now() - t0) / 1000).toFixed(0)} 秒）`);
-  const cover = async fn => { await wipeIn(); await E(() => __promo.clear(":scope > :not(.wipe)")); await fn(); await wipeOut(); };   // 蓋住 → 換場景 → 掃開
-  const cbigSeq = (i, n, t, s, chapT) => i === 0 ? E(([n, t, s]) => __promo.cbig(n, t, s), [n, t, s]).then(() => sfx("pop")) : i === 30 ? E(() => __promo.cbigOut()) : i === 38 ? E(([n, c]) => { __promo.clear(".cbig"); if (c) __promo.chap(n, c); }, [n, chapT]) : null;   // chapT＝null：遊戲畫面上方有遊戲自己的介面，不放章節膠囊
+  const cover = async fn => { await wipeIn(); await E(() => __promo.clear(":scope > :not(.wipe):not(.cbar)")); await fn(); await wipeOut(); };   // 蓋住 → 換場景 → 掃開
+  const cbigSeq = (i, n, t, s) => i === 0 ? E(([n, t, s]) => __promo.cbig(n, t, s), [n, t, s]).then(() => sfx("pop")) : i === 30 ? E(() => __promo.cbigOut()) : i === 38 ? E(() => __promo.clear(".cbig")) : null;
+  // 常駐章節條的位置（照場景、直橫式；避開各遊戲畫面上方的按鈕，10-12 量過）：[中心 x %, top vmin]
+  const BARPOS = PORTRAIT
+    ? { hub: [50, 4], deliver: [50, 4], dress: [50, 28.5], type: [50, 15], morph: [50, 4], fight: [50, 25], det: [50, 29], bubble: [50, 4, 1], plaza: [50, 4] }
+    : { hub: [50, 1.6], deliver: [25, 1.6], dress: [22, 94.3], type: [61, 1.6], morph: [84, 1.6], fight: [16, 93], det: [22, 1.6, 1], bubble: [20.5, 1.6, 1], plaza: [50, 1.6] };
+  const chapter = (n, t, d, pos) => E(([n, t, d, p]) => __promo.bar(n, t, d, p), [n, t, d, BARPOS[pos]]);
+  const barPos = pos => E(p => __promo.barPos(p), BARPOS[pos]);
+  const tap = (sel, quick) => E(([s, q]) => __promo.tap(s, q), [sel, !!quick]);
+  const tapXY = (x, y, quick) => E(([x, y, q]) => __promo.tap(x, y, q), [x, y, !!quick]);
+  const tipEl = (e, t, sel, side, gap) => E(a => __promo.tipEl(a[0], a[1], a[2], a[3], a[4]), [e, t, sel, side, gap]);
+  const tipAt = (e, t, x, y) => E(a => __promo.tipAt(a[0], a[1], a[2], a[3]), [e, t, x, y]);
+  const tipOut = () => E(() => __promo.tipOut());
 
   // ===== 0 開場：三句斜色條，各配一個新地方的特寫（推鏡） =====
   if (RUN("open")) {
     await E(() => { __promo.clean(true); __promo.vig(true); });
     const KIN = PORTRAIT
-      ? [["上次說的「即將推出」", "navy", { left: -3, top: 30, rot: -5 }, "deliver", [4, 9]], ["全部上線了！", "yel", { left: -2, top: 44, rot: 3 }, "dress", []], ["還多了 好多新玩法！", "teal", { left: -4, top: 58, rot: -4 }, "tops", []]]
-      : [["上次說的「即將推出」", "navy", { left: -3, top: 16, rot: -4 }, "deliver", [4, 9]], ["全部上線了！", "yel", { left: -2, top: 44, rot: 3 }, "dress", []], ["還多了 好多新玩法！", "teal", { left: -3, top: 62, rot: -4 }, "tops", []]];
+      ? [["注音小島 大更新！", "navy", { left: -3, top: 30, rot: -5 }, "deliver", []], ["上次說的「即將推出」", "yel", { left: -2, top: 44, rot: 3 }, "dress", [4, 9]], ["全部上線了！", "teal", { left: -4, top: 58, rot: -4 }, "tops", []]]
+      : [["注音小島 大更新！", "navy", { left: -3, top: 16, rot: -4 }, "deliver", []], ["上次說的「即將推出」", "yel", { left: -2, top: 44, rot: 3 }, "dress", [4, 9]], ["全部上線了！", "teal", { left: -3, top: 62, rot: -4 }, "tops", []]];
     for (const [txt, col, pos, focus, small] of KIN) {
       await E(f => window.__hub3d.focus(f, 1.9), focus); await prep(null, null, 2);
       await rec(38, async i => {
@@ -401,37 +504,41 @@ if (require.main === module) (async () => {
   if (RUN("logo")) {
     await E(() => __promo.clean(true));
     await rec(100, async i => {
-      if (i === 0) { await E(t => { __promo.vig(false); __promo.logo(t); }, LOGO_NEW); sfx("pop", 0, 0.9); sfx("star", 0.35, 0.8); sfx("pop", 0.95, 0.6); sfx("sticker", 1.7, 0.8); }
+      if (i === 0) { MARK("logo"); await E(t => { __promo.vig(false); __promo.logo(t); }, LOGO_NEW); sfx("pop", 0, 0.9); sfx("star", 0.35, 0.8); sfx("pop", 0.95, 0.6); sfx("sticker", 1.7, 0.8); }
     });
     lap("標題");
   }
   GAMESFX = true;   // 之後遊戲自己的音效照實際時間疊上
 
-  // ===== 01 三座小島：主島 → 推過彩虹橋 → 彩虹島 → 歸仁區 → 拉遠看三座島 =====
+  // ===== 01 三座小島：點 🌈 → 推過彩虹橋 → 彩虹島 → 點 🏙️ 歸仁區 → 點 🏝️ 回小島 → 拉遠看三座島 =====
   if (RUN("isles")) {
     await cover(async () => {
       await E(() => { __promo.clear(".stage"); __promo.vig(false); __promo.clean(false); window.__hub3d.goPlace("main"); window.__hub3d.cam(1, 0, 0); });
       await prep(null, null, 8); await hideGuide();
     });
     // 彩虹島在主島西邊：先算出鏡頭對準配送站的平移量，再一格一格推過去（經過彩虹橋）
-    const tgt = await E(() => { const h = window.__hub3d; h.focus("deliver", 0.9); const l = h.lod(); h.cam(1, 0, 0); return [l.px, l.py]; });
+    MARK("isles"); const tgt = await E(() => { const h = window.__hub3d; h.focus("deliver", 0.9); const l = h.lod(); h.cam(1, 0, 0); return [l.px, l.py]; });
     const ease = u => u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+    const tipNear = (m, e, t) => E(([m, e, t]) => { const p = window.__hub3d.screenOf(m); __promo.tip(e, t, p.x, p.y - Math.min(innerWidth, innerHeight) * 0.06, "above"); }, [m, e, t]);
     await rec(268, async i => {
-      await cbigSeq(i, 1, "三座小島", "主島・彩虹島・歸仁區", "三座小島");
+      if (i === 0) await chapter(1, "三座小島", 9.5, "hub");
+      await cbigSeq(i, 1, "三座小島", "主島・彩虹島・歸仁區");
+      if (i === 26) await tap("#rainbowBtn");
       if (i >= 32 && i < 96) { const u = ease((i - 32) / 64); await E(([z, x, y]) => window.__hub3d.cam(z, x, y), [1 - 0.12 * u, tgt[0] * u, tgt[1] * u]); }
-      if (i === 46) await E(() => __promo.pill("🌈", "走過彩虹橋", "", "right"));
-      if (i === 96) { await E(() => window.__hub3d.goPlace("rainbow")); }
-      if (i === 102) { await E(() => __promo.pill("🏠", "彩虹島", "配送站・服裝店・偵探社", "right")); sfx("pop", 0, 0.5); }
+      if (i === 96) await E(() => window.__hub3d.goPlace("rainbow"));
+      if (i === 114) { await tipNear("deliver", "🌈", "彩虹島：送貨、換裝、偵探"); sfx("pop", 0, 0.5); }
+      if (i === 142) { await tipOut(); await tap("#townBtn"); }
       if (i === 148) { await E(() => window.__hub3d.goPlace("town")); sfx("whoosh", 0, 0.5); }
-      if (i === 158) { await E(() => __promo.pill("🏙️", "歸仁區", "新的陀螺競技場", "right")); sfx("pop", 0, 0.5); }
-      if (i === 200) { await E(() => { window.__hub3d.goPlace("main"); __promo.clear(".pill"); }); sfx("whoosh", 0, 0.5); }
+      if (i === 168) { await tipNear("tops", "🌀", "歸仁區新開陀螺競技場"); sfx("pop", 0, 0.5); }
+      if (i === 194) { await tipOut(); await tap("#townBtn"); }
+      if (i === 200) { await E(() => window.__hub3d.goPlace("main")); sfx("whoosh", 0, 0.5); }
       if (i >= 224) { const u = ease(Math.min(1, (i - 224) / 34)); await E(z => window.__hub3d.cam(z, 0, 0), 1 - 0.5 * u); }
-      if (i === 232) { await E(() => __promo.pill("🗺️", "手指一捏", "三座島一次看", "right")); sfx("pop", 0, 0.5); }
+      if (i === 236) { await tipAt("🗺️", "手指一捏，三座島一次看", 50, PORTRAIT ? 80 : 85); sfx("pop", 0, 0.5); }
     });
     await E(() => __promo.clear()); lap("三座小島");
   }
 
-  // ===== 02 彩虹配送站：任務 5（三張訂單＋吊橋）：裝貨 → 放下吊橋 → 開車送貨（▶▶ 兩倍速）→ 謝謝你！→ 全部送到了 =====
+  // ===== 02 彩虹配送站：任務 5（三張訂單＋吊橋）：手指點商品→點卡車裝貨 → 放下吊橋 → 點房子開車（四倍速）→ 謝謝你！→ 全部送到了 =====
   if (RUN("deliver")) {
     await cover(async () => {
       await toMenu();
@@ -439,27 +546,54 @@ if (require.main === module) (async () => {
       await must("配送站選關", () => !document.getElementById("deliverPick").classList.contains("hidden"));
       await E(() => document.querySelectorAll("#deliverLevels .bb-lv")[4].click());
       await must("配送站場景", () => window.__zy.mode === "deliver" && window.__zy.deliver && window.__zy.deliver.state() && window.__zy.deliver.state().ready, null, 240);
+      await chapter(2, "彩虹配送站", 9, "deliver");
       await prep(null, null, 3);
     });
-    await E(() => { window.__dvAuto = null; });
-    let fast = false, wonAt = -1;
+    // 一步一步照求解器走（跟 debug.autoStep 同一套），每一步先把手指放到要點的地方、6 格後才真的點
+    const plan = () => E(() => {
+      const g = window.__zy.deliver, d = g.debug, s = g.state(), a = d.nextAction(); if (!a) return null;
+      const C = el => { if (!el) return null; const r = el.getBoundingClientRect(); return r.width ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : null; };
+      const RC = r => r && r.width ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : null;
+      let kind = a.type, pt = null;
+      if (a.type === "load") {
+        if (s.sel !== a.g) { kind = "good"; pt = C(document.querySelector(`.dlv-good[data-g="${a.g}"]`)); }
+        else { kind = "truck"; pt = C(document.querySelector(".dlv-truckhit")); if (!pt) { const t = d.truckScreen(), cv = document.querySelector("#deliverRoot canvas"), o = cv ? cv.getBoundingClientRect() : { left: 0, top: 0 }; pt = t && { x: t.x + o.left, y: t.y + o.top }; } }
+      } else if (a.type === "unload" || a.type === "deliver") pt = C(document.querySelector(`.dlv-slot[data-k="${a.slot}"]`));
+      else if (a.type === "bridge") pt = RC(d.pinRect("BR"));
+      else if (a.type === "drive") pt = RC(d.pinRect(a.to));
+      return { kind, a, pt };
+    });
+    const doAct = act => E(({ kind, a }) => { const d = window.__zy.deliver.debug; if (kind === "good") d.tapGood(a.g); else if (kind === "truck") d.tapTruck(); else if (kind === "unload" || kind === "deliver") d.tapSlot(a.slot); else if (kind === "bridge") d.tapBridge(); else if (kind === "drive") d.tapPin(a.to); }, act);
+    let fast = false, wonAt = -1, pend = null, lastAct = -99; const tipped = {};
     const keep = i => !fast || i % 4 === 0;   // 卡車在路上開＝四倍速
     const n = await recUntil(() => window.__dvEnd === true, 900, async i => {
-      await cbigSeq(i, 2, "彩虹配送站", "裝貨、開車、送到家", null);
-      if (i === 6) await E(() => { window.__dvAuto = window.__zy.deliver.debug.autoPlay(160); });
-      const s = await E(() => { const s = window.__zy.deliver.state(); return s && { driving: s.driving, won: s.won }; });
-      if (s && s.won && wonAt < 0) wonAt = i;
+      await cbigSeq(i, 2, "彩虹配送站", "裝貨、開車、送到家");
+      const s = await E(() => { const s = window.__zy.deliver.state(); return s && { driving: s.driving, won: s.won, done: s.done, bridge: s.bridge, lock: s.lock, ready: s.ready }; });
+      if (i === 0) MARK("deliver");
+      if (s) { (s.done || []).forEach((d, k) => { if (d && !MARKS["dv_" + k]) MARK("dv_" + k); }); if (s.bridge && !MARKS.dv_bridge) MARK("dv_bridge"); }   // dv_0／1／2＝第幾張訂單送到（任務 5：小兔、小熊、小豬）
+      if (!pend && i >= 8 && i - lastAct >= 5 && s && s.ready && !s.won && !s.driving && !s.lock) {
+        const act = await plan();
+        if (act) {
+          if (act.pt) await tapXY(act.pt.x, act.pt.y);
+          pend = { at: i + 4, act };
+          if (act.kind === "good" && !tipped.good) { tipped.good = i; await tipEl("📦", "點商品再點卡車，就裝貨", ".dlv-shelf", "above"); }
+          if (act.kind === "drive" && !tipped.drive && act.pt) { tipped.drive = i; await tipEl("🏠", "點房子，卡車自己開過去", { left: act.pt.x - 20, right: act.pt.x + 20, top: act.pt.y - 26, bottom: act.pt.y + 26 }, "above"); }
+        }
+      }
+      if (pend && i >= pend.at) { await doAct(pend.act); lastAct = i; pend = null; }
+      if (tipped.good && i === tipped.good + 60 && !tipped.drive) await tipOut();
+      if (s && s.won && wonAt < 0) { wonAt = i; MARK("dv_won"); await tipOut(); }
       const want = !!(s && s.driving) && wonAt < 0 && i > 40;
       if (want !== fast) { fast = want; await E(f => __promo.ff(f, "四倍速"), fast); }
-      if (wonAt >= 0 && i - wonAt > 46) await E(() => { window.__dvEnd = true; });
+      if (wonAt >= 0 && i - wonAt > 40) await E(() => { window.__dvEnd = true; });
     }, keep);
     console.log("配送站：", n, "格（含快轉丟掉的）、過關在", wonAt);
     await E(() => { __promo.clear(); window.__dvEnd = false; }); lap("配送站");
   }
 
-  // ===== 03 寵物換裝：彩虹島服裝店 → 小兔試穿皇冠、彩虹披風、小花、翅膀、派對帽 =====
+  // ===== 03 寵物換裝：彩虹島服裝店 → 小兔試穿皇冠、彩虹披風、小花、翅膀、派對帽（手指點衣櫃） =====
   if (RUN("dress")) {
-    const ITEMS = ["crown", "cape_rainbow", "flower", "wings", "party_hat"];
+    const ITEMS = ["crown", "cape_rainbow", "flower", "wings", "party_hat"], AT = [12, 38, 64, 90, 116];
     await cover(async () => {
       await toMenu();
       await E(() => { __promo.clean(false); window.__hub3d.goPlace("rainbow"); });
@@ -471,34 +605,40 @@ if (require.main === module) (async () => {
       for (const id of ITEMS) { await E(id => window.__zy.dress.debug.tapItem(id), id); await ready(); }
       await E(() => { const d = window.__zy.dress.debug, w = d.state().wear; for (const s of ["head", "side", "back"]) if (w[s]) d.tapItem(w[s]); });
       await prep(() => window.__zy.dress.debug.state().worn.length === 0, null, 40); await prep(null, null, 10);
+      await chapter(3, "寵物換裝", 5.5, "dress");
     });
-    await rec(160, async i => {
-      await cbigSeq(i, 3, "寵物換裝", "10 件衣服配件", null);
-      const k = [12, 40, 68, 96, 124].indexOf(i); if (k >= 0) await E(id => window.__zy.dress.debug.tapItem(id), ITEMS[k]);
-      if (i === 50) await E(() => __promo.pill("🎁", "送貨、扭蛋拿新衣服", "穿好就在小島上走來走去", "lonly"));
+    await rec(148, async i => {
+      await cbigSeq(i, 3, "寵物換裝", "10 件衣服配件");
+      if (i === 0) MARK("dress");
+      const kf = AT.indexOf(i + 6); if (kf >= 0) await tap(`.dr-item[data-id="${ITEMS[kf]}"]`);
+      const k = AT.indexOf(i); if (k >= 0) await E(id => window.__zy.dress.debug.tapItem(id), ITEMS[k]);
+      if (i === 16) await tipEl("👗", "點衣服，馬上穿上", `.dr-item[data-id="crown"]`, PORTRAIT ? "above" : "left");
+      if (i === 78) { if (PORTRAIT) await tipEl("🎁", "送貨、扭蛋拿到新衣服", ".dr-closet", "above"); else await tipAt("🎁", "送貨、扭蛋拿到新衣服", 27, 84); }
     });
     await E(() => __promo.clear()); lap("換裝");
   }
 
-  // ===== 04 注音戰鬥陀螺：注音鍵盤拼「宇宙強爸爸」→ 下場變身 → 對戰（中間回合跳過）→ 決勝回合慢動作 → 你贏了 =====
+  // ===== 04 注音戰鬥陀螺：注音鍵盤拼「宇宙強爸爸」（手指連點）→ 下場變身 → 戰力長條＋徽章 → 第 1 回合發射＋點畫面加油 → 決勝回合慢動作 → 你贏了 =====
   if (RUN("tops")) {
     await cover(async () => {
       await toMenu();
       await E(() => { __promo.clean(false); document.querySelector(".mode-card[data-mode=tops]").click(); });
       await must("陀螺打字畫面", () => window.__zy.mode === "tops" && window.__zy.tops && window.__zy.tops.state() && window.__zy.tops.state().phase === "type", null, 240);
+      await chapter(4, "戰鬥陀螺", 13, "type");
       await prep(null, null, 8);
     });
-    // 打字小幫手：照目前狀態按下一個鍵（符號 → 聲調 → 選字），一次一個動作；回傳 "done"＝五個字都好了
+    // 打字小幫手：照目前狀態按下一個鍵（符號 → 聲調 → 選字），一次一個動作；回傳 { r, pt }（r＝"done"＝五個字都好了；pt＝按的位置，給手指用）
     const typeStep = () => E(() => {
       const P = "宇宙強爸爸", Z = ["ㄩˇ", "ㄓㄡˋ", "ㄑㄧㄤˊ", "ㄅㄚˋ", "ㄅㄚ˙"], root = document.getElementById("tops"), g = window.__zy.tops, s = g.state();
-      if (s.slots.every(Boolean)) return "done";
+      const press = (b, r) => { if (!b) return { r }; const q = b.getBoundingClientRect(); b.click(); return { r, pt: { x: q.left + q.width / 2, y: q.top + q.height / 2 } }; };
+      if (s.slots.every(Boolean)) return { r: "done" };
       const i = s.cur, ch = P[i], z = Z[i], tones = "ˊˇˋ˙", tone = tones.includes(z.slice(-1)) ? z.slice(-1) : "1", base = tone === "1" ? z : z.slice(0, -1);
-      const key = k => { const b = root.querySelector(`.tp-key[data-k="${k}"]`); if (b) b.click(); return "key " + k; };
+      const key = k => press(root.querySelector(`.tp-key[data-k="${k}"]`), "key " + k);
       if (s.cands.length) {
         const j = s.cands.indexOf(ch); if (j < 0) return key("back");
-        const btns = [...root.querySelectorAll(".tp-cands .tp-cand")], b = btns.find(x => x.getAttribute("aria-label") === ch);
-        if (!b) { const nx = root.querySelector(".tp-next"); if (nx) nx.click(); return "page"; }
-        b.click(); return s.sel === j ? "pick " + ch : "sel " + ch;
+        const b = [...root.querySelectorAll(".tp-cands .tp-cand")].find(x => x.getAttribute("aria-label") === ch);
+        if (!b) return press(root.querySelector(".tp-next"), "page");
+        return press(b, s.sel === j ? "pick " + ch : "sel " + ch);
       }
       if (s.comp !== base.slice(0, s.comp.length) || s.comp.length > base.length) return key("back");
       if (s.comp.length < base.length) return key(base[s.comp.length]);
@@ -506,65 +646,85 @@ if (require.main === module) (async () => {
     });
     let typed = false, morphAt = -1, ffOn = false;
     await recUntil(() => window.__zy.tops.state().phase === "morph" && !document.querySelector(".tp-fight")?.disabled, 420, async i => {
-      await cbigSeq(i, 4, "注音戰鬥陀螺", "拼 5 個字變陀螺", null);
-      if (!typed && i >= 14 && i % 2 === 0) { const r = await typeStep(); if (r === "done") { typed = true; morphAt = i + 12; } }
-      if (i === morphAt) await E(() => window.__zy.tops.debug.go());
+      await cbigSeq(i, 4, "注音戰鬥陀螺", "拼 5 個字變陀螺");
+      if (i === 14) MARK("tp_type");
+      if (!typed && i >= 14 && i % 2 === 0) { const r = await typeStep(); if (r.pt) await tapXY(r.pt.x, r.pt.y, true); if (r.r === "done") { typed = true; morphAt = i + 12; } }
+      if (i === 24) await E(() => { const ks = [...document.querySelectorAll("#tops .tp-key")].map(k => k.getBoundingClientRect()).filter(r => r.width); if (!ks.length) return;
+        __promo.tipEl("⌨️", "拼不出的鍵會變灰", { left: Math.min(...ks.map(r => r.left)), right: Math.max(...ks.map(r => r.right)), top: Math.min(...ks.map(r => r.top)), bottom: Math.max(...ks.map(r => r.bottom)) }, "above"); });
+      if (i === morphAt - 6) { await tipOut(); await tap("#tops .tp-go"); }
+      if (i === morphAt) { MARK("tp_go"); await E(() => { __promo.clear(".tip"); window.__zy.tops.debug.go(); }); await barPos("morph"); }
       if (morphAt > 0 && i === morphAt + 80 && !ffOn) { ffOn = true; await E(() => __promo.ff(true, "三倍速")); }
     }, i => morphAt < 0 || i < morphAt + 80 || i % 3 === 0);   // 五顆陀螺一顆一顆變出來＝一倍速；戰力數字、加成那一段三倍速
-    await E(() => __promo.ff(false));
-    // 開戰：第 1 回合（回合字卡、3 2 1 兩倍速 → 發射一倍速）→ 中間回合不錄 → 決勝回合從最後一擊前 0.7 秒開始 → 慢動作 → 你贏了
-    await E(() => window.__zy.tops.debug.fight());
+    await E(() => __promo.ff(false)); MARK("tp_vs");
+    // 對戰前：停在「戰力長條＋徽章＋對手」那一幕 1.5 秒，手指點「開戰！」
+    await rec(38, async i => { if (i === 3) await tipEl("🏅", "比戰力，拿陀螺徽章", "#tops .tp-fight", "above"); if (i === 31) await tap("#tops .tp-fight"); });
+    await E(() => __promo.clear(".tip"));
+    // 開戰：第 1 回合（倒數兩倍速 → 發射一倍速＋手指點畫面加油）→ 中間回合不錄 → 決勝回合從最後一擊前 0.4 秒開始 → 慢動作 → 你贏了
+    await E(() => window.__zy.tops.debug.fight()); await barPos("fight");
     const M = await E(() => { const m = window.__zy.tops.debug.match(); return m && { winner: m.winner, score: m.score, rounds: m.rounds.map(r => ({ w: r.winner, n: r.n, how: r.how })), flip: m.flip }; });
     const vs = await E(() => window.__zy.tops.state());
     if (!M) throw new Error("陀螺：沒有開戰（phase＝" + (vs && vs.phase) + "）");
     // 決勝回合＝哪一方先拿到第 3 回合的那一回合（對戰結果開戰時就算好了，"a"＝我）
     let dec = -1; { let a = 0, b = 0; for (let k = 0; k < M.rounds.length; k++) { if (M.rounds[k].w === "a") a++; else b++; if (a === 3 || b === 3) { dec = k; break; } } }
     console.log("陀螺：", vs.phrase, vs.power, "對手", JSON.stringify(vs.opp), "回合", JSON.stringify(M.rounds), "決勝第", dec + 1, "回合", M.winner === "a" ? "（我贏）" : "（⚠ 我輸了）");
-    await rec(96, async i => { if (i === 48) await E(() => __promo.pill("⚔️", "一對一對戰", "撞出場、轉最久就贏", "top")); if (i === 80) await E(() => __promo.clear(".pill")); }, i => i >= 78 || (i >= 48 && i % 2 === 0));
+    const CHEER = [[0.38, 0.58], [0.6, 0.5], [0.47, 0.66]];
+    await rec(92, async i => {
+      const c = [82, 86, 90].indexOf(i);
+      if (c >= 0) { const [fx, fy] = CHEER[c]; await E(([fx, fy]) => { const x = innerWidth * fx, y = innerHeight * fy; __promo.tap(x, y, true); window.__zy.tops.debug.cheer(x, y); }, [fx, fy]); }
+    }, i => i >= 78 || (i >= 48 && i % 2 === 0));
     const sc = () => E(() => window.__zy.tops.state());
     if (dec > 0) {
       await E(() => window.__zy.tops.debug.fast(true));
       let guard = 0;
-      for (;;) {   // 跳過中間的回合（遊戲時鐘快轉、畫面不存）到決勝回合的字卡
+      for (;;) {   // 跳過中間的回合（遊戲時鐘快轉、畫面不存）到決勝回合
         const s = await sc(); if (!s || s.phase !== "battle" || (s.round && s.round.i === dec)) break;
         await step(DT); await skip(true); if (++guard > 4000) throw new Error("陀螺：等不到決勝回合");
       }
       await E(() => window.__zy.tops.debug.fast(false));
-      // 一倍速時遊戲時鐘每格 1/30 秒＝模擬 2 步；慢動作從 end.k−48 步開始（≈ n−48）→ 開打後再跳過 (n−48)/2 − 20 格
-      const skipN = Math.max(0, Math.floor((M.rounds[dec].n - 48) / 2) - 12); let j = 0;
+      // 一倍速時遊戲時鐘每格 1/30 秒＝模擬 2 步 × 回合速度（10-12 起第 4、5 回合預設兩倍速）；慢動作從 end.k−48 步開始（≈ n−48）
+      const spd = await E(() => { const s = window.__zy.tops.state(); return (s && s.round && s.round.speed) || 1; });
+      const skipN = Math.max(0, Math.floor((M.rounds[dec].n - 48) / (2 * spd)) - 12); let j = 0;
       for (;;) {
         const s = await sc(); if (!s || s.phase !== "battle") break;
         if (s.round && s.round.stage === "fight" && j++ >= skipN) break;
         await step(DT); await skip(true); if (++guard > 6000) throw new Error("陀螺：等不到決勝回合的最後一擊");
       }
-      await E(() => { __promo.flash(); __promo.pill("🔥", "決勝回合", "最後一擊！", "top"); });
+      MARK("tp_dec"); await E(p => { __promo.flash(); __promo.tipAt("🔥", "決勝回合，最後一擊！", 50, p ? 33 : 24); }, PORTRAIT);
     }
     let slowSeen = false, slowEnd = -1, endAt = -1;
     await recUntil(() => window.__promoTopsEnd === true, 600, async i => {
       const s = await sc(); const slow = !!(s && s.round && s.round.slow);
-      if (slow && !slowSeen) { slowSeen = true; await E(() => __promo.clear(".pill")); }
-      if (slowSeen && !slow && slowEnd < 0) { slowEnd = i; await E(() => __promo.ff(true, "三倍速")); }
-      if (endAt < 0 && s && s.phase === "result") { endAt = i; await E(() => __promo.ff(false)); }
-      if (endAt >= 0 && i - endAt > 38) await E(() => { window.__promoTopsEnd = true; });
+      if (slow && !slowSeen) { slowSeen = true; MARK("tp_slow"); }
+      if (slowSeen && !slow && slowEnd < 0) { slowEnd = i; await E(() => { __promo.tipOut(); __promo.ff(true, "三倍速"); }); }
+      if (endAt < 0 && s && s.phase === "result") { endAt = i; MARK("tp_result"); await E(() => __promo.ff(false)); }
+      if (endAt >= 0 && i === endAt + 8) await tipAt("🔁", "輸了可以換對手再打", 50, PORTRAIT ? 82 : 86);
+      if (endAt >= 0 && i - endAt > 44) await E(() => { window.__promoTopsEnd = true; });
     }, i => slowEnd < 0 || endAt >= 0 || i % 3 === 0);   // 慢動作完 → 回合字卡三倍速 → 「你贏了」一倍速
     await E(() => __promo.clear()); lap("陀螺");
   }
 
-  // ===== 05 詞句小偵探：聽一句話 → 三張只差幾個字的卡 → 點對的那張（綠框＋放大鏡照亮關鍵字） =====
+  // ===== 05 詞句小偵探：聽一句話 → 三張只差幾個字的卡 → 手指點對的那張（綠框＋放大鏡照亮關鍵字） =====
   if (RUN("detective")) {
     await cover(async () => {
       await toMenu();
       await E(() => { __promo.clean(false); document.querySelector(".mode-card[data-mode=detective]").click(); });
       await must("偵探畫面", () => window.__zy.mode === "detective" && window.__zy.detective && window.__zy.detective.state(), null, 160);
+      await chapter(5, "詞句小偵探", 5, "det");
       await prep(null, null, 2);
     });
     let askAt = -1;
     await recUntil(() => window.__promoDetEnd === true, 260, async i => {
-      await cbigSeq(i, 5, "詞句小偵探", "三句只差幾個字，聽出是哪句", null);
+      await cbigSeq(i, 5, "詞句小偵探", "聽一句話，找出是哪句");
       const s = await E(() => window.__zy.detective.state());
       if (askAt < 0 && s && s.phase === "ask") askAt = Math.max(i, 10);
-      if (askAt >= 0 && i === askAt + 36) { await E(() => { const g = window.__zy.detective; g.debug.tap(g.state().answer); }); }
-      if (askAt >= 0 && i === askAt + 100) await E(() => { window.__promoDetEnd = true; });
+      if (askAt >= 0 && i === askAt + 8) { if (PORTRAIT) await tipAt("👂", "三句只差幾個字", 50, 77); else await tipAt("👂", "三句只差幾個字", 13, 36); }
+      if (askAt >= 0 && i === askAt + 30) await E(() => __promo.tap(`.dt-card[data-i="${window.__zy.detective.state().answer}"]`));
+      if (askAt >= 0 && i === askAt + 36) { MARK("dt_tap"); await E(() => { const g = window.__zy.detective; g.debug.tap(g.state().answer); }); }
+      if (askAt >= 0 && i === askAt + 54) {
+        if (PORTRAIT) await tipAt("🔍", "答對了，關鍵字亮起來", 50, 77);
+        else await E(() => { const a = window.__zy.detective.state().answer; __promo.tipEl("🔍", "答對了，關鍵字亮起來", `.dt-card[data-i="${a}"]`, a >= 2 ? "above" : "below", 0.8); });
+      }
+      if (askAt >= 0 && i === askAt + 104) await E(() => { window.__promoDetEnd = true; });
     });
     console.log("偵探：題目出現在第", askAt, "格");
     await E(() => __promo.clear()); lap("偵探");
@@ -600,36 +760,43 @@ if (require.main === module) (async () => {
   };
   const shoot = (best, i, at) => {
     if (i <= at - 6) return E(a => window.__zy.bubble.debug.aim(a), Math.PI / 2 + (best.angle - Math.PI / 2) * Math.min(1, i / (at - 10)));
+    if (i === at - 6) return null;
     if (i === at) return E(() => window.__zy.bubble.debug.fire());
   };
+  const bubbleTip = (e, t) => PORTRAIT ? tipAt(e, t, 50, 64) : tipAt(e, t, 15, 76);
   if (RUN("bubble")) {
     let best = null;
-    await cover(async () => { best = await bubbleGo(1); });
+    await cover(async () => { best = await bubbleGo(1); await chapter(6, "泡泡新區", 11, "bubble"); });
     await rec(100, async i => {
-      await cbigSeq(i, 6, "泡泡新區", "泡泡 30 關，救螃蟹、救鯨魚", null);
+      await cbigSeq(i, 6, "泡泡新區", "泡泡 30 關，救螃蟹、救鯨魚");
       await shoot(best, i, 46);
-      if (i === 48) await E(() => __promo.pill("🦀", "ㄉㄊㄋㄌ 救小螃蟹", "", "pmid"));
+      if (i === 40) await tap("#bubble .bb-fire");
+      if (i === 50) await bubbleTip("🦀", "ㄉㄊㄋㄌ 救小螃蟹");
     });
-    await wipeIn(); await E(() => __promo.clear(":scope > :not(.wipe)"));
-    best = await bubbleGo(2);
+    await wipeIn(); await E(() => __promo.clear(":scope > :not(.wipe):not(.cbar)"));
+    best = await bubbleGo(2); await barPos("bubble");
     await wipeOut();
     await rec(80, async i => {
       await shoot(best, i, 22);
-      if (i === 4) await E(() => __promo.pill("🐳", "ㄍㄎㄏ 救小鯨魚", "", "pmid"));
+      if (i === 16) await tap("#bubble .bb-fire");
+      if (i === 4) await bubbleTip("🐳", "ㄍㄎㄏ 救鯨魚，共 30 關");
     });
-    await E(() => __promo.clear(".pill")); lap("泡泡");
+    await E(() => __promo.clear()); lap("泡泡");
   }
-  // 同樂廣場：小島上先說「全島一起合作」→ 🎪 打開 → 本週救援週，全島一起救了幾隻（數字滾上去、進度條長出來）
-  //   （白天放煙火幾乎看不到，10-12 試過；卡片打開時整個畫面都是卡片，說明膠囊在打開前講完）
+  // 同樂廣場：小島上先說「全島一起合作」→ 手指點 🎪 → 本週救援週，全島一起救了幾隻（數字滾上去、進度條長出來）
+  //   （白天放煙火幾乎看不到，10-12 試過）
   if (RUN("plaza")) {
     await cover(async () => {
       await toMenu();
       await E(() => { __promo.clean(false); window.__hub3d.goPlace("main"); window.__hub3d.cam(1.05, 0, 0); });
       await prep(null, null, 6); await hideGuide();
+      await E(() => __promo.barTitle("同樂廣場")); await barPos("plaza");
     });
     await rec(104, async i => {
-      if (i === 0) { await E(() => __promo.pill("🎪", "同樂廣場", "全島小朋友一起合作", "right")); sfx("pop", 0, 0.5); }
-      if (i === 30) await E(() => { __promo.clear(".pill"); document.getElementById("plazaBtn").click(); });
+      if (i === 2) { await tipEl("🎪", "全島小朋友一起合作", "#plazaBtn", PORTRAIT ? "below" : "above"); sfx("pop", 0, 0.5); }
+      if (i === 24) await tap("#plazaBtn");
+      if (i === 30) await E(() => { __promo.clear(".tip"); document.getElementById("plazaBtn").click(); });
+      if (i === 62) await tipEl("🐧", "大家一起救了 168 隻", "#plaza .pz-nu", PORTRAIT ? "below" : "right");
     });
     await E(() => __promo.clear()); lap("同樂廣場");
   }
@@ -645,21 +812,24 @@ if (require.main === module) (async () => {
       if (i === 0) sfx("pop", 0, 0.7);
       if (i === 8 || i === 15 || i === 22) sfx("flip", 0, 0.7);
       if (i === 34) { await E(() => __promo.live()); sfx("star", 0, 0.8); sfx("star", 0.26, 0.8); sfx("star", 0.52, 0.8); }
-      if (i === 58) { await E(() => __promo.stamp("全部上線！")); sfx("thump"); sfx("sticker", 0.1, 0.7); }
+      if (i === 58) { MARK("live_stamp"); await E(() => __promo.stamp("全部上線！")); sfx("thump"); sfx("sticker", 0.1, 0.7); }
       if (i === 78) { await E(() => __promo.more("還有更多驚喜，等你來發現！")); sfx("pop", 0, 0.5); }
     });
     lap("全部上線");
   }
 
-  // ===== 片尾卡 =====
+  // ===== 片尾功能總結卡：注音小島 v5 —— 三座島、十二個遊戲＋六個新功能＋「網址在留言，一起來玩！」 =====
   if (RUN("end")) {
-    await cover(async () => { await E(() => __promo.end()); await prep(null, null, 2); });
-    await rec(105, async i => { if (i === 0) { sfx("pop", 0.3, 0.8); sfx("sticker", 0.6, 0.7); } });
+    await cover(async () => { await E(() => __promo.endCard()); await prep(null, null, 2); }); MARK("end");
+    await rec(105, async i => { if (i === 0) { sfx("pop", 0.3, 0.8); sfx("sticker", 0.9, 0.7); } if (i === 36) sfx("thump", 0, 0.7); });
     lap("片尾");
   }
   await browser.close();
   if (errs.length) console.log("頁面錯誤：\n" + errs.join("\n"));
   fs.writeFileSync(path.join(FR, "sfx.json"), JSON.stringify(SFX));
+  MARKS.dur = +(F / FPS).toFixed(3);
+  fs.writeFileSync(path.join(os.tmpdir(), PORTRAIT ? "zy_promo3_marks_p.json" : "zy_promo3_marks.json"), JSON.stringify({ marks: MARKS, sfx: SFX, out: OUTMP4 }, null, 1));
+  console.log("時間標記：" + JSON.stringify(MARKS));
   if (flag("--noenc")) { console.log(`只留影格：${FR}（${F} 格、${(F / FPS).toFixed(1)} 秒、音效 ${SFX.length} 個）`); return; }
   encode(F, SFX);
   if (!flag("--keep")) fs.rmSync(FR, { recursive: true, force: true });
