@@ -1,12 +1,12 @@
 {
  "meta": {
   "generated_by": "tools/voice/build_lines.py",
-  "total_lines": 688,
-  "total_chars": 4167,
+  "total_lines": 729,
+  "total_chars": 4521,
   "by_cat": {
    "intro": 10,
    "praise": 8,
-   "guide": 255,
+   "guide": 296,
    "system": 4,
    "result": 5,
    "word": 155,
@@ -2507,6 +2507,252 @@
    "text": "寵物服裝店！",
    "cat": "guide",
    "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
+  },
+  {
+   "id": "lv_up_2",
+   "text": "第二級打開了！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_SAY（v6 結算：開了新的一級）"
+  },
+  {
+   "id": "lv_up_3",
+   "text": "第三級打開了！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_SAY（v6 結算：開了新的一級）"
+  },
+  {
+   "id": "lv_up_4",
+   "text": "第四級打開了！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_SAY（v6 結算：開了新的一級）"
+  },
+  {
+   "id": "lv_up_5",
+   "text": "第五級打開了！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_SAY（v6 結算：開了新的一級）"
+  },
+  {
+   "id": "lv_new_fish_2",
+   "text": "長得像的注音變多了！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_fish_3",
+   "text": "魚會游了！還有金星沙漏！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_fish_4",
+   "text": "魚變多了，游得更快！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_fish_5",
+   "text": "圖藏起來了，用耳朵聽！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_order_2",
+   "text": "貨架上的東西變多了！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_order_3",
+   "text": "長得像的食物變多了！還有金星沙漏！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_order_4",
+   "text": "客人要兩樣東西！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_order_5",
+   "text": "貨架上有八樣東西！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_build_2",
+   "text": "多了更多積木！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_build_3",
+   "text": "長得像的積木出現了！還有金星沙漏！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_build_4",
+   "text": "三個字的詞來了！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_build_5",
+   "text": "積木最多，要更快喔！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_hunt_2",
+   "text": "藏了長得像的東西！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_hunt_3",
+   "text": "東西變多了！還有金星沙漏！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_hunt_4",
+   "text": "十二個東西，更難找了！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_hunt_5",
+   "text": "要找得更快喔！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_match_2",
+   "text": "牌變多了，偷看時間變短！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_match_3",
+   "text": "十六張牌！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_match_4",
+   "text": "沒有偷看時間了！還有長得像的注音！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_match_5",
+   "text": "二十四張牌，最難的！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_tone_2",
+   "text": "多了輕聲氣球！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_tone_3",
+   "text": "氣球會飛了！還有金星沙漏！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_tone_4",
+   "text": "氣球飛得更快！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_tone_5",
+   "text": "兩個字的聲調都可能變！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_whack_2",
+   "text": "地鼠變狡猾了！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_whack_3",
+   "text": "同時冒出三隻地鼠！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_whack_4",
+   "text": "要敲四下才過關！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_whack_5",
+   "text": "要敲五下才過關！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_frog_2",
+   "text": "每排都有三片荷葉！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_frog_3",
+   "text": "小心順序陷阱！還有金星沙漏！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_frog_4",
+   "text": "四片荷葉，三個字的詞！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_frog_5",
+   "text": "荷葉最多，要跳得更快！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_hg_tip",
+   "text": "沙子蓋滿以前答對，就是金星喔！",
+   "cat": "guide",
+   "src": "zhuyin.js HG_TIP（v6 第一次開到有金星沙漏的第 3 級）"
+  },
+  {
+   "id": "lv_warm_1",
+   "text": "要先回第一級暖身嗎？",
+   "cat": "guide",
+   "src": "zhuyin.js LV_WARM（v6 在最高級連 2 次 1 星：建議回上一級暖身）"
+  },
+  {
+   "id": "lv_warm_2",
+   "text": "要先回第二級暖身嗎？",
+   "cat": "guide",
+   "src": "zhuyin.js LV_WARM（v6 在最高級連 2 次 1 星：建議回上一級暖身）"
+  },
+  {
+   "id": "lv_warm_3",
+   "text": "要先回第三級暖身嗎？",
+   "cat": "guide",
+   "src": "zhuyin.js LV_WARM（v6 在最高級連 2 次 1 星：建議回上一級暖身）"
+  },
+  {
+   "id": "lv_warm_4",
+   "text": "要先回第四級暖身嗎？",
+   "cat": "guide",
+   "src": "zhuyin.js LV_WARM（v6 在最高級連 2 次 1 星：建議回上一級暖身）"
   },
   {
    "id": "unlock_need_1",

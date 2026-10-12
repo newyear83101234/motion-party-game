@@ -1053,6 +1053,69 @@ body.pick-on #guide { opacity: 0; transition: opacity 0.2s; }
 body.pick-on #guide, body.pick-on #guide * { pointer-events: none !important; }
 @media (orientation: landscape) { body.pick-on #menu > .menu-bottom { opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0s 0.2s; } }
 
+/* ===== v6 難度等級（docs/zhuyin-v6-plan.md §1、§2）===== */
+/* 等級徽章：圓形＋數字，Lv1 綠、Lv2 藍、Lv3 紫、Lv4 橘、Lv5 金（不用星星圖案，免得跟分數混淆） */
+.lv-badge { display: inline-grid; place-items: center; width: 8vmin; height: 8vmin; border-radius: 50%; font-size: 4.6vmin; font-weight: 900; color: #fff; line-height: 1;
+  box-shadow: inset 0 -0.6vmin 0 rgba(0,0,0,0.18), 0 0.4vmin 1vmin rgba(0,0,0,0.2); text-shadow: 0 0.2vmin 0 rgba(0,0,0,0.25); }
+.lv-badge.lv1 { background: #3fae55; } .lv-badge.lv2 { background: #3a86e0; } .lv-badge.lv3 { background: #9256d9; } .lv-badge.lv4 { background: #f08a24; } .lv-badge.lv5 { background: #e2a900; }
+.lv-badge.big { width: 20vmin; height: 20vmin; font-size: 11vmin; box-shadow: inset 0 -1.2vmin 0 rgba(0,0,0,0.18), 0 0 0 1vmin #fff, 0 0 0 1.6vmin rgba(255,213,74,0.7); }
+/* 介紹卡：說明下面一排五顆（放在原本最佳星星那一排，卡片幾乎不變高），點一顆＝這次玩那一級；沒開的灰＋🔒；下面小字＝那級最佳星數 */
+.pk-lv { display: flex; gap: 1vmin; flex-wrap: nowrap; align-items: flex-start; }
+.pk-lv.hidden { display: none; }
+.pick.has-lv .pk-meta { display: none; }
+.pick.has-lv .pk-row { display: flex !important; }
+.lv-pick { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.2vmin; min-width: 44px; min-height: 44px; padding: 0.4vmin 0.5vmin; border-radius: 2vmin; background: transparent; border: 0.45vmin solid transparent; }
+.lv-pick .lv-badge { width: 6.4vmin; height: 6.4vmin; font-size: 3.8vmin; }
+.lv-pick.on { border-color: var(--tone); background: #fff3c4; }
+.lv-pick.locked .lv-badge { background: #b9c2cc; box-shadow: none; }
+.lv-pick .lv-lock { position: absolute; right: -0.4vmin; top: -0.6vmin; font-style: normal; font-size: 3.4vmin; line-height: 1; }
+.lv-pick .lv-st { font-size: 2vmin; line-height: 1; min-height: 2vmin; white-space: nowrap; letter-spacing: -0.3vmin; }
+.lv-pick.shake { animation: shake 0.4s; }
+/* 解鎖畫面：「🎉 第 N 級打開了！」＋新東西（結算演完才跳出；點一下關掉） */
+.lv-up, #result > .lv-up { position: absolute; inset: 0; z-index: 45; }   /* #result > * 會被設成 relative，這裡放回蓋滿整個結算畫面 */
+.lv-box { max-width: 92vmin; text-align: center; padding: 3.6vmin 5vmin; gap: 2vmin; }
+.lv-t { font-size: 6.2vmin; font-weight: 900; color: var(--blue); line-height: 1.5; text-wrap: balance; }
+.lv-s { font-size: 4.8vmin; font-weight: bold; color: #3d4a57; line-height: 1.6; text-wrap: balance; }
+.lv-ok { min-width: 30vmin; }
+.lv-warm.hidden { display: none; }
+/* 金星沙漏（§1.3）：進度條旁一顆金星慢慢被沙蓋住；最後 3 秒轉銀；不用數字、不用紅色、不閃 */
+.hg { position: fixed; z-index: 19; pointer-events: none; filter: drop-shadow(0 0.5vmin 0.8vmin rgba(0,0,0,0.25)); transition: opacity 0.3s; }
+.hg.hidden { display: none; }
+.hg svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.hg-au { fill: #ffcf33; }
+.hg-ag { fill: #d5dde3; opacity: var(--ag, 0); }
+.hg-sand { fill: #b8915a; transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(var(--sand, 0)); transition: opacity 0.4s; }
+.hg-rim { fill: none; stroke: #fff; stroke-width: 4; stroke-linejoin: round; }
+.hg.out .hg-sand { opacity: 0; }
+.hg.got:not(.out) { animation: hgGot 0.5s ease-out; }
+@keyframes hgGot { 50% { transform: scale(1.3); } }
+/* 釣魚 5–6 條魚：縮小一點（橫 3×2、直 2×3） */
+.fishBtn.sm { width: 24vmin; height: 25.6vmin; } .fishBtn.sm .fishImg { height: 15vmin; } .fishBtn.sm .zlabel { width: 20vmin; height: 10.4vmin; }
+.prompt.nopic { filter: grayscale(0.2); }
+/* 點餐：貨架 5–8 樣（縮小一排放得下）；客人一次點 2 樣＝兩個注音泡泡（拿到一樣就揭曉那一樣） */
+.shelf.many { gap: 2.4vmin; } .shelf.many .item { width: 19vmin; height: 21vmin; font-size: 10vmin; border-radius: 3vmin; }
+.shelf.lots { padding-left: max(3vmin, calc(50% - 44vmin)); padding-right: max(3vmin, calc(50% - 44vmin)); }   /* 8 樣：排成 4×2 */
+.shelf.lots .item { width: 18.5vmin; height: 19vmin; font-size: 9.5vmin; }
+.bubble .ow { display: inline-flex; align-items: center; }
+.bubble.two { font-size: 6.6vmin; gap: 2.4vmin; padding: 2vmin 3vmin; }
+.bubble.two .ow { padding: 0.6vmin 1.2vmin; border-radius: 2vmin; background: #eef5ff; } .bubble.two .ow.got { background: #dff7dc; }
+.bubble.two .han { font-size: 6.6vmin; }
+/* 爬塔 flash：注音亮 2 秒就蓋起來（點蓋子不會再打開） */
+.bubble.flashed > *, .bubble.flashed .zy { visibility: hidden; }
+.bubble.flashed::after { content: "❓"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 9vmin; background: #e9eef5; border-radius: inherit; }
+/* 聲調氣球：Lv2 五顆；Lv3 起往上飄（飄出頂端從底下再冒）→ 天空要裁切 */
+.sky.drift { overflow: hidden; }
+.sky.five .balloon { width: 19vmin; } .sky.five .balloonImg { width: 15vmin; height: 18.5vmin; }
+/* 尋寶 10–12 個東西：小一點 */
+.scene.many .obj { width: 14vmin; height: 14vmin; font-size: 8.6vmin; }
+@media (orientation: portrait) {
+  .fishBtn.sm { width: 32vmin; height: 27vmin; } .fishBtn.sm .fishImg { height: 16vmin; } .fishBtn.sm .zlabel { width: 24vmin; height: 10vmin; }
+  .shelf.many .item { width: 28vmin; height: 26vmin; font-size: 13vmin; } .shelf.lots { padding-left: 3vmin; padding-right: 3vmin; } .shelf.lots .item { width: 26vmin; height: 24vmin; font-size: 12vmin; }
+  .sky.five { grid-template-columns: repeat(3, 1fr); } .sky.five .balloon { width: 28vmin; } .sky.five .balloon:nth-child(n+3) { align-self: auto; } .sky.five .balloon:nth-child(n+4) { align-self: end; }
+  .scene.many .obj { width: 16vmin; height: 16vmin; font-size: 10vmin; }
+  .lv-pick .lv-badge { width: 7.4vmin; height: 7.4vmin; font-size: 4.4vmin; } .pk-lv { gap: 1.4vmin; }
+}
+
 /* ===== 10-12 橋頭路牌浮標：木牌底色的小牌子「箭頭＋圖示＋地名」（導航不是遊戲：名字常駐、字小一點，不搶遊戲浮標的戲）===== */
 .hub-sign { position: absolute; left: 0; top: 0; pointer-events: auto; display: flex; align-items: center; gap: 0.5vmin; background: #8a5a32; color: #fff; font-weight: bold;
   border: 0.4vmin solid #f1dcc0; border-radius: 1.2vmin; padding: 0.3vmin 0.9vmin; will-change: translate, transform; touch-action: none;

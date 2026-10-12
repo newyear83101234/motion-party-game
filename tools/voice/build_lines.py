@@ -32,7 +32,7 @@ SLOTS = re.findall(r'name: "([^"]+)"', re.search(r"export const SLOTS = \[(.*?)\
 MODES = re.findall(r'^\s+(\w+):\s+\{ rounds: \d+, need: (\d+),\s+intro: "([^"]+)"', SRC, re.M)
 PRAISE = json.loads(re.search(r"const PRAISE = (\[.*?\]);", SRC).group(1))
 EGG_STARS = int(re.search(r"const EGG_STARS = (\d+);", SRC).group(1))
-MATCH_MAX_PAIRS = max(int(n) for n in re.findall(r"\{ n: (\d+), label:", SRC)) // 2
+MATCH_MAX_PAIRS = max(int(n) for n in re.search(r"match: \{ pairs: \[([\d, ]+)\]", SRC).group(1).split(","))   # v6：翻牌張數改由等級決定（LVP.match.pairs，最多 12 對＝24 張）
 ROUNDS_MAX = max(int(r) for r in re.findall(r"rounds: (\d+)", SRC))
 NEED_MAX = max(int(n) for _, n, _ in MODES)
 
@@ -330,6 +330,31 @@ GAME_INFO = re.findall(r'^\s+(\w+): \{ name: "([^"]+)"', GI_BLOCK, re.M)
 assert len(GAME_INFO) == 14, f"GAME_INFO 解析失敗：{len(GAME_INFO)}"   # 12 個遊戲＋扭蛋機＋寵物服裝店
 for m, nm in GAME_INFO:
     add(f"pick_{m}", nm + "！", "guide", "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）")
+
+# ---- v6（10-13 分身 A）難度等級 Lv1–Lv5：解鎖畫面、沙漏說明、暖身建議（docs/zhuyin-v6-plan.md §2.1）----
+# 結算時開了新的一級：queueTalk(LV_SAY[N])「第N級打開了！」→ queueTalk(LV_NEW[模式][N])（新東西說明）；第一次開到第 3 級（有沙漏的遊戲）再加 HG_TIP。
+# 在最高級連 2 次 1 星：queueTalk(LV_WARM[N])「要先回第N級暖身嗎？」。全部是說明語音（talk 類，家長關說明語音就不唸）。
+must("const LV_SAY = [")
+LV_SAY = [t for t in re.findall(r'"([^"]*)"', SRC.split("const LV_SAY = [")[1].split("];")[0]) if t]
+assert len(LV_SAY) == 4, f"LV_SAY 解析失敗：{LV_SAY}"
+for i, t in enumerate(LV_SAY):
+    add(f"lv_up_{i + 2}", t, "guide", "zhuyin.js LV_SAY（v6 結算：開了新的一級）")
+LV_NEW_BLOCK = SRC.split("const LV_NEW = {")[1].split("\n};")[0]
+LV_NEW = re.findall(r'^\s+(\w+):\s+\{ 2: "([^"]+)", 3: "([^"]+)", 4: "([^"]+)", 5: "([^"]+)" \}', LV_NEW_BLOCK, re.M)
+assert len(LV_NEW) == 8, f"LV_NEW 解析失敗：{len(LV_NEW)}"   # 主程式 7 個遊戲＋翻牌
+seen_new = {}
+for m, *ts in LV_NEW:
+    for n, t in zip(range(2, 6), ts):
+        if t in seen_new:      # 同一句只錄一次（不同遊戲說一樣的話）
+            continue
+        seen_new[t] = 1
+        add(f"lv_new_{m}_{n}", t, "guide", "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）")
+must('const HG_TIP = "')
+add("lv_hg_tip", re.search(r'const HG_TIP = "([^"]+)"', SRC).group(1), "guide", "zhuyin.js HG_TIP（v6 第一次開到有金星沙漏的第 3 級）")
+LV_WARM = [t for t in re.findall(r'"([^"]*)"', SRC.split("const LV_WARM = [")[1].split("];")[0]) if t]
+assert len(LV_WARM) == 4, f"LV_WARM 解析失敗：{LV_WARM}"
+for i, t in enumerate(LV_WARM):
+    add(f"lv_warm_{i + 1}", t, "guide", "zhuyin.js LV_WARM（v6 在最高級連 2 次 1 星：建議回上一級暖身）")
 
 # ---- 5. 動態句：全部展開成完整句子 ----
 DYNAMIC = []
