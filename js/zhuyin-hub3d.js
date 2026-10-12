@@ -58,6 +58,7 @@ const DEFS = [
   { mode: "dress", isle: "rainbow", x: -20.3, z: -4.5, door: [0, 1], ex: [-1.1, 1.1, -1.2, 1.0], free: true },        // 10-12 寵物服裝店（像扭蛋機：不用貼紙，點了 opts.onDress()）
   { mode: "detective", isle: "rainbow", x: -18.0, z: 0, door: [1, 0], ex: [-0.8, 0.8, -1.05, 1.05], lockDist: 1.0 },   // 10-12 詞句偵探社（環狀路裡面東邊、正對彩虹橋入口；門朝東接環狀路東段；彩虹花田讓出東邊一段）
   { mode: "tops", isle: "town", x: ARENA.x, z: ARENA.z, door: [-1, 0], ex: [-2.75, 1.95, -1.95, 1.95], lockDist: 2.15 },   // 10-12 陀螺競技場（歸仁區東邊小半島；橫路的路底＝入口，門朝西）
+  { mode: "tower", x: BC(3) + 2.0, z: BC(0) - 2.0, door: [0, 1], ex: [-0.9, 0.9, -0.9, 0.9], lockDist: 0.95, spot: "lighthouse" },   // 10-13 挑戰燈塔＝燈塔岬那座燈塔（景點 SPOTS 的 lighthouse 蓋好後，startDef 把燈塔本體搬進 pivot；門口小路、草地台階、小屋照舊是景點的）
 ].map(d => ({ ...d, x: d.x ?? BC(d.bx), z: d.z ?? BC(d.bz) }));
 const isleOf = d => d.isle || "main";
 const MAIN_DEFS = DEFS.filter(d => !d.isle);
@@ -76,6 +77,7 @@ const LAYOUT = {   // [box x0,x1,y0,y1,z0,z1]、[anchor x,y,z]、[body x,y,z]（
   dress: [[-0.85, 0.9, 0, 2.57, -0.87, 1.18], [0, 2.7, -0.15], [0, 0.83, -0.15]],
   detective: [[-0.97, 1.24, 0, 1.88, -0.91, 1.16], [0, 2, 0], [0, 0.75, 0]],   // 10-12 measure()
   tops: [[-2.06, 1.81, 0, 1.5, -1.81, 1.94], [-0.13, 1.62, 0.06], [-0.13, 0.6, 0.06]],   // 10-12 measure()
+  tower: [[-0.6, 0.6, 0, 3.7, -0.6, 0.6], [0, 3.85, 0], [0, 1.4, 0]],   // 10-13 燈塔（原點＝燈塔底；台地高 0.3、燈罩頂約 3.7）
 };
 // 景點（沒有浮標、點了沒反應）
 const SPOTS = [
@@ -525,7 +527,7 @@ function buildRoads() {
     edge(RN[i], RN[(i + 1) % 4], pts);
   }
   // 每棟建築、每個景點都有一條小路接到門口（門口在人行道內側一點）
-  for (const d of [...MAIN_DEFS, ...SPOTS]) {          // 彩虹島的建築：buildRainbow 自己接
+  for (const d of [...MAIN_DEFS.filter(q => !q.spot), ...SPOTS]) {          // 彩虹島的建築：buildRainbow 自己接；燈塔（spot）的門口小路＝景點那條
     const n = graph.nodes.get(nkey(d.x + d.door[0] * PITCH / 2, d.z + d.door[1] * PITCH / 2));
     if (!n) continue;
     const door = node(n.x - d.door[0] * (RW / 2 + SW + 0.2), n.z - d.door[1] * (RW / 2 + SW + 0.2)); door.door = d;
@@ -608,7 +610,8 @@ function startDef(d) {
   const hit = new THREE.Mesh(box(b[1] - b[0] + 0.2, b[3] - b[2] + 0.2, b[5] - b[4] + 0.2), new THREE.MeshBasicMaterial({ visible: false }));
   hit.position.set((b[0] + b[1]) / 2, (b[2] + b[3]) / 2, (b[4] + b[5]) / 2); hit.userData.def = d; root.add(hit); hitBoxes.push(hit); d.hit = hit;
   exRects.push([d.x + d.ex[0], d.x + d.ex[1], d.z + d.ex[2], d.z + d.ex[3]]);
-  blob(d.x + (b[0] + b[1]) / 2, d.z + (b[4] + b[5]) / 2, Math.min(3.2, Math.max(b[1] - b[0], b[5] - b[4]) * 1.05), groundY(d.x, d.z));
+  if (d.spot) { const sp = SPOTS.find(q => q.id === d.spot); if (sp && sp.tower) { root.updateMatrixWorld(true); pivot.attach(sp.tower); } }   // 10-13 燈塔：景點蓋好的本體搬進來（彈跳、點擊、灰階都照建築）；影子、台地是景點的
+  else blob(d.x + (b[0] + b[1]) / 2, d.z + (b[4] + b[5]) / 2, Math.min(3.2, Math.max(b[1] - b[0], b[5] - b[4]) * 1.05), groundY(d.x, d.z));
   if (d.free) return;
   // 施工中：門口小路經過人行道的那一段擋一道路障（橘白斜條紋板＋柱腳），兩邊的三角錐 buildDef 第二段放。
   // 只擋門口：路燈、行道樹都讓開門口 0.9，不會穿模（10-11 阿葉：舊版圍籬沿人行道圍一圈，跟路燈、樹、樓梯打架＝破圖）
@@ -637,7 +640,7 @@ async function buildDef(d, builder, delay) {
   noDynShadow(p); mergeStatic(p);
   if (d.locked) setGray(p, true);
   d.ready = true; shadowDirty = true;
-  popIn(p, delay);
+  if (!d.spot) popIn(p, delay);                        // 燈塔一開始就在（景點蓋的），不用再「長出來」
 }
 function noDynShadow(root) { root.traverse(o => { if (o.userData.dyn) o.traverse(m => { if (m.isMesh) m.castShadow = false; }); }); }
 function popIn(obj, delay = 0) {
@@ -1174,7 +1177,9 @@ async function buildArena(d, p) {
   });
   return ar;
 }
-const BUILDERS = { fish: buildFish, order: buildOrder, build: buildBuild, hunt: buildHunt, match: buildMatch, tone: buildTone, whack: buildWhack, frog: buildFrog, bubble: buildBubble, gacha: buildGacha, deliver: buildDepot, dress: buildDress, detective: buildSleuth, tops: buildArena };
+const BUILDERS = { fish: buildFish, order: buildOrder, build: buildBuild, hunt: buildHunt, match: buildMatch, tone: buildTone, whack: buildWhack, frog: buildFrog, bubble: buildBubble, gacha: buildGacha, deliver: buildDepot, dress: buildDress, detective: buildSleuth, tops: buildArena, tower: buildBeacon };
+// 10-13 挑戰燈塔：燈塔本體是景點 lighthouse 蓋的（startDef 已經搬進 pivot），這裡只回傳 pivot（量大小、合併用）
+async function buildBeacon(d, p) { return p; }
 
 // =========================================================
 // 景點（程式生成的部分第一段就蓋好；Kenney 模型第二段）
@@ -1201,7 +1206,7 @@ const SPOT_BUILD = {
   lighthouse(s, g) {
     const lx = 2.0, lz = -2.0;
     terrace(s.x + 0.6, s.z - 0.6, 1.9, 1.9, 0.3, "#9fbf6a", "#9a8f84");
-    const t = new THREE.Group(); t.position.set(lx, 0.3, lz); g.add(t);
+    const t = new THREE.Group(); t.position.set(lx, 0.3, lz); g.add(t); s.tower = t;   // 10-13：燈塔本體＝挑戰燈塔（DEFS 的 tower），下面蓋好後搬出景點群組（不跟景點合併），startDef 再搬進它的 pivot
     for (let k = 0; k < 5; k++) vm(cyl(0.42 - k * 0.04, 0.46 - k * 0.04, 0.5, 18), k % 2 ? "#e2453c" : "#ffffff", { y: 0.25 + k * 0.5, parent: t });
     vm(cyl(0.5, 0.5, 0.06, 18), "#3d4652", { y: 2.53, parent: t });
     vm(cyl(0.26, 0.26, 0.4, 12), "#fff3a0", { y: 2.76, parent: t, glow: true, shadow: false });
@@ -1218,6 +1223,7 @@ const SPOT_BUILD = {
     vm(box(1.65, 0.04, 0.03), "#ffffff", { x: 1.7, y: 0.55, z: 1.0, parent: g });
     parkedCar(g, s.x - 1.0, s.z - 0.6, 0, 2);
     ex(s, -1.9, 3.2, -3.2, 1.4); slot(s.x - 0.9, s.z + 1.0); slot(s.x + 1.3, s.z + 1.05); slot(s.x + 0.7, s.z - 1.2);
+    g.updateMatrixWorld(true); scene.attach(t);           // 世界座標不變
   },
   // 遊樂場：沙坑、溜滑梯、盪鞦韆、翹翹板
   playground(s, g) {
@@ -1765,7 +1771,7 @@ function stepTown(t, dt) {
   if (town.open && built && now > town.nextEvent) {
     town.nextEvent = now + 50000 + Math.random() * 40000;
     const canFire = !CIVIC.find(c => c.id === "fire").locked && !town.fires.length, canSick = !CIVIC.find(c => c.id === "hospital").locked;
-    if (canFire && (!canSick || Math.random() < 0.55)) { const ds = MAIN_DEFS.filter(d => !d.locked && d.ready && !d.free); if (ds.length) startFire(ds[Math.floor(Math.random() * ds.length)]); }
+    if (canFire && (!canSick || Math.random() < 0.55)) { const ds = MAIN_DEFS.filter(d => !d.locked && d.ready && !d.free && !d.spot); if (ds.length) startFire(ds[Math.floor(Math.random() * ds.length)]); }
     else if (canSick) sickPet();
   }
   placeTownTags(); placeFireTags(); placeSickTags();
@@ -3192,7 +3198,7 @@ let builtOk = null; const builtP = new Promise(r => { builtOk = r; });
 async function loadRest() {
   if (dead) { builtOk(); return; }
   try {
-    const order = ["fish", "order", "build", "gacha", "hunt", "match", "tone", "whack", "frog", "bubble", "deliver", "dress", "detective", "tops"];
+    const order = ["fish", "order", "build", "gacha", "hunt", "match", "tone", "whack", "frog", "bubble", "deliver", "dress", "detective", "tops", "tower"];
     await Promise.all([
       ...order.map((m, i) => buildDef(DEFS.find(d => d.mode === m), BUILDERS[m], i * 90).catch(e => console.warn("[hub3d] 建築載入失敗", m, e))),
       buildSpotsKenney().catch(e => console.warn("[hub3d] 景點載入失敗", e)),

@@ -62,13 +62,13 @@ const backToMenu = async p => { await p.evaluate(() => { document.getElementById
     const st = await p.evaluate(() => { const cards = document.querySelector("#menu > .mode-cards").getBoundingClientRect();
       return { hub: document.body.classList.contains("hub3d"), canvas: !!document.querySelector("#menu .hub-stage canvas"), cardsW: cards.width, cardsOpacity: getComputedStyle(document.querySelector("#menu > .mode-cards")).opacity, tags: document.querySelectorAll(".hub-tag:not(.civic):not(.rb)").length }; });
     ok("3D 選單有出現（body.hub3d＋canvas）", st.hub && st.canvas, JSON.stringify(st));
-    ok("卡片 DOM 還在但看不到", st.cardsW <= 1 && st.cardsOpacity === "0" && (await p.evaluate(() => document.querySelectorAll(".mode-card").length)) === 12);   // 10-12 多了彩虹配送站、詞句小偵探、注音戰鬥陀螺
-    ok("主島 10 個浮標（9 個遊戲＋扭蛋機）", st.tags === 10, String(st.tags));
+    ok("卡片 DOM 還在但看不到", st.cardsW <= 1 && st.cardsOpacity === "0" && (await p.evaluate(() => document.querySelectorAll(".mode-card").length)) === 13);   // 10-12 多了彩虹配送站、詞句小偵探、注音戰鬥陀螺；10-13 挑戰燈塔
+    ok("主島 11 個浮標（9 個遊戲＋挑戰燈塔＋扭蛋機）", st.tags === 11, String(st.tags));
     const g = await p.evaluate(() => window.__hub3d.graph());
     ok("路網全部連通、9 棟建築＋7 個景點＋歸仁區 4 棟設施＋陀螺競技場＋彩虹島 6 棟都接到路", g.components === 1 && g.doors.length === 27, JSON.stringify(g));   // 10-12 彩虹島：配送站、服裝店、偵探社、三戶人家；歸仁區東邊半島：陀螺競技場
     await p.waitForFunction(() => window.__hub3d.pets().length >= 6, null, { timeout: 15000 }).catch(() => {});   // 寵物模型在建築之後才抓
     ok("島上的寵物照 setPets 來（eggs 2 → 6 位朋友）", (await p.evaluate(() => window.__hub3d.pets().length)) === 6, JSON.stringify(await p.evaluate(() => window.__hub3d.pets())));
-    ok("未解鎖（20 張）：青蛙、泡泡鎖著", JSON.stringify(await p.evaluate(() => window.__hub3d.locked())) === '["frog","bubble"]', JSON.stringify(await p.evaluate(() => window.__hub3d.locked())));
+    ok("未解鎖（20 張）：青蛙、泡泡、燈塔鎖著", JSON.stringify(await p.evaluate(() => window.__hub3d.locked())) === '["frog","bubble","tower"]', JSON.stringify(await p.evaluate(() => window.__hub3d.locked())));
     ok("鎖著的浮標只留圖示＋🔒 25（字收起來）", await p.evaluate(() => { const t = document.querySelector('.hub-tag[data-mode=frog]'), lk = t.querySelector(".ht-lock").textContent;
       return t.classList.contains("locked") && lk === "🔒 25" && getComputedStyle(t.querySelector(".ht-word")).display === "none" && getComputedStyle(t.querySelector(".ht-lock")).display !== "none"; }), await p.evaluate(() => document.querySelector('.hub-tag[data-mode=frog] .ht-lock').textContent));
     ok("不是新玩家：沒有黃框", await p.evaluate(() => document.querySelectorAll(".hub-tag.first").length === 0));
@@ -178,8 +178,8 @@ const backToMenu = async p => { await p.evaluate(() => { document.getElementById
     ok("新玩家：出現手指提示", fg);
     await ready(p);
     const lk = await p.evaluate(() => window.__hub3d.locked());
-    ok("新玩家：尋寶／翻牌／氣球／地鼠／青蛙／泡泡都鎖著", JSON.stringify(lk.sort()) === JSON.stringify(["bubble", "frog", "hunt", "match", "tone", "whack"]), JSON.stringify(lk));
-    ok("新玩家：鎖著的浮標都有 🔒", await p.evaluate(() => [...document.querySelectorAll(".hub-tag.locked:not(.civic):not(.rb)")].length === 6 && [...document.querySelectorAll(".hub-tag.locked:not(.civic):not(.rb) .ht-lock")].every(e => e.textContent.includes("🔒"))));
+    ok("新玩家：尋寶／翻牌／氣球／地鼠／青蛙／泡泡／燈塔都鎖著", JSON.stringify(lk.sort()) === JSON.stringify(["bubble", "frog", "hunt", "match", "tone", "tower", "whack"]), JSON.stringify(lk));
+    ok("新玩家：鎖著的浮標都有 🔒", await p.evaluate(() => [...document.querySelectorAll(".hub-tag.locked:not(.civic):not(.rb)")].length === 7 && [...document.querySelectorAll(".hub-tag.locked:not(.civic):not(.rb) .ht-lock")].every(e => e.textContent.includes("🔒"))));
     ok("新玩家：只有釣魚浮標有常駐黃框", await p.evaluate(() => { const f = [...document.querySelectorAll(".hub-tag.first")]; return f.length === 1 && f[0].dataset.mode === "fish" && getComputedStyle(f[0]).boxShadow.includes("255, 213, 74"); }));
     const sl = await spot(p, "hunt"); if (sl) { await p.mouse.click(sl.x, sl.y); await sleep(1200); }   // 尋寶在島的上方（新玩家貓頭鷹自我介紹比較長，會蓋到右邊的氣球攤）
     ok("新玩家：點鎖著的尋寶公園不會進遊戲（介紹卡寫還差 5 張）", !!sl && (await p.evaluate(() => window.__zy.mode)) === null && (await p.evaluate(() => document.getElementById("pkLock").textContent)).includes("5"), JSON.stringify(sl));
