@@ -205,6 +205,7 @@ const TRUCK_LEN = 2.05, TS = TRUCK_LEN / 3.25;               // delivery-flat �
 const BED = { y: 0.6, z0: -1.4, z1: -0.42 };                  // 車斗平台（模型原始單位）
 const VMAX = 4.2, ACC = 6.5;                                 // 卡車最高速（單位／秒）、加速度
 export const CTX = { made: 0, live: 0 };                    // WebGL context 計數（測試查洩漏）
+let dprMem = 0;                                             // 自動畫質降到的像素比（記著：下一關、下次進來直接用，不用每關重新降）
 const _c = new THREE.Color(), _v = new THREE.Vector3();
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 function paint(geo, hex) {
@@ -246,7 +247,8 @@ const BLANK = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAw
 const manager = new THREE.LoadingManager(); manager.setURLModifier(u => /\/colormap\.png$/.test(u) ? BLANK : u);
 const gltfLoader = new GLTFLoader(manager), gltfCache = new Map(), kitImgP = new Map();
 const loadGLB = url => { if (!gltfCache.has(url)) gltfCache.set(url, gltfLoader.loadAsync(url).catch(e => { gltfCache.delete(url); throw e; })); return gltfCache.get(url); };
-const kitImage = kit => { if (!kitImgP.has(kit)) kitImgP.set(kit, new THREE.ImageLoader().loadAsync(`${KIT}${kit}/Textures/colormap.png`)); return kitImgP.get(kit); };
+const KIT_SMALL = new Set(["city-kit-commercial", "fantasy-town-kit", "pirate-kit", "car-kit", "cube-pets"]);   // 128² 調色盤（效能體檢 10-12；跟 js/zhuyin-hub3d.js 同一份清單，tools/render3d/colormap_small.py 產生）
+const kitImage = kit => { if (!kitImgP.has(kit)) kitImgP.set(kit, new THREE.ImageLoader().loadAsync(`${KIT}${kit}/Textures/${KIT_SMALL.has(kit) ? "colormap-128" : "colormap"}.png`)); return kitImgP.get(kit); };
 const easeOutBack = t => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
 const ease = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 const angDiff = (a, b) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return d; };
@@ -259,9 +261,11 @@ function createWorld(host, ti, o) {
   const own = x => { res.own.add(x); return x; };
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
   CTX.made++; CTX.live++;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  W.dpr = Math.min(window.devicePixelRatio || 1, 1.5, dprMem || 9);   // 效能體檢 10-12：跟小島一樣起始 1.5、太慢自動往下降（遊戲本體的 frame()）
+  renderer.setPixelRatio(W.dpr);
   renderer.setClearColor(P.deep, 1);
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.shadowMap.autoUpdate = false; W.shDirty = true;   // 陰影只在有東西動（卡車、吊橋、居民跳、補模型）時重畫（W.frame）
   renderer.toneMapping = THREE.NeutralToneMapping; renderer.toneMappingExposure = 1.0;
   host.appendChild(renderer.domElement);
   // 被系統收走：先讓瀏覽器自己還回來（three.js 會重建 GPU 資源）；5 秒沒回來＝告訴主程式（api.onFail）
@@ -312,6 +316,7 @@ function createWorld(host, ti, o) {
       const m = new THREE.Mesh(merged, list[0].material); m.castShadow = list[0].castShadow; m.receiveShadow = true; root.add(m);
       for (const x of list) { x.removeFromParent(); x.geometry.dispose(); }
     }
+    W.shDirty = true;
   }
   // Kenney 調色盤：把指定格子換色（跟小島 hub3d 同一套做法）
   function kitMaterial(kit, img, tints) {
@@ -336,7 +341,7 @@ function createWorld(host, ti, o) {
     if (W.dead) return null;
     const obj = g.scene.clone(true), m = kitMaterial(kit, img, tints);
     obj.traverse(c => { if (c.isMesh) { c.material = m; c.castShadow = shadow; c.receiveShadow = true; } });
-    obj.scale.setScalar(scale); obj.position.set(x, y, z); obj.rotation.y = ry; if (parent) parent.add(obj);
+    obj.scale.setScalar(scale); obj.position.set(x, y, z); obj.rotation.y = ry; if (parent) { parent.add(obj); W.shDirty = true; }   // 模型晚到（已經開始畫了）：陰影補畫一次
     return obj;
   }
   const lambertOf = src => { const k = "zy|" + (src.map ? src.map.uuid : "") + "|" + (src.color ? src.color.getHexString() : ""); if (!res.mats.has(k)) res.mats.set(k, new THREE.MeshLambertMaterial({ map: src.map || null, color: src.color || 0xffffff })); return res.mats.get(k); };
@@ -562,7 +567,7 @@ function createWorld(host, ti, o) {
       W.keys.push([hx - 1.4, 0, hz - 1.1], [hx + 1.4, 0, hz + 1.1], [hx - 1.4, 2.4, hz - 1.1], [hx + 1.4, 2.4, hz + 1.1]);
       if (active.has(id)) jobs.push(zyModel(H.pet, H.pet === "bunny" ? 1.0 : 0.82).then(m => {
         if (!m) return; const side = Math.sign(sz - hz), home = [hx + 1.0, sz - side * 1.12], out = [sx + 1.45, sz - side * 0.82];
-        m.position.set(home[0], 0.085, home[1]); m.rotation.y = side > 0 ? 0 : Math.PI; scene.add(m); m.userData.dyn = true;
+        m.position.set(home[0], 0.085, home[1]); m.rotation.y = side > 0 ? 0 : Math.PI; scene.add(m); m.userData.dyn = true; W.shDirty = true;
         W.residents[id] = { obj: m, home, out, face: m.rotation.y, at: "home", phase: Math.random() * 6, hop: 0, spin: 0 };
       }).catch(() => null));
     }
@@ -672,6 +677,7 @@ function createWorld(host, ti, o) {
       it.obj.position.set(0, BED.y * TS, zs[cap - 1 - k] * TS + (cap > 2 ? 0 : 0)); it.obj.rotation.y = (k % 2 ? 0.4 : -0.3);
       tr.bed.push(it);
     }
+    W.shDirty = true;                                          // 車斗拿掉／重排商品：陰影跟著重畫
   }
 
   // ---------- 居民動作 ----------
@@ -761,8 +767,10 @@ function createWorld(host, ti, o) {
   W.bedScreen = () => { const tr = W.truck; if (!tr) return null; const lz = (BED.z0 + BED.z1) / 2 * TS; return W.project(tr.x + Math.sin(tr.yaw) * lz, 0.7, tr.z + Math.cos(tr.yaw) * lz); };
 
   // ---------- 每格 ----------
+  const moving = () => W.tw.length > 0 || !!W.driving || !!(W.bridge && Math.abs(W.bridge.a - W.bridge.target) > 1e-4);   // 卡車在開／原地轉、吊橋在動、任何補間（居民跳、商品彈出、柵欄、開關）
   W.frame = dt => {
     if (W.dead) return;
+    const mv0 = moving();                                      // 這一格前就在動：動完的最後一格也要重畫陰影
     W.gt += dt; stepTweens(); stepDrive(dt);
     const B = W.bridge;
     if (B && Math.abs(B.a - B.target) > 1e-4) W.setBridgeAngle(B.a + Math.sign(B.target - B.a) * Math.min(Math.abs(B.target - B.a), dt / 1.3));
@@ -777,8 +785,12 @@ function createWorld(host, ti, o) {
       if (ids.length && cyc > 0) { const id = ids[cyc % ids.length], r = W.residents[id]; tween(0.45, u => { r.obj.position.y = 0.085 + Math.sin(u * Math.PI) * 0.16; }, () => { r.obj.position.y = 0.085; }, id); } }
     for (const f of W.tick) f(W.gt);
     if (W.seaU) W.seaU.uTime.value = W.gt;
-    if (W.live) renderer.render(scene, cam);                  // 模型＋著色器都備好才開始畫（第一格一次編十幾個著色器＋陰影，慢的平板會被系統收走 context）
+    if (W.live) {                                              // 模型＋著色器都備好才開始畫（第一格一次編十幾個著色器＋陰影，慢的平板會被系統收走 context）
+      if (W.shDirty || (dt > 0 && (mv0 || moving()))) { renderer.shadowMap.needsUpdate = true; W.shDirty = false; }   // 效能體檢 10-12：靜止時不重畫陰影（原本每格一次）
+      renderer.render(scene, cam);
+    }
   };
+  W.setDpr = d => { W.dpr = dprMem = d; renderer.setPixelRatio(d); };   // 自動畫質（遊戲本體的 frame()）；setPixelRatio 會照目前大小重設畫布
   // 預先（非同步）編好所有著色器，再畫第一格
   W.warm = async () => {
     if (W.dead) return;
@@ -1017,11 +1029,13 @@ export function createDeliverGame(root, api) {
   }
 
   // ---------- 每格：3D＋圖釘／卡車、居民、房子、吊橋的點擊區跟著投影 ----------
-  let lastMs = 0;
+  let lastMs = 0, dprWin = [], dprCool = 0;
   function frame(now) {
     raf = requestAnimationFrame(frame);
     if (!W || !st) return;
-    if (lastMs && now - lastMs < 1000 / 40) return;            // 省電：最多 40 格／秒
+    if (lastMs && now - lastMs < 1000 / 30 - 3) return;       // 省電：最多 30 格／秒（效能體檢 10-12：原本 40；-3ms 容許 rAF 抖動，跟小島一樣）
+    // 自動畫質（同小島）：開始畫 1.5 秒後，45 格平均掉到約 25 格／秒以下（間隔 > 40ms）就降解析度（1.5 → 1.25 → 1），降完等 5 秒再看；隔超過 0.5 秒＝切到背景回來／卡一下，不算
+    if (lastMs && W.live && !W.isLost) { if (!dprCool) dprCool = now + 1500; else if (now > dprCool) { if (now - lastMs > 500) dprWin = []; else dprWin.push(now - lastMs); if (dprWin.length >= 45) { const avg = dprWin.reduce((a, b) => a + b, 0) / dprWin.length; dprWin = []; if (avg > 40 && W.dpr > 1) { W.setDpr(Math.max(1, W.dpr - 0.25)); dprCool = now + 5000; } } } }
     const real = lastMs ? Math.min(0.06, (now - lastMs) / 1000) : 0; lastMs = now;
     const dt = api.paused() ? 0 : real * SPD();
     if (!api.paused()) st.clock += real * SPD();
@@ -1396,7 +1410,7 @@ export function createDeliverGame(root, api) {
     relayout();
     try { W = createWorld(D.stage, ti, { play, failBuild: !!api.failBuild, onFail: why => { try { api.onFail && api.onFail({ task: ti, why }); } catch (e) {} } }); } catch (e) { console.warn("[deliver] WebGL 失敗", e); W = null; try { api.onFail && api.onFail({ task: ti, why: "nowebgl" }); } catch (e2) {} }
     if (W) { D.stage.insertBefore(W.canvas, D.stage.firstChild); relayout(); }
-    lastMs = 0; raf = requestAnimationFrame(frame);
+    lastMs = 0; dprWin = []; dprCool = 0; raf = requestAnimationFrame(frame);
     const my = run;
     const go = () => {
       if (my !== run || !st) return;

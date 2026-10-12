@@ -350,7 +350,11 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
 @keyframes starStamp { 0% { transform: scale(0) rotate(-25deg); } 55% { transform: scale(1.35) rotate(-4deg); } 100% { transform: scale(1) rotate(0); } }
 .result-stickers { display: flex; gap: 2vmin; flex-wrap: wrap; justify-content: center; min-height: 18vmin; }
 .result-stickers.many { gap: 1.4vmin; }
-.result-stickers.many .sticker { width: 18vmin; height: 18vmin; } .result-stickers.many .sticker .em { font-size: 6.5vmin; } .result-stickers.many .sticker.long { width: 19vmin; height: 19vmin; }
+/* 新貼紙很多（> 6 張）：貼紙、星星都縮小（10-12：4:3 橫式 8 張以前排兩排 18vmin，加上獎勵膠囊就把按鈕擠到星星罐底下；現在 4:3 一排放 8 張、12 張排兩排都放得下） */
+.result-stickers.many .sticker { width: 14vmin; height: 14vmin; } .result-stickers.many .sticker .em { font-size: 5vmin; } .result-stickers.many .sticker .hz { font-size: 3.7vmin; margin-top: 0.3vmin; }
+.result-stickers.many .sticker.long { width: 16vmin; height: 16vmin; } .result-stickers.many .sticker.long .hz { font-size: 3.2vmin; }
+#result.many .stars { font-size: 11vmin; }
+#result > .result-stickers { max-width: calc(100vw - 6vmin); }   /* 左右留邊：一排擠滿時換行，不要貼到螢幕邊緣（貼紙貼上去會歪 6°，貼邊就露出畫面外） */
 .result-stickers .all-done { text-align: center; font-size: 5vmin; font-weight: bold; color: var(--blue); background: rgba(255,255,255,0.9); border-radius: 3vmin; padding: 1vmin 3vmin; width: auto; animation: zyFadeIn 0.4s both; }
 .result-stickers .mini-row { display: flex; gap: 1.6vmin; flex-wrap: wrap; justify-content: center; width: 100%; }
 .result-btns { display: flex; gap: 3vmin; flex-wrap: wrap; justify-content: center; transition: opacity 0.4s; }
@@ -639,26 +643,43 @@ body.hub3d #menu h1 { pointer-events: none; font-size: 6vmin; color: #24515c; te
 body.hub3d #menu > .menu-bottom { position: absolute; left: 50%; bottom: 2.4vmin; margin: 0; width: max-content; transform: translateX(-50%); }
 body.hub3d #menu .pill { border-color: #fff; color: #24515c; box-shadow: 0 0.6vmin 0 rgba(36,81,92,0.22), 0 1vmin 2.4vmin rgba(20,50,80,0.25); }
 body.hub3d #menu .jarBtn.ready { border-color: #ffd54a; box-shadow: 0 0 0 0.6vmin rgba(255,213,74,0.45), 0 0.6vmin 0 rgba(36,81,92,0.22), 0 0 3vmin 0.4vmin rgba(255,190,40,0.5); }   /* 有幣：固定光暈（不動） */
-/* 浮標：白色圓角小牌（模式圖示＋兩個字），跟著建築在螢幕上的位置移動 */
-.hub-tag { position: absolute; left: 0; top: 0; pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 0.5vmin;
-  background: #fff; color: #24515c; font-weight: bold; border-radius: 2.4vmin; padding: 0.4vmin 0.5vmin 0.4vmin 0.6vmin; will-change: transform; touch-action: none;
+/* 浮標（10-12 精簡，阿葉：「關卡變多了，名字一直顯示太雜亂」）：平常只是一顆圓形圖示（7.4vmin，可以點）；
+   拉近、手指按住那一棟、剛解鎖還沒玩過（＋「新」）才往右拉開名字（0.2 秒）。跟著建築在螢幕上的位置移動：
+   位置放 translate（zhuyin-hub3d.js 每格寫）；transform 留給輕跳、拉遠縮小（以底部中間＝尾巴為準）；按下去彈一下用 scale */
+.hub-tag { position: absolute; left: 0; top: 0; pointer-events: auto; display: flex; flex-direction: column; align-items: center;
+  background: #fff; color: #24515c; font-weight: bold; border-radius: 3.7vmin; padding: 0.7vmin; will-change: translate, transform; touch-action: none;
+  transform-origin: 50% 100%; transform: scale(var(--fs, 1)); transition: transform 0.2s ease;
   box-shadow: 0 0.6vmin 0 rgba(36,81,92,0.22), 0 1vmin 2.4vmin rgba(20,50,80,0.25); }
-.hub-tag::before { content: ""; position: absolute; inset: -1.6vmin -0.6vmin; }   /* 隱形點擊區：實際可點高度 ≥ 9vmin（浮標本身約 5.8vmin） */
+body.hub3d .hub-tags.pressing { z-index: 16; }   /* 手指按住某棟：名字疊在貓頭鷹（15）、膠囊上面，上方圓鈕（20）下面（hub3d lodStep） */
+.hub-tags.far .hub-tag { --fs: 0.78; }   /* 拉遠（≤ 0.7 倍）：圖示縮小一點，遠景不會一片圖示（跟 hub3d 的 FAR_SCALE 一樣） */
+.hub-tag::before { content: ""; position: absolute; inset: -1.2vmin -0.6vmin; }   /* 隱形點擊區：可點高度約 10vmin */
 .hub-tag::after { content: ""; position: absolute; left: calc(50% + var(--tx, 0px)); bottom: -1.3vmin; margin-left: -1.3vmin; border: 1.3vmin solid transparent; border-top-color: #fff; border-bottom: 0; }
-.hub-tag .ht-row { display: flex; align-items: center; gap: 0.3vmin; }
-.hub-tag .ht-ico { font-size: 4vmin; line-height: 1; width: 1.08em; text-align: center; }   /* 表情符號字寬比字大：收窄一點（浮標總面積 ≤ 島的 20%） */
+.hub-tag .ht-row { display: flex; align-items: center; }
+.hub-tag .ht-ico { font-size: 4.4vmin; line-height: 1; width: 6vmin; height: 6vmin; display: flex; align-items: center; justify-content: center; }
+/* 名字那段：收合＝寬度 0（grid 0fr）、展開＝自然寬度（1fr），中間 0.2 秒拉開；.ht-txt 永遠是自然寬度（hub3d 量「展開會多大」用） */
+.hub-tag .ht-more { display: grid; grid-template-columns: 0fr; opacity: 0; transition: grid-template-columns 0.2s ease, opacity 0.2s ease; }
+.hub-tag.open .ht-more { grid-template-columns: 1fr; opacity: 1; }
+.hub-tag .ht-in { min-width: 0; overflow-x: clip; overflow-y: visible; }   /* 只裁左右：注音的聲調會往上突出 */
+.hub-tag .ht-txt { display: flex; align-items: center; gap: 0.8vmin; width: max-content; padding: 0 0.9vmin 0 0.3vmin; }
 .hub-tag .ht-word { font-size: 4.8vmin; line-height: 1; white-space: nowrap; padding: 0.1vmin 0; }   /* 有注音的字至少 4.6vmin（注音＝字的 0.38，太小看不清） */
 .hub-tag .ht-lock { display: none; font-size: 3.2vmin; line-height: 1; white-space: nowrap; color: #fff; background: #4a5568; border-radius: 2vmin; padding: 0.6vmin 1.2vmin; }
+/* 剛解鎖還沒玩過：名字前面一個加注音的「新」（跟 🏙️ 的小紅標一樣：字 4.6vmin、白字 #cf3030 底＝對比 5.1:1）；玩過一次就收成圖示 */
+.hub-tag .ht-new { display: none; font-size: 4.6vmin; font-weight: 900; line-height: 1; white-space: nowrap; color: #fff; background: #cf3030; border-radius: 2.4vmin; padding: 0.5vmin 0.2vmin 0.5vmin 0.8vmin; }
+.hub-tag .ht-new .ac { margin-right: 0.5em; }
+.hub-tag.fresh .ht-new { display: block; }
 .hub-tag.locked { background: #eef1f5; } .hub-tag.locked::after { border-top-color: #eef1f5; }
 .hub-tag.locked .ht-row { opacity: 0.8; }   /* 對比 ≥ 4.5:1（寧次 10-10） */
 .hub-tag.locked .ht-lock { display: block; }
-.hub-tag.locked .ht-word { display: none; }   /* 鎖住的浮標只留「圖示＋🔒數字」，面積減半（寧次 10-10） */
+.hub-tag.locked .ht-word { display: none; }   /* 鎖住的浮標展開時只有「圖示＋🔒數字」（寧次 10-10） */
+/* 鎖住、收合時：圓形圖示右下角一個小 🔒（不顯示數字） */
+.hub-tag .ht-badge { position: absolute; right: -0.5vmin; bottom: -0.3vmin; font-size: 2.8vmin; line-height: 1; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; filter: drop-shadow(0 0.2vmin 0.3vmin rgba(0,0,0,0.3)); }
+.hub-tag.locked:not(.open) .ht-badge { opacity: 1; }
 .hub-tag.first { box-shadow: 0 0 0 0.6vmin #ffd54a, 0 0.6vmin 0 0.6vmin rgba(36,81,92,0.22), 0 1vmin 2.4vmin rgba(20,50,80,0.25); }   /* 新玩家唯一能玩的釣魚：常駐黃框 */
 .hub-tag:active { filter: brightness(0.95); }
 .hub-tag.pop { animation: tagPop 0.45s cubic-bezier(.2,1.6,.4,1); }
 @keyframes tagPop { 0% { scale: 1; } 35% { scale: 1.15; } 100% { scale: 1; } }
-.hub-tag.hop { animation: tagHop 0.5s ease-out; }   /* 每 4 秒輪流輕跳：告訴小孩可以點 */
-@keyframes tagHop { 0%, 100% { translate: 0 0; } 40% { translate: 0 -1.4vmin; } 70% { translate: 0 0.2vmin; } }
+.hub-tag.hop { animation: tagHop 0.5s ease-out; }   /* 每 4 秒輪流輕跳：告訴小孩可以點（位置在 translate，跳用 transform；拉遠縮小要一起帶著） */
+@keyframes tagHop { 0%, 100% { transform: scale(var(--fs, 1)); } 40% { transform: translateY(-1.4vmin) scale(var(--fs, 1)); } 70% { transform: translateY(0.2vmin) scale(var(--fs, 1)); } }
 /* 新玩家第一次進來：手指點釣魚浮標的提示 */
 .hub-finger { position: absolute; left: 0; top: 0; pointer-events: none; font-size: 9vmin; line-height: 1; will-change: transform; filter: drop-shadow(0 0.6vmin 0.8vmin rgba(0,0,0,0.35)); }
 .hub-finger > span { display: block; animation: fingerTap 3.2s ease-in-out forwards; }
@@ -836,6 +857,11 @@ body:not(.night) .night-sky { display: none; }
    橫式卡片矮一點，三排卡片＋下面貼紙那排才放得下（以前橫式第 9 張就超出畫面） */
 .mode-card[data-mode=deliver] { grid-column: span 2; }
 .mode-card .label { white-space: nowrap; }
+/* 10-12 多了偵探、陀螺＝13 格：沒有 3D 的卡片選單改 5 欄（5＋5＋3），一樣三排放得下（4 欄要四排，會超出畫面） */
+body.hub-off #menu .mode-cards { grid-template-columns: repeat(5, 17.6vmin); gap: 1.6vmin; }
+body.hub-off #menu .mode-card { border-radius: 3.4vmin; }
+body.hub-off #menu .mode-card .label { font-size: 4.2vmin; }
+@media (orientation: portrait) { body.hub-off #menu .mode-card { height: 25vmin; } }
 @media (orientation: landscape) {
   body.hub-off #menu .mode-cards { gap: 1.8vmin; margin-top: 1.6vmin; }
   body.hub-off #menu .mode-card { height: 18.5vmin; }
@@ -846,6 +872,7 @@ body:not(.night) .night-sky { display: none; }
 .hub-tags.in-town .hub-tag:not(.civic):not(.rb) { visibility: hidden; }   /* 不在主島：主島浮標收起來（還是量得到大小，鏡頭擺位照算） */
 .hub-tags:not(.at-town) .hub-tag.civic { display: none; }                /* 只有在新市區才顯示設施浮標 */
 .hub-tags:not(.at-rainbow) .hub-tag.rb { display: none; }                /* 只有在彩虹島才顯示彩虹島的浮標 */
+/* 10-12 歸仁區的遊戲建築（陀螺競技場）：浮標跟設施一樣是 .civic（奶油色、只在歸仁區顯示），多一個 .tw 標記它是遊戲（點了＝點卡片） */
 .hub-fire { position: absolute; left: 0; top: 0; pointer-events: auto; font-size: 5.6vmin; line-height: 1; background: #fff; border-radius: 50%; width: 9vmin; height: 9vmin; display: grid; place-items: center;
   border: 0.7vmin solid #ff7a2f; box-shadow: 0 0 0 0 rgba(255,122,47,0.6); animation: firePulse 1s ease-out infinite; z-index: 99980; }
 .hub-fire.called { border-color: #4da3ff; animation: none; }
@@ -868,6 +895,10 @@ body:not(.night) .night-sky { display: none; }
 /* 彩虹配送站（10-12）：引擎 js/zhuyin-deliver.js 在 #deliverRoot 裡建畫面；選關 8 格排兩排（4×2） */
 #deliver { background: #3f97c9; }
 #deliverRoot { position: absolute; inset: 0; }
+/* 詞句小偵探、注音戰鬥陀螺（10-12）：模組自己在 #detectiveRoot／#topsRoot 裡建全螢幕畫面（css/zhuyin-detective.css、css/zhuyin-tops.css）；左上 🏠🎵 照常疊在上面 */
+#detective { background: #ffe9bd; }
+#tops { background: #2d2173; }
+#detectiveRoot, #topsRoot { position: absolute; inset: 0; }
 .bb-levels.dv-levels { grid-template-columns: repeat(4, 1fr); }
 .bb-lv { width: 15vmin; height: 15vmin; border-radius: 4vmin; background: linear-gradient(180deg, #e9f8ff, #bfe9ff); border: 0.6vmin solid #4da3ff; box-shadow: 0 0.8vmin 0 #2f7fd0;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4vmin; color: #1b4fa0; }
@@ -919,8 +950,14 @@ body:not(.night) .night-sky { display: none; }
 .gacha-coins .gc { font-size: 5vmin; font-weight: 900; color: #24515c; background: #fff4d6; border-radius: 4vmin; padding: 0.8vmin 2.6vmin; }
 .gacha-coins .gn { font-size: 3.6vmin; color: #667; font-weight: 700; }
 .gacha-coins .gn:empty { display: none; }
-.rw-strip { position: absolute; left: 3vmin; top: 16vmin; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; gap: 1.2vmin; max-width: 40vmin; pointer-events: none; }
-.rw-strip span { background: rgba(255,255,255,0.92); color: #24515c; font-weight: 800; font-size: 3.4vmin; border-radius: 4vmin; padding: 0.8vmin 2vmin; box-shadow: 0 0.4vmin 1vmin rgba(20,50,80,0.18); animation: tipIn 0.4s cubic-bezier(.2,1.5,.4,1) both; }
+/* 結算左上的獎勵膠囊（點心／集章／扭蛋幣／陀螺券…）。10-12 修兩個 bug：
+   ① #result > *（id 選擇器）把它設成 position:relative，蓋掉這裡的 absolute → 整排跑到畫面最下面、新貼紙多時被擠出畫面 → 用 #result > .rw-strip 放回絕對定位；
+   ② 以前寫 .rw-strip span：自動注音把每個國字包成 span.ac，也被套上膠囊外框（一個字一顆泡泡）→ 只認膠囊本身 .rw-pill */
+/* ③ 位置改成最上面一排（🏠🎵 右邊、往右排、放不下換行）：以前直排在左上，4:3 橫式和直式都會蓋到「找到…」標題和星星；
+     真的跟標題碰到（膠囊很多、換到第二排）→ zhuyin.js rewardStrip 幫 #result 加上方留白，整塊內容往下挪 */
+.rw-strip, #result > .rw-strip { position: absolute; z-index: 2; top: max(2.4vmin, env(safe-area-inset-top, 0px)); left: 30vmin; right: max(3vmin, env(safe-area-inset-right, 0px));
+  display: flex; flex-flow: row wrap; align-items: center; gap: 1vmin 1.2vmin; pointer-events: none; }
+.rw-strip > .rw-pill { background: rgba(255,255,255,0.92); color: #24515c; font-weight: 800; font-size: 3.2vmin; line-height: 1.5; white-space: nowrap; border-radius: 4vmin; padding: 0.6vmin 1.8vmin; box-shadow: 0 0.4vmin 1vmin rgba(20,50,80,0.18); animation: tipIn 0.4s cubic-bezier(.2,1.5,.4,1) both; }
 .album-grid.pet-grid { grid-template-columns: repeat(auto-fill, minmax(19vmin, 1fr)); }
 .pet-card { display: flex; flex-direction: column; align-items: center; gap: 0.6vmin; background: #fff; border-radius: 3vmin; padding: 1.4vmin 1vmin 1.6vmin; border: 0.6vmin solid #cfd8e3; box-shadow: 0 0.6vmin 0 #b9c6d6; }
 .pet-card.rare { border-color: #b07cff; } .pet-card.ssr { border-color: #f6c445; background: linear-gradient(180deg, #fffaf0, #fff1c9); }

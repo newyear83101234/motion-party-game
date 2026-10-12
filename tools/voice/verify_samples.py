@@ -160,7 +160,10 @@ def transcribe(path, model):
     for attempt in range(4):
         st, js = g.call("POST", f"/models/{model}:generateContent", body)
         if st == 200:
-            txt = "".join(p.get("text", "") for p in js["candidates"][0]["content"]["parts"])
+            try:                                                   # 10-12：偶爾 200 卻沒有 candidates（被擋/空回應）→ 當成失敗重試，不要整批當掉
+                txt = "".join(p.get("text", "") for p in js["candidates"][0]["content"]["parts"])
+            except (KeyError, IndexError, TypeError):
+                time.sleep(6 * (attempt + 1)); continue
             u = js.get("usageMetadata", {})
             try:
                 out = json.loads(txt)

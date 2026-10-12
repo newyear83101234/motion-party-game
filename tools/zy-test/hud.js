@@ -3,7 +3,8 @@
 //     收起來位置照樣佔著（3D 小島避開）、⚙️ 按住 2 秒照樣開、🐻 換人照樣開；遊戲裡 🏠🎵 跟以前一樣（左上 2／16vmin、沒有把手）；
 //     貓頭鷹：不出聲的話看字時間＋4 秒收起、點一下馬上收、點探頭彈出來再講一次、唸完 4 秒收、有新的話（guideSay／天氣直接改字）自動彈出；
 //     星星罐有幣：整顆膠囊沒有動畫（不放大）、只有幣圖示在跳、星星和數字不動；🏙️ 白底、圖示不晃，有新東西才有加注音的「新」小紅標＋輕跳；
-//     橫式／直式／手機直式：上方兩排、繼續玩、膠囊、換人小字互不重疊也都在畫面內；沒有錯誤
+//     橫式／直式／手機直式：上方兩排、繼續玩、膠囊、換人小字互不重疊也都在畫面內；
+//     小島浮標（10-12 精簡）：平常收成圓形圖示、一棟一棟按住展開名字，兩種樣子都不被按鈕擋到；沒有錯誤
 const { launch, openGame, enterMode } = require("./lib");
 const out = []; const ok = (name, cond, info = "") => out.push(`${cond ? "PASS" : "FAIL"}  ${name}${info !== "" ? "  — " + info : ""}`);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -15,6 +16,8 @@ const isOpen = (p, side) => p.evaluate(s => document.getElementById("hud" + s).c
 const folded = p => p.evaluate(() => document.getElementById("guide").classList.contains("fold"));
 const center = (p, sel) => p.evaluate(s => { const r = document.querySelector(s).getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, sel);
 const FOLD = ["homeBtn", "musicBtn", "playerBtn", "playerTag", "settingsBtn"];
+// 浮標展開完（0.2 秒拉開；headless 軟體繪圖一格可能 0.2 秒以上）再多等兩三格讓位置跟上
+const opened = (p, m) => p.waitForFunction(m => { const t = document.querySelector(`.hub-tag[data-mode=${m}]`); return t.classList.contains("open") && t.querySelector(".ht-more").getBoundingClientRect().width >= t.querySelector(".ht-txt").getBoundingClientRect().width - 1; }, m, { timeout: 5000 }).catch(() => {}).then(() => sleep(400));
 
 (async () => {
   const browser = await launch();
@@ -160,11 +163,31 @@ const FOLD = ["homeBtn", "musicBtn", "playerBtn", "playerTag", "settingsBtn"];
           if (a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1) bad.push(box[i].s + "×" + box[j].s); }
       }
       const tags = []; for (const tg of document.querySelectorAll(".hub-tag:not(.civic):not(.rb)")) { const q = tg.getBoundingClientRect(); for (const x of box) { const b = x.q; if (q.left < b.right && q.right > b.left && q.top < b.bottom && q.bottom > b.top) tags.push(tg.dataset.mode + "×" + x.s); } }
-      return { bad, out, tags, resume: !document.getElementById("resumeBtn").classList.contains("hidden") };
+      return { bad, out, tags, resume: !document.getElementById("resumeBtn").classList.contains("hidden"), shut: [...document.querySelectorAll(".hub-tag:not(.civic):not(.rb)")].filter(t => !t.classList.contains("open")).length };
     });
     ok(`${t} ${w}×${h}：繼續玩有出現`, r.resume);
     ok(`${t} ${w}×${h}：上方兩排／繼續玩／膠囊／換人小字／貓頭鷹互不重疊、都在畫面內`, r.bad.length === 0 && r.out.length === 0, JSON.stringify(r));
-    ok(`${t} ${w}×${h}：浮標沒被任何按鈕擋到（收起來的也算位置）`, r.tags.length === 0, r.tags.join(","));
+    ok(`${t} ${w}×${h}：浮標（平常收成圓形圖示）沒被任何按鈕擋到（收起來的也算位置）`, r.tags.length === 0 && r.shut >= 8, r.tags.join(",") + ` 收著 ${r.shut} 個`);
+    // 浮標精簡（10-12）：一棟一棟按住展開名字——在畫面內、不碰上方圓鈕那兩排（收起來的也算位置）、名字那一橫排從左到右都沒被蓋住
+    // （按住時浮標層疊到貓頭鷹對話框、膠囊上面，所以那兩個用「有沒有被蓋住」驗；手機直式只驗收合狀態：iPad 才是主要裝置）
+    if (t !== "M") {
+      const hitOpen = [];
+      for (const m of ["fish", "order", "build", "hunt", "match", "tone", "whack", "frog", "bubble", "gacha"]) {
+        await p.evaluate(m => window.__hub3d.openOne(m), m); await opened(p, m);
+        const c = await p.evaluate(m => {
+          const ids = ["#hudLBtn", "#hudRBtn", "#townBtn", "#townTag", "#rainbowBtn", "#rainbowTag", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn", "#resumeBtn"];
+          const tg = document.querySelector(`.hub-tag[data-mode=${m}]`), q = tg.getBoundingClientRect(), bad = [];
+          if (!tg.classList.contains("open")) bad.push("沒展開");
+          if (q.left < 0 || q.top < 0 || q.right > innerWidth || q.bottom > innerHeight) bad.push("出畫面");
+          for (const s of ids) { const e = document.querySelector(s); if (!e || getComputedStyle(e).display === "none") continue; const b = e.getBoundingClientRect(); if (b.width && q.left < b.right && q.right > b.left && q.top < b.bottom && q.bottom > b.top) bad.push(s); }
+          for (const f of [0.08, 0.3, 0.5, 0.7, 0.92]) { const e = document.elementFromPoint(q.left + q.width * f, q.top + q.height / 2); if (!e || e.closest(".hub-tag") !== tg) { bad.push("被" + (e ? e.id || e.className || e.tagName : "?") + "蓋住"); break; } }
+          return bad;
+        }, m);
+        if (c.length) hitOpen.push(m + "×" + c.join("/"));
+      }
+      await p.evaluate(() => window.__hub3d.openOne(null)); await sleep(300);
+      ok(`${t} ${w}×${h}：一棟一棟按住展開名字，也沒被任何按鈕擋到、在畫面內`, hitOpen.length === 0, hitOpen.join(","));
+    }
     ok(`${t} 沒有錯誤`, errs.length === 0, errs.join(" | "));
     await ctx.close();
   }

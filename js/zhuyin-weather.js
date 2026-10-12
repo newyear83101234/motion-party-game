@@ -484,7 +484,7 @@ export function weatherPlugin(ctx, { kind = "sunny", sound = null, onLightning =
     const el = SUN_EL0 + (SUN_LOW - SUN_EL0) * smooth(low);
     _so.copy(sunH).multiplyScalar(SUN_DIST * Math.cos(el)); _so.y = SUN_DIST * Math.sin(el);
     sun.position.copy(sun.target.position).add(_so); sunMoved = true;          // 每格跟著 target 算（hub3d 飛去新市區會搬 target）
-    if (Math.abs(low - sunMarkLow) > 0.03) { sunMarkLow = low; ctx.markShadow(); }   // 影子貼圖不用每格重畫：變夠多才重畫（hub3d 本來就每 4 秒畫一次）
+    if (Math.abs(low - sunMarkLow) > 0.03) { sunMarkLow = low; ctx.markShadow(); }   // 影子貼圖不用每格重畫：變夠多才重畫（hub3d 另外每 30 秒保險重畫一次；10-12 以前是 4 秒）
   }
   const LAMP_HEAD = 0.95;                                 // 路燈燈頭離地高（ctx.lamps 的 y 是燈座地面）
   const quadGeo = new THREE.PlaneGeometry(1, 1);

@@ -9,12 +9,12 @@ const GAP = 0.12;                 // 兩段句（「找到了，」＋詞）中�
 const OFF = /[?&]novoice(=|&|$)/.test(location.search);   // 網址加 ?novoice → 全部退回 speechSynthesis（除錯／比較用）
 
 let man = null;
-const manP = fetch(BASE + "manifest.json?v=20261012").then(r => (r.ok ? r.json() : null)).then(j => (man = j)).catch(() => null);
+const manP = fetch(BASE + "manifest.json?v=20261012b").then(r => (r.ok ? r.json() : null)).then(j => (man = j)).catch(() => null);
 let ctx = null;
 const raw = new Map();            // 檔名 → Promise<ArrayBuffer>（還沒解鎖聲音前先下載）
 const dec = new Map();            // 檔名 → Promise<AudioBuffer>（解碼後快取；Map 的順序＝最近用過的排最後＝LRU）
 const decBytes = new Map();       // 檔名 → 解碼後佔多少 bytes（PCM float32：長度×聲道×4）
-let decTotal = 0, decMax = 40 * 1024 * 1024;   // 解碼快取上限約 40MB（539 句全解碼約 190MB，iPad 會被系統收掉分頁）
+let decTotal = 0, decMax = 24 * 1024 * 1024;   // 解碼快取上限約 24MB（539 句全解碼約 190MB，iPad 會被系統收掉分頁；效能體檢 10-12 從 40MB 降下來）
 let cur = null;                   // 目前這句：{ files, srcs, onEnd, done, timer }
 export const voiceStats = { played: 0, ended: 0, timeouts: 0, failed: 0, decoded: 0, evicted: 0 };   // 除錯／測試用
 // 測試用：看快取現況（bytes、句數、由舊到新的檔名）、暫時改上限

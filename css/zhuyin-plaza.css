@@ -1,0 +1,94 @@
+/* ===== 小島同樂廣場（10-12；js/zhuyin-plaza.js；docs/zhuyin-plaza-spec.md）===== */
+/* 🎪 圓鈕（小孩用、常駐在小島選單）：橫式＝左下「貼紙／星星罐」那排的第三顆（3D 小島擺鏡頭時整排一起避開）；
+   直式 3D 小島＝上面第二排「歸仁區／彩虹島」右邊（zhuyin.js placePlazaBtn() 依方向搬家）；遊戲裡、開始畫面、家長關掉時不出現 */
+#plazaBtn { position: relative; flex: none; z-index: 2; }
+#plazaBtn .nav-ico { display: inline-block; line-height: 1; }
+#plazaBtn.news .nav-ico { animation: navNudge 2.8s ease-in-out infinite; }
+#plazaBtn.news .nav-new { display: block; }
+body:not(.on-menu) #plazaBtn, body.plaza-off #plazaBtn { display: none; }
+.menu-bottom > #plazaBtn { width: 11.5vmin; height: 11.5vmin; align-self: center; font-size: 6.2vmin; border: 0.6vmin solid var(--blue); box-shadow: 0 4px 0 #9bb7d8; }
+body.hub3d #menu .menu-bottom > #plazaBtn { border-color: #fff; box-shadow: 0 0.6vmin 0 rgba(36,81,92,0.22), 0 1vmin 2.4vmin rgba(20,50,80,0.25); }
+@media (orientation: portrait) {
+  body.hub3d .hud-l > #plazaBtn { order: 2; margin-top: 1.2vmin; width: max(10vmin, 44px); height: max(10vmin, 44px); font-size: 5vmin; }
+}
+
+/* 全畫面卡片：所有尺寸用 --u（≈1vmin，但 4:3 橫式、iPad 直式會縮一點，整張卡片一個畫面放得下、不用捲） */
+#plaza { z-index: 42; }
+.plaza-card { --u: min(0.8vh, 0.56vw); }
+@media (orientation: portrait) { .plaza-card { --u: min(1vw, 0.56vh); } }
+.plaza-card { width: min(96vw, calc(var(--u) * 150)); max-width: 96vw; max-height: 96vh; overflow-y: auto; touch-action: pan-y; align-items: stretch;
+  gap: calc(var(--u) * 1.6); padding: calc(var(--u) * 2.2) calc(var(--u) * 3) calc(var(--u) * 2.6); border-radius: calc(var(--u) * 5);
+  background: linear-gradient(180deg, #fffaf0, #ffffff 40%); }
+.pz-head { display: flex; align-items: center; justify-content: space-between; gap: calc(var(--u) * 2); }
+.pz-title { font-size: calc(var(--u) * 5.4); font-weight: 900; color: var(--blue); white-space: nowrap; min-width: 0; }
+.plaza-card .pz-close { font-size: calc(var(--u) * 4.6); padding: calc(var(--u) * 1) calc(var(--u) * 2.6); flex: none; }
+.pz-body { display: grid; grid-template-columns: 0.96fr 1.04fr; gap: calc(var(--u) * 2.4); align-items: stretch; }
+@media (orientation: portrait) { .pz-body { grid-template-columns: 1fr; } }
+
+/* 左：本週主題＋大進度條＋你幫了多少＋上週 */
+.pz-goal { background: #eaf4ff; border-radius: calc(var(--u) * 4); padding: calc(var(--u) * 2) calc(var(--u) * 2.6) calc(var(--u) * 2.4); display: flex; flex-direction: column; gap: calc(var(--u) * 1.2); min-width: 0; }
+.plaza-card.gold .pz-goal { background: linear-gradient(180deg, #fff6d6, #ffe9a8); }
+.pz-theme { display: flex; align-items: center; gap: calc(var(--u) * 2); }
+.pz-ico { font-size: calc(var(--u) * 9); line-height: 1; flex: none; filter: drop-shadow(0 calc(var(--u) * 0.5) calc(var(--u) * 0.8) rgba(0,0,0,0.18)); }
+.pz-tt { min-width: 0; }
+.pz-name { font-size: calc(var(--u) * 6); font-weight: 900; color: var(--blue); line-height: 1.35; }
+.pz-desc { font-size: calc(var(--u) * 4.6); font-weight: bold; color: #24515c; line-height: 1.5; text-wrap: balance; }
+.pz-bar { position: relative; height: calc(var(--u) * 12.4); margin: calc(var(--u) * 0.4) calc(var(--u) * 3.6) 0 calc(var(--u) * 1); }
+.pz-track { position: absolute; left: 0; right: 0; top: calc(var(--u) * 6.8); height: calc(var(--u) * 4.4); border-radius: calc(var(--u) * 3); background: #fff; border: calc(var(--u) * 0.6) solid #b9d7f0; overflow: hidden; }
+.pz-fill { height: 100%; width: 0; border-radius: calc(var(--u) * 3); background: linear-gradient(90deg, #ffd166, #ff9b54); transition: width 1.2s cubic-bezier(.2,.8,.3,1);
+  box-shadow: inset 0 calc(var(--u) * -0.8) 0 rgba(0,0,0,0.08); }
+.pz-mark { position: absolute; top: 0; translate: -50% 0; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+.pz-medal { font-size: calc(var(--u) * 5.6); line-height: calc(var(--u) * 6.2); filter: grayscale(1); opacity: 0.45; transition: filter 0.4s, opacity 0.4s, scale 0.4s; }
+.pz-mark.on .pz-medal { opacity: 1; scale: 1.18; filter: drop-shadow(0 0 calc(var(--u) * 1) rgba(255,200,40,0.9)); }
+.pz-mark::after { content: ""; position: absolute; top: calc(var(--u) * 6.4); width: calc(var(--u) * 0.5); height: calc(var(--u) * 5.6); border-radius: calc(var(--u) * 0.3); background: rgba(36,81,92,0.35); }
+.pz-gnum { position: absolute; top: calc(var(--u) * 12); font-size: calc(var(--u) * 3.4); font-weight: bold; color: #4a5a6a; white-space: nowrap; }
+.pz-count { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: calc(var(--u) * 1); margin-top: calc(var(--u) * 2.6); font-size: calc(var(--u) * 4.8); font-weight: 900; color: #24515c; line-height: 1.3; }
+.pz-nu { white-space: nowrap; }
+.pz-num { font-size: calc(var(--u) * 7.6); line-height: 1.05; color: #e0703a; font-variant-numeric: tabular-nums; }
+.pz-next { font-size: calc(var(--u) * 4.6); font-weight: bold; color: #c2410c; line-height: 1.55; text-wrap: balance; }
+.pz-n { color: #e0703a; margin: 0 calc(var(--u) * 0.8); font-variant-numeric: tabular-nums; }
+.pz-chip { display: block; text-wrap: balance; align-self: flex-start; font-size: calc(var(--u) * 4.4); font-weight: bold; color: #24515c; line-height: 1.5;
+  background: rgba(255,255,255,0.8); border-radius: calc(var(--u) * 3); padding: calc(var(--u) * 0.3) calc(var(--u) * 2); }
+.pz-chip.pz-mine { background: #fff3c4; }
+.pz-msg { font-size: calc(var(--u) * 4.6); font-weight: bold; color: #7a4a00; background: #fff3c4; border-radius: calc(var(--u) * 2.4); padding: calc(var(--u) * 1) calc(var(--u) * 2); align-self: flex-start; }
+.plaza-card.nodata .pz-bar, .plaza-card.nodata .pz-count, .plaza-card.nodata .pz-chip { visibility: hidden; }
+@keyframes pzPop { 0% { scale: 1; } 40% { scale: 1.3; } 100% { scale: 1; } }
+
+/* 右：加油貼紙牆（上面軟木板＝大家貼上去的貼紙；下面四張＝點一下聽、再按一次送出；右邊數字＝這週大家送了幾張）*/
+.pz-cheer { background: #fff3e0; border-radius: calc(var(--u) * 4); padding: calc(var(--u) * 1.8) calc(var(--u) * 2.2) calc(var(--u) * 2.2); display: flex; flex-direction: column; gap: calc(var(--u) * 1.2); min-width: 0; }
+.pz-board { position: relative; height: calc(var(--u) * 10); border-radius: calc(var(--u) * 3); flex: none;
+  background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.16) 0 8%, transparent 9%), radial-gradient(circle at 70% 70%, rgba(0,0,0,0.07) 0 6%, transparent 7%), #d9a46a;
+  background-size: calc(var(--u) * 6) calc(var(--u) * 6), calc(var(--u) * 5) calc(var(--u) * 5), auto; box-shadow: inset 0 calc(var(--u) * 0.6) calc(var(--u) * 1.4) rgba(90,50,10,0.35); }
+.pz-ct { position: absolute; left: calc(var(--u) * 1.6); top: 50%; translate: 0 -50%; z-index: 1; font-size: calc(var(--u) * 4.8); font-weight: 900; color: #c2410c; background: #fffaf0;
+  border-radius: calc(var(--u) * 2.4); padding: calc(var(--u) * 0.4) calc(var(--u) * 1.6); box-shadow: 0 calc(var(--u) * 0.4) calc(var(--u) * 0.8) rgba(60,30,0,0.25); rotate: -2deg; white-space: nowrap; }
+.pz-pins { position: absolute; inset: 0; overflow: hidden; border-radius: calc(var(--u) * 3); }
+.pz-pin { position: absolute; font-style: normal; font-size: calc(var(--u) * 4); line-height: 1; translate: -50% 0; filter: drop-shadow(0 calc(var(--u) * 0.3) calc(var(--u) * 0.4) rgba(60,30,0,0.35)); }
+.pz-pin.pop { animation: pzPop 0.5s cubic-bezier(.2,1.6,.4,1); }
+.pz-send { display: flex; flex-direction: column; gap: calc(var(--u) * 1.1); }
+.pz-stk { position: relative; display: flex; align-items: center; gap: calc(var(--u) * 1); min-height: calc(var(--u) * 8.6); padding: calc(var(--u) * 0.4) calc(var(--u) * 1.4); text-align: left;
+  background: #fff; border: calc(var(--u) * 0.6) solid #ffc98a; border-radius: calc(var(--u) * 3); box-shadow: 0 calc(var(--u) * 0.6) 0 #f0b070; }
+.pz-stk:active { translate: 0 calc(var(--u) * 0.4); box-shadow: none; }
+.pz-se { font-size: calc(var(--u) * 5.2); line-height: 1; flex: none; }
+.pz-st { text-wrap: balance; flex: 1 1 auto; font-size: calc(var(--u) * 4.1); font-weight: bold; color: #24515c; line-height: 1.45; min-width: 0; }
+.pz-pn { flex: none; font-size: calc(var(--u) * 4.2); font-weight: 900; color: #c2410c; background: #fff3e0; border-radius: calc(var(--u) * 2.4); padding: calc(var(--u) * 0.3) calc(var(--u) * 1); font-variant-numeric: tabular-nums; }
+.pz-pn.pop { animation: pzPop 0.5s cubic-bezier(.2,1.6,.4,1); }
+.pz-go { display: none; position: absolute; right: calc(var(--u) * 2); top: calc(var(--u) * -2.6); z-index: 2; white-space: nowrap; pointer-events: none;
+  font-size: calc(var(--u) * 3.8); font-weight: 900; color: #fff; background: var(--tone); border: calc(var(--u) * 0.4) solid #fff; border-radius: calc(var(--u) * 2.4); padding: calc(var(--u) * 0.2) calc(var(--u) * 1.4); box-shadow: 0 calc(var(--u) * 0.4) calc(var(--u) * 0.8) rgba(0,0,0,0.25); }
+.pz-stk.armed { border-color: var(--tone); background: #fff3c4; animation: pzArm 0.9s ease-in-out infinite; z-index: 3; }
+.pz-stk.armed .pz-go { display: block; }
+@keyframes pzArm { 0%, 100% { scale: 1; } 50% { scale: 1.04; } }
+.plaza-card.used .pz-stk { filter: grayscale(0.85); opacity: 0.55; }
+.pz-left { display: flex; align-items: center; flex-wrap: wrap; gap: calc(var(--u) * 1.2); font-size: calc(var(--u) * 4.4); font-weight: bold; color: #24515c; }
+.pz-left.pop { animation: pzPop 0.5s ease; }
+.pz-dots { display: inline-flex; gap: calc(var(--u) * 0.8); }
+.pz-dots i { width: calc(var(--u) * 3.2); height: calc(var(--u) * 3.2); border-radius: 50%; background: #e6d7c3; box-shadow: inset 0 calc(var(--u) * 0.3) calc(var(--u) * 0.5) rgba(0,0,0,0.12); }
+.pz-dots i.on { background: #ff9b54; box-shadow: 0 0 0 calc(var(--u) * 0.4) rgba(255,155,84,0.3); }
+.pz-cheer .pz-chip { background: rgba(255,255,255,0.85); }
+.pz-fly { position: absolute; z-index: 60; display: flex; align-items: center; justify-content: center; font-size: calc(min(0.8vh, 0.56vw) * 5.8); line-height: 1; pointer-events: none; will-change: transform; }
+@media (orientation: portrait) { .pz-fly { font-size: calc(min(1vw, 0.56vh) * 5.8); } }
+
+/* 結算畫面左下角的小字：「🎪 ＋3 已經算進大家的進度囉！」（不跳出、不打斷；右下是星星罐）。
+   #result > * 會被設成 position:relative（zhuyin.css），這裡用更具體的選擇器放回絕對定位 */
+#result > .pz-note { position: absolute; left: max(3vmin, env(safe-area-inset-left, 0px)); bottom: 3vmin; z-index: 3; max-width: 46vmin; pointer-events: none;
+  font-size: 3.4vmin; font-weight: 800; line-height: 1.5; color: #8a4a00; background: #fff3c4; border: 0.5vmin solid #fff; border-radius: 3vmin; padding: 0.8vmin 2.2vmin;
+  box-shadow: 0 0.5vmin 1.2vmin rgba(20,50,80,0.22); text-wrap: balance; animation: tipIn 0.4s cubic-bezier(.2,1.5,.4,1) both; }

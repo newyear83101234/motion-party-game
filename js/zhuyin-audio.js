@@ -10,7 +10,9 @@
 // 同一個音效 currentTime=0 會被切斷。這裡全部走同一個 AudioContext（配音也是，不要開第二個）。
 //
 // iOS：AudioContext 只在第一次點擊（unlock()）才建立並 resume；之前只先下載。切到背景 suspend、回來 resume（只在原本有在播時）。
-// iPad 記憶體：64 秒立體聲 BGM 解碼後約 22MB → 解碼好的 BGM 最多同時留 3 首（目前、淡出中、預載下一首），其他照「最久沒用」先丟；音效很短，全部預載。
+// iPad 記憶體：64 秒立體聲 BGM 解碼後約 23MB → 解碼好的 BGM 最多同時留 2 首（目前＋淡出中；效能體檢 10-12 從 3 首減下來，保留立體聲音質），
+// 預載下一首只在「沒有在換曲、只有目前這首」時才做；其他照「最久沒用」先丟；音效很短，全部預載。
+// 開頁：zhuyin.js 用 holdUntil() 讓「還沒解鎖聲音時的 BGM 下載」等 3D 小島建築長好（不搶頻寬）；第一次點擊解鎖就照常抓。
 // 載入失敗（404／解碼錯）一律安靜略過、遊戲照跑，每個檔只 console.warn 一次。
 
 const ROOT = new URL("../audio/", import.meta.url).href;
@@ -19,7 +21,7 @@ const LEVEL = { music: 0.32, sfx: 0.8, voice: 1, ambience: 0.5 };   // 各 bus �
 const TRIM = { ng: 0.5 };                         // 個別音效再調：答錯音小聲一點（A10：怪遊戲不怪小孩）
 const DUCK_DB = -10, DUCK_IN = 0.15, DUCK_OUT = 0.4;   // 講話時音樂壓低 10 dB：約 150 ms 壓下去、400 ms 回來
 const XFADE = 0.6;                                // 切曲：0.6 秒等功率交叉淡化
-const MAX_BGM = 3;                                // 解碼好的 BGM 最多留幾首
+const MAX_BGM = 2;                                // 解碼好的 BGM 最多留幾首（目前＋淡出中）
 const MAX_SFX = 24;                               // 同時最多幾個音效（泡泡連爆也不會無限疊）
 const LATE_MS = 350;                              // 音效還沒載好：350 ms 內載好就補播，太晚就算了（晚到的聲音比沒聲音更怪）
 const DEBUG = /[?&]debug\b/.test(location.search);
@@ -38,6 +40,7 @@ let want = null;                                  // 想要播的曲目（音樂
 let cur = null;                                   // 目前的曲目 { key, e, s, g, auto }
 const fading = new Set();                         // 淡出中的曲目
 let rate = 1, bgTok = 0;
+let hold = null;                                  // 開頁：還沒解鎖聲音時，BGM 下載先等這個 Promise（3D 小島建築長好）；解鎖後不等
 export const stats = { sfx: 0, skipped: 0, unknown: 0, late: 0, failed: 0, bgmStarts: 0, maxBgm: 0, evicted: 0 };   // 除錯／測試用
 
 // ---------- 小工具 ----------
@@ -154,7 +157,7 @@ function load(e, low = false) {
     if (e.kind === "bgm") {                       // BGM 一次只解一首（狂切曲時不會同時解 6 首把 iPad 記憶體撐爆）；輪到時已經不需要了就跳過（下載的檔留著）
       p = raw.then(ab => {                        // 下載各自進行，只有「解碼」排隊
         const q = bgmGate.then(() => { if (e.name !== want && e.name !== prefKey) throw SKIP; makeRoom(e); return decode(ab); });
-        bgmGate = Promise.race([q.catch(() => {}), new Promise(r => setTimeout(r, 15000))]);   // 保險：解碼卡住也不會擋死後面的
+        bgmGate = Promise.race([q.then(() => {}, () => {}), new Promise(r => setTimeout(r, 15000))]);   // 保險：解碼卡住也不會擋死後面的；結果丟掉（效能體檢 10-12：原本這個 Promise 帶著解碼好的音樂，被 15 秒計時器多抓住 15 秒＝丟掉的 BGM 還佔 23MB）
         return q;
       });
     } else p = raw.then(decode);
@@ -222,11 +225,11 @@ function endSfx(item) {
   try { item.s.disconnect(); if (item.node !== item.s) item.node.disconnect(); } catch (e) {}
   if (item.duckKey) duck(false, item.duckKey);
 }
-// 先把音效都抓下來（解鎖後順便解碼）；names 省略＝清單裡全部
-export function preloadSfx(names) {
+// 先把音效都抓下來（解鎖後順便解碼）；names 省略＝清單裡全部；low:false＝一般優先序（開頁第一下點擊就要響的那幾個）
+export function preloadSfx(names, { low = true } = {}) {
   return loadMan().then(() => {
     const list = names || (man ? ["party", ...Object.keys(man.sfx)] : []);
-    return Promise.all(list.map(n => { const e = sfxEntry(n); return e ? load(e, true).catch(() => null) : null; }));
+    return Promise.all(list.map(n => { const e = sfxEntry(n); return e ? load(e, low).catch(() => null) : null; }));
   });
 }
 
@@ -253,7 +256,7 @@ function startWant(fade = XFADE) {
   const key = want, tok = ++bgTok;
   if (!key || (cur && cur.key === key)) { pend = null; return; }
   pend = key;
-  loadMan().then(() => {
+  loadMan().then(() => (!ac && hold ? hold : null)).then(() => {
     if (tok !== bgTok) return;
     const e = bgmEntry(key);
     if (!e) { pend = null; if (key !== "island") { warnOnce("bgmkey:" + key, `沒有這首背景音樂「${key}」，改播 island`); want = "island"; startWant(fade); } return; }
@@ -267,7 +270,7 @@ function startWant(fade = XFADE) {
 }
 function startTrack(e, buf, fade) {
   if (cur) fadeOutTrack(cur, fade);
-  while (fading.size > 2) killTrack([...fading].sort((a, b) => a.auto.t0 - b.auto.t0)[0]);   // 狂切曲：同時最多 1 首新的＋2 首淡出中（解碼好的 ≤ 3 首）
+  while (fading.size > MAX_BGM - 1) killTrack([...fading].sort((a, b) => a.auto.t0 - b.auto.t0)[0]);   // 狂切曲：同時最多 1 首新的＋1 首淡出中（解碼好的 ≤ 2 首）
   const s = ac.createBufferSource(), g = ac.createGain(); s.buffer = buf; g.gain.value = 0;
   const ls = +e.loopStart, le = +e.loopEnd, okLoop = e.loop && ls >= 0 && le > ls && le <= buf.duration + 0.01;
   s.loop = !!e.loop; if (okLoop) { s.loopStart = ls; s.loopEnd = Math.min(le, buf.duration); }
@@ -294,15 +297,17 @@ function killTrack(t) {                           // 立刻收掉（50 ms 淡出
   t.auto = { t0: ac.currentTime, dur: 0.05, c: new Float32Array([0, 0]) };
   fading.delete(t); clearTimeout(t.timer);
 }
+// 開頁（效能體檢 10-12）：還沒解鎖聲音時，BGM 的下載等 p（3D 小島建築長好；zhuyin.js 自己加逾時）；p 結束前就解鎖（第一次點擊）→ 不等、馬上抓
+export function holdUntil(p) { const h = hold = Promise.resolve(p).catch(() => {}).then(() => { if (hold === h) hold = null; }); }
 export function stopBgm({ fade = XFADE } = {}) { want = null; pend = null; bgTok++; if (cur && ac) fadeOutTrack(cur, fade); cur = null; }
-// 閒置時先把「最可能的下一首」下載＋解碼（不會超過 MAX_BGM；位置不夠就不預載）
+// 閒置時先把「最可能的下一首」下載＋解碼：只在沒有在換曲（沒有淡出中的）、只有目前這首在用時才做（效能體檢 10-12；不會超過 MAX_BGM）
 export function prefetchBgm(key) {
   if (!key) return;
   const go = () => {
     const e = bgmEntry(key); if (!e || e.buf || e.dp) { if (e) e.used = Math.max(e.used, performance.now() - 1); return; }
     if (!ac) { if (!e.raw) load(e, true).catch(() => {}); return; }
     if (!musicOn) return;
-    const room = decodedBgm().filter(x => !pinned().has(x.name)).length > 0 || decodedBgm().length < MAX_BGM;
+    const pin = pinned(), room = !fading.size && !pend && decodedBgm().filter(x => pin.has(x.name)).length <= 1;   // 舊的、沒在播的會在解碼前被丟掉（makeRoom）
     if (!room) return;
     prefKey = key; e.used = performance.now(); load(e, true).catch(() => {});
   };
@@ -337,6 +342,6 @@ export function debug() {
     sfxDecoded: [...SFX.values()].filter(e => e.buf).length, stats: { ...stats }, time: +at.toFixed(3),
   };
 }
-const api = { unlock, ctx, busFor, sfx, preloadSfx, duck, playBgm, stopBgm, prefetchBgm, bgmRate, setMusic, musicEnabled, debug, stats, LEVEL };
+const api = { unlock, ctx, busFor, sfx, preloadSfx, duck, playBgm, stopBgm, prefetchBgm, holdUntil, bgmRate, setMusic, musicEnabled, debug, stats, LEVEL };
 if (DEBUG) window.__zyAudio = api;
 export default api;

@@ -1,21 +1,21 @@
 {
  "meta": {
   "generated_by": "tools/voice/build_lines.py",
-  "total_lines": 539,
-  "total_chars": 2978,
+  "total_lines": 674,
+  "total_chars": 4120,
   "by_cat": {
    "intro": 10,
-   "praise": 5,
-   "guide": 165,
+   "praise": 8,
+   "guide": 241,
    "system": 4,
-   "result": 4,
+   "result": 5,
    "word": 155,
    "hatch": 28,
    "friend": 19,
    "order": 76,
-   "dynamic": 59,
-   "hunt": 1,
-   "phrase": 13
+   "phrase": 53,
+   "dynamic": 74,
+   "hunt": 1
   },
   "words": 136,
   "phrases": 13,
@@ -40,6 +40,12 @@
    "src": "zhuyin.js:763 結算畫面",
    "range": "n = 1..12（一般模式最多 8 題；翻牌 24 張＝12 對）",
    "suggestion": "展開成 12 句預錄。"
+  },
+  {
+   "template": "再拿 ${n} 顆星星就能玩陀螺喔！",
+   "src": "zhuyin.js topsNoTicketSay（10-12 陀螺沒券）",
+   "range": "n = 1..15（每 15 顆星星換 1 張陀螺券）",
+   "suggestion": "展開成 15 句預錄。"
   },
   {
    "template": "再 ${n} 顆星星就可以扭蛋囉！",
@@ -1663,6 +1669,761 @@
    "src": "zhuyin.js 彩虹配送站接線（DELIVER_WIN_TALK／DELIVER_FAIL）"
   },
   {
+   "id": "dt_q_smile",
+   "text": "你笑起來真好看",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_eyes",
+   "text": "你看著我的眼睛說",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_rice",
+   "text": "我愛你愛著你就像老鼠愛大米",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_tiger",
+   "text": "兩隻老虎跑得快",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_star",
+   "text": "滿天都是小星星",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_mouse",
+   "text": "小老鼠上燈台",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_hill",
+   "text": "上山打老虎",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_bridge",
+   "text": "倫敦鐵橋垮下來",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_farm",
+   "text": "王老先生有塊地",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_pedicab",
+   "text": "三輪車跑得快",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_body",
+   "text": "頭兒肩膀膝腳趾",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_bday",
+   "text": "祝你生日快樂",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_q_happy",
+   "text": "如果你很快樂",
+   "cat": "phrase",
+   "src": "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）"
+  },
+  {
+   "id": "dt_intro",
+   "text": "仔細聽，選出你聽到的那一句！",
+   "cat": "guide",
+   "src": "zhuyin-detective.js LINES.intro（每回合開場教學，talk）"
+  },
+  {
+   "id": "dt_retry",
+   "text": "按喇叭，再聽一次喔！",
+   "cat": "guide",
+   "src": "zhuyin-detective.js LINES.retry（答錯，輕聲，talk；10-12 櫻木：舊句「再聽一次喔！」改這句、要重錄）"
+  },
+  {
+   "id": "dt_praise_1",
+   "text": "答對了，小偵探！",
+   "cat": "praise",
+   "src": "zhuyin-detective.js LINES.praise（答對，talk）"
+  },
+  {
+   "id": "dt_praise_2",
+   "text": "找到了！就是這句！",
+   "cat": "praise",
+   "src": "zhuyin-detective.js LINES.praise（答對，talk）"
+  },
+  {
+   "id": "dt_praise_3",
+   "text": "你聽得好仔細！",
+   "cat": "praise",
+   "src": "zhuyin-detective.js LINES.praise（答對，talk）"
+  },
+  {
+   "id": "dt_win",
+   "text": "全部找到了，你是厲害的小偵探！",
+   "cat": "result",
+   "src": "zhuyin-detective.js WIN_TALK（主程式結算畫面唸）"
+  },
+  {
+   "id": "pz_intro_rescue",
+   "text": "這個禮拜是救援週！大家一起去泡泡救援灣救動物！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js LINES.intro（換週貓頭鷹介紹、打開廣場，talk）"
+  },
+  {
+   "id": "pz_intro_deliver",
+   "text": "這個禮拜是送貨週！大家一起去彩虹配送站送貨！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js LINES.intro（換週貓頭鷹介紹、打開廣場，talk）"
+  },
+  {
+   "id": "pz_intro_fish",
+   "text": "這個禮拜是釣魚週！大家一起來釣魚！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js LINES.intro（換週貓頭鷹介紹、打開廣場，talk）"
+  },
+  {
+   "id": "pz_intro_read",
+   "text": "這個禮拜是讀字週！每個遊戲答對都算喔！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js LINES.intro（換週貓頭鷹介紹、打開廣場，talk）"
+  },
+  {
+   "id": "pz_intro_star",
+   "text": "這個禮拜是收集週！大家一起拿星星！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js LINES.intro（換週貓頭鷹介紹、打開廣場，talk）"
+  },
+  {
+   "id": "pz_introtext_rescue",
+   "text": "這個禮拜是救援週！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js LINES.introText（對話框短版：點貓頭鷹探頭重講時唸）"
+  },
+  {
+   "id": "pz_introtext_deliver",
+   "text": "這個禮拜是送貨週！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js LINES.introText（對話框短版：點貓頭鷹探頭重講時唸）"
+  },
+  {
+   "id": "pz_introtext_fish",
+   "text": "這個禮拜是釣魚週！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js LINES.introText（對話框短版：點貓頭鷹探頭重講時唸）"
+  },
+  {
+   "id": "pz_introtext_read",
+   "text": "這個禮拜是讀字週！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js LINES.introText（對話框短版：點貓頭鷹探頭重講時唸）"
+  },
+  {
+   "id": "pz_introtext_star",
+   "text": "這個禮拜是收集週！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js LINES.introText（對話框短版：點貓頭鷹探頭重講時唸）"
+  },
+  {
+   "id": "pz_reached_1",
+   "text": "大家一起做到了！拿到銅牌，小島飄起彩色氣球囉！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js LINES.reached（第一次看到新的一段，queueTalk）"
+  },
+  {
+   "id": "pz_reached_2",
+   "text": "大家一起做到了！拿到銀牌，小島放煙火囉！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js LINES.reached（第一次看到新的一段，queueTalk）"
+  },
+  {
+   "id": "pz_reached_3",
+   "text": "大家一起做到了！拿到金牌，小島中間有金色獎盃喔！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js LINES.reached（第一次看到新的一段，queueTalk）"
+  },
+  {
+   "id": "pz_reachedtext_1",
+   "text": "大家一起做到了！拿到銅牌！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js LINES.reachedText（對話框短版：探頭重講時唸）"
+  },
+  {
+   "id": "pz_reachedtext_2",
+   "text": "大家一起做到了！拿到銀牌！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js LINES.reachedText（對話框短版：探頭重講時唸）"
+  },
+  {
+   "id": "pz_reachedtext_3",
+   "text": "大家一起做到了！拿到金牌！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js LINES.reachedText（對話框短版：探頭重講時唸）"
+  },
+  {
+   "id": "pz_cheer_1",
+   "text": "我來玩了！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js CHEERS（加油貼紙：點一下唸，say）"
+  },
+  {
+   "id": "pz_cheer_2",
+   "text": "一起加油！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js CHEERS（加油貼紙：點一下唸，say）"
+  },
+  {
+   "id": "pz_cheer_3",
+   "text": "我救到動物了！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js CHEERS（加油貼紙：點一下唸，say）"
+  },
+  {
+   "id": "pz_cheer_4",
+   "text": "這關好好玩！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js CHEERS（加油貼紙：點一下唸，say）",
+   "tts_text": "這關，好好玩！"
+  },
+  {
+   "id": "pz_welcome",
+   "text": "歡迎來到同樂廣場！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js LINES.welcome"
+  },
+  {
+   "id": "pz_armed",
+   "text": "再按一次，就送出貼紙喔！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js LINES.armed"
+  },
+  {
+   "id": "pz_sent",
+   "text": "貼紙送出去了！大家都看得到喔！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js LINES.sent"
+  },
+  {
+   "id": "pz_used",
+   "text": "今天的貼紙送完了，明天再來送！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js LINES.used"
+  },
+  {
+   "id": "pz_offline",
+   "text": "連不上，等一下再看！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js LINES.offline"
+  },
+  {
+   "id": "pz_paused",
+   "text": "廣場在休息，等一下再來！",
+   "cat": "guide",
+   "src": "zhuyin-plaza.js LINES.paused"
+  },
+  {
+   "id": "tp_intro",
+   "text": "用注音拼出五個字，變成戰鬥陀螺！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.intro"
+  },
+  {
+   "id": "tp_noName",
+   "text": "不要打自己或別人的名字喔！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.noName"
+  },
+  {
+   "id": "tp_first",
+   "text": "先選一個符號。",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.first"
+  },
+  {
+   "id": "tp_tone",
+   "text": "最後按聲調，字就會跑出來！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.tone"
+  },
+  {
+   "id": "tp_pick",
+   "text": "選好了就按確定。",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.pick"
+  },
+  {
+   "id": "tp_bad",
+   "text": "這個拼不出字喔，再試試看！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.bad"
+  },
+  {
+   "id": "tp_full",
+   "text": "五個字都好了，可以下場囉！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.full"
+  },
+  {
+   "id": "tp_inspire",
+   "text": "這句怎麼樣？",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.inspire"
+  },
+  {
+   "id": "tp_morph",
+   "text": "變身！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.morph"
+  },
+  {
+   "id": "tp_power",
+   "text": "戰力出來囉！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.power"
+  },
+  {
+   "id": "tp_vs",
+   "text": "對手來了！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.vs"
+  },
+  {
+   "id": "tp_fight",
+   "text": "陀螺，發射！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.fight"
+  },
+  {
+   "id": "tp_roundWin",
+   "text": "這回合你贏了！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.roundWin"
+  },
+  {
+   "id": "tp_roundLose",
+   "text": "這回合對手贏了！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.roundLose"
+  },
+  {
+   "id": "tp_out",
+   "text": "撞出場了！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.out",
+   "tts_text": "壯出場了！"
+  },
+  {
+   "id": "tp_stop",
+   "text": "停下來了！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.stop"
+  },
+  {
+   "id": "tp_time",
+   "text": "時間到，看誰轉得久！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.time"
+  },
+  {
+   "id": "tp_last",
+   "text": "最後一擊！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.last"
+  },
+  {
+   "id": "tp_win",
+   "text": "你贏了！你的陀螺最強！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.win"
+  },
+  {
+   "id": "tp_lose",
+   "text": "差一點點！再拼一句更強的吧！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.lose"
+  },
+  {
+   "id": "tp_record",
+   "text": "新紀錄！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.record"
+  },
+  {
+   "id": "tp_pending",
+   "text": "審核後就會上榜喔！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.pending"
+  },
+  {
+   "id": "tp_ranked",
+   "text": "上榜了！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.ranked"
+  },
+  {
+   "id": "tp_noTicket",
+   "text": "再收集一些星星，就能玩陀螺囉！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.noTicket"
+  },
+  {
+   "id": "tp_guide",
+   "text": "跟著發亮的按鍵，拼出最後一個字！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.guide"
+  },
+  {
+   "id": "tp_eggMode",
+   "text": "沒有陀螺券也可以打字，打好的句子會變成陀螺蛋！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.eggMode",
+   "tts_text": "沒有陀螺勸也可以打字，打好的句子會變成陀螺蛋！"
+  },
+  {
+   "id": "tp_eggSaved",
+   "text": "陀螺蛋存好了！拿到陀螺券就能孵出來對戰！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.eggSaved",
+   "tts_text": "陀螺蛋存好了！拿到陀螺勸就能孵出來對戰！"
+  },
+  {
+   "id": "tp_eggAsk",
+   "text": "你有陀螺蛋！要孵出來對戰嗎？",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.eggAsk"
+  },
+  {
+   "id": "tp_starCard",
+   "text": "集滿十五顆星星，就能換一張陀螺券！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.starCard",
+   "tts_text": "集滿十五顆星星，就能換一張陀螺勸！"
+  },
+  {
+   "id": "tp_rematch",
+   "text": "換個對手，再打一次！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.rematch"
+  },
+  {
+   "id": "tp_loseRematch",
+   "text": "差一點點！可以換個對手再打一次喔！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.loseRematch"
+  },
+  {
+   "id": "tp_cheer",
+   "text": "加油！加油！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.cheer"
+  },
+  {
+   "id": "tp_cheerHint",
+   "text": "點畫面，幫你的陀螺加油！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.cheerHint"
+  },
+  {
+   "id": "tp_vsPre",
+   "text": "對手是：",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.vsPre",
+   "tts_text": "對手是"
+  },
+  {
+   "id": "tp_insp_1",
+   "text": "宇宙強爸爸！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄩˇ ㄓㄡˋ ㄑㄧㄤˊ ㄅㄚˋ ㄅㄚ˙"
+  },
+  {
+   "id": "tp_insp_2",
+   "text": "超級賽亞人！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄔㄠ ㄐㄧˊ ㄙㄞˋ ㄧㄚˋ ㄖㄣˊ"
+  },
+  {
+   "id": "tp_insp_3",
+   "text": "努力小紅帽！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄋㄨˇ ㄌㄧˋ ㄒㄧㄠˇ ㄏㄨㄥˊ ㄇㄠˋ"
+  },
+  {
+   "id": "tp_insp_4",
+   "text": "紅色翹翹板！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄏㄨㄥˊ ㄙㄜˋ ㄑㄧㄠˋ ㄑㄧㄠˋ ㄅㄢˇ"
+  },
+  {
+   "id": "tp_insp_5",
+   "text": "勇敢小兔子！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄩㄥˇ ㄍㄢˇ ㄒㄧㄠˇ ㄊㄨˋ ㄗ˙"
+  },
+  {
+   "id": "tp_insp_6",
+   "text": "無敵大番薯！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄨˊ ㄉㄧˊ ㄉㄚˋ ㄈㄢ ㄕㄨˇ"
+  },
+  {
+   "id": "tp_insp_7",
+   "text": "閃電小烏龜！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄕㄢˇ ㄉㄧㄢˋ ㄒㄧㄠˇ ㄨ ㄍㄨㄟ"
+  },
+  {
+   "id": "tp_insp_8",
+   "text": "跳舞的恐龍！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄊㄧㄠˋ ㄨˇ ㄉㄜ˙ ㄎㄨㄥˇ ㄌㄨㄥˊ"
+  },
+  {
+   "id": "tp_insp_9",
+   "text": "會飛的饅頭！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄏㄨㄟˋ ㄈㄟ ㄉㄜ˙ ㄇㄢˊ ㄊㄡ˙"
+  },
+  {
+   "id": "tp_insp_10",
+   "text": "媽媽的拖鞋！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄇㄚ ㄇㄚ˙ ㄉㄜ˙ ㄊㄨㄛ ㄒㄧㄝˊ"
+  },
+  {
+   "id": "tp_insp_11",
+   "text": "彩虹棒棒糖！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄘㄞˇ ㄏㄨㄥˊ ㄅㄤˋ ㄅㄤˋ ㄊㄤˊ"
+  },
+  {
+   "id": "tp_insp_12",
+   "text": "愛睡覺的貓！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄞˋ ㄕㄨㄟˋ ㄐㄧㄠˋ ㄉㄜ˙ ㄇㄠ"
+  },
+  {
+   "id": "tp_insp_13",
+   "text": "火箭吃布丁！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄏㄨㄛˇ ㄐㄧㄢˋ ㄔ ㄅㄨˋ ㄉㄧㄥ"
+  },
+  {
+   "id": "tp_insp_14",
+   "text": "超人在刷牙！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄔㄠ ㄖㄣˊ ㄗㄞˋ ㄕㄨㄚ ㄧㄚˊ"
+  },
+  {
+   "id": "tp_insp_15",
+   "text": "香蕉大怪獸！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄒㄧㄤ ㄐㄧㄠ ㄉㄚˋ ㄍㄨㄞˋ ㄕㄡˋ"
+  },
+  {
+   "id": "tp_insp_16",
+   "text": "冰箱裡的龍！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄅㄧㄥ ㄒㄧㄤ ㄌㄧˇ ㄉㄜ˙ ㄌㄨㄥˊ"
+  },
+  {
+   "id": "tp_insp_17",
+   "text": "阿公的假牙！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄚ ㄍㄨㄥ ㄉㄜ˙ ㄐㄧㄚˇ ㄧㄚˊ"
+  },
+  {
+   "id": "tp_insp_18",
+   "text": "鯊魚吃冰棒！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄕㄚ ㄩˊ ㄔ ㄅㄧㄥ ㄅㄤˋ"
+  },
+  {
+   "id": "tp_insp_19",
+   "text": "神奇的襪子！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄕㄣˊ ㄑㄧˊ ㄉㄜ˙ ㄨㄚˋ ㄗ˙"
+  },
+  {
+   "id": "tp_insp_20",
+   "text": "大象坐滑梯！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄉㄚˋ ㄒㄧㄤˋ ㄗㄨㄛˋ ㄏㄨㄚˊ ㄊㄧ"
+  },
+  {
+   "id": "tp_insp_21",
+   "text": "熊貓愛跳舞！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄒㄩㄥˊ ㄇㄠ ㄞˋ ㄊㄧㄠˋ ㄨˇ"
+  },
+  {
+   "id": "tp_insp_22",
+   "text": "宇宙大泡泡！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄩˇ ㄓㄡˋ ㄉㄚˋ ㄆㄠˋ ㄆㄠˋ"
+  },
+  {
+   "id": "tp_insp_23",
+   "text": "金色大雞腿！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄐㄧㄣ ㄙㄜˋ ㄉㄚˋ ㄐㄧ ㄊㄨㄟˇ"
+  },
+  {
+   "id": "tp_insp_24",
+   "text": "爺爺的鬍子！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄧㄝˊ ㄧㄝ˙ ㄉㄜ˙ ㄏㄨˊ ㄗ˙"
+  },
+  {
+   "id": "tp_insp_25",
+   "text": "飛天小豬豬！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄈㄟ ㄊㄧㄢ ㄒㄧㄠˇ ㄓㄨ ㄓㄨ"
+  },
+  {
+   "id": "tp_insp_26",
+   "text": "旋轉小飯糰！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "zhuyin": "ㄒㄩㄢˊ ㄓㄨㄢˇ ㄒㄧㄠˇ ㄈㄢˋ ㄊㄨㄢˊ"
+  },
+  {
+   "id": "tp_insp_27",
+   "text": "雷電小蝸牛！",
+   "cat": "phrase",
+   "src": "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）",
+   "tts_text": "雷電小瓜牛！",
+   "zhuyin": "ㄌㄟˊ ㄉㄧㄢˋ ㄒㄧㄠˇ ㄍㄨㄚ ㄋㄧㄡˊ"
+  },
+  {
+   "id": "tp_round_1",
+   "text": "第一回合！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js ROUND_LINES（每回合開始）"
+  },
+  {
+   "id": "tp_round_2",
+   "text": "第二回合！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js ROUND_LINES（每回合開始）"
+  },
+  {
+   "id": "tp_round_3",
+   "text": "第三回合！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js ROUND_LINES（每回合開始）"
+  },
+  {
+   "id": "tp_round_4",
+   "text": "第四回合！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js ROUND_LINES（每回合開始）"
+  },
+  {
+   "id": "tp_round_5",
+   "text": "第五回合！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js ROUND_LINES（每回合開始）"
+  },
+  {
+   "id": "tp_bonus_double",
+   "text": "疊字加成！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js BONUS_TEXT＝zhuyin-tops-power.js TOPS_BONUS（變身時唸加成名稱）"
+  },
+  {
+   "id": "tp_bonus_rhyme",
+   "text": "押韻加成！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js BONUS_TEXT＝zhuyin-tops-power.js TOPS_BONUS（變身時唸加成名稱）"
+  },
+  {
+   "id": "tp_bonus_tone",
+   "text": "同聲調加成！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js BONUS_TEXT＝zhuyin-tops-power.js TOPS_BONUS（變身時唸加成名稱）"
+  },
+  {
+   "id": "tp_bonus_animal",
+   "text": "動物加成！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js BONUS_TEXT＝zhuyin-tops-power.js TOPS_BONUS（變身時唸加成名稱）"
+  },
+  {
+   "id": "tp_bonus_color",
+   "text": "顏色加成！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js BONUS_TEXT＝zhuyin-tops-power.js TOPS_BONUS（變身時唸加成名稱）"
+  },
+  {
+   "id": "tp_bonus_strong",
+   "text": "強字加成！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js BONUS_TEXT＝zhuyin-tops-power.js TOPS_BONUS（變身時唸加成名稱）"
+  },
+  {
+   "id": "dt_fail",
+   "text": "偵探社現在打不開，等一下再試試看！",
+   "cat": "guide",
+   "src": "zhuyin.js 詞句小偵探／陀螺接線（10-12）"
+  },
+  {
+   "id": "tp_fail",
+   "text": "陀螺競技場現在打不開，等一下再試試看！",
+   "cat": "guide",
+   "src": "zhuyin.js 詞句小偵探／陀螺接線（10-12）"
+  },
+  {
+   "id": "tp_ticket_got",
+   "text": "拿到一張陀螺券了！",
+   "cat": "guide",
+   "src": "zhuyin.js 詞句小偵探／陀螺接線（10-12）",
+   "tts_text": "拿到一張陀螺勸了！"
+  },
+  {
    "id": "unlock_need_1",
    "text": "再收集 1 張貼紙就可以玩囉！",
    "cat": "dynamic",
@@ -1997,6 +2758,126 @@
    "src": "zhuyin.js:763",
    "tts_text": "拿到十二張新貼紙！",
    "n": 12
+  },
+  {
+   "id": "tops_need_1",
+   "text": "再拿 1 顆星星就能玩陀螺喔！",
+   "cat": "dynamic",
+   "src": "zhuyin.js topsNoTicketSay（10-12）",
+   "tts_text": "再拿一顆星星就能玩陀螺喔！",
+   "n": 1
+  },
+  {
+   "id": "tops_need_2",
+   "text": "再拿 2 顆星星就能玩陀螺喔！",
+   "cat": "dynamic",
+   "src": "zhuyin.js topsNoTicketSay（10-12）",
+   "tts_text": "再拿兩顆星星就能玩陀螺喔！",
+   "n": 2
+  },
+  {
+   "id": "tops_need_3",
+   "text": "再拿 3 顆星星就能玩陀螺喔！",
+   "cat": "dynamic",
+   "src": "zhuyin.js topsNoTicketSay（10-12）",
+   "tts_text": "再拿三顆星星就能玩陀螺喔！",
+   "n": 3
+  },
+  {
+   "id": "tops_need_4",
+   "text": "再拿 4 顆星星就能玩陀螺喔！",
+   "cat": "dynamic",
+   "src": "zhuyin.js topsNoTicketSay（10-12）",
+   "tts_text": "再拿四顆星星就能玩陀螺喔！",
+   "n": 4
+  },
+  {
+   "id": "tops_need_5",
+   "text": "再拿 5 顆星星就能玩陀螺喔！",
+   "cat": "dynamic",
+   "src": "zhuyin.js topsNoTicketSay（10-12）",
+   "tts_text": "再拿五顆星星就能玩陀螺喔！",
+   "n": 5
+  },
+  {
+   "id": "tops_need_6",
+   "text": "再拿 6 顆星星就能玩陀螺喔！",
+   "cat": "dynamic",
+   "src": "zhuyin.js topsNoTicketSay（10-12）",
+   "tts_text": "再拿六顆星星就能玩陀螺喔！",
+   "n": 6
+  },
+  {
+   "id": "tops_need_7",
+   "text": "再拿 7 顆星星就能玩陀螺喔！",
+   "cat": "dynamic",
+   "src": "zhuyin.js topsNoTicketSay（10-12）",
+   "tts_text": "再拿七顆星星就能玩陀螺喔！",
+   "n": 7
+  },
+  {
+   "id": "tops_need_8",
+   "text": "再拿 8 顆星星就能玩陀螺喔！",
+   "cat": "dynamic",
+   "src": "zhuyin.js topsNoTicketSay（10-12）",
+   "tts_text": "再拿八顆星星就能玩陀螺喔！",
+   "n": 8
+  },
+  {
+   "id": "tops_need_9",
+   "text": "再拿 9 顆星星就能玩陀螺喔！",
+   "cat": "dynamic",
+   "src": "zhuyin.js topsNoTicketSay（10-12）",
+   "tts_text": "再拿九顆星星就能玩陀螺喔！",
+   "n": 9
+  },
+  {
+   "id": "tops_need_10",
+   "text": "再拿 10 顆星星就能玩陀螺喔！",
+   "cat": "dynamic",
+   "src": "zhuyin.js topsNoTicketSay（10-12）",
+   "tts_text": "再拿十顆星星就能玩陀螺喔！",
+   "n": 10
+  },
+  {
+   "id": "tops_need_11",
+   "text": "再拿 11 顆星星就能玩陀螺喔！",
+   "cat": "dynamic",
+   "src": "zhuyin.js topsNoTicketSay（10-12）",
+   "tts_text": "再拿十一顆星星就能玩陀螺喔！",
+   "n": 11
+  },
+  {
+   "id": "tops_need_12",
+   "text": "再拿 12 顆星星就能玩陀螺喔！",
+   "cat": "dynamic",
+   "src": "zhuyin.js topsNoTicketSay（10-12）",
+   "tts_text": "再拿十二顆星星就能玩陀螺喔！",
+   "n": 12
+  },
+  {
+   "id": "tops_need_13",
+   "text": "再拿 13 顆星星就能玩陀螺喔！",
+   "cat": "dynamic",
+   "src": "zhuyin.js topsNoTicketSay（10-12）",
+   "tts_text": "再拿十三顆星星就能玩陀螺喔！",
+   "n": 13
+  },
+  {
+   "id": "tops_need_14",
+   "text": "再拿 14 顆星星就能玩陀螺喔！",
+   "cat": "dynamic",
+   "src": "zhuyin.js topsNoTicketSay（10-12）",
+   "tts_text": "再拿十四顆星星就能玩陀螺喔！",
+   "n": 14
+  },
+  {
+   "id": "tops_need_15",
+   "text": "再拿 15 顆星星就能玩陀螺喔！",
+   "cat": "dynamic",
+   "src": "zhuyin.js topsNoTicketSay（10-12）",
+   "tts_text": "再拿十五顆星星就能玩陀螺喔！",
+   "n": 15
   },
   {
    "id": "coin_need_1",

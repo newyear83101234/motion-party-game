@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>詞句小偵探 試玩</title>
+<!-- 獨立試玩頁：python -m http.server 8765（專案根目錄）→ http://127.0.0.1:8765/tools/zy-test/detective-lab.html
+     預設＝真的出聲（預錄配音 voice/gemini_d，沒錄到的句子退回瀏覽器語音），要先點「開始」解鎖聲音。
+     參數：?fake=1 假語音（測試用：不出聲、記錄每段話的開始／被打斷／講完）｜?fast=4 假語音與計時快 4 倍｜?seed=3 固定亂數
+           ｜?clean=1 收起試玩工具列（截圖用）｜?mute=1 不出音效｜?talk=0 模擬家長關掉說明語音｜?nostop=1 不提供 api.stopVoice
+           ｜?intro=0 不念教學句｜?all=1 草稿題也出（看候選題長怎樣，不會存檔）
+           ｜?bank=2 題庫只取前 2 題啟用題（測試用：驗不到 5 題最多 1★） -->
+<link rel="stylesheet" href="../../css/zhuyin.css">
+<link rel="stylesheet" href="../../css/zhuyin-detective.css">
+<style>
+  #stage { background: #ffe9bd; }
+  #detectiveRoot { position: absolute; inset: 0; }
+  #lab { position: fixed; z-index: 80; left: 50%; bottom: 1vmin; transform: translateX(-50%); display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: center;
+    max-width: 70vw; padding: 4px 6px; border-radius: 10px; background: rgba(20,30,50,.72); color: #fff; font: 12px/1.3 system-ui, sans-serif; }
+  #lab button { font: 12px system-ui, sans-serif; padding: 3px 7px; border-radius: 6px; background: #fff; color: #123; }
+  #lab button.on { background: #ffd54a; }
+  #labLog { position: fixed; z-index: 80; right: 1vmin; bottom: 6vmin; max-width: 46vw; color: #fff; font: 12px/1.35 ui-monospace, Consolas, monospace; text-shadow: 0 1px 2px #000; pointer-events: none; white-space: pre-wrap; }
+  #labResult, #labGate { position: fixed; z-index: 90; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.35); }
+  #labResult div { background: #fff; border-radius: 3vmin; padding: 3vmin 5vmin; font: bold 3.6vmin system-ui, sans-serif; color: #1b4fa0; text-align: center; white-space: pre-line; }
+  #labGate button { font: bold 6vmin system-ui, sans-serif; padding: 2.4vmin 7vmin; border-radius: 6vmin; background: #ffd54a; color: #3b2a10; box-shadow: 0 1vmin 0 #d4a800; }
+  .clean #lab, .clean #labLog { display: none; }
+</style>
+</head>
+<body>
+<section id="stage" class="screen"><div id="detectiveRoot"></div></section>
+<!-- 假的主程式按鈕（看會不會跟遊戲擋到）：遊戲裡左上只有 🏠🎵（.hud-l）。🏠＝暫停／繼續（跟主程式一樣：暫停時停掉語音、說「暫停」） -->
+<div class="hud hud-l"><button class="round-btn" id="homeBtn" aria-label="暫停">🏠</button><button class="round-btn" id="musicBtn" aria-label="音樂">🎵</button></div>
+<div id="lab" class="noann"></div>
+<div id="labLog" class="noann"></div>
+<div id="labResult" class="hidden noann"><div></div></div>
+<div id="labGate" class="hidden noann"><button id="labGo">▶ 開始</button></div>
+<script type="module">
+  import * as mod from "../../js/zhuyin-detective.js";
+  import { voiceUnlock, voiceSay, voiceStop } from "../../js/zhuyin-voice.js?v=5";
+  const Q = new URLSearchParams(location.search);
+  const fast = Math.max(1, +Q.get("fast") || 1), FAKE = Q.get("fake") === "1", TALK = Q.get("talk") !== "0";
+  if (Q.get("clean") === "1") document.body.classList.add("clean");
+  const lines = [], calls = { say: [], talk: [], play: [], win: [], stop: 0, pausedSay: 0 };
+  const log = (k, t) => { lines.push(`${k}: ${t}`); while (lines.length > 7) lines.shift(); document.getElementById("labLog").textContent = lines.join("\n"); };
+
+  // ---------- 語音 ----------
+  // 假語音（?fake=1）：照主程式 say() 的行為——開口前先停前一句（被停的那句也會呼叫它的 onEnd），stopVoice() 停目前這句。
+  // V.log 記每段話：{ kind, text, t0, end, how: ended／cut（被下一句打斷）／stop（stopVoice）}，V.cur＝正在講的
+  const V = { cur: null, log: [], seq: 0 };
+  function vStop(how) { const it = V.cur; if (!it) return; V.cur = null; clearTimeout(it.timer); it.end = performance.now(); it.how = how; if (it.cb) it.cb(); }
+  function vStart(kind, text, cb) {
+    while (V.cur) vStop("cut");
+    const it = { id: ++V.seq, kind, text, t0: performance.now(), end: 0, how: "", cb };
+    V.cur = it; V.log.push(it);
+    it.timer = setTimeout(() => { if (V.cur !== it) return; V.cur = null; it.end = performance.now(); it.how = "ended"; if (cb) cb(); }, (350 + [...text].length * 170) / fast);
+  }
+  // 真的出聲（預設）：跟主程式 say() 同一套——先用預錄配音，沒錄到的退回瀏覽器語音
+  let zhVoice = null;
+  const loadVoice = () => { try { const vs = speechSynthesis.getVoices(); zhVoice = vs.find(v => /zh[-_]TW/i.test(v.lang)) || vs.find(v => /zh/i.test(v.lang)) || null; } catch (e) {} };
+  if ("speechSynthesis" in window) { loadVoice(); speechSynthesis.onvoiceschanged = loadVoice; }
+  let realTok = 0;
+  function realStop() { realTok++; voiceStop(); try { speechSynthesis.cancel(); } catch (e) {} }
+  function realSay(text, cb) {
+    voiceStop(); const me = ++realTok; let done = false; const fin = () => { if (done) return; done = true; if (cb) cb(); };
+    if (voiceSay(text, { onEnd: fin })) { try { speechSynthesis.cancel(); } catch (e) {} return; }
+    if (!("speechSynthesis" in window)) { setTimeout(fin, 300); return; }
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text); u.lang = "zh-TW"; u.rate = 0.85; if (zhVoice) u.voice = zhVoice;
+      u.onend = u.onerror = fin; speechSynthesis.speak(u);
+      setTimeout(() => { if (me === realTok && !speechSynthesis.speaking) fin(); }, Math.max(2500, text.length * 450));
+    } catch (e) { fin(); }
+  }
+  const speakNow = (kind, text, cb) => (FAKE ? vStart(kind, text, cb) : realSay(text, cb));
+
+  // ---------- 假的 gLater：暫停時凍結剩下的時間 ----------
+  let paused = false; const timers = new Set();
+  const arm = t => { t.id = setTimeout(() => { timers.delete(t); t.fn(); }, Math.max(0, t.left) / fast); t.at = performance.now(); };
+  function later(fn, ms) { const t = { fn, left: ms }; timers.add(t); if (!paused) arm(t); return t; }
+  function setPaused(v) {
+    v = !!v; if (v === paused) return; paused = v;
+    for (const t of timers) { if (paused) { clearTimeout(t.id); t.left -= (performance.now() - t.at) * fast; } else arm(t); }
+    document.getElementById("homeBtn").classList.toggle("on", paused);
+    if (paused) { calls.pausedSay++; speakNow("talk", "暫停"); log("pause", "暫停"); }   // 主程式 askHome()：gPause() 之後 talk("暫停")（會打斷正在講的話）
+  }
+
+  const api = {
+    say: (t, r, cb) => { calls.say.push(t); log("say", t); speakNow("say", t, cb); },
+    talk: (t, cb) => { calls.talk.push(t); log("talk", t); if (!TALK) { if (cb) setTimeout(cb, 0); return; } speakNow("talk", t, cb); },
+    play: n => { calls.play.push(n); if (Q.get("mute") === "1" || FAKE) return; try { new Audio(`../../audio/sfx/${n}.mp3`).play().catch(() => {}); } catch (e) {} },
+    later, paused: () => paused,
+    onWin: info => {
+      calls.win.push(info); log("onWin", JSON.stringify(info));
+      if (Q.get("clean") === "1") return;
+      speakNow("talk", mod.WIN_TALK);
+      const r = document.getElementById("labResult"); r.firstElementChild.textContent = `${"★".repeat(info.stars)}${"☆".repeat(3 - info.stars)}\n一次就答對 ${info.firstTry}／${info.total} 題\n（點一下再玩一次）`; r.classList.remove("hidden");
+    },
+    preload: () => {},
+  };
+  if (Q.get("nostop") !== "1") api.stopVoice = () => { calls.stop++; if (FAKE) vStop("stop"); else realStop(); };
+  if (Q.has("seed")) api.seed = +Q.get("seed");
+  if (Q.get("all") === "1") api.bank = mod.BANK.map(q => ({ ...q, enabled: true }));
+  if (Q.has("bank")) api.bank = mod.BANK.filter(q => q.enabled).slice(0, Math.max(1, +Q.get("bank") || 1));   // 測試用：?bank=2 題庫只剩前 2 題（驗「啟用不到 5 題最多 1★」）
+  const game = mod.createDetectiveGame(document.getElementById("detectiveRoot"), api);
+  window.__dt = { mod, game, api, calls, V, later, setPaused, timers };
+
+  const bar = document.getElementById("lab");
+  const btns = [["重新開始", () => { document.getElementById("labResult").classList.add("hidden"); game.start(Q.get("intro") === "0" ? { intro: false } : {}); }],
+    ["⏸", () => setPaused(!paused)], ["🔊", () => game.sayCurrent()], ["stop()", () => game.stop()]];
+  for (const [t, f] of btns) { const b = document.createElement("button"); b.textContent = t; b.onclick = f; bar.appendChild(b); }
+  document.getElementById("homeBtn").onclick = () => setPaused(!paused);
+  document.getElementById("labResult").onclick = () => { document.getElementById("labResult").classList.add("hidden"); game.start(); };
+  addEventListener("resize", () => game.relayout());
+  addEventListener("pointerdown", () => { if (!FAKE) voiceUnlock(); }, { capture: true });
+  const go = () => game.start(Q.get("intro") === "0" ? { intro: false } : {});
+  if (FAKE) { go(); window.__dt.ready = true; }
+  else {                                                  // 真的出聲：要先點一下解鎖聲音（iPad Safari 規定）
+    const g = document.getElementById("labGate"); g.classList.remove("hidden");
+    document.getElementById("labGo").onclick = () => { voiceUnlock(); g.classList.add("hidden"); go(); window.__dt.ready = true; };
+  }
+</script>
+</body>
+</html>

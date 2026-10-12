@@ -436,7 +436,7 @@ export function oceanPlugin(ctx, opts = {}) {
       let on = r < 0.85;
       if (on && cv && typeof document !== "undefined" && document.elementFromPoint) {
         const px = (_v.x + 1) / 2 * innerWidth, py = (1 - _v.y) / 2 * innerHeight;
-        for (const [dx, dy] of [[0, 0], [0, -32], [0, -64], [-28, -16], [28, -16], [-20, -48], [20, -48]]) { const el = document.elementFromPoint(px + dx, py + dy); if (!el || (el !== cv && !(ctx.stage && ctx.stage.contains(el)))) on = false; }
+        for (const [dx, dy] of [[0, 0], [0, -32], [0, -64], [-28, -16], [28, -16], [-20, -48], [20, -48]]) { const el = document.elementFromPoint(px + dx, py + dy); if (!el || (el !== cv && !(ctx.stage && ctx.stage.contains(el)))) { on = false; break; } }   // 一點被擋就不用再試（效能體檢 10-12）
       }
       if (on || forced) cands.push({ sc, on, r });
     }

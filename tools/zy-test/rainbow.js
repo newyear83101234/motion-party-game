@@ -4,7 +4,8 @@
 //     貼紙夠：彩虹島路網連通（每棟都接到路、沒有斷頭路）、鏡頭飛到位（島在畫面中間、只顯示彩虹島的浮標）、
 //     點配送站（3D／浮標）＝點 .mode-card[data-mode=deliver] → 進配送站（🏠 回小島不留「繼續玩」；完整流程在 deliver-game.js）、
 //     點服裝店＝onDress（打開換裝畫面，穿好了回彩虹島）、點居民唸名字、三個地點鈕切換（人在哪座島那顆變 🏝️ 回小島）、
-//     直式浮標不被介面擋到、?no3d 卡片選單看得到配送站卡而且不超出畫面、沒有錯誤、旁注音沒漏字
+//     直式浮標不被介面擋到、?no3d 卡片選單看得到配送站卡而且不超出畫面、沒有錯誤、旁注音沒漏字；
+//     浮標精簡（10-12）：剛開放還沒去過＝展開＋「新」、去過一次收成圓形圖示；直式／4:3 收合、一棟一棟展開都不被擋
 const { launch, openGame } = require("./lib");
 const out = []; const ok = (name, cond, info = "") => out.push(`${cond ? "PASS" : "FAIL"}  ${name}${info !== "" ? "  — " + info : ""}`);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -23,6 +24,8 @@ const spot = (p, m) => p.evaluate(m => {
   }
   return null;
 }, m);
+// 浮標展開完（0.2 秒拉開；headless 軟體繪圖一格可能 0.2 秒以上）再多等兩三格讓位置跟上
+const opened = (p, m) => p.waitForFunction(m => { const t = document.querySelector(`.hub-tag[data-mode=${m}]`); return t.classList.contains("open") && t.querySelector(".ht-more").getBoundingClientRect().width >= t.querySelector(".ht-txt").getBoundingClientRect().width - 1; }, m, { timeout: 5000 }).catch(() => {}).then(() => sleep(400));
 const tap3d = async (p, m) => { for (let k = 0; k < 3; k++) { const s = await spot(p, m); if (s) { await p.mouse.click(s.x, s.y); return s; } await sleep(500); } return null; };
 const toRainbow = async p => { await click(p, "rainbowBtn"); await sleep(3600); };
 // 寵物服裝店（10-12 起打開換裝畫面 #dress；詳細測試在 dress-game.js）
@@ -37,7 +40,7 @@ const dressDone = async p => { await p.evaluate(() => { const b = document.query
     await ready(p);
     let r = await rbInfo(p);
     ok("12 張：彩虹島沒開（橋中間沉著、兩頭有路障）", !r.open && !r.gapVisible && r.barrier, JSON.stringify(r));
-    ok("12 張：配送站、服裝店都鎖著", JSON.stringify(r.locked.sort()) === '["deliver","dress"]', JSON.stringify(r.locked));
+    ok("12 張：配送站、偵探社、服裝店都鎖著", JSON.stringify(r.locked.sort()) === '["deliver","detective","dress"]', JSON.stringify(r.locked));   // 10-12 多了詞句偵探社
     ok("12 張：🌈 鈕寫「彩虹島 🔒」", (await btns(p)).rb.includes("彩虹島") && (await btns(p)).rb.includes("🔒"), JSON.stringify(await btns(p)));
     await toRainbow(p);
     ok("點 🌈：飛到彩虹島、貓頭鷹說再收集 8 張彩虹島就開放", (await rbInfo(p)).place === "rainbow" && (await guide(p)).includes("8") && (await guide(p)).includes("彩虹島就開放"), await guide(p));
@@ -60,7 +63,7 @@ const dressDone = async p => { await p.evaluate(() => { const b = document.query
     r = await rbInfo(p);
     ok("換成 20 張的存檔位：橋接好、路障收掉", r.open && r.gapVisible && !r.barrier, JSON.stringify(r));
     ok("解鎖：貓頭鷹宣告彩虹島開放、🌈 鈕有 NEW", (await p.evaluate(() => window.__spoken.map(s => s.text))).includes("彩虹橋接好了！彩虹島開放囉！") && await p.evaluate(() => document.getElementById("rainbowBtn").classList.contains("news")), JSON.stringify(await p.evaluate(() => window.__spoken.map(s => s.text))));
-    ok("解鎖：配送站（need 20）、服裝店都開了", (await rbInfo(p)).locked.length === 0, JSON.stringify((await rbInfo(p)).locked));
+    ok("解鎖：配送站、偵探社（need 20）、服裝店都開了", (await rbInfo(p)).locked.length === 0, JSON.stringify((await rbInfo(p)).locked));
     ok("沒有錯誤（還沒開／解鎖）", errs.length === 0, errs.join(" | "));
     await ctx.close();
   }
@@ -70,8 +73,8 @@ const dressDone = async p => { await p.evaluate(() => { const b = document.query
     await ready(p);
     const g = await p.evaluate(() => window.__hub3d.graph()), r = await rbInfo(p);
     ok("路網全部連通（含彩虹島、拱橋）", g.components === 1, JSON.stringify(g));
-    ok("彩虹島沒有斷頭路、5 棟（配送站、服裝店、三戶人家）門口都接到路", r.deadEnds.length === 0 && ["deliver", "dress", "bearHouse", "bunnyHouse", "pigHouse"].every(d => r.doors.includes(d)), JSON.stringify(r));
-    ok("主島斷頭路少一條（西邊路底接上彩虹橋）", g.deadEnds === 13, String(g.deadEnds));
+    ok("彩虹島沒有斷頭路、6 棟（配送站、偵探社、服裝店、三戶人家）門口都接到路", r.deadEnds.length === 0 && ["deliver", "detective", "dress", "bearHouse", "bunnyHouse", "pigHouse"].every(d => r.doors.includes(d)), JSON.stringify(r));
+    ok("斷頭路 12 條（主島西邊路底接上彩虹橋、10-12 歸仁區橫路東端接上陀螺競技場半島）", g.deadEnds === 12, String(g.deadEnds));
     ok("在主島：彩虹島的浮標藏著、動畫不跑", await p.evaluate(() => [...document.querySelectorAll(".hub-tag.rb")].every(t => getComputedStyle(t).display === "none")) && !r.active, JSON.stringify(r));
     let b = await btns(p);
     ok("在主島：🏙️歸仁區、🌈彩虹島", b.town === "🏙️歸仁區" && b.rb === "🌈彩虹島" && b.place === "main", JSON.stringify(b));
@@ -84,7 +87,9 @@ const dressDone = async p => { await p.evaluate(() => { const b = document.query
     ok("貓頭鷹說這裡是彩虹島、NEW 拿掉", (await guide(p)).includes("這裡是彩虹島") && !(await p.evaluate(() => document.getElementById("rainbowBtn").classList.contains("news"))), await guide(p));
     const vis = await p.evaluate(() => ({ rb: [...document.querySelectorAll(".hub-tag.rb")].map(t => getComputedStyle(t).display !== "none" && getComputedStyle(t).visibility !== "hidden"), main: [...document.querySelectorAll(".hub-tag:not(.rb):not(.civic)")].every(t => getComputedStyle(t).visibility === "hidden"), civic: [...document.querySelectorAll(".hub-tag.civic")].every(t => getComputedStyle(t).display === "none"),
       words: [...document.querySelectorAll(".hub-tag.rb")].map(t => t.textContent) }));
-    ok("在彩虹島：只顯示彩虹島的兩個浮標（配送站、服裝店）", vis.rb.length === 2 && vis.rb.every(Boolean) && vis.main && vis.civic, JSON.stringify(vis));
+    ok("在彩虹島：只顯示彩虹島的三個浮標（配送站、服裝店、偵探社）", vis.rb.length === 3 && vis.rb.every(Boolean) && vis.main && vis.civic, JSON.stringify(vis));
+    const lod0 = await p.evaluate(() => window.__hub3d.lod());
+    ok("浮標精簡（10-12）：配送站、服裝店、偵探社剛開放還沒去過 → 名字展開＋「新」", ["deliver", "dress", "detective"].every(m => lod0.fresh.includes(m) && lod0.open.includes(m)) && await p.evaluate(() => [...document.querySelectorAll(".hub-tag.rb .ht-new")].every(n => getComputedStyle(n).display !== "none")), JSON.stringify(lod0));
     const tagsIn = await p.evaluate(() => { const ob = ["#menu > .menu-bottom", "#guide img", "#guideText", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn", "#townBtn", "#townTag", "#rainbowBtn", "#rainbowTag", "#hudLBtn", "#hudRBtn"].map(s => document.querySelector(s)).filter(Boolean).map(e => e.getBoundingClientRect());
       const bad = []; for (const t of document.querySelectorAll(".hub-tag.rb")) { const q = t.getBoundingClientRect(); if (q.left < 0 || q.top < 0 || q.right > innerWidth || q.bottom > innerHeight || ob.some(o => q.left < o.right && q.right > o.left && q.top < o.bottom && q.bottom > o.top)) bad.push(t.dataset.mode); } return bad; });
     ok("1180×820：彩虹島浮標在畫面內、沒被按鈕／膠囊擋到", tagsIn.length === 0, tagsIn.join(","));
@@ -99,6 +104,8 @@ const dressDone = async p => { await p.evaluate(() => { const b = document.query
     const st = await p.evaluate(() => ({ mode: window.__zy.mode, menu: !document.getElementById("menu").classList.contains("hidden"), resume: !document.getElementById("resumeBtn").classList.contains("hidden"), kids: document.getElementById("deliverRoot").children.length }));
     ok("配送站 🏠 回小島：回到選單、沒有留「繼續玩」、配送站畫面收乾淨", st.mode === null && st.menu && !st.resume && st.kids === 0, JSON.stringify(st));
     if ((await rbInfo(p)).place !== "rainbow") await toRainbow(p);   // 回小島＝回到主島（show 會重設地點）
+    const lod1 = await p.evaluate(() => window.__hub3d.lod());
+    ok("去過配送站一次：配送站收成圓形圖示（服裝店還是「新」）", !lod1.fresh.includes("deliver") && !lod1.open.includes("deliver") && lod1.fresh.includes("dress"), JSON.stringify(lod1));
     const tr = await p.evaluate(() => window.__hub3d.tagRect("deliver")); await p.mouse.click((tr.x0 + tr.x1) / 2, (tr.y0 + tr.y1) / 2); await sleep(1500);
     ok("點配送站浮標 → 也是點 deliver 卡片", (await p.evaluate(() => window.__dcard)) === 2 && await inDlv(), String(await p.evaluate(() => window.__dcard)));
     await leave();
@@ -108,6 +115,8 @@ const dressDone = async p => { await p.evaluate(() => { const b = document.query
     await sleep(500);
     ok("點服裝店 → onDress 打開換裝畫面（10-12）、沒進任何遊戲", !!sr && await dressOn(p) && (await p.evaluate(() => window.__zy.mode)) === null, JSON.stringify(sr));
     await dressDone(p);
+    const lod2 = await p.evaluate(() => window.__hub3d.lod());
+    ok("去過服裝店一次：服裝店也收成圓形圖示", !lod2.fresh.includes("dress") && !lod2.open.includes("dress"), JSON.stringify(lod2));
     ok("換裝畫面「穿好了」→ 回到小島、還在彩虹島", !(await dressOn(p)) && (await rbInfo(p)).place === "rainbow" && await p.evaluate(() => !document.getElementById("menu").classList.contains("hidden")), JSON.stringify(await rbInfo(p)));
     const ts = await p.evaluate(() => window.__hub3d.tagRect("dress")); await p.mouse.click((ts.x0 + ts.x1) / 2, (ts.y0 + ts.y1) / 2); await sleep(1700);
     ok("點服裝店浮標 → 也打開換裝畫面", await dressOn(p));
@@ -140,9 +149,27 @@ const dressDone = async p => { await p.evaluate(() => { const b = document.query
   for (const [w, h] of [[768, 1024], [1024, 768]]) {
     const { ctx, p, errs } = await openGame(browser, { w, h, stickers: 40, query: Q });
     await ready(p); await toRainbow(p);
-    const bad = await p.evaluate(() => { const ob = ["#menu > .menu-bottom", "#guide img", "#guideText", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn", "#townBtn", "#townTag", "#rainbowBtn", "#rainbowTag", "#hudLBtn", "#hudRBtn"].map(s => document.querySelector(s)).filter(Boolean).map(e => e.getBoundingClientRect());
-      const bad = []; for (const t of document.querySelectorAll(".hub-tag.rb")) { const q = t.getBoundingClientRect(); if (!q.width || q.left < 0 || q.top < 0 || q.right > innerWidth || q.bottom > innerHeight || ob.some(o => q.left < o.right && q.right > o.left && q.top < o.bottom && q.bottom > o.top)) bad.push(t.dataset.mode); } return bad; });
-    ok(`${w}×${h}：彩虹島浮標在畫面內、沒被按鈕／貼紙／貓頭鷹擋到`, bad.length === 0, bad.join(","));
+    const rbBad = () => p.evaluate(() => { const ob = ["#menu > .menu-bottom", "#guide img", "#guideText", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn", "#townBtn", "#townTag", "#rainbowBtn", "#rainbowTag", "#hudLBtn", "#hudRBtn"].map(s => document.querySelector(s)).filter(Boolean).map(e => e.getBoundingClientRect());
+      const bad = []; for (const t of document.querySelectorAll(".hub-tag.rb")) { const q = t.getBoundingClientRect(); if (!q.width || q.left < 0 || q.top < 0 || q.right > innerWidth || q.bottom > innerHeight || ob.some(o => q.left < o.right && q.right > o.left && q.top < o.bottom && q.bottom > o.top)) bad.push(t.dataset.mode + (t.classList.contains("open") ? "(開)" : "(收)")); } return bad; });
+    const bad = await rbBad();
+    ok(`${w}×${h}：彩虹島浮標（剛開放＝展開＋「新」）在畫面內、沒被按鈕／貼紙／貓頭鷹擋到`, bad.length === 0, bad.join(","));
+    // 浮標精簡（10-12）：兩棟都去過 → 收成圓形圖示；再一棟一棟按住展開，兩種樣子都不能被擋
+    await p.evaluate(() => { localStorage.setItem("zy1_seen", JSON.stringify({ deliver: 1, dress: 1, detective: 1 })); document.getElementById("homeBtn").click(); }); await sleep(300);   // 選單上按 🏠＝重畫選單（小島跟著 refresh）
+    if ((await rbInfo(p)).place !== "rainbow") await toRainbow(p);
+    await sleep(500);
+    const shut = await p.evaluate(() => [...document.querySelectorAll(".hub-tag.rb")].map(t => t.classList.contains("open")));
+    const bad2 = await rbBad();
+    ok(`${w}×${h}：彩虹島浮標收成圓形圖示，也在畫面內、沒被擋`, shut.every(o => !o) && bad2.length === 0, JSON.stringify({ shut, bad2 }));
+    const bad3 = [];
+    // 按住展開的：在畫面內、不碰上方圓鈕（收起來的也算）、名字那一橫排沒被蓋住（按住時浮標層疊到貓頭鷹對話框、膠囊上面）
+    for (const m of ["deliver", "dress", "detective"]) { await p.evaluate(m => window.__hub3d.openOne(m), m); await opened(p, m);
+      bad3.push(...(await p.evaluate(m => { const ob = ["#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn", "#townBtn", "#townTag", "#rainbowBtn", "#rainbowTag", "#hudLBtn", "#hudRBtn"].map(s => document.querySelector(s)).filter(Boolean).map(e => e.getBoundingClientRect());
+        const t = document.querySelector(`.hub-tag[data-mode=${m}]`), q = t.getBoundingClientRect(), bad = [];
+        if (!t.classList.contains("open") || q.left < 0 || q.top < 0 || q.right > innerWidth || q.bottom > innerHeight || ob.some(o => q.left < o.right && q.right > o.left && q.top < o.bottom && q.bottom > o.top)) bad.push(m + "(位置)");
+        for (const f of [0.08, 0.3, 0.5, 0.7, 0.92]) { const e = document.elementFromPoint(q.left + q.width * f, q.top + q.height / 2); if (!e || e.closest(".hub-tag") !== t) { bad.push(m + "(被" + (e ? e.id || e.className || e.tagName : "?") + "蓋住)"); break; } }
+        return bad; }, m))); }
+    await p.evaluate(() => window.__hub3d.openOne(null)); await sleep(300);
+    ok(`${w}×${h}：彩虹島浮標一棟一棟按住展開名字，也沒被擋`, bad3.length === 0, bad3.join(","));
     await p.evaluate(() => { document.getElementById("guideText").textContent = ""; });
     const sr = await tap3d(p, "dress"); await sleep(1200);
     await sleep(500);
@@ -156,7 +183,7 @@ const dressDone = async p => { await p.evaluate(() => { const b = document.query
     const { ctx, p, errs } = await openGame(browser, { w, h, stickers: 40, query: "debug&novoice&no3d" });
     const c = await p.evaluate(() => { const cs = [...document.querySelectorAll(".mode-card")].map(e => e.getBoundingClientRect()); const d = document.querySelector(".mode-card[data-mode=deliver]").getBoundingClientRect();
       return { n: cs.length, out: cs.filter(r => r.left < 0 || r.top < 0 || r.right > innerWidth || r.bottom > innerHeight).length, dv: d.width > 50 && d.height > 50, lab: document.querySelector(".mode-card[data-mode=deliver] .label").scrollWidth <= d.width + 1 }; });
-    ok(`?no3d ${w}×${h}：10 張卡都在畫面內、配送站卡字沒有超出卡片`, c.n === 10 && c.out === 0 && c.dv && c.lab, JSON.stringify(c));
+    ok(`?no3d ${w}×${h}：12 張卡都在畫面內、配送站卡字沒有超出卡片`, c.n === 12 && c.out === 0 && c.dv && c.lab, JSON.stringify(c));   // 10-12 多了偵探、陀螺
     await p.evaluate(() => document.querySelector(".mode-card[data-mode=deliver]").click());
     const inD = await p.waitForFunction(() => window.__zy.mode === "deliver" && !document.getElementById("deliver").classList.contains("hidden"), null, { timeout: 15000 }).then(() => true, () => false);
     ok(`?no3d ${w}×${h}：點配送站卡 → 進配送站（卡片選單也能玩）`, inD, String(await p.evaluate(() => window.__zy.mode)));

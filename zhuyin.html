@@ -22,17 +22,18 @@
   </script>
   <!-- 自己的程式一開頁就同時抓（高優先）：不然要等 zhuyin.js 下載完才知道要抓 ann/words/ui，再等它跑起來才抓 hub3d，
        一層等一層，線上 4Mbps 實測多卡約 3 秒（tools/zy-test/loadprofile.js）。網址要跟實際 import 的完全一樣（含 ?v=） -->
-  <link rel="modulepreload" href="js/zhuyin.js?v=26" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin.js?v=27" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-words.js" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-ann.js?v=6" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-ui.js?v=6" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-voice.js?v=5" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=9" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-weather.js?v=4">
+  <link rel="modulepreload" href="js/zhuyin-ann.js?v=7" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-ui.js?v=7" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-voice.js?v=6" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=10" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-weather.js?v=5">
   <link rel="modulepreload" href="js/zhuyin-clock.js?v=1">
-  <link rel="modulepreload" href="js/zhuyin-ocean.js?v=2">
+  <link rel="modulepreload" href="js/zhuyin-ocean.js?v=3">
   <link rel="modulepreload" href="js/zhuyin-rewards.js?v=2" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-audio.js?v=1" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-audio.js?v=2" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-plaza.js?v=1">
   <!-- 開頁要等貓頭鷹：圖片預設優先序最低，線上實測 24KB 會排在 three.js 後面最晚才到 → 提高優先序 -->
   <link rel="preload" as="image" href="IMAGE/zhuyin/guide_owl.webp" fetchpriority="high">
   <!-- Three.js 跟頁面一起開始抓（4Mbps 開頁快 0.6 秒）；?no3d 不抓。這裡不先測 WebGL2（建 context 會拖慢開頁），沒有 WebGL2 的極少數機器只是白抓 -->
@@ -45,10 +46,13 @@
     })();
   </script>
   <!-- 樣式表放在上面兩段 script 後面：classic script 會等前面的樣式表下載完才執行，放前面會卡住整頁解析 -->
-  <link rel="stylesheet" href="css/zhuyin.css?v=22">
+  <link rel="stylesheet" href="css/zhuyin.css?v=23">
   <link rel="stylesheet" href="css/zhuyin-bubble.css?v=2">
   <link rel="stylesheet" href="css/zhuyin-dress.css?v=1">
   <link rel="stylesheet" href="css/zhuyin-deliver.css?v=1">
+  <link rel="stylesheet" href="css/zhuyin-plaza.css?v=1">
+  <link rel="stylesheet" href="css/zhuyin-detective.css?v=1">
+  <link rel="stylesheet" href="css/zhuyin-tops.css?v=1">
 </head>
 <body class="gate-on">
   <!-- body.gate-on：開始畫面還沒按「開始玩」→ CSS 藏起小島浮標、嚮導、圓鈕（開始畫面只留一個標題、一顆按鈕） -->
@@ -106,10 +110,15 @@
       <button class="mode-card" data-mode="frog"><span class="big">🐸</span><span class="label">青蛙</span><span class="lock"></span></button>
       <button class="mode-card" data-mode="bubble"><span class="big">🐧</span><span class="label">泡泡</span><span class="lock"></span></button>
       <button class="mode-card" data-mode="deliver"><span class="big">🚚</span><span class="label">彩虹配送站</span><span class="lock"></span></button>
+      <!-- 10-12 詞句小偵探（彩虹島「詞句偵探社」）、注音戰鬥陀螺（歸仁區「陀螺競技場」）：卡片寫短名字（一格放得下），3D 浮標寫建築名 -->
+      <button class="mode-card" data-mode="detective"><span class="big">🕵️</span><span class="label">偵探</span><span class="lock"></span></button>
+      <button class="mode-card" data-mode="tops"><span class="big">🌀</span><span class="label">陀螺</span><span class="lock"></span></button>
     </div>
     <div class="menu-bottom">
       <button id="albumBtn" class="pill"><span>📒 貼紙</span><b id="menuStickers">0</b></button>
       <button class="pill jarBtn"><span class="jar"><span class="jarFill"></span></span><span>⭐ <span class="jarText">0/10</span></span><span class="egg"><i class="eg-ico">🪙</i></span></button>
+      <!-- 10-12 小島同樂廣場（全島合作目標）：🎪 圓鈕；直式 3D 小島時 zhuyin.js 會把它搬到上面第二排（歸仁區／彩虹島右邊） -->
+      <button id="plazaBtn" class="round-btn" title="同樂廣場" aria-label="同樂廣場"><span class="nav-ico">🎪</span><span class="nav-new" aria-hidden="true">新</span></button>
     </div>
   </section>
 
@@ -188,6 +197,18 @@
     <div id="deliverRoot"></div>
   </section>
 
+  <!-- ===== 詞句小偵探（10-12，彩虹島；js/zhuyin-detective.js 自己在 #detectiveRoot 裡建畫面，上面自己有「🔊 再聽一次」）===== -->
+  <section id="detective" class="screen hidden">
+    <div class="topbar"></div>
+    <div id="detectiveRoot"></div>
+  </section>
+
+  <!-- ===== 注音戰鬥陀螺（10-12，歸仁區；js/zhuyin-tops.js 自己在 #topsRoot 裡建畫面：注音鍵盤、3D 陀螺對戰、結算與排行榜）===== -->
+  <section id="tops" class="screen hidden">
+    <div class="topbar"></div>
+    <div id="topsRoot"></div>
+  </section>
+
   <!-- ===== 結算 ===== -->
   <!-- 結算演出（B1）：星星一顆顆蓋章 → 貼紙一張張貼 → 星星飛進右下的星星罐 → 按鈕最後才淡入；演出中點畫面＝快轉到最後 -->
   <section id="result" class="screen bg-map hidden">
@@ -230,6 +251,8 @@
   <div id="bubblePick" class="overlay hidden"><div class="dialog"><div class="q">🫧 要玩第幾關？</div><div id="bubbleZones" class="bb-zones"></div><div id="bubbleLevels" class="bb-levels"></div><button id="bubblePickClose" class="big-btn alt small">↩️ 回去</button></div></div>
   <!-- 彩虹配送站選關（10-12）：8 關一條線解鎖，過過的關有星星、下一關黃框、還沒到的鎖著 -->
   <div id="deliverPick" class="overlay hidden"><div class="dialog"><div class="q">🚚 要玩第幾關？</div><div id="deliverLevels" class="bb-levels dv-levels"></div><button id="deliverPickClose" class="big-btn alt small">↩️ 回去</button></div></div>
+  <!-- 小島同樂廣場（10-12）：全畫面卡片，內容由 js/zhuyin-plaza.js 建（本週主題＋大進度條＋加油貼紙牆） -->
+  <div id="plaza" class="overlay hidden"></div>
   <div id="matchPick" class="overlay hidden"><div class="dialog"><div class="q">🃏 要翻幾張牌？</div><div id="matchSizes" class="row wrap"></div><button id="matchPickClose" class="big-btn alt small">↩️ 回去</button></div></div>
   <!-- 家長設定（B6）：整頁給家長看 → noann 不加注音、靠左、分段 -->
   <div id="settings" class="overlay hidden"><div class="dialog settings noann">
@@ -252,6 +275,15 @@
       <!-- 機率與保底：js 用 RW.oddsText() 產生（js/zhuyin-rewards.js 的 RATES／PITY／GACHA_WEAR 改了這裡自動跟著變，不要寫死） -->
       <div id="rwOdds" class="set-note"></div>
       <div id="rwStats" class="set-note strong"></div>
+    </div>
+    <!-- 10-12 小島同樂廣場：白話說明送什麼、不送什麼＋開關（米卡莎建議；docs/zhuyin-plaza-spec.md §2） -->
+    <div class="set-sec" id="plazaSec">
+      <div class="set-label">🎪 同樂廣場（全島一起完成每週目標）</div>
+      <div class="set-note">每週一個主題（例如「這週大家一起救出 300 隻動物」），所有玩這個遊戲的小朋友，成果會加在一起變成一條進度條，達成時小島會有氣球、煙火、獎盃。沒有排行榜、不比較誰比較厲害，也不能留言（加油貼紙是固定的四句話）。</div>
+      <div class="set-note"><b>會送出的只有：</b>週次、這週的主題、數量（例如「這週、救援、3」），以及「開始玩一局」和「加油貼紙」的次數。</div>
+      <div class="set-note"><b>不會送出：</b>名字、小熊／小兔／小貓是誰、裝置代號、個人成績或名次、位置。接收的程式拿不到 IP、不留紀錄，只存「每週全島加總」的數字（存在遊戲作者的 Google 試算表）。</div>
+      <div class="set-note"><b>注音戰鬥陀螺的「全島陀螺榜」：</b>小朋友拼出的五個字詞句，戰力可能進全島前 5 名時，會送出那一句（只有那五個字，沒有名字或任何代號）；要遊戲作者審核過才會公開。下面的開關關掉就不會送出，全島榜只顯示島上原本的傳說陀螺；「我家排行」只存在這台平板。</div>
+      <div class="set-pair"><span class="set-sub">參加全島合作<small>關掉就完全不送出、也不讀取大家的進度（小島上的 🎪 會收起來）</small></span><div class="seg" id="plazaOpts"><button class="opt" data-v="1">開</button><button class="opt" data-v="0">關</button></div></div>
     </div>
     <div class="set-sec">
       <div class="set-label">📈 容易搞混的注音：<span id="mixName"></span></div>
@@ -290,6 +322,6 @@
   <div id="flash" class="flash"></div>
 
   <div id="fx" class="fx"></div>
-  <script type="module" src="js/zhuyin.js?v=26"></script>
+  <script type="module" src="js/zhuyin.js?v=27"></script>
 </body>
 </html>

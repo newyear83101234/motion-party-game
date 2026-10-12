@@ -133,13 +133,13 @@ const setHidden = (p, h) => p.evaluate(h => { Object.defineProperty(document, "h
       await sleep(700); counts.push((await D(p)).bgmDecoded.length);
     }
     d = await D(p);
-    ok("逐首切 9 次＋每次預載下一首：解碼好的 BGM 一直 ≤ 3 首", counts.every(n => n <= 3) && d.stats.maxBgm <= 3, JSON.stringify({ counts, max: d.stats.maxBgm, evicted: d.stats.evicted }));
+    ok("逐首切 9 次＋每次預載下一首：解碼好的 BGM 一直 ≤ 2 首（效能體檢 10-12：原本 3）", counts.every(n => n <= 2) && d.stats.maxBgm <= 2, JSON.stringify({ counts, max: d.stats.maxBgm, evicted: d.stats.evicted }));
     // 狂切（每 120ms 換一首）
     for (const k of ["town", "rainbow", "night", "road", "dress", "bubble"]) { await p.evaluate(k => window.__zyAudio.playBgm(k), k); await sleep(120); }
     await waitCur(p, "bubble").catch(() => {});
     const midTracks = (await D(p)).tracks.length; await sleep(900);
     d = await D(p);
-    ok("狂切 6 首：最後停在最後一首、同時 ≤ 3 軌、解碼好的 ≤ 3 首", d.cur === "bubble" && d.tracks.length === 1 && midTracks <= 3 && d.stats.maxBgm <= 3, JSON.stringify({ cur: d.cur, midTracks, max: d.stats.maxBgm, decoded: d.bgmDecoded }));
+    ok("狂切 6 首：最後停在最後一首、同時 ≤ 2 軌、解碼好的 ≤ 2 首", d.cur === "bubble" && d.tracks.length === 1 && midTracks <= 2 && d.stats.maxBgm <= 2, JSON.stringify({ cur: d.cur, midTracks, max: d.stats.maxBgm, decoded: d.bgmDecoded }));
     // ---- 音樂開關（走遊戲的 🎵 按鈕）----
     await p.waitForFunction(() => window.__zyAudio.debug().sfxDecoded >= 20, null, { timeout: 10000 }).catch(() => {});
     await p.evaluate(() => { document.getElementById("musicBtn").click(); window.__zyAudio.sfx("win", { bus: "ambience", gain: 0.01 }); });   // ambience 要有聲音流過，Chrome 才會更新它的 AudioParam 值
@@ -201,7 +201,7 @@ const setHidden = (p, h) => p.evaluate(h => { Object.defineProperty(document, "h
   {
     const { ctx, p, errs } = await open(browser);
     const r = await p.evaluate(async () => {
-      const V = await import("./js/zhuyin-voice.js?v=5"); await V.voiceReady;   // 跟遊戲同一個模組（同一份快取）
+      const V = await import("./js/zhuyin-voice.js?v=6"); await V.voiceReady;   // 跟遊戲同一個模組（同一份快取）
       const man = await (await fetch("./voice/gemini_d/manifest.json")).json();
       const texts = Object.keys(man.files).filter(t => !Object.keys(man.split || {}).some(s => t.startsWith(s)));
       const fileOf = t => man.files[t], out = {};
@@ -223,17 +223,17 @@ const setHidden = (p, h) => p.evaluate(h => { Object.defineProperty(document, "h
       const c2 = V.voiceCache(1); out.busy = { files: c2.files, want: fileOf(tPlay) };
       await Promise.race([done, new Promise(res => setTimeout(res, 8000))]);
       out.playedOk = V.voiceStats.ended === ended0 + 1 && V.voiceStats.failed === failed0;
-      // 預設上限 40MB：解碼 170 句（約 60MB）→ 不超過 40MB、有丟掉舊的
+      // 預設上限 24MB（效能體檢 10-12：原本 40MB）：解碼 170 句（約 60MB）→ 不超過 24MB、有丟掉舊的
       V.voiceCache(out.defMax);
       for (let i = 100; i < 270; i += 10) await V.voicePreload(texts.slice(i, i + 10));
       const c3 = V.voiceCache(); out.big = { mb: +(c3.bytes / 1048576).toFixed(1), n: c3.n, evicted: V.voiceStats.evicted, decoded: V.voiceStats.decoded };
       return out;
     });
-    ok("配音快取預設上限 40MB", r.defMax === 40 * 1024 * 1024, String(r.defMax));
+    ok("配音快取預設上限 24MB", r.defMax === 24 * 1024 * 1024, String(r.defMax));
     ok("上限 3MB 時一批批解碼：總量從沒超過上限、有丟掉舊的", r.small.over === 0 && r.small.bytes <= 3 * 1024 * 1024 && r.small.evicted > 0, JSON.stringify(r.small));
     ok("命中刷新順序：最舊那句再用一次 → 排到最新、之後再解碼也沒被丟", r.hitMovedToEnd && r.hitSurvived, JSON.stringify({ moved: r.hitMovedToEnd, survived: r.hitSurvived }));
     ok("正在播的句子不會被丟（上限壓到 1 byte 只剩它）、照樣播完", r.said && r.busy.files.length === 1 && r.busy.files[0] === r.busy.want && r.playedOk, JSON.stringify({ said: r.said, busy: r.busy, playedOk: r.playedOk }));
-    ok("預設上限：連解 170 句，快取 ≤ 40MB、有丟掉舊的", r.big.mb <= 40 && r.big.evicted > r.small.evicted && r.big.n < 170, JSON.stringify(r.big));
+    ok("預設上限：連解 170 句，快取 ≤ 24MB、有丟掉舊的", r.big.mb <= 24 && r.big.evicted > r.small.evicted && r.big.n < 170, JSON.stringify(r.big));
     ok("配音快取段沒有 console error", errs.length === 0, errs.join(" | "));
     await ctx.close();
   }

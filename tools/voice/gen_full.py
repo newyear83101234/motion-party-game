@@ -43,6 +43,8 @@ STYLE = {
     "order_thanks": "happy and grateful, like a cute little customer thanking the shopkeeper",
     "calm": "calm and gentle",
     "warm": "warm, gentle and cheerful, speaking clearly to a five-year-old child",
+    # 10-12 詞句小偵探題目句：像平常說話一樣念出一句熟悉的歌詞，不唱、不加旋律、不刻意加重任何字（不能用重音洩漏答案）
+    "detective": "speaking the sentence in a natural, gentle, clear and slightly slow everyday voice; do not sing, no melody, keep every word evenly stressed",
 }
 # 重生時改送的同音字（第 1 次照原字或 tts_text_gemini；第 2、3 次才換）
 RETRY_SUB = {"企鵝": "器鵝", "餅乾": "餅干", "睡覺": "睡叫", "長頸鹿": "常頸鹿"}
@@ -50,6 +52,10 @@ RETRY_SUB = {"企鵝": "器鵝", "餅乾": "餅干", "睡覺": "睡叫", "長頸
 
 def style_of(l):
     i, c = l["id"], l["cat"]
+    if i.startswith("dt_q_"):                     # 詞句小偵探題目句（類別是 phrase，仍走最嚴格聽寫檢查）
+        return STYLE["detective"]
+    if i == "dt_retry":
+        return STYLE["calm"]
     if c in ("word", "phrase", "friend"):
         return STYLE["word"]
     if c == "praise":
@@ -199,7 +205,7 @@ def finalize(state):
                                all_takes=[dict(sent=x["sent"], pinyin=x["pinyin"], why=x["hard"] + x["soft"]) for x in r["attempts"]]))
     man = dict(voice=f"Gemini {MODEL}／設計聲音 D「兒童節目大姐姐」({VOICE_ID})", generated=datetime.now().strftime("%Y-%m-%d %H:%M"),
                note="key＝遊戲傳給 say() 的原字串（含標點）。split：『前綴＋詞』拆兩段播（前綴音檔＋詞音檔）。",
-               files=files, split={"找到了，": "找到了！"}, durations=durs)
+               files=files, split={"找到了，": "找到了！", "對手是：": "對手是："}, durations=durs)   # 「對手是：」＋內建詞句（10-12 陀螺，build_lines.py tp_vsPre／tp_insp_*）
     (OUT / "manifest.json").write_text(json.dumps(man, ensure_ascii=False, indent=1), encoding="utf-8")
     review.sort(key=lambda x: x["level"] != "可疑")
     (OUT / "review.json").write_text(json.dumps(dict(

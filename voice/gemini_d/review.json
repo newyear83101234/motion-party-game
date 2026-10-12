@@ -1,7 +1,7 @@
 {
  "how": "每句由 Gemini 3.8 Flash 盲聽寫（不給答案），拼音跟正確讀音比對；詞庫詞以遊戲注音為準。AI 聽寫本身也會錯，所以這份是『請人耳確認』清單，不代表一定唸錯。",
- "count": 62,
- "suspicious": 62,
+ "count": 75,
+ "suspicious": 75,
  "items": [
   {
    "text": "第一聲不用加符號，按這個空白格就好",
@@ -2127,6 +2127,488 @@
      "pinyin": "da4 tiao3 zhan4 xiang3 xiang3 kan4 zen3 me5 song4 zui4 kuai4",
      "why": [
       "挑 應 tiao1 聽到 tiao3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "你看著我的眼睛說",
+   "file": "phrase_0afb7da7.mp3",
+   "level": "可疑",
+   "why": [
+    "著 應 zhu4 聽到 zhe5"
+   ],
+   "heard": "你看著我的眼睛說",
+   "pinyin": "ni3 kan4 zhe5 wo3 de5 yan3 jing1 shuo1",
+   "correct": "ni3 kan4 zhu4 wo3 de5 yan3 jing1 shuo1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "你看著我的眼睛說",
+     "pinyin": "ni3 kan4 zhe5 wo3 de5 yan3 jing1 shuo1",
+     "why": [
+      "著 應 zhu4 聽到 zhe5"
+     ]
+    },
+    {
+     "sent": "你看著我的眼睛說",
+     "pinyin": "ni3 kan4 zhe5 wo3 de5 yan3 jing1 shuo1",
+     "why": [
+      "著 應 zhu4 聽到 zhe5"
+     ]
+    },
+    {
+     "sent": "你看著我的眼睛說",
+     "pinyin": "ni3 kan4 zhe5 wo3 de5 yan3 jing1 shuo1",
+     "why": [
+      "著 應 zhu4 聽到 zhe5"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "我愛你愛著你就像老鼠愛大米",
+   "file": "phrase_774762ef.mp3",
+   "level": "可疑",
+   "why": [
+    "著 應 zhu4 聽到 zhe5"
+   ],
+   "heard": "我愛你 愛著你 就像老鼠愛大米",
+   "pinyin": "wo3 ai4 ni3 ai4 zhe5 ni3 jiu4 xiang4 lao3 shu3 ai4 da4 mi3",
+   "correct": "wo3 ai4 ni3 ai4 zhu4 ni3 jiu4 xiang4 lao3 shu3 ai4 da4 mi3",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "我愛你愛著你就像老鼠愛大米",
+     "pinyin": "wo3 ai4 ni3 ai4 zhe5 ni3 jiu4 xiang4 lao3 shu3 ai4 da4 mi3",
+     "why": [
+      "著 應 zhu4 聽到 zhe5"
+     ]
+    },
+    {
+     "sent": "我愛你愛著你就像老鼠愛大米",
+     "pinyin": "wo3 ai4 ni3 ai4 zhe5 ni3 jiu4 xiang4 lao3 shu3 ai4 da4 mi3",
+     "why": [
+      "著 應 zhu4 聽到 zhe5"
+     ]
+    },
+    {
+     "sent": "我愛你愛著你就像老鼠愛大米",
+     "pinyin": "wo3 ai4 ni3 ai4 zhe5 ni3 jiu4 xiang4 lao3 shu3 ai4 da4 mi3",
+     "why": [
+      "著 應 zhu4 聽到 zhe5"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "仔細聽，選出你聽到的那一句！",
+   "file": "guide_5bae5941.mp3",
+   "level": "可疑",
+   "why": [
+    "仔 應 zai3 聽到 zi3"
+   ],
+   "heard": "仔細聽，選出你聽到的那一句",
+   "pinyin": "zi3 xi4 ting1 xuan3 chu1 ni3 ting1 dao4 de5 na4 yi1 ju4",
+   "correct": "zai3 xi4 ting1 xuan3 chu1 ni3 ting1 dao4 de5 na4 yi1 ju4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "仔細聽，選出你聽到的那一句！",
+     "pinyin": "zi3 xi4 ting1 xuan3 chu1 ni3 ting1 dao4 de5 na4 yi1 ju4",
+     "why": [
+      "仔 應 zai3 聽到 zi3"
+     ]
+    },
+    {
+     "sent": "仔細聽，選出你聽到的那一句！",
+     "pinyin": "zi3 xi4 ting1 xuan3 chu1 ni3 ting1 dao4 de5 nei4 yi2 ju4",
+     "why": [
+      "仔 應 zai3 聽到 zi3",
+      "那 應 na4 聽到 nei4"
+     ]
+    },
+    {
+     "sent": "仔細聽，選出你聽到的那一句！",
+     "pinyin": "zi3 xi4 ting1 xuan3 chu1 ni3 ting1 dao4 de5 na4 yi1 ju4",
+     "why": [
+      "仔 應 zai3 聽到 zi3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "你聽得好仔細！",
+   "file": "praise_8e68c6d7.mp3",
+   "level": "可疑",
+   "why": [
+    "仔 應 zai3 聽到 zi3"
+   ],
+   "heard": "你聽得好仔細",
+   "pinyin": "ni3 ting1 de5 hao3 zi3 xi4",
+   "correct": "ni3 ting1 de5 hao3 zai3 xi4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "你聽得好仔細！",
+     "pinyin": "ni3 ting1 de5 hao3 zi3 xi4",
+     "why": [
+      "仔 應 zai3 聽到 zi3"
+     ]
+    },
+    {
+     "sent": "你聽得好仔細！",
+     "pinyin": "ni3 ting1 de5 hao3 zi3 xi4",
+     "why": [
+      "仔 應 zai3 聽到 zi3"
+     ]
+    },
+    {
+     "sent": "你聽得好仔細！",
+     "pinyin": "ni3 ting1 de5 hao3 zi3 xi4",
+     "why": [
+      "仔 應 zai3 聽到 zi3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "不要打自己或別人的名字喔！",
+   "file": "guide_c3da893a.mp3",
+   "level": "可疑",
+   "why": [
+    "不 應 bu4 聽到 bu2",
+    "字 應 zi4 唸成輕聲"
+   ],
+   "heard": "不要打自己或別人的名字喔",
+   "pinyin": "bu2 yao4 da3 zi4 ji3 huo4 bie2 ren2 de5 ming2 zi5 o1",
+   "correct": "bu4 yao4 da3 zi4 ji3 huo4 bie2 ren2 de5 ming2 zi4 o1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "不要打自己或別人的名字喔！",
+     "pinyin": "bu2 yao4 da3 zi4 ji3 huo4 bie2 ren2 de5 ming2 zi5 o1",
+     "why": [
+      "不 應 bu4 聽到 bu2",
+      "字 應 zi4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "不要打自己或別人的名字喔！",
+     "pinyin": "bu2 yao4 da3 zi4 ji3 huo4 bie2 ren2 de5 ming2 zi5 o5",
+     "why": [
+      "不 應 bu4 聽到 bu2",
+      "字 應 zi4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "不要打自己或別人的名字喔！",
+     "pinyin": "bu2 yao4 da3 zi4 ji3 huo4 bie2 ren2 de5 ming2 zi5 o1",
+     "why": [
+      "不 應 bu4 聽到 bu2",
+      "字 應 zi4 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "撞出場了！",
+   "file": "guide_dcd9ef0a.mp3",
+   "level": "可疑",
+   "why": [
+    "壯 應 zhuang4 聽到 qiang2"
+   ],
+   "heard": "強出場了",
+   "pinyin": "qiang2 chu1 chang3 le5",
+   "correct": "zhuang4 chu1 chang3 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "壯出場了！",
+     "pinyin": "qiang2 chu1 chang3 le5",
+     "why": [
+      "壯 應 zhuang4 聽到 qiang2"
+     ]
+    },
+    {
+     "sent": "壯出場了！",
+     "pinyin": "zhuang4 chu1 chang3 lou5",
+     "why": [
+      "了 應 le5 聽到 lou5"
+     ]
+    },
+    {
+     "sent": "壯出場了！",
+     "pinyin": "shuang3 chu1 chang3 le5",
+     "why": [
+      "壯 應 zhuang4 聽到 shuang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "時間到，看誰轉得久！",
+   "file": "guide_aae05aa6.mp3",
+   "level": "可疑",
+   "why": [
+    "誰 應 shui2 聽到 shei2"
+   ],
+   "heard": "時間到，看誰轉的久",
+   "pinyin": "shi2 jian1 dao4 kan4 shei2 zhuan3 de5 jiu3",
+   "correct": "shi2 jian1 dao4 kan4 shui2 zhuan3 de5 jiu3",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "時間到，看誰轉得久！",
+     "pinyin": "shi2 jian1 dao4 kan4 shei2 zhuan3 de5 jiu3",
+     "why": [
+      "誰 應 shui2 聽到 shei2"
+     ]
+    },
+    {
+     "sent": "時間到，看誰轉得久！",
+     "pinyin": "shi2 jian1 dao4 kan4 shei2 zhuan3 de5 jiu3",
+     "why": [
+      "誰 應 shui2 聽到 shei2"
+     ]
+    },
+    {
+     "sent": "時間到，看誰轉得久！",
+     "pinyin": "shi2 jian1 dao4 kan4 shei2 zhuan3 de5 jiu3",
+     "why": [
+      "誰 應 shui2 聽到 shei2"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "最後一擊！",
+   "file": "guide_16c4d035.mp3",
+   "level": "可疑",
+   "why": [
+    "擊 應 ji1 聽到 ji2"
+   ],
+   "heard": "最後一集",
+   "pinyin": "zui4 hou4 yi4 ji2",
+   "correct": "zui4 hou4 yi1 ji1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "最後一擊！",
+     "pinyin": "zui4 hou4 yi4 ji2",
+     "why": [
+      "擊 應 ji1 聽到 ji2"
+     ]
+    },
+    {
+     "sent": "最後一擊！",
+     "pinyin": "zui4 hou4 yi1 ji2",
+     "why": [
+      "擊 應 ji1 聽到 ji2"
+     ]
+    },
+    {
+     "sent": "最後一擊！",
+     "pinyin": "zui4 hou4 yi1 ji2",
+     "why": [
+      "擊 應 ji1 聽到 ji2"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "差一點點！再拼一句更強的吧！",
+   "file": "guide_0bd81970.mp3",
+   "level": "可疑",
+   "why": [
+    "差 應 cha4 聽到 cha1"
+   ],
+   "heard": "差一點點，再拼一句更強的吧",
+   "pinyin": "cha1 yi4 dian3 dian3 zai4 pin1 yi2 ju4 geng4 qiang2 de5 ba5",
+   "correct": "cha4 yi1 dian3 dian3 zai4 pin1 yi1 ju4 geng4 qiang2 de5 ba5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "差一點點！再拼一句更強的吧！",
+     "pinyin": "cha1 yi4 dian3 dian3 zai4 pin1 yi4 ju2 geng4 qiang2 de5 ba5",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "句 應 ju4 聽到 ju2"
+     ]
+    },
+    {
+     "sent": "差一點點！再拼一句更強的吧！",
+     "pinyin": "a1 cha1 yi4 dian3 dian3 zai4 pin1 yi2 ju4 geng4 qiang2 de5 ba5",
+     "why": [
+      "音節數不同：應 12（cha4 yi1 dian3 dian3 zai4 pin1 yi1 ju4 geng4 qiang2 de5 ba5），聽到 13（a1 cha1 yi4 dian3 dian3 zai4 pin1 yi2 ju4 geng4 qiang2 de5 ba5）"
+     ]
+    },
+    {
+     "sent": "差一點點！再拼一句更強的吧！",
+     "pinyin": "cha1 yi4 dian3 dian3 zai4 pin1 yi2 ju4 geng4 qiang2 de5 ba5",
+     "why": [
+      "差 應 cha4 聽到 cha1"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "跟著發亮的按鍵，拼出最後一個字！",
+   "file": "guide_3e67ebca.mp3",
+   "level": "可疑",
+   "why": [
+    "著 應 zhu4 聽到 zhe5",
+    "個 應 ge4 唸成輕聲"
+   ],
+   "heard": "跟著發亮的按鍵，拼出最後一個字",
+   "pinyin": "gen1 zhe5 fa1 liang4 de5 an4 jian4 pin1 chu1 zui4 hou4 yi1 ge5 zi4",
+   "correct": "gen1 zhu4 fa1 liang4 de5 an4 jian4 pin1 chu1 zui4 hou4 yi1 ge4 zi4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "跟著發亮的按鍵，拼出最後一個字！",
+     "pinyin": "gen1 zhe5 fa1 liang4 de5 an4 jian4 pin1 chu1 zui4 hou4 yi1 ge5 zi4",
+     "why": [
+      "著 應 zhu4 聽到 zhe5",
+      "個 應 ge4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "跟著發亮的按鍵，拼出最後一個字！",
+     "pinyin": "gen1 zhe5 fa1 liang4 de5 an4 jian4 pin1 chu1 zui4 hou4 yi2 ge5 zi4",
+     "why": [
+      "著 應 zhu4 聽到 zhe5",
+      "個 應 ge4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "跟著發亮的按鍵，拼出最後一個字！",
+     "pinyin": "gen1 zhe5 fa1 liang4 de5 an4 jian4 pin1 chu1 zui4 hou4 yi2 ge5 zi4",
+     "why": [
+      "著 應 zhu4 聽到 zhe5",
+      "個 應 ge4 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "差一點點！可以換個對手再打一次喔！",
+   "file": "guide_5f3ab956.mp3",
+   "level": "可疑",
+   "why": [
+    "差 應 cha4 聽到 cha1",
+    "個 應 ge4 唸成輕聲"
+   ],
+   "heard": "差一點點，可以換個對手再打一次喔！",
+   "pinyin": "cha1 yi4 dian3 dian3 ke3 yi3 huan4 ge5 dui4 shou3 zai4 da3 yi2 ci4 o1",
+   "correct": "cha4 yi1 dian3 dian3 ke3 yi3 huan4 ge4 dui4 shou3 zai4 da3 yi1 ci4 o1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "差一點點！可以換個對手再打一次喔！",
+     "pinyin": "cha1 yi4 dian3 dian3 ke3 yi3 huan4 ge5 dui4 shou3 zai4 da3 yi2 ci4 o1",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "個 應 ge4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "差一點點！可以換個對手再打一次喔！",
+     "pinyin": "cha1 yi4 dian3 dian3 ke3 yi3 huan4 ge5 dui4 shou3 zai4 da3 yi2 ci4 o1",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "個 應 ge4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "差一點點！可以換個對手再打一次喔！",
+     "pinyin": "cha1 yi1 dian3 dian3 ke3 yi3 huan4 ge5 dui4 shou3 zai4 da3 yi1 ci4 o1",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "個 應 ge4 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "會飛的饅頭！",
+   "file": "phrase_34782b2e.mp3",
+   "level": "可疑",
+   "why": [
+    "頭 應 tou2 唸成輕聲"
+   ],
+   "heard": "會飛的饅頭",
+   "pinyin": "hui4 fei1 de5 man2 tou5",
+   "correct": "hui4 fei1 de5 man2 tou2",
+   "zhuyin": "ㄏㄨㄟˋ ㄈㄟ ㄉㄜ˙ ㄇㄢˊ ㄊㄡ˙",
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "會飛的饅頭！",
+     "pinyin": "hui4 fei1 de5 man2 tou5",
+     "why": [
+      "頭 應 tou2 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "會飛的饅頭！",
+     "pinyin": "hui4 fei1 de5 man2 tou5",
+     "why": [
+      "頭 應 tou2 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "會飛的饅頭！",
+     "pinyin": "hui4 fei1 de5 man2 tou5",
+     "why": [
+      "頭 應 tou2 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "再拿 1 顆星星就能玩陀螺喔！",
+   "file": "dynamic_134cb112.mp3",
+   "level": "可疑",
+   "why": [
+    "音節數不同：應 12（zai4 na2 yi1 ke1 xing1 xing1 jiu4 neng2 wan2 tuo2 luo2 o1），聽到 11（zai4 na3 yi4 ke1 xing1 xing1 jiu4 neng2 wan2 tuo2 luo2）"
+   ],
+   "heard": "在哪一顆星星，就能玩陀螺",
+   "pinyin": "zai4 na3 yi4 ke1 xing1 xing1 jiu4 neng2 wan2 tuo2 luo2",
+   "correct": "zai4 na2 yi1 ke1 xing1 xing1 jiu4 neng2 wan2 tuo2 luo2 o1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "再拿一顆星星就能玩陀螺喔！",
+     "pinyin": "zai4 na3 yi4 ke1 xing1 xing1 jiu4 neng2 wan2 tuo2 luo2",
+     "why": [
+      "音節數不同：應 12（zai4 na2 yi1 ke1 xing1 xing1 jiu4 neng2 wan2 tuo2 luo2 o1），聽到 11（zai4 na3 yi4 ke1 xing1 xing1 jiu4 neng2 wan2 tuo2 luo2）"
+     ]
+    },
+    {
+     "sent": "再拿一顆星星就能玩陀螺喔！",
+     "pinyin": "zai4 na3 yi1 ke1 xing1 xing5 jiu4 neng2 wan2 tuo2 luo2",
+     "why": [
+      "音節數不同：應 12（zai4 na2 yi1 ke1 xing1 xing1 jiu4 neng2 wan2 tuo2 luo2 o1），聽到 11（zai4 na3 yi1 ke1 xing1 xing5 jiu4 neng2 wan2 tuo2 luo2）"
+     ]
+    },
+    {
+     "sent": "再拿一顆星星就能玩陀螺喔！",
+     "pinyin": "zai4 na3 yi1 ke1 xing1 xing1 jiu4 neng2 wan2 tuo2 luo2",
+     "why": [
+      "音節數不同：應 12（zai4 na2 yi1 ke1 xing1 xing1 jiu4 neng2 wan2 tuo2 luo2 o1），聽到 11（zai4 na3 yi1 ke1 xing1 xing1 jiu4 neng2 wan2 tuo2 luo2）"
      ]
     }
    ]

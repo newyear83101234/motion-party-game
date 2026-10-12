@@ -41,7 +41,25 @@ assert len(WORDS) >= 130 and PHRASES and FRIENDS and SLOTS and len(MODES) >= 8, 
 lines = []
 
 
+# 整句送 TTS 的替換寫法（畫面/manifest 的 key 仍是原字；10-12 實測原字 TTS 一再唸糊，換寫法 2/2 清楚）
+TTS_SUB = {"撞出場了！": "壯出場了！",          # 撞 3 次聽成 zheng/qiao/zhan；同音「壯」2/2 zhuang4
+           "這關好好玩！": "這關，好好玩！"}    # 批次 3 次都糊；加逗號 2/2 清楚
+
+
+# 句子裡個別字詞的 TTS 讀音替換（10-12 實測）：券 TTS 常唸成 ㄐㄩㄢˋ（台灣標準 ㄑㄩㄢˋ）→ 同音「勸」；
+# 蝸牛 TTS 唸 ㄨㄛ（台灣標準 ㄍㄨㄚ，畫面注音也是）→「瓜牛」（同 GEMINI_SUB）。詞庫單詞（cat word）另有自己的機制，不套用。
+TTS_CHAR_SUB = [("蝸牛", "瓜牛"), ("券", "勸")]
+
+
 def add(id_, text, cat, src, tts=None, **kw):
+    if tts is None and text in TTS_SUB:
+        tts = TTS_SUB[text]
+    if cat != "word":
+        base = tts or text
+        for a, b in TTS_CHAR_SUB:
+            base = base.replace(a, b)
+        if base != text:
+            tts = base
     d = dict(id=id_, text=text, cat=cat, src=src)
     if tts and tts != text:
         d["tts_text"] = tts
@@ -56,6 +74,8 @@ def must(snippet):
 
 # ---- 1. 開場語（第一次進模式唸）----
 for m, need, intro in MODES:
+    if m in ("detective", "tops"):   # 10-12：這兩個的開場語＝模組自己的教學句（下面 dt_intro／tp_intro 已登記同一句），不重複錄
+        continue
     add(f"intro_{m}", intro, "intro", "MODES.intro（zhuyin.js:12-19）")
 
 # ---- 2. 稱讚（連對 3 題）----
@@ -191,6 +211,116 @@ for k, t in enumerate(DL_INTROS):
 for i, t in [("dlv_win", "東西都送到了，好厲害！"), ("dlv_fail", "配送站現在打不開，等一下再試試看！")]:
     must(t); add(i, t, "guide", "zhuyin.js 彩虹配送站接線（DELIVER_WIN_TALK／DELIVER_FAIL）")
 
+# ---- 10-12 詞句小偵探 ----
+# 台詞在 js/zhuyin-detective.js 的 LINES／WIN_TALK；題目句在 js/zhuyin-detective-bank.js（只登記 enabled: true 的題目，草稿題不錄）。
+# 題目句：用 say()，語氣要「溫柔清楚、稍慢、自然說話、不唱、不加重音」——id 一律 dt_q_ 開頭、類別用 phrase
+#   （gen_full.py 的 style_of() 對 phrase 套 STYLE["word"]＝clear and natural, relaxed pace；而且 phrase 算學習句，盲聽寫有任何差異就重錄）。
+#   之後若 gen_full.py 加專用 STYLE（例如 "dictation"），用 id 前綴 dt_q_ 判斷即可。
+# 答錯「按喇叭，再聽一次喔！」：id dt_retry（10-12 由「再聽一次喔！」改來；要輕聲；gen_full.py 可比照 sys_pause 套 STYLE["calm"]）；稱讚 dt_praise_N 用 praise 類別。
+DTSRC = (ROOT / "js" / "zhuyin-detective.js").read_text(encoding="utf-8")
+DTBANK = (ROOT / "js" / "zhuyin-detective-bank.js").read_text(encoding="utf-8")
+
+
+def dt_must(snippet):
+    if snippet not in DTSRC:
+        sys.exit(f"zhuyin-detective.js 找不到：{snippet}（台詞改過了，請更新 build_lines.py）")
+
+
+DT_Q = re.findall(r'^\s+\{ id: "(\w+)", say: "([^"]+)", options: \[([^\]]*)\], enabled: (true|false)', DTBANK, re.M)   # 行首要是空白（檔頭註解裡的格式範例不算）
+assert len(DT_Q) >= 2 and sum(1 for q in DT_Q if q[3] == "true") >= 2, f"詞句小偵探題庫解析失敗：{len(DT_Q)}"
+for qid, say, opts, en in DT_Q:
+    first = re.findall(r'"([^"]+)"', opts)[0]
+    assert first == say, f"詞句小偵探 {qid}：say 要跟 options[0] 一樣"
+    if en == "true":
+        add(f"dt_q_{qid}", say, "phrase", "zhuyin-detective-bank.js（題目句：念題、🔊 重聽、答對後重念，say）")
+dt_must('intro: "仔細聽，選出你聽到的那一句！"'); dt_must('retry: "按喇叭，再聽一次喔！"')
+add("dt_intro", "仔細聽，選出你聽到的那一句！", "guide", "zhuyin-detective.js LINES.intro（每回合開場教學，talk）")
+add("dt_retry", "按喇叭，再聽一次喔！", "guide", "zhuyin-detective.js LINES.retry（答錯，輕聲，talk；10-12 櫻木：舊句「再聽一次喔！」改這句、要重錄）")
+DT_PRAISE = re.findall(r'"([^"]+)"', re.search(r"praise: \[([^\]]+)\]", DTSRC).group(1))
+assert len(DT_PRAISE) == 3, f"詞句小偵探稱讚句解析失敗：{DT_PRAISE}"
+for k, t in enumerate(DT_PRAISE):
+    add(f"dt_praise_{k + 1}", t, "praise", "zhuyin-detective.js LINES.praise（答對，talk）")
+dt_must('export const WIN_TALK = "全部找到了，你是厲害的小偵探！"')
+add("dt_win", "全部找到了，你是厲害的小偵探！", "result", "zhuyin-detective.js WIN_TALK（主程式結算畫面唸）")
+
+# ---- 10-12 同樂廣場 ----
+# 台詞都在 js/zhuyin-plaza.js 的 LINES（主題介紹 5 種＋對話框短版、達成 3 段＋短版、加油貼紙提示、連不上／休息中、歡迎）與 CHEERS（四張加油貼紙的字）。
+# 主題介紹＝換週時貓頭鷹說、打開廣場卡片時說（talk）；達成＝第一次看到新的一段（queueTalk）；貼紙的字＝點一下貼紙（say）；
+# 對話框短版（introText／reachedText）平常只顯示不唸，點貓頭鷹探頭「再講一次」時會唸，所以也登記。
+PLSRC = (ROOT / "js" / "zhuyin-plaza.js").read_text(encoding="utf-8")
+
+
+def pl_must(snippet):
+    if snippet not in PLSRC:
+        sys.exit(f"zhuyin-plaza.js 找不到：{snippet}（台詞改過了，請更新 build_lines.py）")
+
+
+PL_KEYS = ["rescue", "deliver", "fish", "read", "star"]
+PL_INTRO = {k: re.search(k + r': "(這個禮拜是[^"]+)"', PLSRC.split("intro: {")[1].split("},")[0]).group(1) for k in PL_KEYS}
+PL_INTRO_TEXT = {k: re.search(k + r': "([^"]+)"', PLSRC.split("introText: {")[1].split("},")[0]).group(1) for k in PL_KEYS}
+PL_REACHED = [t for t in re.findall(r'"([^"]*)"', PLSRC.split("  reached: [")[1].split("],")[0]) if t]      # 第 0 個是空字串（0 段＝沒有）
+PL_REACHED_TEXT = [t for t in re.findall(r'"([^"]*)"', PLSRC.split("reachedText: [")[1].split("],")[0]) if t]
+PL_CHEERS = re.findall(r'\{ e: "[^"]+", t: "([^"]+)" \}', PLSRC.split("export const CHEERS = [")[1].split("];")[0])
+assert len(PL_REACHED) == 3 and len(PL_REACHED_TEXT) == 3 and len(PL_CHEERS) == 4, f"同樂廣場台詞解析失敗：{PL_REACHED} {PL_REACHED_TEXT} {PL_CHEERS}"
+assert all(t.startswith("大家一起做到了！") for t in PL_REACHED + PL_REACHED_TEXT), "同樂廣場達成台詞要以「大家一起做到了！」開頭（規格 §1）"
+pl_have = {l["text"] for l in lines}
+for k in PL_KEYS:
+    add(f"pz_intro_{k}", PL_INTRO[k], "guide", "zhuyin-plaza.js LINES.intro（換週貓頭鷹介紹、打開廣場，talk）")
+for k in PL_KEYS:
+    if PL_INTRO_TEXT[k] not in pl_have:
+        add(f"pz_introtext_{k}", PL_INTRO_TEXT[k], "guide", "zhuyin-plaza.js LINES.introText（對話框短版：點貓頭鷹探頭重講時唸）")
+for n, t in enumerate(PL_REACHED, 1):
+    add(f"pz_reached_{n}", t, "guide", "zhuyin-plaza.js LINES.reached（第一次看到新的一段，queueTalk）")
+for n, t in enumerate(PL_REACHED_TEXT, 1):
+    add(f"pz_reachedtext_{n}", t, "guide", "zhuyin-plaza.js LINES.reachedText（對話框短版：探頭重講時唸）")
+for n, t in enumerate(PL_CHEERS, 1):
+    if t not in pl_have:
+        add(f"pz_cheer_{n}", t, "guide", "zhuyin-plaza.js CHEERS（加油貼紙：點一下唸，say）")
+for i, key, t in [("pz_welcome", "welcome", "歡迎來到同樂廣場！"), ("pz_armed", "armed", "再按一次，就送出貼紙喔！"), ("pz_sent", "sent", "貼紙送出去了！大家都看得到喔！"),
+                  ("pz_used", "used", "今天的貼紙送完了，明天再來送！"), ("pz_offline", "offline", "連不上，等一下再看！"), ("pz_paused", "paused", "廣場在休息，等一下再來！")]:
+    pl_must(f'{key}: "{t}"'); add(i, t, "guide", f"zhuyin-plaza.js LINES.{key}")
+must('const plaza = createPlaza(')   # 主程式有接上（同樂廣場在 zhuyin.js 的區塊）
+
+# ---- 10-12 注音戰鬥陀螺 ----
+# 台詞都在 js/zhuyin-tops.js 的 LINES、ROUND_LINES、BONUS_TEXT（加成名稱跟 js/zhuyin-tops-power.js 的 TOPS_BONUS 一樣）。
+# 全部用 talk()；**不唸小孩打的字**（自由組合的詞句、候選字一律不出聲）。「再拿 N 顆星星」只顯示字、唸的是不帶數字的 noTicket。
+TPSRC = (ROOT / "js" / "zhuyin-tops.js").read_text(encoding="utf-8")
+TPPOW = (ROOT / "js" / "zhuyin-tops-power.js").read_text(encoding="utf-8")
+TP_LINES = re.findall(r'^\s+(\w+): "([^"]+)",', TPSRC.split("export const LINES = {")[1].split("\n};")[0], re.M)
+assert len(TP_LINES) == 34, f"陀螺台詞解析失敗：{len(TP_LINES)}"   # 10-12 櫻木改善 +10 句：填空引導、陀螺蛋 3 句、集點卡、換對手 2 句、加油 2 句、「對手是：」
+for key, t in TP_LINES:
+    add(f"tp_{key}", t, "guide", f"zhuyin-tops.js LINES.{key}", **({"tts_text": "對手是"} if key == "vsPre" else {}))
+# 內建詞句（骰子詞庫 INSPIRE；島上傳說 LEGENDS 都在裡面）：抽到時唸「宇宙強爸爸！」；對手是內建詞句時唸「對手是：」＋「宇宙強爸爸！」
+#   兩段播放＝gen_full.py manifest 的 split「對手是：」（js/zhuyin-voice.js filesFor 拆前綴）。小孩自己打的句子一律不唸。
+TP_INSP = re.findall(r'\["([㐀-鿿]{5})", "([ㄅ-ㄩˊˇˋ˙ ]+)"\]', TPSRC.split("export const INSPIRE = [")[1].split("\n];")[0])
+TP_LEGENDS = re.findall(r'"([㐀-鿿]{5})"', re.search(r"export const LEGENDS = \[([^\]]+)\]", TPSRC).group(1))
+assert len(TP_INSP) >= 20, f"陀螺骰子詞庫解析失敗：{len(TP_INSP)}"
+assert set(TP_LEGENDS) <= {h for h, _ in TP_INSP}, "島上傳說要都在骰子詞庫裡（才有預錄配音）"
+for t in ['export const sayPhrase = p => p + "！";', 'talk(LINES.vsPre + sayPhrase(st.opp.p))', "talk(sayPhrase(p), true)"]:
+    if t not in TPSRC:
+        sys.exit(f"zhuyin-tops.js 找不到：{t}（內建詞句唸法改過了，請更新 build_lines.py）")
+for k, (h, z) in enumerate(TP_INSP):
+    add(f"tp_insp_{k + 1}", h + "！", "phrase", "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）", zhuyin=z)
+TP_ROUNDS = json.loads(re.search(r"export const ROUND_LINES = (\[.*?\]);", TPSRC).group(1))
+assert len(TP_ROUNDS) == 5, "陀螺回合台詞解析失敗"
+for i, t in enumerate(TP_ROUNDS):
+    add(f"tp_round_{i + 1}", t, "guide", "zhuyin-tops.js ROUND_LINES（每回合開始）")
+TP_BONUS = re.findall(r'(\w+): "([^"]+)"', TPSRC.split("export const BONUS_TEXT = {")[1].split("};")[0])
+assert len(TP_BONUS) == 6, f"陀螺加成名稱解析失敗：{len(TP_BONUS)}"
+for key, t in TP_BONUS:
+    if f'{key}: {{ name: "{t}"' not in TPPOW:
+        sys.exit(f"zhuyin-tops-power.js 的 TOPS_BONUS.{key} 跟 zhuyin-tops.js 的 BONUS_TEXT 不一樣（{t}），兩邊要一起改")
+    add(f"tp_bonus_{key}", t, "guide", "zhuyin-tops.js BONUS_TEXT＝zhuyin-tops-power.js TOPS_BONUS（變身時唸加成名稱）")
+
+# ---- 10-12 詞句小偵探／注音戰鬥陀螺接進主程式（zhuyin.js）----
+# 偵探：開場語＝MODES.detective.intro＝模組 LINES.intro（dt_intro）；結算唸模組的 WIN_TALK（dt_win）；引擎打不開時貓頭鷹說 DETECTIVE_FAIL。
+# 陀螺：開場語＝模組每次自己唸（tp_intro）；結算拿到陀螺券唸「拿到一張陀螺券了！」；打不開時 TOPS_FAIL；
+#       沒券時貓頭鷹唸「再拿 N 顆星星就能玩陀螺喔！」（N＝1..TOPS_STARS，在下面「5. 動態句」展開）。
+for i, t in [("dt_fail", "偵探社現在打不開，等一下再試試看！"), ("tp_fail", "陀螺競技場現在打不開，等一下再試試看！"), ("tp_ticket_got", "拿到一張陀螺券了！")]:
+    must(t); add(i, t, "guide", "zhuyin.js 詞句小偵探／陀螺接線（10-12）")
+for t in ["仔細聽，選出你聽到的那一句！", "用注音拼出五個字，變成戰鬥陀螺！"]:
+    must(f'intro: "{t}"')   # MODES 的開場語要跟模組的教學句一樣（上面才不用另外錄）
+
 # ---- 5. 動態句：全部展開成完整句子 ----
 DYNAMIC = []
 must("再收集 ${MODES[m].need - stickerCount()} 張貼紙就可以玩囉！")
@@ -207,6 +337,13 @@ DYNAMIC.append(dict(template="拿到 ${n} 張新貼紙！", src="zhuyin.js:763 �
                     suggestion=f"展開成 {nmax} 句預錄。"))
 for n in range(1, nmax + 1):
     add(f"result_stickers_{n}", f"拿到 {n} 張新貼紙！", "dynamic", "zhuyin.js:763", tts=f"拿到{CN_NUM[n]}張新貼紙！", n=n)
+
+must("再拿 ${topsNeed()} 顆星星就能玩陀螺喔！")   # 10-12 陀螺沒券（點陀螺競技場／卡片時貓頭鷹說）
+TOPS_STARS = int(re.search(r"const TOPS_STARS = (\d+)", SRC).group(1))
+DYNAMIC.append(dict(template="再拿 ${n} 顆星星就能玩陀螺喔！", src="zhuyin.js topsNoTicketSay（10-12 陀螺沒券）",
+                    range=f"n = 1..{TOPS_STARS}（每 {TOPS_STARS} 顆星星換 1 張陀螺券）", suggestion=f"展開成 {TOPS_STARS} 句預錄。"))
+for n in range(1, TOPS_STARS + 1):
+    add(f"tops_need_{n}", f"再拿 {n} 顆星星就能玩陀螺喔！", "dynamic", "zhuyin.js topsNoTicketSay（10-12）", tts=f"再拿{CN_NUM[n]}顆星星就能玩陀螺喔！", n=n)
 
 must("再 ${EGG_STARS - RW.jarLeft(save.rw, save.stars)} 顆星星就可以扭蛋囉！")
 DYNAMIC.append(dict(template="再 ${n} 顆星星就可以扭蛋囉！", src="zhuyin.js tryHatch（10-11 孵蛋改扭蛋）",

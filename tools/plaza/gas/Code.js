@@ -2,14 +2,23 @@
  * 注音小島「小島同樂廣場」後端（Google Apps Script 網頁應用程式，綁定試算表「注音小島同樂廣場」）
  *
  * 隱私設計（規格 docs/zhuyin-plaza-spec.md §2）：
- *   - 只收 {w 週次, k 種類, n 數量} 三個欄位，多一個欄位就拒收。
+ *   - 只收 {w 週次, k 種類, n 數量}（＋選填 i）；多一個別的欄位就拒收。
+ *   - i＝這「一筆送出」的隨機代號（6–16 碼小寫英數，2026-10-12 里維建議加）：前端每筆新產生一個、同一筆重送才沿用，
+ *     伺服器只放在 CacheService 6 小時（不寫試算表）用來擋「已經加過、只是回應沒收到」的重送重複計數。不是裝置代號：每筆都不一樣。
  *   - 只存「每週全島加總」；不存裝置 ID、token、暱稱、個人成績、IP（Apps Script 的 e 物件本來就沒有 IP）。
  *   - 不寫任何 log（沒有 console / Logger），試算表的時間只有每週一列的「最後更新（到分鐘）」。
+ *
+ *
+ * 注音戰鬥陀螺「全島陀螺榜」（2026-10-12 加，規格 docs/zhuyin-tops-spec.md §4 原設計＋阿葉決定的審核制）：
+ *   - 送出只收 {k:"top", p:"五個國字"} 兩個欄位；戰力由伺服器用同一份公式（TopsPower.gs＋TopsDict.gs，
+ *     tools/tops/build_gas.py 從 js/zhuyin-tops-power.js 產生，請勿手改）重算，不收前端的數字。
+ *   - 「陀螺榜」分頁只存：詞句、戰力、狀態、公開勾選、首次送出日期（只到日）。沒擠進前 5 名的不存。
+ *   - 新進前 5 名先「待審核」，阿葉勾「公開」才上榜（「自動公開」開關預設不勾）；待審核 7 天沒處理自動刪；最多留 50 列。
  *
  * 結構：
  *   1. 設定 PLAZA
  *   2. 純邏輯（不碰 Apps Script 全域物件，tools/plaza/test-core.mjs 用 node 直接測）
- *   3. Apps Script 層（doGet / doPost / setup 與試算表讀寫）
+ *   3. Apps Script 層（doGet / doPost / setup / onEdit 與試算表讀寫）
  *
  * 函式名結尾有底線 _ 的是內部函式（Apps Script 不會讓外部呼叫，也不會出現在「執行」選單）。
  */
@@ -21,7 +30,9 @@ var PLAZA = {
   DAY_MS: 86400000,
   ROTATION_START: '2026-10-12',    // 主題輪替從這週（週一）開始；上週結果也只回這週以後的
   GRACE_MS: 10 * 60 * 1000,        // 換週後 10 分鐘內，仍接受「上一週」的送出（跨週邊界不掉資料）
-  RATE_LIMIT_PER_MIN: 1500,        // 全站每分鐘最多接受幾次送出（全域保險絲，不分來源）
+  RATE_LIMIT_PER_MIN: 120,         // 全站每分鐘最多接受幾次送出（全域保險絲，不分來源；10-12 里維建議 1500 → 120）
+  ID_TTL_SEC: 21600,               // 送出代號 i 記多久（CacheService 上限 6 小時）：這段時間內同一個 i 再送來只回 ok、不再加
+  ID_RE: /^[a-z0-9]{6,16}$/,       // 送出代號 i 的格式
   GET_CACHE_SEC: 30,               // doGet 回應快取秒數
   CONFIG_CACHE_SEC: 60,            // 主題表快取秒數（doPost 用）
   MAX_BODY: 200,                   // 送出內容最長字元數
@@ -31,7 +42,7 @@ var PLAZA = {
   SHEET_THEMES: '主題表',
   SHEET_INFO: '說明',
   PAUSE_NAME: 'PAUSE',             // 暫停儲存格的「命名範圍」名稱
-  N_MAX: { goal: 30, play: 10, cheer1: 3, cheer2: 3, cheer3: 3, cheer4: 3 },
+  N_MAX: { goal: 10, play: 10, cheer1: 3, cheer2: 3, cheer3: 3, cheer4: 3 },   // goal 10-12 里維建議 30 → 10（前端 js/zhuyin-plaza.js N_MAX 要一樣：合併送出時照這個分批）
   CHEERS: ['我來玩了！', '一起加油！', '我救到動物了！', '這關好好玩！'],
   ROTATION: ['rescue', 'deliver', 'fish', 'read', 'star'],
   THEMES: {
@@ -43,7 +54,21 @@ var PLAZA = {
   },
   ROW_HEADERS: ['週次（週一）', '主題代號', '主題', '大家合計', '銅', '銀', '金', '開始局數',
     '貼紙：我來玩了！', '貼紙：一起加油！', '貼紙：我救到動物了！', '貼紙：這關好好玩！', '最後更新（台北，到分鐘）'],
-  THEME_HEADERS: ['週次（週一日期）', '主題代號', '標題（可空）', '單位（可空）', '銅', '銀', '金', '說明（可空）']
+  THEME_HEADERS: ['週次（週一日期）', '主題代號', '標題（可空）', '單位（可空）', '銅', '銀', '金', '說明（可空）'],
+
+  // 全島陀螺榜
+  SHEET_TOPS: '陀螺榜',
+  TOPS_AUTO_NAME: 'TOPS_AUTO',     // 「自動公開」勾選格的命名範圍（預設不勾＝要審核）
+  TOPS_SHOW: 5,                    // 榜上顯示前幾名
+  TOPS_KEEP: 50,                   // 分頁最多留幾列（依戰力；其餘刪掉，避免越積越多）
+  TOPS_PENDING_DAYS: 7,            // 「待審核」超過幾天沒處理就刪（每次有人送出時順便清）
+  TOPS_FIRST_ROW: 5,               // 找不到表頭時，資料從第幾列開始
+  TOPS_COLS: ['詞句', '戰力', '狀態', '公開', '首次送出日期'],
+  TOPS_ST: { pub: '公開', pending: '待審核', hidden: '不公開' },
+  TOPS_WHY: { len: 'bad_len', notcommon: 'bad_char', formula: 'bad_formula', blocked: 'blocked' },
+  TOPS_NOTE: '勾「公開」才會上榜；請不要公開看起來像人名、小名、學校、地址的詞句',
+  TOPS_AUTO_LABEL: '← 自動公開：打勾＝擠進前 5 名的新詞句直接公開、不用審核（建議不要勾）',
+  TOPS_CHECK: '審核：像人名、小名、暱稱、學校、地址、髒話、品牌、藝人、政治、宗教的都不要勾。不公開的把「狀態」改成「不公開」（別刪整列，刪了同一句下次又會跑來）。待審核放 7 天會自動刪。'
 };
 
 // ───────────────────────────── 2. 純邏輯 ─────────────────────────────
@@ -100,6 +125,12 @@ function isDateObj_(v) { return Object.prototype.toString.call(v) === '[object D
  * dateFmt(d) 由呼叫端提供：把日期物件依試算表時區轉成 'YYYY-MM-DD'。
  */
 function normalizeWeekCell_(v, dateFmt) {
+  var ymd = normalizeYmd_(v, dateFmt);
+  return ymd ? weekKeyOf_(weekStartMs_(ymd)) : null;
+}
+
+/** 試算表儲存格 → 'YYYY-MM-DD'（文字 'YYYY-MM-DD'／'YYYY/M/D' 或日期物件）；看不懂回 null */
+function normalizeYmd_(v, dateFmt) {
   var s = null;
   if (isDateObj_(v)) s = dateFmt ? dateFmt(v) : null;
   else if (typeof v === 'string' || typeof v === 'number') s = String(v).trim();
@@ -108,7 +139,7 @@ function normalizeWeekCell_(v, dateFmt) {
   if (!m) return null;
   var ymd = m[1] + '-' + pad2_(+m[2]) + '-' + pad2_(+m[3]);
   if (ymdFromUtcMs_(ymdToUtcMs_(ymd)) !== ymd) return null; // 2026-02-30 之類
-  return weekKeyOf_(weekStartMs_(ymd));
+  return ymd;
 }
 
 /** 銅銀金目標：三個正整數且由小到大，否則 null */
@@ -164,8 +195,9 @@ function resolveTheme_(wk, overrides) {
 
 /**
  * 驗證 doPost 的內容。raw＝原始字串。
- * 回 {ok:true, w, k, n} 或 {ok:false, why}
+ * 回 {ok:true, w, k, n}（有帶 i 時多一個 i）或 {ok:false, why}
  * 週次規則：w 必須是伺服器算出的「本週」；換週後 GRACE_MS（10 分鐘）內也接受「上一週」。
+ * i（選填）：這一筆送出的隨機代號，格式 PLAZA.ID_RE；格式不對＝bad_body。
  */
 function validatePost_(raw, nowMs) {
   var bad = function (why) { return { ok: false, why: why }; };
@@ -174,7 +206,9 @@ function validatePost_(raw, nowMs) {
   try { obj = JSON.parse(raw); } catch (e) { return bad('bad_json'); }
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return bad('bad_body');
   var keys = Object.keys(obj);
-  if (keys.length !== 3 || keys.indexOf('w') < 0 || keys.indexOf('k') < 0 || keys.indexOf('n') < 0) return bad('bad_body');
+  var hasI = keys.indexOf('i') >= 0;
+  if (keys.length !== (hasI ? 4 : 3) || keys.indexOf('w') < 0 || keys.indexOf('k') < 0 || keys.indexOf('n') < 0) return bad('bad_body');
+  if (hasI && (typeof obj.i !== 'string' || !PLAZA.ID_RE.test(obj.i))) return bad('bad_body');
   var k = obj.k, n = obj.n, w = obj.w;
   if (typeof k !== 'string' || !Object.prototype.hasOwnProperty.call(PLAZA.N_MAX, k)) return bad('bad_kind');
   if (typeof n !== 'number' || !isFinite(n) || Math.floor(n) !== n || n < 1 || n > PLAZA.N_MAX[k]) return bad('bad_n');
@@ -184,7 +218,9 @@ function validatePost_(raw, nowMs) {
     var inGrace = w === addWeeks_(cur, -1) && (nowMs - weekStartMs_(cur)) < PLAZA.GRACE_MS;
     if (!inGrace) return bad('bad_week');
   }
-  return { ok: true, w: w, k: k, n: n };
+  var out = { ok: true, w: w, k: k, n: n };
+  if (hasI) out.i = obj.i;
+  return out;
 }
 
 /** 「本週」分頁一列的資料結構 */
@@ -251,7 +287,7 @@ function themeOut_(t) {
  * 組 doGet 的回應（now 由呼叫端在回應前補上，因為這份會被快取）
  * prev：上一週結果；上一週早於 ROTATION_START（還沒開始的週）就回 null。
  */
-function buildGetPayload_(cur, curTheme, curRow, prevW, prevTheme, prevRow, paused) {
+function buildGetPayload_(cur, curTheme, curRow, prevW, prevTheme, prevRow, paused, tops) {
   var total = curRow ? curRow.total : 0;
   var prev = null;
   if (prevW >= PLAZA.ROTATION_START) {
@@ -268,24 +304,161 @@ function buildGetPayload_(cur, curTheme, curRow, prevW, prevTheme, prevRow, paus
     cheers: curRow ? curRow.cheers.slice() : [0, 0, 0, 0],
     prev: prev,
     paused: !!paused,
+    tops: (tops || []).slice(0, PLAZA.TOPS_SHOW),
     now: 0
   };
 }
 
 function nowMs_() { return Date.now(); }
 
+// ───────────── 2b. 全島陀螺榜（純邏輯） ─────────────
+// 一列＝{ p 詞句, power 戰力, st 'pub'（公開）|'pending'（待審核）|'hidden'（不公開）, d 首次送出日期 'YYYY-MM-DD' }
+
+/** 毫秒 → 台北日期 'YYYY-MM-DD' */
+function taipeiYmd_(ms) { return ymdFromUtcMs_(ms + PLAZA.TZ_OFFSET_MS); }
+
+/** 寫進試算表的文字：開頭是 = + - @ 的前面加 '（一律當純文字，不會變成公式） */
+function safeText_(v) {
+  var s = String(v == null ? '' : v);
+  return /^[=+\-@]/.test(s) ? "'" + s : s;
+}
+
+/** 是不是陀螺榜的送出（k 是 "top"）：是就回解析好的物件，不是回 null（交給原本的週次/種類/數量驗證） */
+function topsBodyOf_(raw) {
+  if (typeof raw !== 'string' || raw.length === 0 || raw.length > PLAZA.MAX_BODY) return null;
+  var obj;
+  try { obj = JSON.parse(raw); } catch (e) { return null; }
+  return obj && typeof obj === 'object' && !Array.isArray(obj) && obj.k === 'top' ? obj : null;
+}
+
+/**
+ * 驗證陀螺榜送出：只能有 k、p 兩個欄位（多一個就拒收，前端送來的戰力也不收）；p 要是 5 個常用字、不在黑名單、不是公式開頭。
+ * D＝topsDict()。回 {ok:true, p} 或 {ok:false, why}（why：bad_body / bad_len / bad_char / bad_formula / blocked）
+ */
+function validateTop_(obj, D) {
+  var keys = Object.keys(obj);
+  if (keys.length !== 2 || keys.indexOf('k') < 0 || keys.indexOf('p') < 0) return { ok: false, why: 'bad_body' };
+  if (typeof obj.p !== 'string') return { ok: false, why: 'bad_len' };
+  var issue = topsPhraseIssue(obj.p, D);
+  if (issue) return { ok: false, why: PLAZA.TOPS_WHY[issue] || 'bad_phrase' };
+  return { ok: true, p: obj.p };
+}
+
+/** 「陀螺榜」一列原始值 → 列物件；詞句空白回 null。勾「公開」＝公開；沒勾時狀態寫「待審核」＝待審核，其他一律不公開 */
+function topsRowFromValues_(v, dateFmt, today) {
+  v = v || [];
+  var p = String(v[0] == null ? '' : v[0]).trim();
+  if (!p) return null;
+  var box = v[3] === true || String(v[3]).trim().toUpperCase() === 'TRUE';
+  var txt = String(v[2] == null ? '' : v[2]).trim();
+  return {
+    p: p,
+    power: toInt_(v[1]),
+    st: box ? 'pub' : (txt === PLAZA.TOPS_ST.pending ? 'pending' : 'hidden'),
+    d: normalizeYmd_(v[4], dateFmt) || today
+  };
+}
+
+function topsRowToValues_(r) {
+  return [safeText_(r.p), r.power, PLAZA.TOPS_ST[r.st], r.st === 'pub', r.d];
+}
+
+/** 排序：戰力高的在前；一樣強時先送出的在前；再一樣就照字（每次結果都一樣） */
+function topsCmp_(a, b) {
+  if (b.power !== a.power) return b.power - a.power;
+  if (a.d !== b.d) return a.d < b.d ? -1 : 1;
+  return a.p < b.p ? -1 : (a.p > b.p ? 1 : 0);
+}
+
+function topsDaysAgo_(d, today) { return Math.round((ymdToUtcMs_(today) - ymdToUtcMs_(d)) / PLAZA.DAY_MS); }
+
+/**
+ * 整理陀螺榜（寫入前、讀取時共用）：用目前公式重算戰力；不合格的詞句（表外字、黑名單、手打錯）一律當不公開；
+ * expire＝true 時刪掉「待審核」超過 7 天的；同一詞句只留一列（公開＞不公開＞待審核，日期取最早）。回新陣列（已排序）。
+ * calc＝{ power(p)→戰力, issue(p)→null 或原因 }
+ */
+function topsPrep_(rows, today, calc, expire) {
+  var rank = { pub: 3, hidden: 2, pending: 1 };
+  var by = {}, out = [];
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    if (!r) continue;
+    var st = calc.issue(r.p) ? 'hidden' : r.st;
+    if (expire && st === 'pending' && topsDaysAgo_(r.d, today) > PLAZA.TOPS_PENDING_DAYS) continue;
+    var x = { p: r.p, power: calc.power(r.p), st: st, d: r.d };
+    var key = '#' + x.p, o = Object.prototype.hasOwnProperty.call(by, key) ? by[key] : null;
+    if (!o) { by[key] = x; out.push(x); continue; }
+    if (rank[x.st] > rank[o.st]) o.st = x.st;
+    if (x.d < o.d) o.d = x.d;
+  }
+  return out.sort(topsCmp_);
+}
+
+/** 公開的前 n 名 → [{p, power}]（rows 要先過 topsPrep_） */
+function topsPublicTop_(rows, n) {
+  var out = [];
+  for (var i = 0; i < rows.length && out.length < n; i++) if (rows[i].st === 'pub') out.push({ p: rows[i].p, power: rows[i].power });
+  return out;
+}
+
+/** 最多留 TOPS_KEEP 列：公開前 5 名與剛加入的那一列一定留，其餘依戰力由高到低補滿 */
+function topsCap_(rows, extra) {
+  rows = rows.slice().sort(topsCmp_);
+  if (rows.length <= PLAZA.TOPS_KEEP) return rows;
+  var must = [], i;
+  for (i = 0; i < rows.length && must.length < PLAZA.TOPS_SHOW; i++) if (rows[i].st === 'pub') must.push(rows[i]);
+  if (extra && must.indexOf(extra) < 0) must.push(extra);
+  var room = PLAZA.TOPS_KEEP - must.length, keep = [];
+  for (i = 0; i < rows.length; i++) {
+    if (must.indexOf(rows[i]) >= 0) keep.push(rows[i]);
+    else if (room > 0) { keep.push(rows[i]); room--; }
+  }
+  return keep;
+}
+
+/**
+ * 一筆送出套到整理好的陀螺榜上（rows 要先過 topsPrep_；power 是伺服器算的）。
+ * 「擠得進前 5」只跟「公開」的比：比它強或一樣強的公開詞句不到 5 句（一樣強時先來的排前面）。
+ *   新詞句：擠得進 → 存一列（自動公開開＝公開，否則待審核）；擠不進 → 不存，回 below。
+ *   已經在表上（同一句只算一筆）：公開且在前 5＝public、待審核且仍擠得進＝pending，其他（含不公開）＝below。
+ * 回 { rows: 新的全部列（已排序、最多 TOPS_KEEP 列）, status: 'public'|'pending'|'below', added: 是否新增一列 }
+ */
+function topsSubmit_(rows, p, power, auto, today) {
+  var pub = [], mine = null, i;
+  for (i = 0; i < rows.length; i++) {
+    if (rows[i].st === 'pub') pub.push(rows[i]);
+    if (rows[i].p === p) mine = rows[i];
+  }
+  var stronger = 0;
+  for (i = 0; i < pub.length; i++) if (pub[i] !== mine && pub[i].power >= power) stronger++;
+  var fits = stronger < PLAZA.TOPS_SHOW;
+  var out = rows.slice(), added = null, status;
+  if (mine) {
+    if (mine.st === 'pub') status = pub.indexOf(mine) < PLAZA.TOPS_SHOW ? 'public' : 'below';
+    else status = mine.st === 'pending' && fits ? 'pending' : 'below';
+  } else if (fits) {
+    added = { p: p, power: power, st: auto ? 'pub' : 'pending', d: today };
+    out.push(added);
+    status = auto ? 'public' : 'pending';
+  } else {
+    status = 'below';
+  }
+  return { rows: topsCap_(out, added), status: status, added: !!added };
+}
+
 // ───────────────────────────── 3. Apps Script 層 ─────────────────────────────
 
 /**
  * 讀取：GET 網頁應用程式網址
- * 回 {ok, w, theme:{key,title,unit,desc,goals:[銅,銀,金]}, total, reached, plays, cheers:[4], prev:{w,theme,total,reached}|null, paused, now}
+ * 回 {ok, w, theme:{key,title,unit,desc,goals:[銅,銀,金]}, total, reached, plays, cheers:[4], prev:{w,theme,total,reached}|null, paused,
+ *    tops:[{p, power}]（全島陀螺榜：只有「公開」的前 5 名，戰力高→低）, now}
  */
 function doGet(e) {
   try {
     var now = nowMs_();
     var cur = weekKeyOf_(now);
     var cache = CacheService.getScriptCache();
-    var ck = 'get1:' + cur;
+    var ck = 'get2:' + cur;
     var hit = cache.get(ck);
     var payload;
     if (hit) {
@@ -296,8 +469,10 @@ function doGet(e) {
       var ov = readOverrides_(ss, fmt);
       var prevW = addWeeks_(cur, -1);
       var rows = readRows_(ss, fmt);
+      var tops = [];
+      try { tops = readPublicTops_(ss, fmt, now); } catch (e2) { tops = []; } // 陀螺榜出問題不影響同樂廣場
       payload = buildGetPayload_(cur, resolveTheme_(cur, ov), rows[cur] || null,
-        prevW, resolveTheme_(prevW, ov), rows[prevW] || null, readPaused_(ss));
+        prevW, resolveTheme_(prevW, ov), rows[prevW] || null, readPaused_(ss), tops);
       cache.put(ck, JSON.stringify(payload), PLAZA.GET_CACHE_SEC);
     }
     payload.now = now;
@@ -308,14 +483,19 @@ function doGet(e) {
 }
 
 /**
- * 送出：POST（Content-Type: text/plain，內容是 JSON {w, k, n}）
- * 回 {ok:true} 或 {ok:false, why}
+ * 送出：POST（Content-Type: text/plain，內容是 JSON {w, k, n}，可多帶選填的 i＝這一筆的隨機代號）
+ * 回 {ok:true} 或 {ok:false, why}；帶 i 的同一筆重送（6 小時內）一律回 {ok:true}、只加一次
  * why：bad_body / bad_json / bad_kind / bad_n / bad_week / paused / rate / busy / no_sheet / server
+ *
+ * 陀螺榜：內容是 {k:"top", p:"五個國字"} → 回 {ok:true, power, status:"public"|"pending"|"below"} 或 {ok:false, why}
+ * why 另有：bad_len / bad_char / bad_formula / blocked（詞句不收）
  */
 function doPost(e) {
   try {
     var now = nowMs_();
     var raw = e && e.postData && typeof e.postData.contents === 'string' ? e.postData.contents : '';
+    var top = topsBodyOf_(raw);
+    if (top) return json_(postTop_(top, now));
     var v = validatePost_(raw, now);
     if (!v.ok) return json_(v);
 
@@ -331,11 +511,15 @@ function doPost(e) {
     var lock = LockService.getScriptLock();
     if (!lock.tryLock(PLAZA.LOCK_WAIT_MS)) return json_({ ok: false, why: 'busy' });
     try {
+      // 同一筆重送（帶同一個 i）：上次其實已經加過、只是前端沒收到回應 → 回 ok、不再加（在鎖裡查，兩個重送同時到也只加一次）
+      var idKey = v.i ? 'id:' + v.i : '';
+      if (idKey && cache.get(idKey)) return json_({ ok: true });
       var cnt = toInt_(cache.get(rk));
       if (cnt >= PLAZA.RATE_LIMIT_PER_MIN) return json_({ ok: false, why: 'rate' });
       cache.put(rk, String(cnt + 1), 120);
       incrementRow_(ss, fmt, v.w, theme, v.k, v.n, now);
       SpreadsheetApp.flush();
+      if (idKey) cache.put(idKey, '1', PLAZA.ID_TTL_SEC);   // 真的加進去之後才記（寫入出錯＝沒記，前端用同一個 i 重送會再加一次）
     } finally {
       lock.releaseLock();
     }
@@ -414,7 +598,179 @@ function ensureSheets_(ss) {
     rs.getRange(2, 13, 1000, 1).setNumberFormat('@');
     rs.setFrozenRows(1);
   }
-  return { info: info, themes: th, rows: rs };
+  return { info: info, themes: th, rows: rs, tops: ensureTopsSheet_(ss) };
+}
+
+/**
+ * 「陀螺榜」分頁：沒有才建立（已存在就完全不動，不會清掉資料）。
+ *   第 1 列 說明；第 2 列 A2＝「自動公開」勾選格（命名範圍 TOPS_AUTO，預設不勾）；第 3 列 審核清單；
+ *   第 4 列 表頭（詞句、戰力、狀態、公開、首次送出日期）；第 5 列起是資料（程式整理時會依戰力重新排序）。
+ * 呼叫端要拿著鎖（或在 setup 裡），避免兩個請求同時建立。
+ */
+function ensureTopsSheet_(ss) {
+  var sh = ss.getSheetByName(PLAZA.SHEET_TOPS);
+  if (sh) return sh;
+  sh = ss.insertSheet(PLAZA.SHEET_TOPS);
+  sh.getRange(1, 1, 3, 2).setValues([
+    [PLAZA.TOPS_NOTE, ''],
+    [false, PLAZA.TOPS_AUTO_LABEL],
+    [PLAZA.TOPS_CHECK, '']
+  ]);
+  sh.getRange(1, 1).setFontWeight('bold').setFontSize(12);
+  sh.getRange(2, 1).insertCheckboxes();
+  ss.setNamedRange(PLAZA.TOPS_AUTO_NAME, sh.getRange(2, 1));
+  var n = PLAZA.TOPS_COLS.length;
+  sh.getRange(4, 1, 1, n).setValues([PLAZA.TOPS_COLS]).setFontWeight('bold');
+  sh.getRange(PLAZA.TOPS_FIRST_ROW, 1, 300, 1).setNumberFormat('@');
+  sh.getRange(PLAZA.TOPS_FIRST_ROW, 3, 300, 1).setNumberFormat('@');
+  sh.getRange(PLAZA.TOPS_FIRST_ROW, 5, 300, 1).setNumberFormat('@');
+  sh.setFrozenRows(4);
+  sh.setColumnWidth(1, 130);
+  sh.setColumnWidth(5, 120);
+  return sh;
+}
+
+/** 「自動公開」有沒有打勾（找不到格子＝沒勾＝要審核） */
+function readTopsAuto_(ss) {
+  var r = ss.getRangeByName(PLAZA.TOPS_AUTO_NAME);
+  if (!r) return false;
+  var v = r.getValue();
+  return v === true || String(v).trim().toUpperCase() === 'TRUE';
+}
+
+/** 陀螺榜資料區：找表頭（A 欄寫「詞句」那一列，前 30 列內），回 { first: 資料第一列, vals: 資料區每列 A–E 原始值 } */
+function readTopsBlock_(sh) {
+  var last = sh.getLastRow();
+  if (last < 1) return { first: PLAZA.TOPS_FIRST_ROW, vals: [] };
+  var n = PLAZA.TOPS_COLS.length;
+  var all = sh.getRange(1, 1, last, n).getValues();
+  var h = -1;
+  for (var i = 0; i < all.length && i < 30; i++) if (String(all[i][0]).trim() === PLAZA.TOPS_COLS[0]) { h = i; break; }
+  var first = h >= 0 ? h + 2 : PLAZA.TOPS_FIRST_ROW;
+  return { first: first, vals: all.slice(first - 1) };
+}
+
+function topsCalc_(D) {
+  return {
+    power: function (p) { return topsPowerOf(p, D).total; },
+    issue: function (p) { return topsPhraseIssue(p, D); }
+  };
+}
+
+/** 資料區有變才寫回（依戰力排好、壓成連續的列；多出來的舊列清掉）。回 true＝有寫 */
+function writeTopsIfChanged_(sh, blk, rows) {
+  var vals = rows.map(topsRowToValues_);
+  var old = blk.vals.map(function (v) { return [v[0], v[1], v[2], v[3] === true, v[4]]; });
+  if (JSON.stringify(vals) === JSON.stringify(old)) return false;
+  var first = blk.first, n = vals.length, m = blk.vals.length;
+  if (n) {
+    sh.getRange(first, 1, n, 1).setNumberFormat('@');
+    sh.getRange(first, 3, n, 1).setNumberFormat('@');
+    sh.getRange(first, 5, n, 1).setNumberFormat('@');
+    sh.getRange(first, 1, n, PLAZA.TOPS_COLS.length).setValues(vals);
+    // 勾選框用資料驗證加（insertCheckboxes 會把值全部重設成沒勾，不能用在已有資料的格子）
+    sh.getRange(first, 4, n, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireCheckbox().build());
+  }
+  if (m > n) {
+    sh.getRange(first + n, 4, m - n, 1).clearDataValidations();
+    sh.getRange(first + n, 1, m - n, PLAZA.TOPS_COLS.length).clearContent();
+  }
+  return true;
+}
+
+/** 陀螺榜送出（doPost 的 k:"top"）。回要給前端的物件 */
+function postTop_(obj, now) {
+  var D = topsDict();
+  var v = validateTop_(obj, D);
+  if (!v.ok) return v;
+  var power = topsPowerOf(v.p, D).total;
+
+  var cache = CacheService.getScriptCache();
+  var rk = 'rl1:' + Math.floor(now / 60000);
+  if (toInt_(cache.get(rk)) >= PLAZA.RATE_LIMIT_PER_MIN) return { ok: false, why: 'rate' };
+  var ss = getSS_();
+  if (readPaused_(ss)) return { ok: false, why: 'paused' };
+  var fmt = makeDateFmt_(ss);
+
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(PLAZA.LOCK_WAIT_MS)) return { ok: false, why: 'busy' };
+  var res;
+  try {
+    var cnt = toInt_(cache.get(rk));
+    if (cnt >= PLAZA.RATE_LIMIT_PER_MIN) return { ok: false, why: 'rate' };
+    cache.put(rk, String(cnt + 1), 120);
+    var sh = ensureTopsSheet_(ss);
+    var today = taipeiYmd_(now);
+    var blk = readTopsBlock_(sh);
+    var rows = [];
+    for (var i = 0; i < blk.vals.length; i++) rows.push(topsRowFromValues_(blk.vals[i], fmt, today));
+    res = topsSubmit_(topsPrep_(rows, today, topsCalc_(D), true), v.p, power, readTopsAuto_(ss), today);
+    writeTopsIfChanged_(sh, blk, res.rows);
+    SpreadsheetApp.flush();
+  } finally {
+    lock.releaseLock();
+  }
+  if (res.added && res.status === 'public') cache.remove('get2:' + weekKeyOf_(now)); // 自動公開：馬上看得到
+  return { ok: true, power: power, status: res.status };
+}
+
+/** doGet 用：公開的前 5 名 [{p, power}]（戰力用目前公式重算）。分頁不存在就建立（拿得到鎖才建） */
+function readPublicTops_(ss, fmt, now) {
+  var sh = ss.getSheetByName(PLAZA.SHEET_TOPS);
+  if (!sh) {
+    var lock = LockService.getScriptLock();
+    if (lock.tryLock(3000)) {
+      try { ensureTopsSheet_(ss); } finally { lock.releaseLock(); }
+    }
+    return [];
+  }
+  var today = taipeiYmd_(now);
+  var blk = readTopsBlock_(sh);
+  var pub = [];
+  for (var i = 0; i < blk.vals.length; i++) {
+    var r = topsRowFromValues_(blk.vals[i], fmt, today);
+    if (r && r.st === 'pub') pub.push(r);
+  }
+  if (!pub.length) return [];
+  return topsPublicTop_(topsPrep_(pub, today, topsCalc_(topsDict()), false), PLAZA.TOPS_SHOW);
+}
+
+/**
+ * 阿葉在「陀螺榜」勾／取消「公開」或改「狀態」時，讓兩欄一致（簡單觸發器：不需要另外授權，只碰這張試算表）。
+ *   勾公開 → 狀態變「公開」；取消勾 → 狀態變「不公開」。
+ *   狀態改成「公開」→ 自動打勾；改成「不公開」或「待審核」→ 取消勾。
+ * 上不上榜只看「公開」有沒有勾；這裡只是讓表格看起來一致。出錯就算了（下次有人送出時程式也會整理）。
+ */
+function onEdit(e) {
+  try {
+    var rg = e && e.range;
+    if (!rg) return;
+    var sh = rg.getSheet();
+    if (sh.getName() !== PLAZA.SHEET_TOPS) return;
+    var c0 = rg.getColumn(), c1 = c0 + rg.getNumColumns() - 1;
+    var hitC = c0 <= 3 && c1 >= 3, hitD = c0 <= 4 && c1 >= 4;
+    if (hitC === hitD) return; // 兩欄都沒碰，或兩欄一起改（貼上整列）→ 不動
+    var first = readTopsBlock_(sh).first;
+    var r0 = Math.max(rg.getRow(), first), r1 = rg.getRow() + rg.getNumRows() - 1;
+    if (r1 < r0) return;
+    var vals = sh.getRange(r0, 1, r1 - r0 + 1, 4).getValues();
+    var out = [], changed = false, ST = PLAZA.TOPS_ST;
+    for (var i = 0; i < vals.length; i++) {
+      var p = String(vals[i][0] == null ? '' : vals[i][0]).trim();
+      var txt = String(vals[i][2] == null ? '' : vals[i][2]).trim(), box = vals[i][3];
+      var nt = vals[i][2], nb = box;
+      if (p && hitD && typeof box === 'boolean') nt = box ? ST.pub : ST.hidden;
+      if (p && hitC) {
+        if (txt === ST.pub) nb = true;
+        else if (txt === ST.hidden || txt === ST.pending) nb = false;
+      }
+      if (nt !== vals[i][2] || nb !== box) changed = true;
+      out.push([nt, nb]);
+    }
+    if (changed) sh.getRange(r0, 3, out.length, 2).setValues(out);
+  } catch (err) {
+    return;
+  }
 }
 
 /** 綁定的試算表。網頁應用程式情境下若拿不到「目前試算表」，改用 ID 開（需要較大的授權範圍才會成功） */

@@ -1,0 +1,201 @@
+/* ===================== 注音小島：詞句小偵探（js/zhuyin-detective.js）=====================
+   版面：橫式＝上排「🔊 再聽一次」＋題號、左欄偵探小狗＋對話框＋下一題、右邊三張大選項卡；
+         直式＝上排同上、中間三張卡、下排小狗＋對話框＋下一題。
+   左上 30vmin 留給主程式的 🏠🎵（.hud-l）。句子字級由 JS 算好放在 --dt-f（一行放得下最長的句子）。
+   三張卡長得一模一樣（不靠顏色、圖片、字數洩漏答案）；B13：可以點的答案＝實心深藍框。 */
+.dt-root { position: absolute; inset: 0; overflow: hidden; }
+.dt-wrap { position: absolute; inset: 0; display: grid; overflow: hidden; color: #22314a;
+  background:
+    radial-gradient(circle at 16% 24%, rgba(255,255,255,0.75), rgba(255,255,255,0) 42%),
+    radial-gradient(circle at 88% 92%, rgba(255,214,140,0.55), rgba(255,214,140,0) 45%),
+    repeating-linear-gradient(0deg, rgba(27,79,160,0.055) 0 1px, transparent 1px 7vmin),
+    repeating-linear-gradient(90deg, rgba(27,79,160,0.055) 0 1px, transparent 1px 7vmin),
+    linear-gradient(180deg, #fff6dc 0%, #ffe6b3 100%); }
+.dt-wrap.dt-land { grid-template-columns: max(40vmin, 196px) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "head head" "side board";
+  padding: 2vmin 3.2vmin 3.4vmin 2vmin; column-gap: 3vmin; row-gap: 2.4vmin; }
+.dt-wrap.dt-port { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "head" "board" "side";
+  padding: 2vmin 4vmin 3vmin; row-gap: 3vmin; }
+
+/* 背景：一串淡淡的小腳印（偵探在追線索） */
+.dt-bg { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.dt-paw { position: absolute; width: 5.4vmin; height: 5.4vmin; opacity: 0.13; rotate: 62deg;
+  left: calc(4% + var(--i) * 17%); bottom: calc(5% + var(--i) * 7%);
+  background:
+    radial-gradient(ellipse 30% 26% at 50% 68%, #8a5a2b 96%, transparent 100%),
+    radial-gradient(circle at 20% 36%, #8a5a2b 0 10%, transparent 11%),
+    radial-gradient(circle at 39% 17%, #8a5a2b 0 10%, transparent 11%),
+    radial-gradient(circle at 61% 17%, #8a5a2b 0 10%, transparent 11%),
+    radial-gradient(circle at 80% 36%, #8a5a2b 0 10%, transparent 11%); }
+.dt-paw:nth-child(even) { translate: 0 -4vmin; }
+
+/* ---------- 上排：🔊 再聽一次＋題號 ---------- */
+.dt-head { grid-area: head; position: relative; z-index: 3; display: flex; align-items: center; gap: 2.4vmin; padding-left: 29vmin; min-height: max(60px, 12.5vmin); }
+/* 直式放不下一排：第一排＝（🏠🎵 的位置）＋題號靠右，第二排＝大大的 🔊 再聽一次置中 */
+.dt-port .dt-head { display: grid; grid-template-columns: 29vmin minmax(0, 1fr) auto; grid-template-areas: ". . prog" "listen listen listen"; row-gap: 2.6vmin; padding-left: 0; }
+.dt-port .dt-prog { grid-area: prog; min-height: 12vmin; }
+.dt-port .dt-listen { grid-area: listen; justify-self: center; }
+.dt-listen { margin: 0 auto; flex: none; display: flex; align-items: center; gap: 1.8vmin; min-height: max(60px, 12.5vmin); padding: 0 4.2vmin 0 2vmin; border-radius: 8vmin;
+  background: linear-gradient(180deg, #ffe27a, #ffd54a); color: #3b2a10; font-size: max(18px, 5.2vmin); font-weight: 900; white-space: nowrap;
+  border: 0.5vmin solid #fff; box-shadow: 0 0.9vmin 0 #d4a800, 0 1.6vmin 2.8vmin rgba(120,80,0,0.25); touch-action: manipulation; }
+.dt-listen:active { scale: 0.94; }
+.dt-spk { position: relative; flex: none; width: max(42px, 8.6vmin); height: max(42px, 8.6vmin); border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center;
+  box-shadow: inset 0 -0.5vmin 0 rgba(0,0,0,0.08); }
+.dt-spk-ic { font-size: max(22px, 5vmin); line-height: 1; }
+.dt-wave { position: absolute; inset: 0; border-radius: 50%; border: 0.55vmin solid rgba(176,122,0,0.75); opacity: 0; pointer-events: none; }
+.dt-listen.dt-playing .dt-wave { animation: dtWave 1.1s ease-out infinite; }
+.dt-listen.dt-playing .dt-wave.w2 { animation-delay: 0.55s; }
+.dt-listen.dt-playing .dt-spk-ic { animation: dtTalk 0.5s ease-in-out infinite alternate; }
+@keyframes dtWave { from { opacity: 0.95; scale: 1; } to { opacity: 0; scale: 1.75; } }
+@keyframes dtTalk { to { scale: 1.12; } }
+.dt-listen.dt-nudge { animation: dtNudge 1.1s ease-in-out 3; }   /* 答錯後：請孩子再聽一次（光圈閃 3 下＋喇叭晃；按鈕本身不縮放，手指點下去位置不會跑） */
+.dt-listen.dt-nudge .dt-spk-ic { animation: dtTalk 0.28s ease-in-out 12 alternate; }
+@keyframes dtNudge { 0% { box-shadow: 0 0.9vmin 0 #d4a800, 0 0 0 0 rgba(255,190,40,0.95); } 100% { box-shadow: 0 0.9vmin 0 #d4a800, 0 0 0 3vmin rgba(255,190,40,0); } }
+/* 答錯後（講完「按喇叭，再聽一次喔！」）：一隻手指從 🔊 下面往上點兩下（約 2 秒），每答錯一次再來一次 */
+.dt-hand { position: absolute; left: 46%; top: 70%; z-index: 4; font-size: max(30px, 7.4vmin); font-style: normal; line-height: 1; opacity: 0; pointer-events: none;
+  filter: drop-shadow(0 0.5vmin 0.6vmin rgba(60,40,0,0.35)); }
+.dt-listen.dt-point .dt-hand { animation: dtHand 1s ease-in-out 2; }
+@keyframes dtHand { 0% { opacity: 0; transform: translate(0.3em, 0.5em); } 20% { opacity: 1; transform: translate(0, 0.25em); } 45% { opacity: 1; transform: translate(-0.08em, -0.05em) scale(0.92); } 75% { opacity: 1; transform: translate(0, 0.25em); } 100% { opacity: 0; transform: translate(0.1em, 0.4em); } }
+.dt-listen.dt-press { animation: dtPress 0.25s ease-out; }
+@keyframes dtPress { 40% { transform: scale(0.92); } }
+.dt-prog { flex: none; display: flex; align-items: center; gap: 1.2vmin; background: rgba(27,79,160,0.92); color: #fff; border-radius: 6vmin;
+  padding: 1.1vmin 2.2vmin 1.1vmin 2.4vmin; font-size: max(14px, 3.7vmin); font-weight: 800; white-space: nowrap; box-shadow: 0 0.6vmin 1.6vmin rgba(27,79,160,0.25); }
+.dt-dots { display: flex; gap: 0.7vmin; }
+.dt-dots i { width: 2vmin; height: 2vmin; min-width: 8px; min-height: 8px; border-radius: 50%; background: rgba(255,255,255,0.3); border: 0.4vmin solid #fff; }
+.dt-dots i.dt-now { background: #fff; animation: dtPop 0.35s ease-out; }
+.dt-dots i.dt-gold { background: var(--yellow, #ffd54a); }
+.dt-dots i.dt-silver { background: #dfe5ee; }
+
+/* ---------- 偵探小狗＋對話框＋下一題 ---------- */
+.dt-side { grid-area: side; position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 2.4vmin; min-height: 0; min-width: 0; }
+/* 直式下排：小狗在左（跨兩列）、對話框在右上、下一題在右下 */
+.dt-port .dt-side { display: grid; grid-template-columns: var(--dog, 25vmin) minmax(0, 1fr); grid-template-rows: auto auto; grid-template-areas: "dog bubble" "dog next";
+  align-items: center; justify-items: center; column-gap: 4vmin; row-gap: 2.6vmin; }
+.dt-bubble { position: relative; max-width: 100%; background: #fff; color: var(--blue, #1b4fa0); font-size: 4.6vmin; line-height: 1.5; font-weight: 800; text-align: center;
+  border-radius: 3.2vmin; padding: 1.4vmin 1.2vmin 1.4vmin 2vmin; box-shadow: 0 0.6vmin 0 rgba(27,79,160,0.14), 0 1.2vmin 2.6vmin rgba(90,60,10,0.18); }
+.dt-bubble::after { content: ""; position: absolute; left: 50%; bottom: -2.3vmin; margin-left: -1.7vmin; border: 1.7vmin solid transparent; border-top: 2.4vmin solid #fff; border-bottom: 0; }
+.dt-port .dt-bubble { grid-area: bubble; justify-self: start; }
+.dt-port .dt-bubble::after { left: -2.3vmin; top: 50%; bottom: auto; margin: -1.7vmin 0 0; border: 1.7vmin solid transparent; border-right: 2.4vmin solid #fff; border-left: 0; }
+.dt-ph { display: inline-block; }
+.dt-nb { display: inline-block; white-space: nowrap; }
+/* 教學句（卡片還沒發）：橫式把對話框移到小狗右邊、放大成一大片，整句兩行就放得下 */
+.dt-land.dt-introing .dt-side { justify-content: center; }
+.dt-land.dt-introing .dt-bubble { position: absolute; left: calc(100% + 4vmin); top: 50%; translate: 0 -50%; width: max-content; max-width: min(64vmin, calc(100vw - 52vmin));
+  font-size: 5.6vmin; padding: 2.4vmin 3vmin 2.4vmin 3.6vmin; }
+.dt-land.dt-introing .dt-bubble::after { left: -2.3vmin; top: 50%; bottom: auto; margin: -1.7vmin 0 0; border: 1.7vmin solid transparent; border-right: 2.4vmin solid #fff; border-left: 0; }
+.dt-bubble.dt-good { color: #1d7a34; }
+.dt-bubble.dt-soft { color: #8a4b12; }
+.dt-bubble.dt-pop { animation: dtPop 0.35s cubic-bezier(.2,1.6,.4,1); }
+@keyframes dtPop { 0% { scale: 0.86; } 100% { scale: 1; } }
+.dt-dog { position: relative; flex: none; width: var(--dog, 26vmin); height: var(--dog, 26vmin); font-size: calc(var(--dog, 26vmin) / 10); }
+.dt-port .dt-dog { grid-area: dog; }
+.dt-dog-in { position: absolute; inset: 0; transform-origin: 50% 100%; animation: dtBob 3s ease-in-out infinite; }
+.dt-dog-img { position: absolute; inset: 6% 4% 0; width: 92%; height: 94%; object-fit: contain; filter: drop-shadow(0 0.7em 0.5em rgba(80,50,10,0.28)); -webkit-user-drag: none; }
+@keyframes dtBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-0.25em) scale(1.01, 0.99); } }
+/* 格紋偵探帽（獵鹿帽）：帽頂格紋＋前後帽簷＋頂上小釦 */
+.dt-hat { position: absolute; left: 25%; top: -4%; width: 50%; height: 30%; }
+.dt-hat::before { content: ""; position: absolute; left: 10%; right: 10%; top: 4%; bottom: 26%; border-radius: 50% 50% 22% 22% / 80% 80% 22% 22%;
+  background:
+    repeating-linear-gradient(90deg, rgba(70,35,10,0.32) 0 0.32em, transparent 0.32em 1.05em),
+    repeating-linear-gradient(0deg, rgba(70,35,10,0.32) 0 0.32em, transparent 0.32em 1.05em),
+    linear-gradient(180deg, #d9a465, #b07a3e);
+  box-shadow: inset 0 -0.35em 0 rgba(0,0,0,0.14), 0 0.15em 0.3em rgba(0,0,0,0.2); }
+.dt-hat::after { content: ""; position: absolute; left: -2%; right: -2%; bottom: 8%; height: 30%; border-radius: 50%;
+  background: linear-gradient(180deg, #9a6532, #74481f); box-shadow: 0 0.2em 0.35em rgba(0,0,0,0.25); }
+/* 放大鏡（拿在右前方；題目播放時左右掃） */
+.dt-glass { position: absolute; left: 62%; top: 44%; width: 3.9em; height: 3.9em; rotate: -24deg; transform-origin: 30% 30%; }
+.dt-glass::after { content: ""; position: absolute; left: 50%; top: 88%; width: 0.95em; height: 2.3em; margin-left: -0.47em; border-radius: 0.5em; background: linear-gradient(90deg, #6e421d, #a7703a 60%, #6e421d); box-shadow: 0 0.15em 0.3em rgba(0,0,0,0.25); }
+.dt-glass::before { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: 50%; border: 0.45em solid #e2a93b;
+  background: radial-gradient(circle at 34% 30%, rgba(255,255,255,0.95) 0 12%, rgba(214,240,255,0.65) 14% 100%);
+  box-shadow: 0 0.2em 0.45em rgba(0,0,0,0.25), inset 0 0 0 0.12em rgba(255,255,255,0.7); }
+.dt-dog.dt-listening .dt-glass { animation: dtScan 1.3s ease-in-out infinite; }
+@keyframes dtScan { 0%, 100% { transform: rotate(-10deg) translateX(-0.2em); } 50% { transform: rotate(8deg) translateX(0.25em); } }
+.dt-dog.dt-listening .dt-dog-in { animation: dtListen 0.9s ease-in-out infinite; }
+@keyframes dtListen { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+.dt-dog.dt-hop .dt-dog-in { animation: dtHop 0.65s cubic-bezier(.3,1.4,.5,1), dtBob 3s ease-in-out 0.65s infinite; }
+@keyframes dtHop { 0% { transform: translateY(0) scale(1.06, 0.92); } 40% { transform: translateY(-1.8em) scale(0.96, 1.05); } 75% { transform: translateY(0) scale(1.05, 0.95); } 100% { transform: none; } }
+.dt-dog.dt-tilt .dt-dog-in { animation: dtTilt 0.8s ease-in-out, dtBob 3s ease-in-out 0.8s infinite; }
+@keyframes dtTilt { 30% { transform: rotate(-9deg); } 65% { transform: rotate(4deg); } }
+
+.dt-next { flex: none; display: flex; align-items: center; justify-content: center; gap: 1vmin; min-height: max(64px, 13vmin); min-width: max(120px, 22vmin); max-width: 100%; padding: 0 2.4vmin 0 3vmin;
+  border-radius: 8vmin; background: linear-gradient(180deg, #3fbf55, #1f8a3a); color: #fff; font-size: max(18px, 4.8vmin); font-weight: 900; white-space: nowrap;
+  border: 0.5vmin solid #fff; box-shadow: 0 1vmin 0 #18692c, 0 1.6vmin 3vmin rgba(20,90,40,0.3); touch-action: manipulation; }
+.dt-port .dt-next { grid-area: next; }
+.dt-next:active { scale: 0.94; }
+.dt-next.dt-hide { visibility: hidden; }
+.dt-next.dt-in { animation: dtNextIn 0.45s cubic-bezier(.2,1.6,.4,1); }
+@keyframes dtNextIn { from { opacity: 0; scale: 0.5; } to { opacity: 1; scale: 1; } }
+.dt-next.dt-pulse { animation: dtGo 1.4s ease-out infinite; }   /* 重念完：光圈一圈圈往外擴（不縮放按鈕，點得準） */
+@keyframes dtGo { 0% { box-shadow: 0 1vmin 0 #18692c, 0 0 0 0 rgba(63,191,85,0.75); } 100% { box-shadow: 0 1vmin 0 #18692c, 0 0 0 3.2vmin rgba(63,191,85,0); } }
+.dt-next-ar { font-size: 1.05em; line-height: 1; }
+
+/* ---------- 三張選項卡 ---------- */
+.dt-board { grid-area: board; position: relative; z-index: 2; display: flex; flex-direction: column; justify-content: center; gap: 2.6vmin; min-height: 0; min-width: 0; }
+.dt-card { position: relative; flex: 1 1 0; min-height: 0; max-height: 25vmin; width: 100%; display: flex; align-items: center; justify-content: center; overflow: visible;
+  padding: 1.2vmin 3vmin; background: #fff; border: 0.7vmin solid var(--blue, #1b4fa0); border-radius: 3.6vmin; color: #22314a;
+  box-shadow: 0 1vmin 0 #9bb7d8, 0 1.8vmin 3.2vmin rgba(27,79,160,0.16); touch-action: manipulation; transition: scale 0.1s, opacity 0.3s, filter 0.3s; }
+.dt-card:active { scale: 0.97; }
+.dt-card.dt-hide { visibility: hidden; }
+.dt-card[disabled] { cursor: default; }
+/* 迴紋針：三張一樣，只是裝飾 */
+.dt-clip { position: absolute; left: 3.4vmin; top: -2.6vmin; width: 2.8vmin; height: 6.4vmin; border: 0.6vmin solid #8c99b2; border-radius: 1.6vmin; rotate: 8deg; pointer-events: none; }
+.dt-clip::after { content: ""; position: absolute; left: 0.3vmin; right: 0.3vmin; top: 1.2vmin; bottom: 0.8vmin; border: 0.5vmin solid #8c99b2; border-top: 0; border-radius: 0 0 1vmin 1vmin; }
+.dt-sent { display: block; text-align: center; font-size: var(--dt-f, 6vmin); font-weight: 800; line-height: 1; white-space: nowrap; letter-spacing: 0; padding: 0.12em 0; pointer-events: none; }
+.dt-brk { display: none; }
+.dt-two .dt-brk { display: block; }   /* 長句換兩行：斷點在詞的邊界，三張卡同一個位置 */
+.dt-c { display: inline-block; border-radius: 0.2em; padding: 0.1em 0 0.1em 0.04em; transition: background-color 0.2s; }
+.dt-c .ac { margin-right: 0.66em; }
+/* 答對：關鍵字一個一個被放大鏡照亮（黃底）；錯誤選項不一樣的字畫紅底線 */
+.dt-c.dt-key { background: linear-gradient(180deg, #fff3a6, #ffd54a); box-shadow: 0 0 0 0.05em #f0b400; color: #9a3412; animation: dtKey 0.5s cubic-bezier(.2,1.6,.4,1); }
+@keyframes dtKey { 0% { transform: scale(1); } 45% { transform: scale(1.22) translateY(-0.06em); } 100% { transform: none; } }
+.dt-c.dt-diff { box-shadow: inset 0 -0.09em 0 rgba(214,72,72,0.7); }
+/* 答錯後：剩下的卡上「彼此不一樣的那一段」淡淡框起來（中性藍灰，不用綠／紅；剩下的每張都框＝不透露哪張對）。
+   一個字一格 .dt-c：連在一起的一段只畫外框——頭（hs）畫左邊、尾（he）畫右邊，中間的字只畫上下 */
+.dt-c.dt-hint { --hl: rgba(84,104,140,0.55); border-radius: 0; background: rgba(120,140,180,0.13);
+  box-shadow: inset 0 0.055em 0 var(--hl), inset 0 -0.055em 0 var(--hl); }
+.dt-c.dt-hint.hs { border-top-left-radius: 0.22em; border-bottom-left-radius: 0.22em; box-shadow: inset 0.055em 0 0 var(--hl), inset 0 0.055em 0 var(--hl), inset 0 -0.055em 0 var(--hl); }
+.dt-c.dt-hint.he { border-top-right-radius: 0.22em; border-bottom-right-radius: 0.22em; box-shadow: inset -0.055em 0 0 var(--hl), inset 0 0.055em 0 var(--hl), inset 0 -0.055em 0 var(--hl); }
+.dt-c.dt-hint.hs.he { box-shadow: inset 0 0 0 0.055em var(--hl); border-radius: 0.22em; }
+.dt-card.dt-deal { animation: dtDeal 0.42s cubic-bezier(.2,1.3,.4,1) var(--d, 0ms) backwards; }   /* backwards：播完就放手，之後的變淡（opacity）才生效 */
+@keyframes dtDeal { from { opacity: 0; transform: translateY(4vmin) rotate(-1.2deg) scale(0.94); } to { opacity: 1; transform: none; } }
+.dt-card.dt-shake { animation: dtShake 0.5s ease-in-out; }
+@keyframes dtShake { 0%, 100% { transform: none; } 20% { transform: translateX(-1.6vmin) rotate(-0.8deg); } 40% { transform: translateX(1.4vmin) rotate(0.8deg); } 60% { transform: translateX(-0.9vmin); } 80% { transform: translateX(0.6vmin); } }
+.dt-card.dt-wrong { opacity: 0.42; filter: grayscale(0.7); border-color: #9aa9bd; box-shadow: 0 0.5vmin 0 #c9d3e0; transition: opacity 0.3s 0.4s, filter 0.3s 0.4s, scale 0.1s; }
+.dt-card.dt-right { z-index: 2; border-color: #2fa84f; background: #effbec; box-shadow: 0 0 0 0.9vmin rgba(60,176,67,0.28), 0 1vmin 0 #2b8a3e, 0 1.8vmin 3.2vmin rgba(30,120,50,0.25); }
+.dt-card.dt-win { animation: dtWin 0.5s cubic-bezier(.2,1.6,.4,1); }
+@keyframes dtWin { 0% { transform: none; } 40% { transform: scale(1.05); } 100% { transform: none; } }
+.dt-card.dt-out { opacity: 0.4; filter: grayscale(0.5); }
+.dt-card.dt-reading .dt-sent { animation: dtRead 1.6s ease-in-out; }
+@keyframes dtRead { 50% { transform: scale(1.03); } }
+.dt-check { position: absolute; right: -1.8vmin; top: -2vmin; width: 7.4vmin; height: 7.4vmin; min-width: 30px; min-height: 30px; border-radius: 50%; background: #2fa84f; color: #fff;
+  font-size: 4.4vmin; font-style: normal; font-weight: 900; line-height: 1; display: flex; align-items: center; justify-content: center; border: 0.5vmin solid #fff;
+  box-shadow: 0 0.5vmin 1.2vmin rgba(0,0,0,0.25); scale: 0; pointer-events: none; }
+.dt-right .dt-check { animation: dtStamp 0.4s cubic-bezier(.2,1.6,.4,1) 0.15s forwards; }
+@keyframes dtStamp { from { scale: 2; opacity: 0; } to { scale: 1; opacity: 1; } }
+
+/* ---------- 特效層：放大鏡、結算橫幅、彩帶 ---------- */
+.dt-fx { position: absolute; inset: 0; z-index: 6; pointer-events: none; overflow: hidden; }
+.dt-lens { position: absolute; left: var(--x, -99px); top: var(--y, -99px); width: var(--s, 60px); height: var(--s, 60px); translate: -50% -50%; border-radius: 50%; opacity: 0;
+  border: calc(var(--s, 60px) * 0.09) solid #e2a93b; background: radial-gradient(circle at 34% 30%, rgba(255,255,255,0.6), rgba(255,255,255,0.06) 62%);
+  box-shadow: 0 0.6vmin 1.4vmin rgba(0,0,0,0.25), inset 0 0 0 calc(var(--s, 60px) * 0.025) rgba(255,255,255,0.7); transition: left 0.3s ease-out, top 0.3s ease-out, width 0.3s, height 0.3s, opacity 0.2s; }
+.dt-lens::after { content: ""; position: absolute; left: 78%; top: 80%; width: calc(var(--s, 60px) * 0.17); height: calc(var(--s, 60px) * 0.55); border-radius: calc(var(--s, 60px) * 0.09);
+  background: linear-gradient(90deg, #6e421d, #a7703a 60%, #6e421d); rotate: -45deg; transform-origin: 50% 0; }
+.dt-lens.dt-lens-on { opacity: 1; }
+.dt-lens.dt-lens-off { opacity: 0; transition: opacity 0.45s; }
+.dt-banner { position: absolute; left: 50%; top: 50%; translate: -50% -50%; min-width: 50vmin; text-align: center; background: #fff; border-radius: 5vmin; padding: 2.6vmin 6vmin 3vmin;
+  border: 0.9vmin solid var(--yellow, #ffd54a); box-shadow: 0 1.2vmin 0 #e0b84a, 0 2vmin 5vmin rgba(60,40,0,0.3); animation: dtBanner 0.5s cubic-bezier(.2,1.5,.4,1) both; }
+@keyframes dtBanner { from { opacity: 0; scale: 0.5; } to { opacity: 1; scale: 1; } }
+.dt-banner-ic { font-size: 9vmin; line-height: 1.1; }
+.dt-banner-t { font-size: 7vmin; font-weight: 900; color: var(--blue, #1b4fa0); margin: 0.6vmin 0 1vmin; white-space: nowrap; }
+.dt-banner-stars { display: flex; justify-content: center; gap: 1.6vmin; }
+.dt-banner-stars span { font-size: 9vmin; line-height: 1; color: #d9dee8; text-shadow: 0 0.5vmin 0 rgba(0,0,0,0.08); }
+.dt-banner-stars span.on { color: #ffc400; text-shadow: 0 0.5vmin 0 #d49a00, 0 0 2vmin rgba(255,200,0,0.6); animation: dtStar 0.45s cubic-bezier(.2,1.8,.4,1) var(--d, 0ms) both; }
+@keyframes dtStar { from { scale: 0; rotate: -60deg; } to { scale: 1; rotate: 0deg; } }
+.dt-conf { position: absolute; top: -4vmin; width: 1.8vmin; height: 2.8vmin; border-radius: 0.4vmin; animation: dtConf 2.2s ease-in var(--d, 0ms) both; }
+.dt-conf.c0 { background: #ff7a7a; } .dt-conf.c1 { background: #ffc233; } .dt-conf.c2 { background: #4fb0ff; } .dt-conf.c3 { background: #5ccf6a; }
+@keyframes dtConf { from { transform: translateY(0) rotate(0deg); opacity: 1; } to { transform: translateY(110vh) rotate(720deg); opacity: 0.6; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .dt-dog-in, .dt-dog.dt-listening .dt-glass, .dt-next.dt-pulse, .dt-listen.dt-playing .dt-wave { animation: none !important; }
+  .dt-listen.dt-point .dt-hand { animation: dtHandStill 2s linear; }   /* 不晃動，只出現 2 秒 */
+}
+@keyframes dtHandStill { 0%, 90% { opacity: 1; } 100% { opacity: 0; } }

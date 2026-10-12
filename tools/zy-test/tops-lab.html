@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>注音戰鬥陀螺 試玩</title>
+<!-- 獨立試玩頁：python -m http.server 8765（專案根目錄）→ http://127.0.0.1:8765/tools/zy-test/tops-lab.html
+     參數：?clean=1 收起試玩工具列（截圖用）｜?fast=4 遊戲時鐘快 4 倍（測試用）｜?tickets=0 沒券｜?first=1 第一次免費｜?need=7 還差幾顆星星
+           ｜?opp=超級賽亞人 指定對手｜?ann=1 跑主程式的自動注音｜?mute=1 不出音效｜?home=clear 清掉試玩頁的「我家排行」（連陀螺蛋、最近對戰一起清）
+           ｜?stars=9 集點卡亮幾格｜?eggs=clear 清掉陀螺蛋｜?dictms=1500 字典逾時（測試用） -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "../../IMAGE/zy3d/vendor/three/build/three.module.min.js",
+    "../../IMAGE/zy3d/vendor/three/build/three.core.js": "../../IMAGE/zy3d/vendor/three/build/three.core.min.js",
+    "three/addons/": "../../IMAGE/zy3d/vendor/three/examples/jsm/"
+  }
+}
+</script>
+<link rel="stylesheet" href="../../css/zhuyin.css">
+<link rel="stylesheet" href="../../css/zhuyin-tops.css">
+<style>
+  #stage { background: #1a1446; }
+  #topsRoot { position: absolute; inset: 0; }
+  #lab { position: fixed; z-index: 80; left: 50%; top: 0.5vmin; transform: translateX(-50%); display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: center;
+    max-width: 46vw; padding: 3px 6px; border-radius: 10px; background: rgba(20, 30, 50, .72); color: #fff; font: 12px/1.3 system-ui, sans-serif; }
+  #lab button { font: 12px system-ui, sans-serif; padding: 3px 7px; border-radius: 6px; background: #fff; color: #123; }
+  #labLog { position: fixed; z-index: 80; left: 1vmin; bottom: 1vmin; max-width: 40vw; color: #fff; font: 11px/1.35 ui-monospace, Consolas, monospace; text-shadow: 0 1px 2px #000; pointer-events: none; white-space: pre-wrap; opacity: .8; }
+  .clean #lab, .clean #labLog { display: none; }
+</style>
+</head>
+<body>
+<section id="stage" class="screen"><div id="topsRoot"></div></section>
+<!-- 假的主程式按鈕（看會不會跟遊戲擋到）：遊戲裡左上只有 🏠🎵（.hud-l）。🏠＝暫停／繼續 -->
+<div class="hud hud-l"><button class="round-btn" id="homeBtn" aria-label="暫停">🏠</button><button class="round-btn" id="musicBtn" aria-label="音樂">🎵</button></div>
+<div id="lab" class="noann"></div>
+<div id="labLog" class="noann"></div>
+<script type="module">
+  import * as mod from "../../js/zhuyin-tops.js";
+  const Q = new URLSearchParams(location.search);
+  const fast = Math.max(1, +Q.get("fast") || 1);
+  if (Q.get("clean") === "1") document.body.classList.add("clean");
+  const lines = [], calls = { talk: [], say: [], play: [], win: [], submit: [], exit: [], fail: [], useTicket: 0, laterPending: 0 };
+  const log = (k, t) => { lines.push(`${k}: ${t}`); while (lines.length > 6) lines.shift(); document.getElementById("labLog").textContent = lines.join("\n"); };
+  // 假的 gLater：暫停時凍結剩下的時間（跟主程式一樣）
+  let paused = false; const timers = new Set();
+  const arm = t => { t.id = setTimeout(() => { timers.delete(t); calls.laterPending = timers.size; t.fn(); }, Math.max(0, t.left) / fast); t.at = performance.now(); };
+  function later(fn, ms) { const t = { fn, left: ms }; timers.add(t); calls.laterPending = timers.size; if (!paused) arm(t); return t; }
+  function setPaused(v) {
+    v = !!v; if (v === paused) return; paused = v;
+    for (const t of timers) { if (paused) { clearTimeout(t.id); t.left -= (performance.now() - t.at) * fast; } else arm(t); }
+    document.getElementById("homeBtn").classList.toggle("on", paused);
+  }
+  // 券：?tickets=N（預設 3）、?first=1 第一次免費
+  let tickets = Q.has("tickets") ? +Q.get("tickets") : 3, firstFree = Q.get("first") === "1";
+  // 我家排行（試玩頁存 localStorage；主程式存在 zy{n}_tops）
+  const HK = "zy_tops_lab_home";
+  if (Q.get("home") === "clear") try { localStorage.removeItem(HK); } catch (e) {}
+  const loadHome = () => { try { return JSON.parse(localStorage.getItem(HK) || "[]"); } catch (e) { return []; } };
+  // 10-12：陀螺蛋（?eggs=clear 清掉）、集點卡（?stars=N）、最近對戰（onWin 記下來，leaderboard 帶 recent）、字典逾時（?dictms=）
+  const EK = "zy_tops_lab_eggs", RK = "zy_tops_lab_recent";
+  if (Q.get("eggs") === "clear" || Q.get("home") === "clear") try { localStorage.removeItem(EK); localStorage.removeItem(RK); } catch (e) {}
+  const lsJ = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || "null") || d; } catch (e) { return d; } };
+  let starsBank = Q.has("stars") ? +Q.get("stars") : null;
+  const api = {
+    say: (t, r, cb) => { calls.say.push(t); log("say", t); if (cb) setTimeout(cb, 700 / fast); },
+    talk: (t, cb) => { calls.talk.push(t); log("talk", t); if (cb) setTimeout(cb, 700 / fast); },
+    play: (n, r = 1) => { calls.play.push(n); if (Q.get("mute") === "1") return; try { const a = new Audio(`../../audio/sfx/${n}.mp3`); a.playbackRate = Math.max(0.5, Math.min(2, r)); a.volume = 0.6; a.play().catch(() => {}); } catch (e) {} },
+    later, paused: () => paused,
+    onWin: info => { calls.win.push(info); log("onWin", `${info.win ? "贏" : "輸"} ${info.phrase} ${info.power} ${info.score.join(":")}`); try { localStorage.setItem(HK, JSON.stringify(info.home)); localStorage.setItem(RK, JSON.stringify(lsJ(RK, []).concat([{ p: info.phrase, o: info.opponent.p }]).slice(-10))); } catch (e) {} },
+    onSubmit: (p, power) => { calls.submit.push({ p, power }); log("onSubmit", p + " " + power); return Promise.resolve({ pending: true }); },
+    leaderboard: () => Promise.resolve({ island: mod.LEGENDS.map(p => ({ p })), home: loadHome(), recent: lsJ(RK, []) }),
+    eggs: () => lsJ(EK, []), setEggs: l => { calls.eggs = (calls.eggs || 0) + 1; try { localStorage.setItem(EK, JSON.stringify(l)); } catch (e) {} log("setEggs", l.map(e => e.p).join("、")); },
+    starsBank: () => (starsBank == null ? 15 - (+(Q.get("need") || 7)) : starsBank),
+    dictTimeout: +Q.get("dictms") || 0,
+    tickets: () => tickets,
+    useTicket: () => { calls.useTicket++; if (firstFree) firstFree = false; else tickets = Math.max(0, tickets - 1); log("useTicket", "剩 " + tickets); },
+    firstFree: () => firstFree,
+    needStars: () => +(Q.get("need") || 7),
+    onExit: o => { calls.exit.push(o); log("onExit", JSON.stringify(o)); },
+    onFail: f => { calls.fail.push(f); log("onFail", JSON.stringify(f)); },
+    speed: fast,
+  };
+  const game = mod.createTopsGame(document.getElementById("topsRoot"), api);
+  window.__tp = { mod, game, api, calls, later, setPaused, timers, setTickets: n => { tickets = n; }, setFirst: v => { firstFree = !!v; }, setStars: n => { starsBank = n; },
+    setEggs: l => { try { localStorage.setItem(EK, JSON.stringify(l)); } catch (e) {} } };
+  if (Q.get("ann") === "1") import("../../js/zhuyin-ann.js").then(m => { m.startAnnotate(); window.__tp.ann = m; });
+  const startOpts = () => Q.get("opp") ? { opponent: { p: Q.get("opp") } } : {};
+  const bar = document.getElementById("lab");
+  const extra = [["重來", () => game.start(startOpts())], ["⏸", () => setPaused(!paused)], ["券+1", () => { tickets++; log("券", tickets); }], ["券=0", () => { tickets = 0; firstFree = false; log("券", 0); }],
+    ["自動", async () => { const s = game.state(); if (s.phase !== "type") return; document.querySelector(".tp-inspire").click(); await new Promise(r => setTimeout(r, 300)); document.querySelector(".tp-go").click(); }]];
+  for (const [t, f] of extra) { const b = document.createElement("button"); b.textContent = t; b.onclick = f; bar.appendChild(b); }
+  document.getElementById("homeBtn").onclick = () => setPaused(!paused);
+  addEventListener("resize", () => game.relayout());
+  game.start(startOpts()).then(() => { window.__tp.ready = true; });
+</script>
+</body>
+</html>
