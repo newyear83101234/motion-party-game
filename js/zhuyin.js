@@ -3,13 +3,13 @@
 // 八個模式：釣魚 / 點餐 / 積木 / 尋寶 / 翻牌 / 聲調氣球 / 打地鼠 / 跳跳蛙（後兩個 2026-10-10 加）。長期動力：貼紙圖鑑（每個詞一張貼紙）＋星星罐孵蛋（解鎖朋友）。
 // 設計依據：櫻木花道（遊戲設計）＋寧次（UI/UX）2026-09-09 審查報告；規格見 memory project-zhuyin-game.md
 import { WORDS, PHRASES, CATS, FRIENDS } from "./zhuyin-words.js";
-import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js?v=8";
-import { voiceUnlock, voiceSay, voiceStop, voiceSpeaking, voicePreload, voiceCtx, voiceBind } from "./zhuyin-voice.js?v=7";
+import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js?v=9";
+import { voiceUnlock, voiceSay, voiceStop, voiceSpeaking, voicePreload, voiceCtx, voiceBind } from "./zhuyin-voice.js?v=8";
 import A from "./zhuyin-audio.js?v=2";               // 音訊引擎：一個 AudioContext、music／sfx／voice／ambience 四條 bus（docs/zhuyin-v5-plan.md §5）
 import * as RW from "./zhuyin-rewards.js?v=2";   // 獎勵系統（扭蛋機）純邏輯
 import { createClock } from "./zhuyin-clock.js?v=1";   // 日夜時鐘（真實 30 分鐘＝小島一天）
 import { createPlaza, PLAZA_URL } from "./zhuyin-plaza.js?v=1";   // ?v 要跟 zhuyin.html 的 modulepreload 一樣；10-12 小島同樂廣場（全島合作目標；只送匿名加總）；PLAZA_URL：注音戰鬥陀螺的全島陀螺榜也送到同一個後端
-import * as ST from "./zhuyin-stats.js?v=1";          // 10-12 家長頁「玩了什麼」本機遊玩紀錄（?v 要跟 zhuyin.html 的 modulepreload 一樣；只存本機、不上傳、不進備份碼）
+import * as ST from "./zhuyin-stats.js?v=2";          // 10-12 家長頁「玩了什麼」本機遊玩紀錄（?v 要跟 zhuyin.html 的 modulepreload 一樣；只存本機、不上傳、不進備份碼）
 startAnnotate();                                      // 畫面上每個國字自動加注音（阿葉 10-10）
 
 const TONES = ["", "ˊ", "ˇ", "ˋ", "˙"];
@@ -684,10 +684,10 @@ function loadImg(name) {
 const assetsOf = k => { const a = ASSETS[k]; return typeof a === "function" ? a() : (a || []); };
 function preload(k) { for (const n of assetsOf(k)) loadImg(n); }                 // 背景偷偷抓，不擋畫面
 // 導覽代號：每次換畫面 +1。等圖片的非同步流程回來時代號不同＝小孩已經點去別的地方，這次作廢
-let navToken = 0, loadingOwner = 0, towerNavKeep = false;   // towerNavKeep：爬塔一層開始／結束時的 nav()（playFloor→startMode、towerEnd）不能把整座塔停掉
+let navToken = 0, loadingOwner = 0, towerNavKeep = false, inNav = false;   // towerNavKeep：爬塔一層開始／結束時的 nav()（playFloor→startMode、towerEnd）不能把整座塔停掉
 function nav() { const tok = ++navToken; qToken++; gClear(); pendingSays.clear(); if (bubbleGame) PZ(() => bubbleGame.stop()); if (deliverGame) PZ(() => deliverGame.stop());
   if (detectiveGame) PZ(() => detectiveGame.stop()); if (topsGame) PZ(() => topsGame.stop()); PZ(topsRefund);   // 10-12 詞句小偵探、陀螺：停語音、停 rAF、釋放 WebGL；陀螺下場了還沒打完就離開＝券退回
-  if (towerGame && !towerNavKeep) PZ(() => towerGame.stop());   // 10-13 挑戰燈塔：停流程、收愛心 HUD、正在玩的那層 abort（爬塔自己換層的 nav 不停：towerNavKeep）
+  if (towerGame && !towerNavKeep) { inNav = true; PZ(() => towerGame.stop()); inNav = false; }   // 10-13 挑戰燈塔：停流程、收愛心 HUD、正在玩的那層 abort（爬塔自己換層的 nav 不停：towerNavKeep）
   if (loadingOwner) { loadingOwner = 0; showLoading(false); } return tok; }   // qToken++＋gClear：上一局還沒到的換題、結算、稱讚全部作廢
 // 同一局的計時器（阿葉 10-10 ①）：換題、配對結算、延遲的稱讚都走這裡 → 暫停選單開著＝凍結（剩下的時間留著）、回小島／重新開始＝全部作廢
 const gameT = new Set(); let gamePaused = false, pausedAt = 0, pausedTotal = 0;
@@ -720,7 +720,7 @@ function hasWebGL() {                                 // Three.js r163 起只支
   try { const gl = document.createElement("canvas").getContext("webgl2"); if (!gl) return false; const x = gl.getExtension("WEBGL_lose_context"); if (x) x.loseContext(); return true; } catch (e) { return false; }
 }
 function importHub() {
-  const url = "./zhuyin-hub3d.js?v=11";
+  const url = "./zhuyin-hub3d.js?v=12";
   if (window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports("importmap")) return import(url);
   return new Promise((ok, no) => {                    // 舊 iPad（iOS 16.3 以前）不支援 importmap → 補 es-module-shims 再載
     const s = document.createElement("script"); s.src = "IMAGE/zy3d/vendor/es-module-shims/es-module-shims.js";
@@ -1230,8 +1230,9 @@ const twx = k => !!(tower && tower.extra && tower.extra[k]);   // 爬塔 extra�
 function twEvent(type) {                                // 爬塔局的事件 → opts.onEvent；同時累計 Result
   const t = tower; if (!t || t.ended) return;
   const k = { gold: "golds", silver: "silvers", wrong: "wrongs", timeout: "timeouts" }[type]; if (k) t.res[k]++;
-  try { t.onEvent({ type, q: idx }); } catch (e) { console.warn("[tower] onEvent", e); }
+  twDispatch++; try { t.onEvent({ type, q: idx }); } catch (e) { console.warn("[tower] onEvent", e); } finally { twDispatch--; }
 }
+let twDispatch = 0;                                      // 正在把事件交給爬塔（期間爬塔說要結束＝等這個答題函式跑完再收，里維 10-13）
 // ---------- v6 給爬塔用的介面（docs/zhuyin-v6-plan.md §2.4）----------
 // playFloor(opts) → { done: Promise<Result>, abort() }
 //   opts = { mode: "fish"|"order"|"build"|"hunt"|"tone"|"whack"|"frog", n: 題數（1..10，預設 3）, lv: 1..5（套 §2.3 參數）,
@@ -1251,17 +1252,17 @@ function playFloor(opts = {}) {
     timer: ["off", "silver", "heart"].includes(opts.timer) ? opts.timer : "off", extra: opts.extra && typeof opts.extra === "object" ? opts.extra : {},
     onEvent: typeof opts.onEvent === "function" ? opts.onEvent : () => {}, res, resolve, prev: vis ? vis.id : "menu", prevMode: mode, ended: false };
   startMode(m, null, t).catch(e => { console.warn("[tower]", e); towerEnd(t, true); });
-  return { done, abort: () => towerEnd(t, true) };
+  return { done, abort: () => (twDispatch ? setTimeout(() => towerEnd(t, true), 0) : towerEnd(t, true)) };
 }
 function towerEnd(t, aborted) {
   if (!t || t.ended) return; t.ended = true; t.res.aborted = !!aborted;
   if (tower === t) tower = null;
   if (wq) { cancelAnimationFrame(wq.raf); wq.done = true; }
-  towerNavKeep = true; nav(); towerNavKeep = false; hgStop(); if (aborted) stopSpeech(); clearIdle(); hintPulse(false);
+  if (!inNav) { towerNavKeep = true; nav(); towerNavKeep = false; } hgStop(); if (aborted) stopSpeech(); clearIdle(); hintPulse(false);
   const dead = t.prev === t.m || LV_MODES.includes(t.prev) || t.prev === "result";   // 呼叫前就在某個一般遊戲／結算畫面（不該發生）：回小島
   mode = dead ? null : (t.prevMode || null); locked = false; lvNow = 1;
   $("confirm").classList.add("hidden"); confirmLabels(false);
-  showScreen(dead ? "menu" : t.prev);
+  showScreen(dead ? "menu" : t.prev); if (mode === "tower") playBgm(MODES.tower.bgm);
   t.resolve({ ...t.res });
 }
 
@@ -2015,7 +2016,7 @@ function gameHint() {
 const BOARD = m => m === "match" || m === "bubble" || m === "deliver" || m === "detective" || m === "tops" || m === "tower";      // 單一盤面的模式：沒有一題一題的回合（偵探、陀螺的回合在模組裡）
 let BUBBLE_N = 50, BUBBLE_PER = 10, BUBBLE_ZONES = [];      // 模組載入後改成 LEVELS.length／LEVELS_PER_ZONE／ZONES（v6：五區，每區 10 關）
 let bubbleMod = null, bubbleGame = null, bubbleRun = null, bubbleLevel = 0, bubbleTab = 0;
-const importBubble = () => bubbleMod || (bubbleMod = import("./zhuyin-bubble.js?v=2").then(m => { BUBBLE_N = m.LEVELS.length; BUBBLE_PER = m.LEVELS_PER_ZONE; BUBBLE_ZONES = m.ZONES; return m; }).catch(e => { bubbleMod = null; throw e; }));
+const importBubble = () => bubbleMod || (bubbleMod = import("./zhuyin-bubble.js?v=3").then(m => { BUBBLE_N = m.LEVELS.length; BUBBLE_PER = m.LEVELS_PER_ZONE; BUBBLE_ZONES = m.ZONES; return m; }).catch(e => { bubbleMod = null; throw e; }));
 const bubbleZoneOf = lv => Math.min(Math.max(0, BUBBLE_ZONES.length - 1), Math.floor(lv / BUBBLE_PER));
 const bubbleAnimal = lv => (BUBBLE_ZONES[bubbleZoneOf(lv)] || { name: "小企鵝" }).name;
 const BUBBLE_WIN_TALK = ["小企鵝都救出來了，好厲害！", "小螃蟹都救出來了，好厲害！", "小鯨魚都救出來了，好厲害！", "小象都救出來了，好厲害！", "小獅子都救出來了，好厲害！"];
@@ -2061,7 +2062,7 @@ function playBubbleBoss({ level = 0, ceilingEvery = 8, onEvent } = {}) {
   let resolveDone; const done = new Promise(r => { resolveDone = r; });
   const prev = [...document.querySelectorAll(".screen")].find(s => !s.classList.contains("hidden"))?.id || "menu";
   const B = bubbleBoss = { presses: 0, shots: 0, prev, prevMode: mode, done: false, level: Math.max(0, level | 0), every: Math.max(1, Math.floor(+ceilingEvery) || 8) };
-  B.emit = ev => { try { if (onEvent) onEvent(ev); } catch (e) { console.warn("[bubble boss] onEvent", e); } };
+  B.emit = ev => { B.inEmit = true; try { if (onEvent) onEvent(ev); } catch (e) { console.warn("[bubble boss] onEvent", e); } finally { B.inEmit = false; } };
   B.finish = res => {
     if (B.done) return; B.done = true;
     const s = bubbleGame && bubbleGame.state(); if (s && s.boss) { B.shots = s.shots; B.presses = s.presses; }
@@ -2069,7 +2070,7 @@ function playBubbleBoss({ level = 0, ceilingEvery = 8, onEvent } = {}) {
     bossPauseMenu(false); $("confirm").classList.add("hidden");
     if (bubbleGame) PZ(() => bubbleGame.stop());
     if (gamePaused) gResume();
-    if (mode === "bubble") { mode = B.prevMode; showScreen(B.prev); if (B.prev === "menu") playBgm(menuBgmKey()); }
+    if (mode === "bubble") { mode = B.prevMode; showScreen(B.prev); if (B.prev === "menu") playBgm(menuBgmKey()); else if (mode === "tower") playBgm(MODES.tower.bgm); }
     resolveDone(Object.assign({ cleared: false, shots: B.shots, presses: B.presses, aborted: false }, res));
   };
   (async () => {
@@ -2079,7 +2080,7 @@ function playBubbleBoss({ level = 0, ceilingEvery = 8, onEvent } = {}) {
     showScreen("bubble"); playBgm(MODES.bubble.bgm); bossPauseMenu(true);
     ensureBubbleGame(m).start(Math.min(BUBBLE_N - 1, B.level), { boss: true, drop: B.every });
   })();
-  return { done, abort: () => B.finish({ aborted: true }) };
+  return { done, abort: () => (B.inEmit ? setTimeout(() => B.finish({ aborted: true }), 0) : B.finish({ aborted: true })) };
 }
 function bubbleBossWin(r) { const B = bubbleBoss; if (!B) return; B.shots = r.shots; B.presses = r.presses || 0; B.finish({ cleared: true, shots: r.shots, presses: r.presses || 0 }); }
 function bubbleBossPress(e) { const B = bubbleBoss; if (!B) return; B.presses = e.presses; B.emit({ type: "press", presses: e.presses, shots: e.shots }); }
@@ -2135,7 +2136,7 @@ function renderBubblePick() {
 let deliverMod = null, deliverGame = null, deliverRun = null, deliverLevel = 0;
 function importDeliver() {
   if (deliverMod) return deliverMod;
-  const url = "./zhuyin-deliver.js?v=2";               // 要 three（importmap）；舊 iPad 沒有 importmap → 跟 3D 小島一樣走 es-module-shims
+  const url = "./zhuyin-deliver.js?v=3";               // 要 three（importmap）；舊 iPad 沒有 importmap → 跟 3D 小島一樣走 es-module-shims
   const p = window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports("importmap") ? import(url)
     : window.importShim ? window.importShim(new URL(url, import.meta.url).href) : Promise.reject(new Error("no importmap"));
   return (deliverMod = p.then(m => { if (m.TASKS.length !== DELIVER_TASKS) console.warn("[deliver] 關數跟 DELIVER_TASKS 對不上", m.TASKS.length); return m; }).catch(e => { deliverMod = null; throw e; }));
@@ -2204,7 +2205,7 @@ function renderDeliverPick() {
 // 第一次玩：教學交給模組唸（start({ intro:true })：卡片等教學講完才出來）；之後 intro:false（主程式本來就不唸開場語，見 SELF_INTRO）。
 // 答對一題（模組的 onCorrect）＝點心 +1、同樂廣場讀字週 +1；演出完（onWin）存檔 save.detective＝{ seen, best }，結算走共用 showResult（星星＝模組算的、點心再 +2、唸 WIN_TALK）。
 let detectiveMod = null, detectiveGame = null, detectiveRun = null, detectiveWinTalk = "", detectiveAdv = null;
-const importDetective = () => detectiveMod || (detectiveMod = import("./zhuyin-detective.js?v=2").catch(e => { detectiveMod = null; throw e; }));
+const importDetective = () => detectiveMod || (detectiveMod = import("./zhuyin-detective.js?v=3").catch(e => { detectiveMod = null; throw e; }));
 const DETECTIVE_FAIL = "偵探社現在打不開，等一下再試試看！";
 async function buildDetective() {
   const tok = navToken; let m;

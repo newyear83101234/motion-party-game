@@ -369,6 +369,7 @@ export function createTowerGame(root, api) {
 
   // ---------- 一場挑戰 ----------
   async function startRun() {
+    if (S.run) return;                                  // 已經在爬（連點兩下）：不開第二條（里維 10-13）
     const my = tok; closeOverlay();
     const sf = C.startFloor(T), gold = C.goldFor(T, sf);
     S.run = { start: sf, floor: sf, reached: sf - 1, hearts: C.newHearts(gold), played: false, stars: 0, coins: 0, badges: [], lost: 0, failing: false, mix: null, plan: null };

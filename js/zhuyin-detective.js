@@ -34,8 +34,8 @@
 //
 // 國字都自己附注音（js/zhuyin-ann.js 的 readRun＋js/zhuyin-ui.js 字典；新句子要跑 tools/build_zhuyin_ui.py）。
 // ⚠ zhuyin-ann.js 的 ?v 要跟 zhuyin.js 的 import 一樣（升版號時兩邊一起改，才會是同一份模組）。
-import { readRun } from "./zhuyin-ann.js?v=8";
-import { BANK } from "./zhuyin-detective-bank.js?v=1";
+import { readRun } from "./zhuyin-ann.js?v=9";
+import { BANK } from "./zhuyin-detective-bank.js?v=2";
 
 export { BANK };
 export const ROUND_N = 5;
