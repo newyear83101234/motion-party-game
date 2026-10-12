@@ -1,15 +1,15 @@
 {
  "meta": {
   "generated_by": "tools/voice/build_lines.py",
-  "total_lines": 688,
-  "total_chars": 4167,
+  "total_lines": 700,
+  "total_chars": 4252,
   "by_cat": {
    "intro": 10,
    "praise": 8,
-   "guide": 255,
+   "guide": 258,
    "system": 4,
-   "result": 5,
-   "word": 155,
+   "result": 7,
+   "word": 162,
    "hatch": 28,
    "friend": 19,
    "order": 76,
@@ -484,6 +484,85 @@
    "cat": "word",
    "src": "zhuyin-bubble.js SYMS",
    "tts_text": "喝"
+  },
+  {
+   "id": "sym_11",
+   "text": "ㄐ",
+   "cat": "word",
+   "src": "zhuyin-bubble.js SYMS（v6）",
+   "tts_text": "機"
+  },
+  {
+   "id": "sym_12",
+   "text": "ㄑ",
+   "cat": "word",
+   "src": "zhuyin-bubble.js SYMS（v6）",
+   "tts_text": "欺"
+  },
+  {
+   "id": "sym_13",
+   "text": "ㄒ",
+   "cat": "word",
+   "src": "zhuyin-bubble.js SYMS（v6）",
+   "tts_text": "希"
+  },
+  {
+   "id": "sym_14",
+   "text": "ㄓ",
+   "cat": "word",
+   "src": "zhuyin-bubble.js SYMS（v6）",
+   "tts_text": "知"
+  },
+  {
+   "id": "sym_15",
+   "text": "ㄔ",
+   "cat": "word",
+   "src": "zhuyin-bubble.js SYMS（v6）",
+   "tts_text": "吃"
+  },
+  {
+   "id": "sym_16",
+   "text": "ㄕ",
+   "cat": "word",
+   "src": "zhuyin-bubble.js SYMS（v6）",
+   "tts_text": "詩"
+  },
+  {
+   "id": "sym_17",
+   "text": "ㄖ",
+   "cat": "word",
+   "src": "zhuyin-bubble.js SYMS（v6）",
+   "tts_text": "日"
+  },
+  {
+   "id": "bubble_zone4",
+   "text": "這次要救小象喔！天花板會慢慢降下來喔！",
+   "cat": "guide",
+   "src": "zhuyin-bubble.js（v6 10-13）"
+  },
+  {
+   "id": "bubble_zone5",
+   "text": "這次要救小獅子喔！灰色的石頭打不破，要讓它掉下來！",
+   "cat": "guide",
+   "src": "zhuyin-bubble.js（v6 10-13）"
+  },
+  {
+   "id": "bubble_drop_tip",
+   "text": "天花板降下來了！小燈都熄掉，就會往下降喔！",
+   "cat": "guide",
+   "src": "zhuyin-bubble.js（v6 10-13）"
+  },
+  {
+   "id": "bubble_win_4",
+   "text": "小象都救出來了，好厲害！",
+   "cat": "result",
+   "src": "zhuyin.js BUBBLE_WIN_TALK（v6 10-13）"
+  },
+  {
+   "id": "bubble_win_5",
+   "text": "小獅子都救出來了，好厲害！",
+   "cat": "result",
+   "src": "zhuyin.js BUBBLE_WIN_TALK（v6 10-13）"
   },
   {
    "id": "gacha_open",

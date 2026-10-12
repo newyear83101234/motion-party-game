@@ -1,6 +1,6 @@
 {
  "voice": "Gemini gemini-3.8-flash-tts／設計聲音 D「兒童節目大姐姐」(voice_3r1yhefmv3r2)",
- "generated": "2026-10-13 01:20",
+ "generated": "2026-10-13 02:42",
  "note": "key＝遊戲傳給 say() 的原字串（含標點）。split：『前綴＋詞』拆兩段播（前綴音檔＋詞音檔）。",
  "files": {
   "聽聲音，點對的魚！": "intro_d0902bce.mp3",
@@ -67,6 +67,18 @@
   "ㄍ": "word_842438fa.mp3",
   "ㄎ": "word_fdd33d9b.mp3",
   "ㄏ": "word_0075b7c5.mp3",
+  "ㄐ": "word_42172e3e.mp3",
+  "ㄑ": "word_cd50f7cc.mp3",
+  "ㄒ": "word_dce4e59b.mp3",
+  "ㄓ": "word_6f43d198.mp3",
+  "ㄔ": "word_cc707265.mp3",
+  "ㄕ": "word_84030fe3.mp3",
+  "ㄖ": "word_6631573a.mp3",
+  "這次要救小象喔！天花板會慢慢降下來喔！": "guide_9c03871e.mp3",
+  "這次要救小獅子喔！灰色的石頭打不破，要讓它掉下來！": "guide_8086f9e4.mp3",
+  "天花板降下來了！小燈都熄掉，就會往下降喔！": "guide_c12093fe.mp3",
+  "小象都救出來了，好厲害！": "result_639313a2.mp3",
+  "小獅子都救出來了，好厲害！": "result_24b533f1.mp3",
   "投一枚扭蛋幣，轉一轉！": "guide_43e4d717.mp3",
   "收集星星，就能拿到扭蛋幣喔！": "guide_d0f5203b.mp3",
   "換成點心囉！": "guide_47b0ed65.mp3",
@@ -761,6 +773,18 @@
   "word_842438fa.mp3": 0.93,
   "word_fdd33d9b.mp3": 0.54,
   "word_0075b7c5.mp3": 0.9,
+  "word_42172e3e.mp3": 0.97,
+  "word_cd50f7cc.mp3": 0.71,
+  "word_dce4e59b.mp3": 1.2,
+  "word_6f43d198.mp3": 0.61,
+  "word_cc707265.mp3": 0.63,
+  "word_84030fe3.mp3": 0.75,
+  "word_6631573a.mp3": 0.44,
+  "guide_9c03871e.mp3": 4.27,
+  "guide_8086f9e4.mp3": 5.7,
+  "guide_c12093fe.mp3": 4.79,
+  "result_639313a2.mp3": 2.96,
+  "result_24b533f1.mp3": 2.94,
   "guide_43e4d717.mp3": 2.71,
   "guide_d0f5203b.mp3": 2.92,
   "guide_47b0ed65.mp3": 1.52,
@@ -1385,5 +1409,6 @@
   "phrase_147d0622.mp3": 1.68,
   "phrase_c0e907ad.mp3": 1.4,
   "phrase_22f3a6f2.mp3": 1.76
- }
+ },
+ "rev": {}
 }

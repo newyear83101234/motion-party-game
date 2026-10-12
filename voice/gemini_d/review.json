@@ -1,7 +1,7 @@
 {
  "how": "每句由 Gemini 3.8 Flash 盲聽寫（不給答案），拼音跟正確讀音比對；詞庫詞以遊戲注音為準。AI 聽寫本身也會錯，所以這份是『請人耳確認』清單，不代表一定唸錯。",
- "count": 75,
- "suspicious": 75,
+ "count": 76,
+ "suspicious": 76,
  "items": [
   {
    "text": "第一聲不用加符號，按這個空白格就好",
@@ -376,6 +376,43 @@
      "pinyin": "le4",
      "why": [
       "勒 應 lei1 聽到 le4"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "天花板降下來了！小燈都熄掉，就會往下降喔！",
+   "file": "guide_c12093fe.mp3",
+   "level": "可疑",
+   "why": [
+    "熄 應 xi1 聽到 xi2"
+   ],
+   "heard": "天花板降下來了，小燈都熄掉，就會往下降喔",
+   "pinyin": "tian1 hua1 ban3 jiang4 xia4 lai2 le5 xiao3 deng1 dou1 xi2 diao4 jiu4 hui4 wang3 xia4 jiang4 o1",
+   "correct": "tian1 hua1 ban3 jiang4 xia4 lai2 le5 xiao3 deng1 dou1 xi1 diao4 jiu4 hui4 wang3 xia4 jiang4 o1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "天花板降下來了！小燈都熄掉，就會往下降喔！",
+     "pinyin": "tian1 hua1 ban3 jiang4 xia4 lai2 le5 xiao3 deng1 dou1 xi2 diao4 jiu4 hui4 wang3 xia4 jiang4 o1",
+     "why": [
+      "熄 應 xi1 聽到 xi2"
+     ]
+    },
+    {
+     "sent": "天花板降下來了！小燈都熄掉，就會往下降喔！",
+     "pinyin": "a1 tian1 hua1 ban3 jiang4 xia4 lai2 le5 xiao3 deng1 dou1 xi2 diao4 jiu4 hui4 wang3 xia4 jiang4 o1",
+     "why": [
+      "音節數不同：應 18（tian1 hua1 ban3 jiang4 xia4 lai2 le5 xiao3 deng1 dou1 xi1 diao4 jiu4 hui4 wang3 xia4 jiang4 o1），聽到 19（a1 tian1 hua1 ban3 jiang4 xia4 lai2 le5 xiao3 deng1 dou1 xi2 diao4 jiu4 hui4 wang3 xia4 jiang4 o1）"
+     ]
+    },
+    {
+     "sent": "天花板降下來了！小燈都熄掉，就會往下降喔！",
+     "pinyin": "tian1 hua1 ban3 jiang4 xia4 lai2 luo5 xiao3 deng1 dou1 xi2 diao4 jiu4 hui4 wang3 xia4 jiang4 o1",
+     "why": [
+      "了 應 le5 聽到 luo5",
+      "熄 應 xi1 聽到 xi2"
      ]
     }
    ]
