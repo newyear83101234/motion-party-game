@@ -65,3 +65,21 @@
 | wear | Kenney RPG Audio cloth2 + synth bells |
 | whoosh | synth (numpy swept noise) |
 | win | Freesound「WinFantasia.wav」by Fupicat — https://freesound.org/people/Fupicat/sounds/521645/ — CC0 |
+
+## v7 新增音效（陀螺競技＋寵物進化，2026-10-13，全部 CC0）
+
+| 音效 | 來源 |
+|---|---|
+| tp_fuse | Freesound「Slide lock 1.wav」 — https://freesound.org/people/ingudios/sounds/119494/ — CC0 |
+| tp_launch | synth 拉繩＋加速嗡聲 + Kenney impactMetal_light_002 — （無外部連結） — CC0 |
+| tp_clash1 | Kenney impactMetal_light_001 — （無外部連結） — CC0 |
+| tp_clash2 | Kenney impactMetal_medium_002 + Freesound「Sword Clash.wav」 — https://freesound.org/people/Bird_man/sounds/275159/ — CC0 |
+| tp_clash3 | Freesound「Metal Hit Cartoon」 — https://freesound.org/people/Johnnyfarmer/sounds/209771/ — CC0 |
+| tp_ko | Freesound「Anvil Hit 2」+「Metal Boom」+ 合成閃光 — https://freesound.org/people/michorvath/sounds/270588/ ; https://freesound.org/people/Johnnyfarmer/sounds/209772/ — CC0 |
+| tp_count | synth 乾淨電子嗶 — （無外部連結） — CC0 |
+| tp_round | Kenney impactBell_heavy_001 + Freesound「bell ding 1.wav」 — https://freesound.org/people/5ro4/sounds/611113/ — CC0 |
+| tp_cheer | Freesound「Short Crowd Cheer.flac」 — https://freesound.org/people/qubodup/sounds/182571/ — CC0 |
+| tp_victory | Freesound「Game Success Fanfare」 — https://freesound.org/people/el_boss/sounds/677859/ — CC0 |
+| ev_charge | Freesound「Power_Up」 — https://freesound.org/people/gulfstreamav/sounds/843330/ — CC0 |
+| ev_burst | Freesound「Fire Burst Flash」+「magic burst」+ Kenney impactBell_heavy_000 + 合成閃光 — https://freesound.org/people/Za-Games/sounds/539972/ ; https://freesound.org/people/DAN2008/sounds/214455/ — CC0 |
+| ev_sparkle | Freesound「Sparkling Star 01.wav」 — https://freesound.org/people/LilMati/sounds/462095/ — CC0 |

@@ -728,6 +728,181 @@
     "confirmedByGeminiPro": true,
     "replaces": "synth/Kenney 舊版（保留於 tools/audio/candidates/sfx/win/cur.mp3）"
    }
+  },
+  "tp_fuse": {
+   "file": "audio/sfx/tp_fuse.mp3",
+   "use": "戰鬥陀螺：三個字合體成一顆陀螺的一瞬間（喀嚓鎖上）",
+   "duration": 1.1,
+   "peak_dBFS": -4.36,
+   "activeRms_dBFS": -18.1,
+   "lufs": -18.7,
+   "loop": false,
+   "source": "Freesound「Slide lock 1.wav」（trim／淡出／響度處理）",
+   "sourceUrl": "https://freesound.org/people/ingudios/sounds/119494/",
+   "license": "CC0 1.0（Freesound 頁面逐檔確認；Kenney CC0；合成部分 numpy 自製 CC0）",
+   "v7": true
+  },
+  "tp_launch": {
+   "file": "audio/sfx/tp_launch.mp3",
+   "use": "戰鬥陀螺：發射（拉繩後陀螺高速旋轉起來）",
+   "duration": 1.268,
+   "peak_dBFS": -4.0,
+   "activeRms_dBFS": -17.5,
+   "lufs": -16.9,
+   "loop": false,
+   "source": "synth 拉繩＋加速嗡聲 + Kenney impactMetal_light_002（trim／淡出／響度處理）",
+   "sourceUrl": null,
+   "license": "CC0（Kenney CC0／numpy 自製合成）",
+   "v7": true
+  },
+  "tp_clash1": {
+   "file": "audio/sfx/tp_clash1.mp3",
+   "use": "戰鬥陀螺：陀螺相撞（輕）",
+   "duration": 0.178,
+   "peak_dBFS": -4.74,
+   "activeRms_dBFS": -17.6,
+   "lufs": null,
+   "loop": false,
+   "source": "Kenney impactMetal_light_001（trim／淡出／響度處理）",
+   "sourceUrl": null,
+   "license": "CC0（Kenney CC0／numpy 自製合成）",
+   "v7": true
+  },
+  "tp_clash2": {
+   "file": "audio/sfx/tp_clash2.mp3",
+   "use": "戰鬥陀螺：陀螺相撞（中）",
+   "duration": 0.45,
+   "peak_dBFS": -4.81,
+   "activeRms_dBFS": -17.3,
+   "lufs": -15.9,
+   "loop": false,
+   "source": "Kenney impactMetal_medium_002 + Freesound「Sword Clash.wav」（trim／淡出／響度處理）",
+   "sourceUrl": "https://freesound.org/people/Bird_man/sounds/275159/",
+   "license": "CC0 1.0（Freesound 頁面逐檔確認；Kenney CC0；合成部分 numpy 自製 CC0）",
+   "v7": true
+  },
+  "tp_clash3": {
+   "file": "audio/sfx/tp_clash3.mp3",
+   "use": "戰鬥陀螺：陀螺相撞（重）",
+   "duration": 0.796,
+   "peak_dBFS": -4.69,
+   "activeRms_dBFS": -17.0,
+   "lufs": -22.2,
+   "loop": false,
+   "source": "Freesound「Metal Hit Cartoon」（trim／淡出／響度處理）",
+   "sourceUrl": "https://freesound.org/people/Johnnyfarmer/sounds/209771/",
+   "license": "CC0 1.0（Freesound 頁面逐檔確認；Kenney CC0；合成部分 numpy 自製 CC0）",
+   "v7": true
+  },
+  "tp_ko": {
+   "file": "audio/sfx/tp_ko.mp3",
+   "use": "戰鬥陀螺：決勝一擊／對手被撞出場（爆發）",
+   "duration": 1.249,
+   "peak_dBFS": -4.57,
+   "activeRms_dBFS": -17.2,
+   "lufs": -19.5,
+   "loop": false,
+   "source": "Freesound「Anvil Hit 2」+「Metal Boom」+ 合成閃光（trim／淡出／響度處理）",
+   "sourceUrl": [
+    "https://freesound.org/people/michorvath/sounds/270588/",
+    "https://freesound.org/people/Johnnyfarmer/sounds/209772/"
+   ],
+   "license": "CC0 1.0（Freesound 頁面逐檔確認；Kenney CC0；合成部分 numpy 自製 CC0）",
+   "v7": true
+  },
+  "tp_count": {
+   "file": "audio/sfx/tp_count.mp3",
+   "use": "戰鬥陀螺：3、2、1 倒數的一聲電子嗶",
+   "duration": 0.16,
+   "peak_dBFS": -10.61,
+   "activeRms_dBFS": -17.4,
+   "lufs": null,
+   "loop": false,
+   "source": "synth 乾淨電子嗶（trim／淡出／響度處理）",
+   "sourceUrl": null,
+   "license": "CC0（Kenney CC0／numpy 自製合成）",
+   "v7": true
+  },
+  "tp_round": {
+   "file": "audio/sfx/tp_round.mp3",
+   "use": "戰鬥陀螺：每回合勝負揭曉的一聲「鏘」",
+   "duration": 1.457,
+   "peak_dBFS": -4.36,
+   "activeRms_dBFS": -17.1,
+   "lufs": -18.3,
+   "loop": false,
+   "source": "Kenney impactBell_heavy_001 + Freesound「bell ding 1.wav」（trim／淡出／響度處理）",
+   "sourceUrl": "https://freesound.org/people/5ro4/sounds/611113/",
+   "license": "CC0 1.0（Freesound 頁面逐檔確認；Kenney CC0；合成部分 numpy 自製 CC0）",
+   "v7": true
+  },
+  "tp_cheer": {
+   "file": "audio/sfx/tp_cheer.mp3",
+   "use": "戰鬥陀螺：小觀眾群歡呼",
+   "duration": 2.991,
+   "peak_dBFS": -4.6,
+   "activeRms_dBFS": -16.0,
+   "lufs": -15.9,
+   "loop": false,
+   "source": "Freesound「Short Crowd Cheer.flac」（trim／淡出／響度處理）",
+   "sourceUrl": "https://freesound.org/people/qubodup/sounds/182571/",
+   "license": "CC0 1.0（Freesound 頁面逐檔確認；Kenney CC0；合成部分 numpy 自製 CC0）",
+   "v7": true
+  },
+  "tp_victory": {
+   "file": "audio/sfx/tp_victory.mp3",
+   "use": "戰鬥陀螺：整場勝利的短號角",
+   "duration": 2.7,
+   "peak_dBFS": -4.83,
+   "activeRms_dBFS": -16.8,
+   "lufs": -17.7,
+   "loop": false,
+   "source": "Freesound「Game Success Fanfare」（trim／淡出／響度處理）",
+   "sourceUrl": "https://freesound.org/people/el_boss/sounds/677859/",
+   "license": "CC0 1.0（Freesound 頁面逐檔確認；Kenney CC0；合成部分 numpy 自製 CC0）",
+   "v7": true
+  },
+  "ev_charge": {
+   "file": "audio/sfx/ev_charge.mp3",
+   "use": "寵物進化：蓄力（能量上升）",
+   "duration": 2.65,
+   "peak_dBFS": -5.29,
+   "activeRms_dBFS": -17.4,
+   "lufs": -19.9,
+   "loop": false,
+   "source": "Freesound「Power_Up」（trim／淡出／響度處理）",
+   "sourceUrl": "https://freesound.org/people/gulfstreamav/sounds/843330/",
+   "license": "CC0 1.0（Freesound 頁面逐檔確認；Kenney CC0；合成部分 numpy 自製 CC0）",
+   "v7": true
+  },
+  "ev_burst": {
+   "file": "audio/sfx/ev_burst.mp3",
+   "use": "寵物進化：白光爆開",
+   "duration": 1.6,
+   "peak_dBFS": -4.76,
+   "activeRms_dBFS": -17.4,
+   "lufs": -16.3,
+   "loop": false,
+   "source": "Freesound「Fire Burst Flash」+「magic burst」+ Kenney impactBell_heavy_000 + 合成閃光（trim／淡出／響度處理）",
+   "sourceUrl": [
+    "https://freesound.org/people/Za-Games/sounds/539972/",
+    "https://freesound.org/people/DAN2008/sounds/214455/"
+   ],
+   "license": "CC0 1.0（Freesound 頁面逐檔確認；Kenney CC0；合成部分 numpy 自製 CC0）",
+   "v7": true
+  },
+  "ev_sparkle": {
+   "file": "audio/sfx/ev_sparkle.mp3",
+   "use": "寵物進化：新形態亮相的閃閃發光",
+   "duration": 2.0,
+   "peak_dBFS": -4.83,
+   "activeRms_dBFS": -17.7,
+   "lufs": -15.6,
+   "loop": false,
+   "source": "Freesound「Sparkling Star 01.wav」（trim／淡出／響度處理）",
+   "sourceUrl": "https://freesound.org/people/LilMati/sounds/462095/",
+   "license": "CC0 1.0（Freesound 頁面逐檔確認；Kenney CC0；合成部分 numpy 自製 CC0）",
+   "v7": true
   }
  }
 }
