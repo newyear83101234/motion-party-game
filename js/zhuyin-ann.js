@@ -5,7 +5,7 @@
 // ˊˇˋ 標在最後一個符號右上方、往上突出半格；輕聲 ˙ 標在最前面＝直排的頂上）。
 // 注音不進 textContent → 語音朗讀、程式比對文字都不受影響。
 // 讀音來源 js/zhuyin-ui.js（tools/build_zhuyin_ui.py 產生：詞庫 > 萌典台灣讀音 > pypinyin 校正）。
-import { ZDICT, ZCHAR } from "./zhuyin-ui.js?v=9";   // 改了 zhuyin-ui.js 要升（zhuyin.html 的 modulepreload 一起改）
+import { ZDICT, ZCHAR } from "./zhuyin-ui.js?v=10";   // 改了 zhuyin-ui.js 要升（zhuyin.html 的 modulepreload 一起改）
 
 const HAN = /[㐀-鿿]/;
 const RUN = /[㐀-鿿]+/g;

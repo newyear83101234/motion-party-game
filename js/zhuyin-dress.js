@@ -13,7 +13,7 @@
 // 計時（稱讚、閒置提示）一律走 api.later；動畫跟著 rAF 走。
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import * as RW from "./zhuyin-rewards.js?v=2";   // ⚠ 跟 zhuyin.js 的 import 用同一個 ?v（升版號時兩邊一起改，才會是同一份模組）
+import * as RW from "./zhuyin-rewards.js?v=3";   // ⚠ 跟 zhuyin.js 的 import 用同一個 ?v（升版號時兩邊一起改，才會是同一份模組）
 
 const ROOT = new URL("../", import.meta.url).href;
 const MODELS = ROOT + "IMAGE/zy3d/models/", IMG = ROOT + "IMAGE/zhuyin/";

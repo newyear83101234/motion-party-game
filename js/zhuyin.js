@@ -3,10 +3,10 @@
 // 八個模式：釣魚 / 點餐 / 積木 / 尋寶 / 翻牌 / 聲調氣球 / 打地鼠 / 跳跳蛙（後兩個 2026-10-10 加）。長期動力：貼紙圖鑑（每個詞一張貼紙）＋星星罐孵蛋（解鎖朋友）。
 // 設計依據：櫻木花道（遊戲設計）＋寧次（UI/UX）2026-09-09 審查報告；規格見 memory project-zhuyin-game.md
 import { WORDS, PHRASES, CATS, FRIENDS } from "./zhuyin-words.js";
-import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js?v=9";
+import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js?v=10";
 import { voiceUnlock, voiceSay, voiceStop, voiceSpeaking, voicePreload, voiceCtx, voiceBind } from "./zhuyin-voice.js?v=8";
-import A from "./zhuyin-audio.js?v=2";               // 音訊引擎：一個 AudioContext、music／sfx／voice／ambience 四條 bus（docs/zhuyin-v5-plan.md §5）
-import * as RW from "./zhuyin-rewards.js?v=2";   // 獎勵系統（扭蛋機）純邏輯
+import A from "./zhuyin-audio.js?v=3";               // 音訊引擎：一個 AudioContext、music／sfx／voice／ambience 四條 bus（docs/zhuyin-v5-plan.md §5）
+import * as RW from "./zhuyin-rewards.js?v=3";   // 獎勵系統（扭蛋機）純邏輯
 import { createClock } from "./zhuyin-clock.js?v=1";   // 日夜時鐘（真實 30 分鐘＝小島一天）
 import { createPlaza, PLAZA_URL } from "./zhuyin-plaza.js?v=1";   // ?v 要跟 zhuyin.html 的 modulepreload 一樣；10-12 小島同樂廣場（全島合作目標；只送匿名加總）；PLAZA_URL：注音戰鬥陀螺的全島陀螺榜也送到同一個後端
 import * as ST from "./zhuyin-stats.js?v=2";          // 10-12 家長頁「玩了什麼」本機遊玩紀錄（?v 要跟 zhuyin.html 的 modulepreload 一樣；只存本機、不上傳、不進備份碼）
@@ -721,7 +721,7 @@ function hasWebGL() {                                 // Three.js r163 起只支
   try { const gl = document.createElement("canvas").getContext("webgl2"); if (!gl) return false; const x = gl.getExtension("WEBGL_lose_context"); if (x) x.loseContext(); return true; } catch (e) { return false; }
 }
 function importHub() {
-  const url = "./zhuyin-hub3d.js?v=12";
+  const url = "./zhuyin-hub3d.js?v=13";
   if (window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports("importmap")) return import(url);
   return new Promise((ok, no) => {                    // 舊 iPad（iOS 16.3 以前）不支援 importmap → 補 es-module-shims 再載
     const s = document.createElement("script"); s.src = "IMAGE/zy3d/vendor/es-module-shims/es-module-shims.js";
@@ -2209,7 +2209,7 @@ function renderDeliverPick() {
 // 第一次玩：教學交給模組唸（start({ intro:true })：卡片等教學講完才出來）；之後 intro:false（主程式本來就不唸開場語，見 SELF_INTRO）。
 // 答對一題（模組的 onCorrect）＝點心 +1、同樂廣場讀字週 +1；演出完（onWin）存檔 save.detective＝{ seen, best }，結算走共用 showResult（星星＝模組算的、點心再 +2、唸 WIN_TALK）。
 let detectiveMod = null, detectiveGame = null, detectiveRun = null, detectiveWinTalk = "", detectiveAdv = null;
-const importDetective = () => detectiveMod || (detectiveMod = import("./zhuyin-detective.js?v=3").catch(e => { detectiveMod = null; throw e; }));
+const importDetective = () => detectiveMod || (detectiveMod = import("./zhuyin-detective.js?v=4").catch(e => { detectiveMod = null; throw e; }));
 const DETECTIVE_FAIL = "偵探社現在打不開，等一下再試試看！";
 async function buildDetective() {
   const tok = navToken; let m;
@@ -2249,7 +2249,7 @@ function detectiveWin(r) {
 let topsMod = null, topsGame = null, topsPending = null, topsLegends = [], topsIsland = [];   // topsPending：已經扣了券、還沒打完的那一場 { free }
 function importTops() {
   if (topsMod) return topsMod;
-  const url = "./zhuyin-tops.js?v=1";                   // 要 three（importmap）；舊 iPad 沒有 importmap → 跟 3D 小島一樣走 es-module-shims
+  const url = "./zhuyin-tops.js?v=2";                   // 要 three（importmap）；舊 iPad 沒有 importmap → 跟 3D 小島一樣走 es-module-shims
   const p = window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports("importmap") ? import(url)
     : window.importShim ? window.importShim(new URL(url, import.meta.url).href) : Promise.reject(new Error("no importmap"));
   return (topsMod = p.catch(e => { topsMod = null; throw e; }));
@@ -2852,7 +2852,7 @@ if (location.search.includes("debug")) window.__zyEvo = Object.assign(window.__z
 // （dressMod／dressUI／dressFrom 宣告在「3D 選單小島」段 let hub 旁邊：showScreen、天氣、日夜都會看 dressFrom）
 function importDress() {
   if (dressMod) return dressMod;
-  const url = "./zhuyin-dress.js?v=1";                 // 要 three（importmap）；舊 iPad 沒有 importmap → 跟 3D 小島一樣走 es-module-shims（小島載入時已經補好）
+  const url = "./zhuyin-dress.js?v=2";                 // 要 three（importmap）；舊 iPad 沒有 importmap → 跟 3D 小島一樣走 es-module-shims（小島載入時已經補好）
   const p = window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports("importmap") ? import(url)
     : window.importShim ? window.importShim(new URL(url, import.meta.url).href) : Promise.reject(new Error("no importmap"));
   return (dressMod = p.catch(e => { dressMod = null; throw e; }));

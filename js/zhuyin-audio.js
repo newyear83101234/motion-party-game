@@ -16,7 +16,7 @@
 // 載入失敗（404／解碼錯）一律安靜略過、遊戲照跑，每個檔只 console.warn 一次。
 
 const ROOT = new URL("../audio/", import.meta.url).href;
-const AV = "1";                                   // 音檔版本（音檔換內容時主對話升這個，破 GitHub Pages 快取）
+const AV = "2";                                   // 音檔版本（音檔換內容時主對話升這個，破 GitHub Pages 快取）
 const LEVEL = { music: 0.32, sfx: 0.8, voice: 1, ambience: 0.5 };   // 各 bus 起始音量（BGM 都是 -18 LUFS、音效約 -17 dBFS RMS、配音約 -18 LUFS）
 const TRIM = { ng: 0.5 };                         // 個別音效再調：答錯音小聲一點（A10：怪遊戲不怪小孩）
 const DUCK_DB = -10, DUCK_IN = 0.15, DUCK_OUT = 0.4;   // 講話時音樂壓低 10 dB：約 150 ms 壓下去、400 ms 回來

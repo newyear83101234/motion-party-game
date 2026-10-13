@@ -33,7 +33,7 @@
 // stop()：dispose renderer、停 rAF、作廢所有舊回呼（run 號碼）、清語音佇列。
 import * as THREE from "three";
 import * as TP from "./zhuyin-tops-power.js?v=1";          // ?v=1：跟 js/zhuyin-tops-sim.js 的 import 網址完全一樣（同一份模組）；改了一起升
-import { SIM, topParams, simulateMatch, bonusHits, boostStats, BOOST, fuseStats, FUSE } from "./zhuyin-tops-sim.js?v=1";
+import { SIM, topParams, simulateMatch, bonusHits, boostStats, BOOST, fuseStats, FUSE } from "./zhuyin-tops-sim.js?v=2";
 import { WORDS, PHRASES, FRIENDS } from "./zhuyin-words.js";   // 兒童常用字（候選字排前面）；網址跟 js/zhuyin.js 一樣（同一份，不會再抓一次）
 
 const ROOT = new URL("../", import.meta.url).href;

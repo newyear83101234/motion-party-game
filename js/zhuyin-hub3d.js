@@ -12,7 +12,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
-import * as RWD from "./zhuyin-rewards.js?v=2";   // 寵物換裝：wearOf()／wearPose()（跟換裝畫面同一套）。⚠ 跟 zhuyin.js 的 import 用同一個 ?v（升版號時一起改，才會是同一份模組）
+import * as RWD from "./zhuyin-rewards.js?v=3";   // 寵物換裝：wearOf()／wearPose()（跟換裝畫面同一套）。⚠ 跟 zhuyin.js 的 import 用同一個 ?v（升版號時一起改，才會是同一份模組）
 
 // ---------- 常數 ----------
 const P = { deep: "#3f97c9", grid: "#5fa9d6", shallow: "#7fcfd0", sand: "#ecd7a3", dirt: "#a8673f", dirtDk: "#7d4a2e", grass: "#86c449", grassDk: "#5f9c3a",
