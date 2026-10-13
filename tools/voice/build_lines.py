@@ -316,7 +316,7 @@ must('const plaza = createPlaza(')   # 主程式有接上（同樂廣場在 zhuy
 TPSRC = (ROOT / "js" / "zhuyin-tops.js").read_text(encoding="utf-8")
 TPPOW = (ROOT / "js" / "zhuyin-tops-power.js").read_text(encoding="utf-8")
 TP_LINES = re.findall(r'^\s+(\w+): "([^"]+)",', TPSRC.split("export const LINES = {")[1].split("\n};")[0], re.M)
-assert len(TP_LINES) == 34, f"陀螺台詞解析失敗：{len(TP_LINES)}"   # 10-12 櫻木改善 +10 句：填空引導、陀螺蛋 3 句、集點卡、換對手 2 句、加油 2 句、「對手是：」
+assert len(TP_LINES) == 36, f"陀螺台詞解析失敗：{len(TP_LINES)}"   # 10-12 櫻木改善 +10 句；10-13 v7 合體三戰兩勝：拿掉 變身／這回合你贏了／這回合對手贏了，加 合體！／發射！／決勝回合！／藍隊勝！／紅隊勝！（勝利、再接再厲改寫）
 for key, t in TP_LINES:
     add(f"tp_{key}", t, "guide", f"zhuyin-tops.js LINES.{key}", **({"tts_text": "對手是"} if key == "vsPre" else {}))
 # 內建詞句（骰子詞庫 INSPIRE；島上傳說 LEGENDS 都在裡面）：抽到時唸「宇宙強爸爸！」；對手是內建詞句時唸「對手是：」＋「宇宙強爸爸！」
@@ -331,9 +331,16 @@ for t in ['export const sayPhrase = p => p + "！";', 'talk(LINES.vsPre + sayPhr
 for k, (h, z) in enumerate(TP_INSP):
     add(f"tp_insp_{k + 1}", h + "！", "phrase", "zhuyin-tops.js INSPIRE（骰子抽到／對手是內建詞句時唸；內建固定字串）", zhuyin=z)
 TP_ROUNDS = json.loads(re.search(r"export const ROUND_LINES = (\[.*?\]);", TPSRC).group(1))
-assert len(TP_ROUNDS) == 5, "陀螺回合台詞解析失敗"
+assert len(TP_ROUNDS) == 2, "陀螺回合台詞解析失敗"   # 10-13 v7 三戰兩勝：第 1、2 回合；第 3 回合唸 LINES.final「決勝回合！」
 for i, t in enumerate(TP_ROUNDS):
     add(f"tp_round_{i + 1}", t, "guide", "zhuyin-tops.js ROUND_LINES（每回合開始）")
+# 10-13 v7 段位：贏一場升一段（新手→銅牌→銀牌→金牌→彩虹），升段時唸 RANK_UP[to−1]
+TP_RANKUP = json.loads(re.search(r"export const RANK_UP = (\[.*?\]);", TPSRC).group(1))
+assert len(TP_RANKUP) == 4, f"陀螺升段台詞解析失敗：{len(TP_RANKUP)}"
+if "talk(RANK_UP[st.rankUp.to - 1])" not in TPSRC:
+    sys.exit("zhuyin-tops.js 找不到升段唸法 talk(RANK_UP[st.rankUp.to - 1])，請更新 build_lines.py")
+for i, t in enumerate(TP_RANKUP):
+    add(f"tp_rankup_{i + 1}", t, "guide", "zhuyin-tops.js RANK_UP（v7 段位升段）")
 TP_BONUS = re.findall(r'(\w+): "([^"]+)"', TPSRC.split("export const BONUS_TEXT = {")[1].split("};")[0])
 assert len(TP_BONUS) == 6, f"陀螺加成名稱解析失敗：{len(TP_BONUS)}"
 for key, t in TP_BONUS:

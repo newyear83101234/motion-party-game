@@ -512,14 +512,14 @@ function cleanRt(d) {
 // 注音戰鬥陀螺存檔清洗（存檔、備份碼共用；docs/zhuyin-tops-spec.md §5）：
 // { tickets 0..3, starsBank 0..15（換券用的星星）, freeUsed（第一次免費用過了）, pending（下場扣了券、還沒打完：0 沒有／1 一張券／2 免費那次）,
 //   best {p,power}, home 我家排行前 5 {p,power,z}, history 最近 10 句 {p,power,win,o（對手；同一句再下場時避開）},
-//   eggs 陀螺蛋（沒券時打好的句子，最多 3 顆）{p,power,z} }
+//   eggs 陀螺蛋（沒券時打好的句子，最多 3 顆）{p,power,z}, rank 段位 0..4（v7：新手、銅牌、銀牌、金牌、彩虹；贏一場升一段＝對手越來越強） }
 // 詞句一律剛好 5 個國字（HAN5，跟 js/zhuyin-ann.js 同一個國字範圍）；戰力 0..9999（規格上限）
 function cleanTops(d) {
-  const out = { tickets: 0, starsBank: 0, freeUsed: 0, pending: 0, best: null, home: [], history: [], eggs: [] }; if (!d || typeof d !== "object") return out;
+  const out = { tickets: 0, starsBank: 0, freeUsed: 0, pending: 0, best: null, home: [], history: [], eggs: [], rank: 0 }; if (!d || typeof d !== "object") return out;
   const num = (v, hi) => Math.min(hi, Math.max(0, Math.floor(+v) || 0));
   const zOk = z => Array.isArray(z) && z.length === 5 && z.every(s => typeof s === "string" && s.length <= 6);
   const ent = e => e && typeof e === "object" && typeof e.p === "string" && HAN5.test(e.p) ? { p: e.p, power: num(e.power, 9999), ...(zOk(e.z) ? { z: e.z.slice() } : {}) } : null;
-  out.tickets = num(d.tickets, TOPS_MAX); out.starsBank = num(d.starsBank, TOPS_STARS); if (d.freeUsed) out.freeUsed = 1; out.pending = num(d.pending, 2);
+  out.tickets = num(d.tickets, TOPS_MAX); out.starsBank = num(d.starsBank, TOPS_STARS); if (d.freeUsed) out.freeUsed = 1; out.pending = num(d.pending, 2); out.rank = num(d.rank, 4);
   out.best = ent(d.best); if (out.best) delete out.best.z;
   if (Array.isArray(d.home)) { const m = new Map(); for (const e of d.home.map(ent).filter(Boolean)) if (!m.has(e.p) || m.get(e.p).power < e.power) m.set(e.p, e); out.home = [...m.values()].sort((a, b) => b.power - a.power || (a.p < b.p ? -1 : 1)).slice(0, 5); }
   if (Array.isArray(d.history)) out.history = d.history.map(e => { const x = ent(e); if (x) { delete x.z; if (e.win) x.win = 1; if (typeof e.o === "string" && HAN5.test(e.o)) x.o = e.o; } return x; }).filter(Boolean).slice(-10);
@@ -846,7 +846,7 @@ function pickMeta(m) {
   if (m === "dress") return null;
   if (m === "tower") return towerMeta();               // 10-13 挑戰燈塔：最高第幾層
   if (m === "bubble" || m === "deliver") { const n = Object.keys(save[m].stars || {}).length; return el("span", "pk-txt", `🏁 ${n}／${m === "bubble" ? BUBBLE_N : DELIVER_TASKS} 關・越後面越難`); }   // 10-13：關卡制的難度＝第幾關（泡泡 50、配送 12），寫出總關數讓家長看得懂
-  if (m === "tops") return el("span", "pk-txt", `🎟️ ${save.tops.tickets + (save.tops.freeUsed ? 0 : 1)}`);
+  if (m === "tops") return el("span", "pk-txt", `🎟️ ${save.tops.tickets + (save.tops.freeUsed ? 0 : 1)}・對手段位 ${topsRankLabel()}`);   // 10-13 v7：陀螺的難度＝對手段位（新手→銅→銀→金→彩虹）
   return starRow(m === "detective" ? save.detective.best : save.best[m] || 0);
 }
 const pickNeed = (m, info = {}) => m === "dress" ? (info.locked ? Math.max(1, (info.need || 20) - stickerCount()) : 0) : MODES[m] ? Math.max(0, MODES[m].need - stickerCount()) : 0;
@@ -2260,6 +2260,12 @@ const TOPS_DICT_URL = new URL("./zhuyin-tops-dict.json?v=1", import.meta.url).hr
 function topsPreload() { importTops().then(m => m.loadDict && m.loadDict(TOPS_DICT_URL)).catch(() => {}); }
 { const c = document.querySelector(".mode-card[data-mode=tops]"); if (c) c.addEventListener("pointerdown", topsPreload); }
 const topsNeed = () => Math.max(1, TOPS_STARS - save.tops.starsBank);
+// v7 段位（對手難度）：新手 → 銅牌 → 銀牌 → 金牌 → 彩虹；贏一場升一段（模組 onWin 的 info.rank）。名字跟 js/zhuyin-tops.js 的 RANKS 一樣（tools/zy-test/tops.js 比對）
+// 介紹卡用：topsRankLabel() → "🥉 銅牌"（純函式，不動畫面、不呼叫 nav/goMenu、不清 gLater）
+const TOPS_RANKS = [["🔰", "新手"], ["🥉", "銅牌"], ["🥈", "銀牌"], ["🥇", "金牌"], ["🌈", "彩虹"]];
+function topsRank() { return Math.min(TOPS_RANKS.length - 1, Math.max(0, save.tops.rank | 0)); }
+function topsRankLabel() { const r = TOPS_RANKS[topsRank()]; return `${r[0]} ${r[1]}`; }
+if (location.search.includes("debug")) setTimeout(() => { if (window.__zy) Object.assign(window.__zy, { topsRankLabel }); }, 0);   // 測試用（window.__zy 在檔案最後才建，模組跑完才合併）
 const topsNet = () => { try { return plaza.isOn() && !!plaza.debug.netOK; } catch (e) { return false; } };   // 跟同樂廣場同一個開關（plaza 的 netOK：本機／自動化瀏覽器不連，?plaza=on 才連）
 // 結算拿到星星：存進 starsBank，滿 15 顆換 1 張券；券滿 3 張時 starsBank 最多存到 15（用掉一張後，下次結算再換）。回傳這次換到幾張
 function topsCredit(n) {
@@ -2322,6 +2328,8 @@ async function buildTops() {
     onWin: info => topsWin(info), onSubmit: p => topsSubmit(p), leaderboard: () => topsBoard(),
     tickets: () => save.tops.tickets, useTicket: () => topsUseTicket(), firstFree: () => !save.tops.freeUsed, needStars: () => topsNeed(),
     starsBank: () => save.tops.starsBank,                // 15 格集點卡（10-12 櫻木）
+    rank: () => topsRank(),                              // v7 段位（對手照段位挑）
+    bgm: k => { if (mode === "tops") playBgm(k || MODES.tops.bgm); },   // v7：合體起＝battle；回打字＝null → 換回 road
     eggs: () => save.tops.eggs.map(e => ({ p: e.p, ...(e.z ? { z: e.z.slice() } : {}) })), setEggs: l => { save.tops.eggs = cleanTops({ eggs: l }).eggs; persist(); },   // 陀螺蛋：沒券時打好的句子
     onExit: e => setTimeout(() => topsExit(e), 0), onFail: f => setTimeout(() => topsFail(f), 0),
     dictUrl: TOPS_DICT_URL,
@@ -2337,6 +2345,7 @@ function topsWin(info) {
   t.home = cleanTops({ home: Array.isArray(info.home) ? info.home : [] }).home;
   if (!t.best || power > t.best.power) t.best = { p: info.phrase, power };
   t.history = cleanTops({ history: [...t.history, { p: info.phrase, power, win: info.win ? 1 : 0, o: info.opponent && info.opponent.p }] }).history;
+  if (info.win && info.rank && Number.isFinite(+info.rank.to)) t.rank = Math.max(t.rank, Math.min(t.rank + 1, TOPS_RANKS.length - 1, Math.floor(+info.rank.to)));   // v7 段位：贏了最多升一段、不會降
   persist();
 }
 function topsExit(e) {                                 // 模組要回小島：結算按 🏝️、存好陀螺蛋後按 🏝️（why "noticket"＝貓頭鷹說還差幾顆星星）
