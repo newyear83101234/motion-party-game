@@ -843,7 +843,7 @@ function pickMeta(m) {
   if (m === "gacha") return el("span", "pk-txt", `🪙 ${save.rw.coins + save.rw.gold}`);
   if (m === "dress") return null;
   if (m === "tower") return towerMeta();               // 10-13 挑戰燈塔：最高第幾層
-  if (m === "bubble" || m === "deliver") { const n = Object.keys(save[m].stars || {}).length; return n ? el("span", "pk-txt", `🏁 已經過了 ${n} 關`) : starRow(0); }
+  if (m === "bubble" || m === "deliver") { const n = Object.keys(save[m].stars || {}).length; return el("span", "pk-txt", `🏁 ${n}／${m === "bubble" ? BUBBLE_N : DELIVER_TASKS} 關・越後面越難`); }   // 10-13：關卡制的難度＝第幾關（泡泡 50、配送 12），寫出總關數讓家長看得懂
   if (m === "tops") return el("span", "pk-txt", `🎟️ ${save.tops.tickets + (save.tops.freeUsed ? 0 : 1)}`);
   return starRow(m === "detective" ? save.detective.best : save.best[m] || 0);
 }
@@ -866,8 +866,10 @@ function showPick(m, info = {}) {
 const lvBadge = (n, cls = "") => el("span", ("lv-badge lv" + n + " " + cls).trim(), String(n));
 function pickLevels(m, lockedM) {
   let row = $("pkLv"); if (!row) { row = el("div", "pk-lv"); row.id = "pkLv"; $("pkMeta").before(row); }   // 放在星星那一排（取代整體最佳星星：每顆徽章下面就有那級的星星），卡片才不會變高擋到小島
-  row.innerHTML = ""; const on = LV_MODES.includes(m) && !lockedM; row.classList.toggle("hidden", !on); $("pick").classList.toggle("has-lv", on); if (!on) return;
-  const r = lvRec(m); if (r.cur !== r.max) { r.cur = r.max; lvSave(); }
+  const det = m === "detective" && save.detective && save.detective.lv;   // 10-13 阿葉「有幾個關卡還沒設定難易度」：偵探的五級原本只在偵探自己的開始畫面選 → 介紹卡也列出來（選的那級＝偵探選級畫面的預設）
+  row.innerHTML = ""; const on = (LV_MODES.includes(m) || !!det) && !lockedM; row.classList.toggle("hidden", !on); $("pick").classList.toggle("has-lv", on); if (!on) return;
+  const r = det ? save.detective.lv : lvRec(m), keep = det ? persist : lvSave;
+  if (r.cur !== r.max) { r.cur = r.max; keep(); }
   for (let k = 1; k <= LV_MAX; k++) {
     const open = k <= r.max, b = el("button", "lv-pick" + (k === r.cur ? " on" : "") + (open ? "" : " locked")); b.type = "button"; b.dataset.lv = k;
     b.setAttribute("aria-label", open ? `第 ${k} 級` : `第 ${k} 級還沒打開`);
@@ -876,7 +878,7 @@ function pickLevels(m, lockedM) {
     b.onclick = e => {
       e.stopPropagation();
       if (!open) { play("select"); b.classList.remove("shake"); void b.offsetWidth; b.classList.add("shake"); return; }
-      play("tap"); r.cur = k; lvSave(); for (const x of row.children) x.classList.toggle("on", +x.dataset.lv === k);
+      play("tap"); r.cur = k; keep(); for (const x of row.children) x.classList.toggle("on", +x.dataset.lv === k);
     };
     row.appendChild(b);
   }

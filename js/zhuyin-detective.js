@@ -516,7 +516,7 @@ export function createDetectiveGame(root, api) {
   function showPick(opts) {
     const lvs = levelsNow() || cleanLv({ max: 1 }), pk = mk("div", "dt-pick", D.wrap);
     mk("div", "dt-pick-t", pk).appendChild(zh(UI.pickT));
-    const row = mk("div", "dt-pick-row", pk); let sel = lvs.max;
+    const row = mk("div", "dt-pick-row", pk); let sel = lvs.cur >= 1 && lvs.cur <= lvs.max ? lvs.cur : lvs.max;   // 10-13：預設＝介紹卡選的那級（沒選過＝最高級）
     const btns = [1, 2, 3, 4, 5].map(n => {
       const open = n <= lvs.max, b = mk("button", "dt-lvb dt-lvb-pick" + (open ? "" : " dt-lock"), row); b.type = "button"; b.dataset.lv = String(n); b.style.setProperty("--c", LV[n].color);
       b.setAttribute("aria-label", UI.lv(n)); if (!open) b.setAttribute("aria-disabled", "true");

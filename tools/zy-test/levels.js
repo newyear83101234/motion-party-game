@@ -35,7 +35,7 @@ async function clearFish(p, n = 8) {
     ok("解鎖卡：「🎉 第 2 級打開了！」＋新東西說明", up.ov && up.t.includes("第") && up.t.includes("級打開了") && up.t.includes("長得像的注音變多了"), up.t);
     ok("Lv1 3 星沒有加碼（星星罐 3/10）", up.jar === "3/10", up.jar);
     ok("解鎖卡：沒有漏注音的國字", (await bareHan(p)).length === 0, (await bareHan(p)).join("、"));
-    await sleep(2500);
+    await p.waitForFunction(() => window.__spoken.some(s => s.text === "長得像的注音變多了！"), null, { timeout: 12000 }).catch(() => {});   // 10-13 起是真的預錄配音（比假語音長）：等第二句唸到
     const said = await p.evaluate(() => window.__spoken.map(s => s.text));
     ok("解鎖配音：唸「第二級打開了！」＋新東西", said.includes("第二級打開了！") && said.includes("長得像的注音變多了！"), said.join("/"));
     await p.evaluate(() => document.getElementById("againBtn").click()); await p.waitForFunction(() => window.__zy.mode === "fish" && window.__zy.curOpts, null, { timeout: 8000 });
@@ -168,8 +168,9 @@ async function clearFish(p, n = 8) {
     await enterMode(p, "whack", { lv: 5 }); await sleep(800);
     ok("打地鼠沒有沙漏（沿用自適應探頭）", await p.evaluate(() => !window.__zy.hg.shown));
     // 作答秒數：第一次就答對的會記下來
-    await enterMode(p, "tone", { lv: 1 }); await sleep(900);
-    await answer(p, "tone", true); await sleep(300);
+    await enterMode(p, "tone", { lv: 1 }); await p.waitForFunction(() => window.__zy.curOpts && window.__zy.hg.run, null, { timeout: 12000 }).catch(() => {}); await sleep(500);   // 10-13：題目語音唸完、計時開始走才點（真的預錄配音比假語音長；唸題時點的不記作答秒數）
+    await answer(p, "tone", true);
+    await p.waitForFunction(() => (JSON.parse(localStorage.getItem("zy1_rt") || "{}").tone || []).length >= 1, null, { timeout: 4000 }).catch(() => {});
     ok("作答秒數：第一次就答對記進 zy1_rt", await p.evaluate(() => (JSON.parse(localStorage.getItem("zy1_rt") || "{}").tone || []).length >= 1), await p.evaluate(() => localStorage.getItem("zy1_rt")));
     ok("沒有錯誤（沙漏段）", errs.length === 0, errs.join(" | "));
     await ctx.close();
