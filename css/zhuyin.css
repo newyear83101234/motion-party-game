@@ -1169,3 +1169,106 @@ body:not(.on-menu) #mapBtn, body:not(.hub3d) #mapBtn { display: none; }
 .gl-card.shake { animation: bbZoneShake 0.4s; }
 @media (orientation: landscape) { .gl-list { grid-template-columns: 2fr 3fr; } .gl-group[data-isle=town] .gl-grid { grid-template-columns: repeat(2, 1fr); } }   /* 橫式：歸仁區（2fr：標題「歸仁區 🔒 30」要一行放得下）、彩虹島（3 個）並排 */
 @media (orientation: landscape) { .gl-group[data-isle=main] .gl-grid { grid-template-columns: repeat(6, 1fr); } .gl-group[data-isle=main] .gl-card .gl-name { font-size: 3.9vmin; } }   /* 橫式比較寬：主島一排 6 個（10-13 加挑戰燈塔＝11 張，兩排放完，iPad 4:3 不用捲；6 欄時 3 個字加注音要 3.9vmin 才放得下） */
+
+/* ===================== v7 寵物進化（docs/zhuyin-v7-plan.md §2；js/zhuyin-evolve.js、zhuyin.js「寵物進化」段、zhuyin-hub3d.js evoTagSync）===================== */
+/* 進化徽記：金色星星（clip-path 畫；光暈放在外層，不然會被裁掉） */
+.evo-badge { display: inline-block; width: 5vmin; height: 5vmin; filter: drop-shadow(0 0 0.6vmin #ffd84a) drop-shadow(0 0.3vmin 0.3vmin rgba(120,60,0,0.35)); pointer-events: none; }
+.evo-badge > i { display: block; width: 100%; height: 100%; background: linear-gradient(160deg, #fffbd6, #ffd23f 50%, #ff9d00);
+  clip-path: polygon(50% 0%, 61.8% 34.5%, 97.6% 34.5%, 68.8% 55.9%, 79.4% 90.5%, 50% 69.1%, 20.6% 90.5%, 31.2% 55.9%, 2.4% 34.5%, 38.2% 34.5%); }
+.evo-badge.big { width: 11vmin; height: 11vmin; } .evo-badge.mini { width: 3vmin; height: 3vmin; }
+@keyframes evoSpin { to { rotate: 360deg; } }
+/* 選單的「✨ 進化！」膠囊（能量滿才出現；卡片選單、3D 小島都在 .menu-bottom 裡） */
+#menu .evo-call { gap: 1vmin; padding: 0.6vmin 2.6vmin 0.6vmin 0.8vmin; border-color: #ffb300 !important; background: linear-gradient(180deg, #fff7d1, #ffe07a) !important; color: #7a3d00 !important; animation: evoCallGlow 1.4s ease-in-out infinite alternate; }
+body.hub3d #menu > .menu-bottom > .evo-call { position: absolute; left: 0; bottom: calc(100% + 2vmin); }   /* 3D 小島橫式：浮在貼紙那排的左上（排在同一排會撞到右下的貓頭鷹） */
+@media (orientation: portrait) { body.hub3d #menu > .menu-bottom > .evo-call { bottom: auto; top: calc(100% + 1.6vmin); } }   /* 直式：那排在上面（上面是 🗺️），膠囊放在它下面 */
+/* 卡片選單（沒有 3D）：排在同一排，只留寵物頭像＋角落 ✨（字太寬，4:3 會把左邊的貼紙擠出畫面）；有它的時候那排的間距縮一點 */
+body.hub-off #menu .evo-call { padding: 0.5vmin; } body.hub-off #menu .evo-call .ec-t { display: none; }
+body.hub-off #menu .evo-call .ec-pet { position: relative; } body.hub-off #menu .evo-call .ec-pet::after { content: "✨"; position: absolute; right: -1.6vmin; top: -1.8vmin; font-size: 4vmin; }
+body.hub-off #menu > .menu-bottom:has(> .evo-call:not(.hidden)) { gap: 1.6vmin; }
+#menu .evo-call .ec-pet { width: 7.4vmin; height: 7.4vmin; border-radius: 50%; background: radial-gradient(circle, #fff 30%, #ffe9a0 70%); display: flex; align-items: center; justify-content: center; }
+#menu .evo-call .ec-pet img { width: 92%; height: 92%; object-fit: contain; filter: drop-shadow(0 0 0.6vmin rgba(255,190,40,0.9)); }
+@keyframes evoCallGlow { from { box-shadow: 0 0 0 0.5vmin rgba(255,213,74,0.4), 0 0.6vmin 0 #d9a400, 0 0 1.2vmin rgba(255,190,40,0.35); } to { box-shadow: 0 0 0 0.9vmin rgba(255,213,74,0.7), 0 0.6vmin 0 #d9a400, 0 0 4vmin rgba(255,190,40,0.95); } }
+/* 3D 小島：能量滿的寵物頭上會跳的 ✨（位置每格由 hub3d 用 transform 設；這裡的動畫只用 scale 屬性，不跟它打架） */
+.hub-evo { position: absolute; left: 0; top: 0; pointer-events: auto; z-index: 99975; width: max(9vmin, 44px); height: max(9vmin, 44px); padding: 0; border: none; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 6vmin; line-height: 1; background: radial-gradient(circle, #fffbe0 0%, rgba(255,216,74,0.95) 45%, rgba(255,180,0,0) 72%);
+  filter: drop-shadow(0 0 1vmin #ffd23f); animation: evoTagBob 0.9s ease-in-out infinite alternate; }
+@keyframes evoTagBob { from { scale: 1; } to { scale: 1.2; } }
+/* 圖鑑「動物朋友」：進化型（金色卡、圖後面一圈慢慢轉的光、左上星星徽記）、進化能量條（右邊＝進化後的剪影當目標） */
+.pet-card.evo { background: linear-gradient(180deg, #fffbe6, #ffe6a0); border-color: #ffb300; box-shadow: 0 0.6vmin 0 #d9a400, 0 0 2.4vmin rgba(255,190,40,0.55); }
+.pet-card.evo.partner { box-shadow: 0 0 0 0.8vmin #ff8fb1, 0 0.6vmin 0 #d9a400, 0 0 2.4vmin rgba(255,190,40,0.55); }
+.pet-card .pc-aura { position: absolute; left: 50%; top: 9vmin; width: 20vmin; height: 20vmin; margin: -10vmin 0 0 -10vmin; border-radius: 50%; pointer-events: none; z-index: 0;
+  background: radial-gradient(circle, rgba(255,240,170,0.95) 0%, rgba(255,214,74,0.5) 35%, rgba(255,214,74,0) 68%), repeating-conic-gradient(rgba(255,200,60,0.45) 0deg 10deg, rgba(255,200,60,0) 10deg 30deg);
+  -webkit-mask-image: radial-gradient(circle, #000 40%, transparent 70%); mask-image: radial-gradient(circle, #000 40%, transparent 70%); animation: evoSpin 14s linear infinite; }
+.pet-card.evo .pc-img { position: relative; z-index: 1; filter: saturate(1.25) brightness(1.06) drop-shadow(0 0 1vmin rgba(255,214,74,0.95)); }
+.pet-card.evo .pc-n, .pet-card.evo .pc-s { position: relative; z-index: 1; }
+.pet-card.evo .pc-n { color: #8a4b00; }
+.pet-card > .evo-badge { position: absolute; left: -1.2vmin; top: -1.2vmin; width: 7vmin; height: 7vmin; z-index: 2; }
+.pet-card .pc-n.long { font-size: 3.1vmin; }
+.pc-evo { display: flex; align-items: center; gap: 0.8vmin; width: 100%; padding: 0 0.4vmin; position: relative; z-index: 1; }
+.pc-evo-bar { position: relative; flex: 1; min-width: 0; height: 4.4vmin; border-radius: 2.2vmin; background: #e3e8f4; overflow: hidden; box-shadow: inset 0 0.3vmin 0 rgba(0,0,0,0.08); }
+.pc-evo-bar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: inherit; background: linear-gradient(90deg, #4fe3ff, #b07cff, #ffd23f); }
+.pc-evo-bar > b { position: relative; display: block; text-align: center; font-size: 2.6vmin; line-height: 4.4vmin; color: #24395c; text-shadow: 0 0 0.4vmin #fff, 0 0 0.4vmin #fff; white-space: nowrap; }
+.pc-evo-goal { position: relative; flex: none; width: 5.4vmin; height: 5.4vmin; }
+.pc-evo-goal img { width: 100%; height: 100%; object-fit: contain; filter: brightness(0) drop-shadow(0 0 0.4vmin #ffd23f) drop-shadow(0 0 0.4vmin #ffd23f); opacity: 0.85; }
+.pc-evo-goal .evo-badge { position: absolute; right: -0.9vmin; top: -0.9vmin; }
+.pc-evo.full .pc-evo-bar { box-shadow: 0 0 0 0.4vmin #ffd23f, 0 0 2vmin rgba(255,200,40,0.8); animation: evoReadyPulse 0.9s ease-in-out infinite alternate; }
+.pc-evo.full .pc-evo-bar > b { color: #7a3d00; font-size: 3vmin; }
+.pc-evo.full .pc-evo-goal img { filter: brightness(0) invert(1) drop-shadow(0 0 0.6vmin #ffd23f) drop-shadow(0 0 0.8vmin #ffb300); opacity: 1; }
+@keyframes evoReadyPulse { from { scale: 1; } to { scale: 1.06; } }
+/* ---------- 進化演出（數碼寶貝式；全部定位都以舞台中心點為準）---------- */
+.overlay.evo-ov { position: fixed; display: block; z-index: 45; background: radial-gradient(ellipse at 50% 52%, #0e1c46 0%, #050916 72%); opacity: 0; transition: opacity 0.6s ease; overflow: hidden; touch-action: none; animation: none; }
+.overlay.evo-ov.on { opacity: 1; } .overlay.evo-ov.out { opacity: 0; transition-duration: 0.35s; }
+.evo-cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.evo-stage { position: absolute; left: 50%; top: 47%; width: 0; height: 0; z-index: 2; perspective: 120vmin; }
+.evo-stage > * { position: absolute; }
+.evo-halo { left: -32vmin; top: -32vmin; width: 64vmin; height: 64vmin; border-radius: 50%; opacity: 0; scale: 0.6; transition: opacity 1.2s, scale 1.2s;
+  background: radial-gradient(circle, rgba(125,249,255,0.6), rgba(47,212,255,0.2) 40%, rgba(47,212,255,0) 70%); }
+.evo-stage.rise .evo-halo { opacity: 1; scale: 1; }
+.evo-stage.spin .evo-halo { animation: evoHaloPulse 0.45s ease-in-out infinite alternate; }
+.evo-stage.reveal .evo-halo { background: radial-gradient(circle, rgba(255,246,190,0.85), rgba(255,200,60,0.35) 40%, rgba(255,180,0,0) 70%); animation: none; scale: 1.15; }
+@keyframes evoHaloPulse { from { scale: 0.95; opacity: 0.75; } to { scale: 1.12; opacity: 1; } }
+.evo-ring { left: 0; top: 0; width: 58vmin; height: 58vmin; border-radius: 50%; border: 0.8vmin dashed rgba(125,249,255,0.9); box-shadow: 0 0 2vmin #2fd4ff, inset 0 0 2vmin #2fd4ff; opacity: 0; transition: opacity 0.6s; }
+.evo-ring.b { width: 70vmin; height: 70vmin; border: 0.5vmin dotted rgba(220,150,255,0.95); box-shadow: 0 0 2vmin #b07cff, inset 0 0 1.6vmin #b07cff; }
+.evo-stage.rise .evo-ring { opacity: 1; } .evo-stage.burst .evo-ring { opacity: 0; transition-duration: 0.15s; }
+.evo-pet { left: -22vmin; top: -22vmin; width: 44vmin; height: 44vmin; will-change: transform; }
+.evo-img, .evo-sil { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transition: opacity 0.5s, filter 0.5s; }
+.evo-sil { opacity: 0; filter: brightness(0) invert(1) drop-shadow(0 0 1.2vmin #7df9ff) drop-shadow(0 0 3.5vmin #2fd4ff); }
+.evo-pet.sil .evo-sil { opacity: 1; } .evo-pet.sil .evo-img { opacity: 0; }
+.evo-pet.new .evo-img { opacity: 1; transition: none; filter: saturate(1.3) brightness(1.08) drop-shadow(0 0 1.4vmin rgba(255,220,90,0.95)) drop-shadow(0 0 5vmin rgba(255,170,40,0.6)); }
+.evo-pet.new .evo-sil { opacity: 0; transition: none; }
+.evo-pet .evo-badge { position: absolute; right: 2vmin; top: 1vmin; opacity: 0; scale: 0; }
+.evo-stage.reveal .evo-pet .evo-badge { animation: evoPop 0.55s 0.15s cubic-bezier(.2,1.6,.4,1) forwards; }
+@keyframes evoPop { from { opacity: 0; scale: 0; rotate: -90deg; } to { opacity: 1; scale: 1; rotate: 0deg; } }
+.evo-rays { left: -55vmin; top: -55vmin; width: 110vmin; height: 110vmin; border-radius: 50%; opacity: 0; transition: opacity 0.6s;
+  background: repeating-conic-gradient(rgba(255,226,120,0.55) 0deg 8deg, rgba(255,226,120,0) 8deg 22deg);
+  -webkit-mask-image: radial-gradient(circle, #000 22%, transparent 68%); mask-image: radial-gradient(circle, #000 22%, transparent 68%); }
+.evo-stage.reveal .evo-rays { opacity: 1; animation: evoSpin 14s linear infinite; }
+.evo-wave { left: 0; top: 0; width: 12vmin; height: 12vmin; margin: -6vmin 0 0 -6vmin; border-radius: 50%; border: 1.4vmin solid #fff; box-shadow: 0 0 3vmin #7df9ff; opacity: 0; scale: 0; }
+.evo-wave.go { animation: evoWave 0.9s ease-out forwards; }
+@keyframes evoWave { 0% { opacity: 1; scale: 0.2; } 100% { opacity: 0; scale: 14; } }
+.evo-sparks { position: absolute; left: 50%; top: 47%; width: 0; height: 0; z-index: 3; pointer-events: none; }
+.evo-spark { position: absolute; left: -2.5vmin; top: -2.5vmin; font-size: 5vmin; line-height: 1; font-style: normal; color: #fff6c0; text-shadow: 0 0 1vmin #ffd23f; opacity: 0; animation: evoSpark 1.4s ease-out forwards; }
+@keyframes evoSpark { 0% { opacity: 1; translate: 0 0; scale: 0.3; } 70% { opacity: 1; } 100% { opacity: 0; translate: var(--dx) var(--dy); scale: 1.1; } }
+.evo-cap { position: absolute; left: 50%; bottom: 13vh; z-index: 4; translate: -50% 0; white-space: nowrap; font-size: 9vmin; font-weight: 900; letter-spacing: 0.2em; color: #fff; opacity: 0; scale: 0.7;
+  text-shadow: 0 0 1vmin #7df9ff, 0 0 3vmin #2fd4ff, 0 0.4vmin 0 #0b3b66; transition: opacity 0.35s, scale 0.35s cubic-bezier(.2,1.6,.4,1); pointer-events: none; }
+.evo-cap.on { opacity: 1; scale: 1; }
+.evo-banner { position: absolute; left: 50%; top: 5vh; z-index: 4; translate: -50% 0; white-space: nowrap; font-size: 8.5vmin; font-weight: 900; color: #6b2d00; padding: 1.2vmin 6vmin; border-radius: 4vmin;
+  background: linear-gradient(180deg, #fff3b0, #ffc533 60%, #ff9d00); border: 0.6vmin solid #fff; box-shadow: 0 0.8vmin 0 #b86a00, 0 0 4vmin rgba(255,200,60,0.9); opacity: 0; scale: 0.3; pointer-events: none; }
+.evo-banner.on { animation: evoBannerIn 0.6s cubic-bezier(.2,1.6,.4,1) forwards; }
+@media (orientation: landscape) { .evo-banner { top: auto; bottom: 17vh; } }   /* 橫式：高度不夠，橫幅放下面（不蓋到寵物頭上的星星徽記），「太棒了」在它下面 */
+@keyframes evoBannerIn { from { opacity: 0; scale: 0.3; rotate: -6deg; } to { opacity: 1; scale: 1; rotate: 0deg; } }
+.evo-flash { position: absolute; inset: 0; z-index: 5; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 47%, #fff 0%, #fff 45%, #e6ffff 100%); }
+.evo-flash.go { animation: evoFlash 1.05s ease-out forwards; }
+@keyframes evoFlash { 0% { opacity: 0; } 11% { opacity: 1; } 33% { opacity: 1; } 100% { opacity: 0; } }
+.evo-ov .evo-cf { z-index: 6; }
+.evo-ok { position: absolute; left: 50%; bottom: 4.5vh; z-index: 7; translate: -50% 0; opacity: 0; pointer-events: none; transition: opacity 0.4s; }
+.evo-ok.on { opacity: 1; pointer-events: auto; }
+.evo-skip { position: absolute; right: 3vmin; bottom: 3vmin; z-index: 7; font-size: 6vmin; line-height: 1; opacity: 0.6; pointer-events: none; }
+/* 減少動態：不轉、不震、沒有碼雨（js）；這裡把會一直動的光收起來、白光弱一點 */
+.evo-ov.calm .evo-stage.spin .evo-halo { animation: none; }
+.evo-ov.calm .evo-flash.go { animation: evoFlashCalm 1.2s ease-out forwards; }
+@keyframes evoFlashCalm { 0% { opacity: 0; } 30% { opacity: 0.6; } 100% { opacity: 0; } }
+.evo-ov.calm .evo-wave.go { animation-duration: 1.4s; }
+@media (prefers-reduced-motion: reduce) {
+  .hub-evo, #menu .evo-call, .pet-card .pc-aura, .evo-stage.reveal .evo-rays, .pc-evo.full .pc-evo-bar { animation: none; }
+}

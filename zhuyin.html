@@ -131,6 +131,8 @@
     <div class="menu-bottom">
       <button id="albumBtn" class="pill"><span>📒 貼紙</span><b id="menuStickers">0</b></button>
       <button class="pill jarBtn"><span class="jar"><span class="jarFill"></span></span><span>⭐ <span class="jarText">0/10</span></span><span class="egg"><i class="eg-ico">🪙</i></span></button>
+      <!-- v7 寵物進化：夥伴的進化能量集滿才出現（js/zhuyin.js evoSync）；點了看進化演出（js/zhuyin-evolve.js）。3D 小島上那隻頭上也會有發光的 ✨ -->
+      <button id="evoBtn" class="pill evo-call hidden" aria-label="進化"><span class="ec-pet"><img alt=""></span><span class="ec-t">✨ 進化！</span></button>
       <!-- 10-12 小島同樂廣場（全島合作目標）：🎪 圓鈕；直式 3D 小島時 zhuyin.js 會把它搬到上面第二排（歸仁區／彩虹島右邊） -->
       <button id="plazaBtn" class="round-btn" title="同樂廣場" aria-label="同樂廣場"><span class="nav-ico">🎪</span><span class="nav-new" aria-hidden="true">新</span></button>
     </div>
@@ -297,6 +299,7 @@
       <!-- 機率與保底：js 用 RW.oddsText() 產生（js/zhuyin-rewards.js 的 RATES／PITY／GACHA_WEAR 改了這裡自動跟著變，不要寫死） -->
       <div id="rwOdds" class="set-note"></div>
       <div id="rwStats" class="set-note strong"></div>
+      <div id="rwEvo" class="set-note"></div><!-- v7 寵物進化：規則與目前能量（js 從 RW.EVO_GAIN 產生） -->
     </div>
     <!-- 10-12 小島同樂廣場：白話說明送什麼、不送什麼＋開關（米卡莎建議；docs/zhuyin-plaza-spec.md §2） -->
     <div class="set-sec" id="plazaSec">

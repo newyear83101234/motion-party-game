@@ -120,10 +120,13 @@ function loadMan() {
   return manP;
 }
 const fileUrl = f => new URL(f + (f.includes("?") ? "&" : "?") + "v=" + AV, new URL("../", import.meta.url)).href;
+// 一次性曲子（v7 一般化，原本只有 party 特例）：manifest bgm 段裡 loop:false 的（party＝結算 jingle、evolve＝進化曲…）→ 不能當背景音樂循環，
+// 一律用 sfx(名字) 播一次：走 sfx bus、播的時候把背景音樂壓低；要中途停（例：進化演出被跳過）用 stopSfx(名字)。清單讀不到時只認得 party。
+const isJingle = k => (man ? !!(man.bgm[k] && man.bgm[k].loop === false) : k === "party");
 function sfxEntry(name) {
   if (SFX.has(name)) return SFX.get(name);
   let f = null, duck = false;
-  if (name === "party") { f = man && man.bgm.party ? man.bgm.party.file : "audio/bgm/party.mp3"; duck = true; }   // 結算 jingle：走 sfx bus、播的時候壓低音樂
+  if (isJingle(name)) { f = man && man.bgm[name] ? man.bgm[name].file : "audio/bgm/party.mp3"; duck = true; }   // 一次性曲子：走 sfx bus、播的時候壓低音樂
   else if (man) { if (man.sfx[name]) f = man.sfx[name].file; }
   else if (/^[a-z0-9_]+$/i.test(name)) f = `audio/sfx/${name}.mp3`;   // 清單讀不到：照檔名猜，404 就記成失敗
   if (!f) return null;
@@ -133,7 +136,7 @@ function sfxEntry(name) {
 function bgmEntry(key) {
   if (BGM.has(key)) return BGM.get(key);
   const m = man && man.bgm[key];
-  if (man && (!m || key === "party")) return null;
+  if (man && (!m || isJingle(key))) return null;
   const e = { kind: "bgm", name: key, url: fileUrl(m ? m.file : `audio/bgm/${key}.mp3`), buf: null, raw: null, dp: null, failed: 0, used: 0,
     loop: m ? m.loop !== false : true, loopStart: m && m.loopStart, loopEnd: m && m.loopEnd };
   BGM.set(key, e); return e;
@@ -212,7 +215,7 @@ function start(e, r, g, bus) {
   try { s.playbackRate.value = Math.max(0.25, Math.min(4, +r || 1)); } catch (err) {}
   let node = s; if (g !== 1) { node = ac.createGain(); node.gain.value = g; s.connect(node); }
   node.connect(busFor(bus) || N.sfx);
-  const item = { s, node, duckKey: null, t: performance.now() };
+  const item = { s, node, duckKey: null, t: performance.now(), name: e.name };
   if (e.duck) { item.duckKey = "sfx#" + stats.sfx + ":" + Math.random(); duck(true, item.duckKey); }
   s.onended = () => endSfx(item);
   live.add(item);
@@ -224,6 +227,19 @@ function endSfx(item) {
   if (!live.has(item)) return; live.delete(item); clearTimeout(item.timer);
   try { item.s.disconnect(); if (item.node !== item.s) item.node.disconnect(); } catch (e) {}
   if (item.duckKey) duck(false, item.duckKey);
+}
+// 停掉正在響的某個音效／一次性曲子（v7 進化演出被跳過時停進化曲）：fade 秒淡出再停；回傳停了幾個
+export function stopSfx(name, { fade = 0.25 } = {}) {
+  let n = 0;
+  for (const it of [...live]) {
+    if (it.name !== name) continue; n++;
+    try {
+      const t = ac.currentTime;
+      if (it.node !== it.s && it.node.gain) { const g = it.node.gain; g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0, t + fade); it.s.stop(t + fade + 0.02); }
+      else it.s.stop(t + 0.01);
+    } catch (e) { endSfx(it); }
+  }
+  return n;
 }
 // 先把音效都抓下來（解鎖後順便解碼）；names 省略＝清單裡全部；low:false＝一般優先序（開頁第一下點擊就要響的那幾個）
 export function preloadSfx(names, { low = true } = {}) {
@@ -246,7 +262,7 @@ export function duck(on, src = "voice") {
 let pend = null;                                  // 正在載入、載好就要播的那首
 export function playBgm(key, { fade = XFADE } = {}) {
   if (!key) { stopBgm(); return; }
-  if (man && (!man.bgm[key] || key === "party")) { warnOnce("bgmkey:" + key, `沒有這首背景音樂「${key}」，改播 island`); key = "island"; }
+  if (man && (!man.bgm[key] || isJingle(key))) { warnOnce("bgmkey:" + key, `沒有這首背景音樂「${key}」，改播 island`); key = "island"; }   // 一次性曲子（loop:false）要用 sfx() 播
   if (want === key && (cur && cur.key === key || pend === key)) return;
   want = key;
   if (!musicOn) return;
@@ -342,6 +358,6 @@ export function debug() {
     sfxDecoded: [...SFX.values()].filter(e => e.buf).length, stats: { ...stats }, time: +at.toFixed(3),
   };
 }
-const api = { unlock, ctx, busFor, sfx, preloadSfx, duck, playBgm, stopBgm, prefetchBgm, holdUntil, bgmRate, setMusic, musicEnabled, debug, stats, LEVEL };
+const api = { unlock, ctx, busFor, sfx, stopSfx, preloadSfx, duck, playBgm, stopBgm, prefetchBgm, holdUntil, bgmRate, setMusic, musicEnabled, debug, stats, LEVEL };
 if (DEBUG) window.__zyAudio = api;
 export default api;

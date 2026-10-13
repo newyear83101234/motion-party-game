@@ -407,6 +407,19 @@ add("word_登頂", "登頂", "word", "zhuyin-tower-core.js SUMMIT_WORD（第 100
 for i, t in [("tw_fail", "燈塔現在打不開，等一下再試試看！")]:
     must(t); add(i, t, "guide", "zhuyin.js 挑戰燈塔接線（10-13）")
 
+# ---- v7（10-13 分身 P）寵物進化：28 隻各三句（docs/zhuyin-v7-plan.md §2）----
+# 「XX進化——」＝演出中字幕＋配音（白光爆開前，第 4.8 秒）；「閃耀XX！」＝亮相橫幅（10-13 主對話改名：第 3 階段已叫超級）（第 8.75 秒，進化曲高潮之後）；
+# 「XX好像要進化了！」＝能量集滿：回小島貓頭鷹提醒、結算／扭蛋剛好集滿時唸。全部用 talk()（說明語音開關管得到）。
+# ⚠ manifest 用文字當鑰匙：這三種句型都沒有跟既有台詞同字（「XX變成超級了！」是另一句）。名字＝PET_NAMES（js/zhuyin-rewards.js 的 PETS）。
+must("callText: `${p.name}進化——`"); must("revealText: `${sup}！`"); must("sup = RW.evoName(id)")
+must("${RW.PET[id].name}好像要進化了！"); must("queueTalk(`${nm}好像要進化了！`)"); must("${RW.PET[prize.evo.id].name}好像要進化了！")
+if 'export const evoName = id => "閃耀" + ' not in RWSRC:
+    sys.exit("js/zhuyin-rewards.js 的 evoName 改了（進化後的名字），請更新 build_lines.py")
+for k, nm in enumerate(PET_NAMES):
+    add(f"evo_call_{k + 1}", nm + "進化——", "guide", "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）")
+    add(f"evo_super_{k + 1}", "閃耀" + nm + "！", "guide", "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）")
+    add(f"evo_ready_{k + 1}", nm + "好像要進化了！", "guide", "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）")
+
 # ---- 5. 動態句：全部展開成完整句子 ----
 DYNAMIC = []
 must("再收集 ${MODES[m].need - stickerCount()} 張貼紙就可以玩囉！")

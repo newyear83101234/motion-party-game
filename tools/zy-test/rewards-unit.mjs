@@ -167,7 +167,8 @@ const seq = arr => { let k = 0; return () => arr[k++ % arr.length]; };
   const p = R.migrate({ rewards: { pets: 5 }, eggs: 2 });
   ok("migrate：rewards 是物件但欄位壞＝洗乾淨後保留（不當舊存檔、不重複給 eggs 的朋友）", Object.keys(p.pets).length === 4 && p.jarCoins === 0, JSON.stringify(p.pets));
   const good = { pets: { bear: { stage: 2, t: 31 }, bunny: { stage: 2, t: 30 }, cat: { stage: 3, t: 120 }, fox: { stage: 1, t: 4 }, dog: { stage: 3, t: 200 } }, partner: "dog", coins: 3, gold: 1, jarCoins: 12, treats: 250,
-    decor: ["statue_owl"], stamps: 4, stampDay: "2026-10-11", pity: { rare: 2, ssr: 9 }, catBonus: ["animal"], pulls: 30, closet: ["hat", "bow", "wings", "crown"], wear: { dog: { head: "hat", back: null }, bear: { back: "wings" } } };
+    decor: ["statue_owl"], stamps: 4, stampDay: "2026-10-11", pity: { rare: 2, ssr: 9 }, catBonus: ["animal"], pulls: 30, closet: ["hat", "bow", "wings", "crown"], wear: { dog: { head: "hat", back: null }, bear: { back: "wings" } },
+    evo: { e: { cat: 30 }, done: ["dog"], day: "2026-10-12", tb: 12, seen: 1 } };   // v7 寵物進化
   const m = R.migrate({ rewards: JSON.parse(JSON.stringify(good)), eggs: 4 });
   ok("migrate：正常存檔洗過完全不變（不掉任何欄位）", JSON.stringify(m) === JSON.stringify(good), JSON.stringify(m));
 }
@@ -192,6 +193,44 @@ const seq = arr => { let k = 0; return () => arr[k++ % arr.length]; };
   const near = (x, y) => Math.abs(x - y) < 1e-9;
   ok("wearPose：部位＋配件疊加（p 相加、s 相乘）", near(a.p[1], -0.04) && near(a.p[2], 0.02) && near(a.s, 0.99) && a.r.join() === "0,0,0", JSON.stringify(a));
   ok("wearPose：配件預設旋轉、hide、沒資料＝原樣、寶寶小芽算頭上", b.r.join() === "0,-25,-22" && !b.hide && c.hide && d.s === 1 && d.p.join() === "0,0,0" && near(e.p[1], -0.05), JSON.stringify([b, c, e]));
+}
+// v7 寵物進化（docs/zhuyin-v7-plan.md §2）：能量只給超級、還沒進化的夥伴；滿 100 等演出；清洗；每天第一次餵點心；爬塔樓層記號
+{
+  const rw = R.migrate({});
+  ok("新存檔有 evo（空的、tb＝-1、沒看過演出）", JSON.stringify(rw.evo) === JSON.stringify({ e: {}, done: [], day: "", tb: -1, seen: 0 }), JSON.stringify(rw.evo));
+  ok("夥伴還是長大（不是超級）：加不了能量", R.evoAdd(rw, 10).got === 0 && JSON.stringify(rw.evo.e) === "{}" && !R.canCharge(rw, "bear"));
+  rw.pets.bear.stage = 3;
+  const a = R.evoAdd(rw, 10), b = R.evoAdd(rw, 85), c = R.evoAdd(rw, 40), d = R.evoAdd(rw, 5);
+  ok("超級夥伴：+10、+85、+40（只加到 100、剛好集滿）、滿了再加＝0", a.got === 10 && b.got === 85 && c.got === 5 && c.full && !b.full && d.got === 0 && !d.full && R.evoEnergy(rw, "bear") === 100, JSON.stringify([a, b, c, d]));
+  ok("滿了＝ready 名單有小熊、還沒進化", R.evoIsReady(rw, "bear") && R.evoReadyList(rw).join() === "bear" && !R.isEvo(rw, "bear"));
+  ok("evolve：進化、能量清掉、不能再進化", R.evolve(rw, "bear") && R.isEvo(rw, "bear") && !("bear" in rw.evo.e) && !R.evolve(rw, "bear") && R.evoAdd(rw, 10).got === 0);
+  ok("evolve：能量沒滿／沒有這隻＝false", !R.evolve(rw, "cat") && !R.evolve(rw, "dragon") && !R.evolve(rw, "constructor"));
+  ok("evoName：超級＋名字", R.evoName("elephant") === "超級小象" && R.evoName("dragon") === "超級彩虹小龍");
+}
+{
+  const rw = R.migrate({}); rw.pets.cat.stage = 3; rw.partner = "cat";
+  const a = R.evoFeedDay(rw, "2026-10-13"), b = R.evoFeedDay(rw, "2026-10-13"), c = R.evoFeedDay(rw, "2026-10-14");
+  ok("每天第一次餵點心 +5（同一天第二次 0、隔天又 +5）", a.got === 5 && b.got === 0 && c.got === 5 && R.evoEnergy(rw, "cat") === 10 && rw.evo.day === "2026-10-14", JSON.stringify([a, b, c]));
+  rw.partner = "bear";
+  const d = R.evoFeedDay(rw, "2026-10-15"), dayKept = rw.evo.day === "2026-10-14";
+  rw.partner = "cat";
+  ok("夥伴不能集的那天：不算用掉（換成超級夥伴同一天還能拿）", d.got === 0 && dayKept && R.evoFeedDay(rw, "2026-10-15").got === 5);
+}
+{
+  const rw = R.migrate({}); rw.pets.cat.stage = 3; rw.partner = "cat";
+  const a = R.evoTower(rw, 7, 6), b = R.evoTower(rw, 7, 7), c = R.evoTower(rw, 10, 7), d = R.evoTower(rw, 3, 10);
+  ok("爬塔：第一次對＝用存之前的樓層當起點（6→7：+2）、同樓層 0、到 10 層 +6、樓層歸零不扣也不給", a.got === 2 && b.got === 0 && c.got === 6 && d.got === 0 && rw.evo.tb === 10 && R.evoEnergy(rw, "cat") === 8, JSON.stringify([a, b, c, d, rw.evo.tb]));
+  const rw2 = R.migrate({}); rw2.pets.cat.stage = 3; rw2.partner = "cat";
+  ok("爬塔：舊存檔第一次對、存之前已經爬到 30 層＝不補發", R.evoTower(rw2, 30, 30).got === 0 && rw2.evo.tb === 30);
+  ok("能量常數：3 星 10、樓層 2、守塔怪 40、每天餵點心 5、滿 100", R.EVO_GAIN.star3 === 10 && R.EVO_GAIN.floor === 2 && R.EVO_GAIN.boss === 40 && R.EVO_GAIN.feedDay === 5 && R.EVO_MAX === 100);
+}
+{
+  const d = JSON.parse('{"pets":{"bear":{"stage":3},"cat":{"stage":2},"dog":{"stage":3}},"partner":"bear","evo":{"e":{"bear":250,"cat":50,"dog":-4,"constructor":30,"elephant":20},"done":["dog","cat","toString",5,"dog"],"day":"2026-10-13xx","tb":"abc","seen":"yes"}}');
+  const c = R.cleanRewards(d).evo;
+  ok("清洗 evo：能量 0..100、只留有這隻＋超級的、done 不重複且要超級、原型鏈鍵不算、tb 壞＝-1", JSON.stringify(c) === JSON.stringify({ e: { bear: 100 }, done: ["dog"], day: "2026-10-13", tb: -1, seen: 1 }), JSON.stringify(c));
+  ok("清洗 evo：不是物件＝全新", JSON.stringify(R.cleanRewards({ pets: {}, evo: [1, 2] }).evo) === JSON.stringify({ e: {}, done: [], day: "", tb: -1, seen: 0 }) && JSON.stringify(R.cleanRewards({ pets: {}, evo: "x" }).evo.done) === "[]");
+  const rw = R.migrate({}); rw.evo = null; rw.pets.bear.stage = 3;
+  ok("存檔裡 evo 被弄壞成 null：evoAdd 自己補回來", R.evoAdd(rw, 10).got === 10 && rw.evo.e.bear === 10);
 }
 for (const l of out) console.log(l);
 const bad = out.filter(l => l.startsWith("FAIL")).length; console.log(bad ? `\n${bad} FAILED / ${out.length}` : `\nALL PASS (${out.length})`);
