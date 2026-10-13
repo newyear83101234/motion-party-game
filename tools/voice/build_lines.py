@@ -47,7 +47,8 @@ TTS_SUB = {"撞出場了！": "壯出場了！",          # 撞 3 次聽成 zhen
            "積木！": "雞木！",                 # 10-13 介紹卡遊戲名：批次 3 次都聽成 ji2 mo4；同音「雞」
            # 10-13 v6 第一輪 3 次都唸偏的（盲聽：牛→niao2、虎→hu2、狗→gao3；長→xiang4、金星→jing1 xin1；沙→xia1；層→ci4；爬→pa1；字→ci4）：
            # 單字代號加驚嘆號、長句在唸錯的字前面斷句（畫面上的字不變）
-           "虎": "老虎",                       # 代號「虎」單字唸 3 次都偏（hu2／hu4）：點一下唸「老虎」（牛、狗等跟詞庫同字的代號直接用詞庫錄音，見挑戰燈塔段）
+           "虎": "老虎",
+           "乳牛好像要進化了！": "乳牛，好像要進化了！",   # 10-13：乳牛 3 次都聽成 niao／niu niu                       # 代號「虎」單字唸 3 次都偏（hu2／hu4）：點一下唸「老虎」（牛、狗等跟詞庫同字的代號直接用詞庫錄音，見挑戰燈塔段）
            "長得像的積木出現了！還有金星沙漏！": "長得像的積木，出現了！還有，金星沙漏！",
            "沙子蓋滿以前答對，就是金星喔！": "沙子，蓋滿以前答對，就是金星喔！",
            "這層是練習，答錯也沒關係！": "這一層樓，是練習，答錯也沒關係！",
@@ -423,7 +424,7 @@ must("${RW.PET[id].name}好像要進化了！"); must("queueTalk(`${nm}好像要
 if 'export const evoName = id => "閃耀" + ' not in RWSRC:
     sys.exit("js/zhuyin-rewards.js 的 evoName 改了（進化後的名字），請更新 build_lines.py")
 for k, nm in enumerate(PET_NAMES):
-    add(f"evo_call_{k + 1}", nm + "進化——", "guide", "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）")
+    add(f"evo_call_{k + 1}", nm + "進化——", "guide", "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）", tts=nm + "進化！")   # 10-13：送「——」給 TTS 會唸出怪聲／重複（小狗、小鹿、無尾熊），改送驚嘆號
     add(f"evo_super_{k + 1}", "閃耀" + nm + "！", "guide", "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）")
     add(f"evo_ready_{k + 1}", nm + "好像要進化了！", "guide", "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）")
 

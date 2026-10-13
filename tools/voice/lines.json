@@ -2,7 +2,7 @@
  "meta": {
   "generated_by": "tools/voice/build_lines.py",
   "total_lines": 916,
-  "total_chars": 5821,
+  "total_chars": 5765,
   "by_cat": {
    "intro": 10,
    "praise": 8,
@@ -3391,7 +3391,8 @@
    "id": "evo_call_1",
    "text": "小熊進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "小熊進化！"
   },
   {
    "id": "evo_super_1",
@@ -3409,7 +3410,8 @@
    "id": "evo_call_2",
    "text": "小兔進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "小兔進化！"
   },
   {
    "id": "evo_super_2",
@@ -3427,7 +3429,8 @@
    "id": "evo_call_3",
    "text": "小貓進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "小貓進化！"
   },
   {
    "id": "evo_super_3",
@@ -3445,7 +3448,8 @@
    "id": "evo_call_4",
    "text": "小狐狸進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "小狐狸進化！"
   },
   {
    "id": "evo_super_4",
@@ -3463,7 +3467,8 @@
    "id": "evo_call_5",
    "text": "熊貓進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "熊貓進化！"
   },
   {
    "id": "evo_super_5",
@@ -3481,7 +3486,8 @@
    "id": "evo_call_6",
    "text": "企鵝進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "企鵝進化！"
   },
   {
    "id": "evo_super_6",
@@ -3499,7 +3505,8 @@
    "id": "evo_call_7",
    "text": "青蛙進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "青蛙進化！"
   },
   {
    "id": "evo_super_7",
@@ -3517,7 +3524,8 @@
    "id": "evo_call_8",
    "text": "小獅子進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "小獅子進化！"
   },
   {
    "id": "evo_super_8",
@@ -3535,7 +3543,8 @@
    "id": "evo_call_9",
    "text": "小狗進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "小狗進化！"
   },
   {
    "id": "evo_super_9",
@@ -3553,7 +3562,8 @@
    "id": "evo_call_10",
    "text": "小雞進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "小雞進化！"
   },
   {
    "id": "evo_super_10",
@@ -3571,7 +3581,8 @@
    "id": "evo_call_11",
    "text": "小豬進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "小豬進化！"
   },
   {
    "id": "evo_super_11",
@@ -3589,7 +3600,8 @@
    "id": "evo_call_12",
    "text": "乳牛進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "乳牛進化！"
   },
   {
    "id": "evo_super_12",
@@ -3601,13 +3613,15 @@
    "id": "evo_ready_12",
    "text": "乳牛好像要進化了！",
    "cat": "guide",
-   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）",
+   "tts_text": "乳牛，好像要進化了！"
   },
   {
    "id": "evo_call_13",
    "text": "猴子進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "猴子進化！"
   },
   {
    "id": "evo_super_13",
@@ -3625,7 +3639,8 @@
    "id": "evo_call_14",
    "text": "無尾熊進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "無尾熊進化！"
   },
   {
    "id": "evo_super_14",
@@ -3643,7 +3658,8 @@
    "id": "evo_call_15",
    "text": "長頸鹿進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "長頸鹿進化！"
   },
   {
    "id": "evo_super_15",
@@ -3661,7 +3677,8 @@
    "id": "evo_call_16",
    "text": "老虎進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "老虎進化！"
   },
   {
    "id": "evo_super_16",
@@ -3679,7 +3696,8 @@
    "id": "evo_call_17",
    "text": "小鹿進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "小鹿進化！"
   },
   {
    "id": "evo_super_17",
@@ -3697,7 +3715,8 @@
    "id": "evo_call_18",
    "text": "鸚鵡進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "鸚鵡進化！"
   },
   {
    "id": "evo_super_18",
@@ -3715,7 +3734,8 @@
    "id": "evo_call_19",
    "text": "蜜蜂進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "蜜蜂進化！"
   },
   {
    "id": "evo_super_19",
@@ -3733,7 +3753,8 @@
    "id": "evo_call_20",
    "text": "螃蟹進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "螃蟹進化！"
   },
   {
    "id": "evo_super_20",
@@ -3751,7 +3772,8 @@
    "id": "evo_call_21",
    "text": "河狸進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "河狸進化！"
   },
   {
    "id": "evo_super_21",
@@ -3769,7 +3791,8 @@
    "id": "evo_call_22",
    "text": "山豬進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "山豬進化！"
   },
   {
    "id": "evo_super_22",
@@ -3787,7 +3810,8 @@
    "id": "evo_call_23",
    "text": "北極熊進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "北極熊進化！"
   },
   {
    "id": "evo_super_23",
@@ -3805,7 +3829,8 @@
    "id": "evo_call_24",
    "text": "毛毛蟲進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "毛毛蟲進化！"
   },
   {
    "id": "evo_super_24",
@@ -3823,7 +3848,8 @@
    "id": "evo_call_25",
    "text": "小象進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "小象進化！"
   },
   {
    "id": "evo_super_25",
@@ -3841,7 +3867,8 @@
    "id": "evo_call_26",
    "text": "小恐龍進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "小恐龍進化！"
   },
   {
    "id": "evo_super_26",
@@ -3859,7 +3886,8 @@
    "id": "evo_call_27",
    "text": "小鯨魚進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "小鯨魚進化！"
   },
   {
    "id": "evo_super_27",
@@ -3877,7 +3905,8 @@
    "id": "evo_call_28",
    "text": "彩虹小龍進化——",
    "cat": "guide",
-   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）",
+   "tts_text": "彩虹小龍進化！"
   },
   {
    "id": "evo_super_28",

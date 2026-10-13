@@ -119,6 +119,8 @@ def norm_py(p):
 
 def split_py(p):
     m = re.match(r"([a-zv]+)([1-5])$", p)
+    if not m:                                   # 10-13：盲聽偶爾回怪格式（沒標聲調、帶符號）→ 當輕聲比對，不要整批當掉
+        return re.sub(r"[^a-zv]", "", p.lower()) or p, 5
     return m.group(1), int(m.group(2))
 
 

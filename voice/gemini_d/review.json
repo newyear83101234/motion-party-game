@@ -1,7 +1,7 @@
 {
  "how": "每句由 Gemini 3.8 Flash 盲聽寫（不給答案），拼音跟正確讀音比對；詞庫詞以遊戲注音為準。AI 聽寫本身也會錯，所以這份是『請人耳確認』清單，不代表一定唸錯。",
- "count": 101,
- "suspicious": 101,
+ "count": 109,
+ "suspicious": 109,
  "items": [
   {
    "text": "第一聲不用加符號，按這個空白格就好",
@@ -2607,6 +2607,42 @@
    ]
   },
   {
+   "text": "合體！",
+   "file": "guide_006c0c8d.mp3",
+   "level": "可疑",
+   "why": [
+    "體 應 ti3 聽到 ti2"
+   ],
+   "heard": "河堤",
+   "pinyin": "he2 ti2",
+   "correct": "he2 ti3",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "合體！",
+     "pinyin": "he2 ti2",
+     "why": [
+      "體 應 ti3 聽到 ti2"
+     ]
+    },
+    {
+     "sent": "合體！",
+     "pinyin": "he2 ti2",
+     "why": [
+      "體 應 ti3 聽到 ti2"
+     ]
+    },
+    {
+     "sent": "合體！",
+     "pinyin": "he2 ti2",
+     "why": [
+      "體 應 ti3 聽到 ti2"
+     ]
+    }
+   ]
+  },
+  {
    "text": "撞出場了！",
    "file": "guide_dcd9ef0a.mp3",
    "level": "可疑",
@@ -2715,43 +2751,6 @@
    ]
   },
   {
-   "text": "差一點點！再拼一句更強的吧！",
-   "file": "guide_0bd81970.mp3",
-   "level": "可疑",
-   "why": [
-    "差 應 cha4 聽到 cha1"
-   ],
-   "heard": "差一點點，再拼一句更強的吧",
-   "pinyin": "cha1 yi4 dian3 dian3 zai4 pin1 yi2 ju4 geng4 qiang2 de5 ba5",
-   "correct": "cha4 yi1 dian3 dian3 zai4 pin1 yi1 ju4 geng4 qiang2 de5 ba5",
-   "zhuyin": null,
-   "tries": 3,
-   "all_takes": [
-    {
-     "sent": "差一點點！再拼一句更強的吧！",
-     "pinyin": "cha1 yi4 dian3 dian3 zai4 pin1 yi4 ju2 geng4 qiang2 de5 ba5",
-     "why": [
-      "差 應 cha4 聽到 cha1",
-      "句 應 ju4 聽到 ju2"
-     ]
-    },
-    {
-     "sent": "差一點點！再拼一句更強的吧！",
-     "pinyin": "a1 cha1 yi4 dian3 dian3 zai4 pin1 yi2 ju4 geng4 qiang2 de5 ba5",
-     "why": [
-      "音節數不同：應 12（cha4 yi1 dian3 dian3 zai4 pin1 yi1 ju4 geng4 qiang2 de5 ba5），聽到 13（a1 cha1 yi4 dian3 dian3 zai4 pin1 yi2 ju4 geng4 qiang2 de5 ba5）"
-     ]
-    },
-    {
-     "sent": "差一點點！再拼一句更強的吧！",
-     "pinyin": "cha1 yi4 dian3 dian3 zai4 pin1 yi2 ju4 geng4 qiang2 de5 ba5",
-     "why": [
-      "差 應 cha4 聽到 cha1"
-     ]
-    }
-   ]
-  },
-  {
    "text": "跟著發亮的按鍵，拼出最後一個字！",
    "file": "guide_3e67ebca.mp3",
    "level": "可疑",
@@ -2792,46 +2791,6 @@
    ]
   },
   {
-   "text": "差一點點！可以換個對手再打一次喔！",
-   "file": "guide_5f3ab956.mp3",
-   "level": "可疑",
-   "why": [
-    "差 應 cha4 聽到 cha1",
-    "個 應 ge4 唸成輕聲"
-   ],
-   "heard": "差一點點，可以換個對手再打一次喔！",
-   "pinyin": "cha1 yi4 dian3 dian3 ke3 yi3 huan4 ge5 dui4 shou3 zai4 da3 yi2 ci4 o1",
-   "correct": "cha4 yi1 dian3 dian3 ke3 yi3 huan4 ge4 dui4 shou3 zai4 da3 yi1 ci4 o1",
-   "zhuyin": null,
-   "tries": 3,
-   "all_takes": [
-    {
-     "sent": "差一點點！可以換個對手再打一次喔！",
-     "pinyin": "cha1 yi4 dian3 dian3 ke3 yi3 huan4 ge5 dui4 shou3 zai4 da3 yi2 ci4 o1",
-     "why": [
-      "差 應 cha4 聽到 cha1",
-      "個 應 ge4 唸成輕聲"
-     ]
-    },
-    {
-     "sent": "差一點點！可以換個對手再打一次喔！",
-     "pinyin": "cha1 yi4 dian3 dian3 ke3 yi3 huan4 ge5 dui4 shou3 zai4 da3 yi2 ci4 o1",
-     "why": [
-      "差 應 cha4 聽到 cha1",
-      "個 應 ge4 唸成輕聲"
-     ]
-    },
-    {
-     "sent": "差一點點！可以換個對手再打一次喔！",
-     "pinyin": "cha1 yi1 dian3 dian3 ke3 yi3 huan4 ge5 dui4 shou3 zai4 da3 yi1 ci4 o1",
-     "why": [
-      "差 應 cha4 聽到 cha1",
-      "個 應 ge4 唸成輕聲"
-     ]
-    }
-   ]
-  },
-  {
    "text": "會飛的饅頭！",
    "file": "phrase_34782b2e.mp3",
    "level": "可疑",
@@ -2863,6 +2822,81 @@
      "pinyin": "hui4 fei1 de5 man2 tou5",
      "why": [
       "頭 應 tou2 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "升段了！現在是銀牌！",
+   "file": "guide_96a08c5c.mp3",
+   "level": "可疑",
+   "why": [
+    "銀 應 yin2 聽到 ying2"
+   ],
+   "heard": "升段了，現在是銀牌",
+   "pinyin": "sheng1 duan4 le5 xian4 zai4 shi4 ying2 pai2",
+   "correct": "sheng1 duan4 le5 xian4 zai4 shi4 yin2 pai2",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "升段了！現在是銀牌！",
+     "pinyin": "xian4 duan4 le5 xian4 zai4 shi4 ying2 pai2",
+     "why": [
+      "升 應 sheng1 聽到 xian4",
+      "銀 應 yin2 聽到 ying2"
+     ]
+    },
+    {
+     "sent": "升段了！現在是銀牌！",
+     "pinyin": "sheng1 duan4 le5 xian4 zai4 shi4 ying2 pai2",
+     "why": [
+      "銀 應 yin2 聽到 ying2"
+     ]
+    },
+    {
+     "sent": "升段了！現在是銀牌！",
+     "pinyin": "xiang1 duan4 le5 xian4 zai4 shi4 yin2 pai2",
+     "why": [
+      "升 應 sheng1 聽到 xiang1"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "升段了！現在是彩虹！",
+   "file": "guide_25b22a5c.mp3",
+   "level": "可疑",
+   "why": [
+    "段 應 duan4 聽到 da4"
+   ],
+   "heard": "聲大了，現在是彩虹",
+   "pinyin": "sheng1 da4 le5 xian4 zai4 shi4 cai3 hong2",
+   "correct": "sheng1 duan4 le5 xian4 zai4 shi4 cai3 hong2",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "升段了！現在是彩虹！",
+     "pinyin": "xiang1 dan4 la5 xian4 zai4 shi4 cai3 hong2",
+     "why": [
+      "升 應 sheng1 聽到 xiang1",
+      "段 應 duan4 聽到 dan4",
+      "了 應 le5 聽到 la5"
+     ]
+    },
+    {
+     "sent": "升段了！現在是彩虹！",
+     "pinyin": "a1 shan3 duo3 la5 xian4 zai4 shi4 cai3 hong2",
+     "why": [
+      "音節數不同：應 8（sheng1 duan4 le5 xian4 zai4 shi4 cai3 hong2），聽到 9（a1 shan3 duo3 la5 xian4 zai4 shi4 cai3 hong2）"
+     ]
+    },
+    {
+     "sent": "升段了！現在是彩虹！",
+     "pinyin": "sheng1 da4 le5 xian4 zai4 shi4 cai3 hong2",
+     "why": [
+      "段 應 duan4 聽到 da4"
      ]
     }
    ]
@@ -3533,6 +3567,260 @@
      "pinyin": "lian2 bu2 shang4 wang3 lu4 deng3 deng3 zai4 shi4",
      "why": [
       "不 應 bu4 聽到 bu2"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "閃耀企鵝！",
+   "file": "guide_adba23a6.mp3",
+   "level": "可疑",
+   "why": [
+    "閃 應 shan3 聽到 xiang3"
+   ],
+   "heard": "想要企鵝",
+   "pinyin": "xiang3 yao4 qi4 e2",
+   "correct": "shan3 yao4 qi4 e2",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "閃耀企鵝！",
+     "pinyin": "shai3 niao4 qi4 e2",
+     "why": [
+      "閃 應 shan3 聽到 shai3",
+      "耀 應 yao4 聽到 niao4"
+     ]
+    },
+    {
+     "sent": "閃耀企鵝！",
+     "pinyin": "xia4 yi2 yao4 qi4 o5",
+     "why": [
+      "音節數不同：應 4（shan3 yao4 qi4 e2），聽到 5（xia4 yi2 yao4 qi4 o5）"
+     ]
+    },
+    {
+     "sent": "閃耀企鵝！",
+     "pinyin": "xiang3 yao4 qi4 e2",
+     "why": [
+      "閃 應 shan3 聽到 xiang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "閃耀小狗！",
+   "file": "guide_8b1c0dbc.mp3",
+   "level": "可疑",
+   "why": [
+    "閃 應 shan3 聽到 xiang3"
+   ],
+   "heard": "想要小狗",
+   "pinyin": "xiang3 yao4 xiao3 gou3",
+   "correct": "shan3 yao4 xiao3 gou3",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "閃耀小狗！",
+     "pinyin": "xiang3 yao4 xiao3 gou3",
+     "why": [
+      "閃 應 shan3 聽到 xiang3"
+     ]
+    },
+    {
+     "sent": "閃耀小狗！",
+     "pinyin": "xiang3 yao4 xiao3 gou3",
+     "why": [
+      "閃 應 shan3 聽到 xiang3"
+     ]
+    },
+    {
+     "sent": "閃耀小狗！",
+     "pinyin": "xiang3 yao4 xiao3 gou3",
+     "why": [
+      "閃 應 shan3 聽到 xiang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "閃耀長頸鹿！",
+   "file": "guide_0894b832.mp3",
+   "level": "可疑",
+   "why": [
+    "閃 應 shan3 聽到 xiang3"
+   ],
+   "heard": "想要長頸鹿",
+   "pinyin": "xiang3 yao4 chang2 jing3 lu4",
+   "correct": "shan3 yao4 chang2 jing3 lu4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "閃耀長頸鹿！",
+     "pinyin": "xiang3 yao4 chang2 jing3 lu4",
+     "why": [
+      "閃 應 shan3 聽到 xiang3"
+     ]
+    },
+    {
+     "sent": "閃耀長頸鹿！",
+     "pinyin": "xian3 yao4 chang2 jing3 lu4",
+     "why": [
+      "閃 應 shan3 聽到 xian3"
+     ]
+    },
+    {
+     "sent": "閃耀長頸鹿！",
+     "pinyin": "xiang3 yao4 chang2 jing3 lu4",
+     "why": [
+      "閃 應 shan3 聽到 xiang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "河狸好像要進化了！",
+   "file": "guide_cb3adcea.mp3",
+   "level": "可疑",
+   "why": [
+    "河 應 he2 聽到 ge2"
+   ],
+   "heard": "蛤蜊好像要進化了",
+   "pinyin": "ge2 li2 hao3 xiang4 yao4 jin4 hua4 le5",
+   "correct": "he2 li2 hao3 xiang4 yao4 jin4 hua4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "河狸好像要進化了！",
+     "pinyin": "ke1 li4 hao3 xiang4 yao4 jin4 hua4 le5",
+     "why": [
+      "河 應 he2 聽到 ke1",
+      "狸 應 li2 聽到 li4"
+     ]
+    },
+    {
+     "sent": "河狸好像要進化了！",
+     "pinyin": "ge2 li2 hao3 xiang4 yao4 jin4 hua4 le5",
+     "why": [
+      "河 應 he2 聽到 ge2"
+     ]
+    },
+    {
+     "sent": "河狸好像要進化了！",
+     "pinyin": "he2 li3 hao3 xiang4 yao4 jin4 hua4 le5",
+     "why": [
+      "狸 應 li2 聽到 li3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "閃耀北極熊！",
+   "file": "guide_b535621b.mp3",
+   "level": "可疑",
+   "why": [
+    "閃 應 shan3 聽到 xiang3"
+   ],
+   "heard": "想要北極熊",
+   "pinyin": "xiang3 yao4 bei3 ji2 xiong2",
+   "correct": "shan3 yao4 bei3 ji2 xiong2",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "閃耀北極熊！",
+     "pinyin": "xiang3 yao4 bei3 ji2 xiong2",
+     "why": [
+      "閃 應 shan3 聽到 xiang3"
+     ]
+    },
+    {
+     "sent": "閃耀北極熊！",
+     "pinyin": "shan3 yao4 bei2 ji2 xiong2",
+     "why": [
+      "北 應 bei3 聽到 bei2"
+     ]
+    },
+    {
+     "sent": "閃耀北極熊！",
+     "pinyin": "xiang3 yao4 bei3 ji2 xiong2",
+     "why": [
+      "閃 應 shan3 聽到 xiang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "小鯨魚進化——",
+   "file": "guide_11e0a8ce.mp3",
+   "level": "可疑",
+   "why": [
+    "鯨 應 jing1 聽到 jin1"
+   ],
+   "heard": "小金魚進化",
+   "pinyin": "xiao3 jin1 yu2 jin4 hua4",
+   "correct": "xiao3 jing1 yu2 jin4 hua4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "小鯨魚進化！",
+     "pinyin": "xiao3 jin1 yu2 jin4 hua4",
+     "why": [
+      "鯨 應 jing1 聽到 jin1"
+     ]
+    },
+    {
+     "sent": "小鯨魚進化！",
+     "pinyin": "xiao3 jin1 yu2 jin4 hua4",
+     "why": [
+      "鯨 應 jing1 聽到 jin1"
+     ]
+    },
+    {
+     "sent": "小鯨魚進化！",
+     "pinyin": "xiao3 jin1 yu2 jin4 hua4",
+     "why": [
+      "鯨 應 jing1 聽到 jin1"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "小鯨魚好像要進化了！",
+   "file": "guide_accdce86.mp3",
+   "level": "可疑",
+   "why": [
+    "鯨 應 jing1 聽到 jin1"
+   ],
+   "heard": "小金魚好像要進化了",
+   "pinyin": "xiao3 jin1 yu2 hao3 xiang4 yao4 jin4 hua4 le5",
+   "correct": "xiao3 jing1 yu2 hao3 xiang4 yao4 jin4 hua4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "小鯨魚好像要進化了！",
+     "pinyin": "xiao3 jin1 yu2 hao3 xiang4 yao4 jin4 hua4 le5",
+     "why": [
+      "鯨 應 jing1 聽到 jin1"
+     ]
+    },
+    {
+     "sent": "小鯨魚好像要進化了！",
+     "pinyin": "xiao3 jin1 yu2 hao3 xiang4 yao4 jin4 hua4 le5",
+     "why": [
+      "鯨 應 jing1 聽到 jin1"
+     ]
+    },
+    {
+     "sent": "小鯨魚好像要進化了！",
+     "pinyin": "xiao3 jin1 yu2 hao3 xiang4 yao4 jin4 hua4 le5",
+     "why": [
+      "鯨 應 jing1 聽到 jin1"
      ]
     }
    ]
