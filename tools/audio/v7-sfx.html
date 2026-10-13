@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>注音小島 v7 音效試聽</title>
+<style>
+body{font-family:"Microsoft JhengHei",system-ui,sans-serif;margin:0;padding:16px;background:#f4f8fb;color:#223}
+h1{font-size:20px;margin:0 0 4px}h2{font-size:16px;margin:20px 0 8px;color:#456}
+p.n{margin:0 0 8px;color:#678;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+button{display:block;width:100%;text-align:left;padding:12px 14px;border:0;border-radius:12px;background:#fff;box-shadow:0 1px 4px #0002;cursor:pointer;font:inherit;min-height:64px}
+button:active,button.on{background:#ffe9a8}
+button b{display:block;font-size:16px;color:#1b5e92}button span{font-size:13px;color:#556}button i{font-style:normal;font-size:12px;color:#99a}
+</style></head><body>
+<h1>注音小島 v7 音效試聽（13 個）</h1>
+<p class="n">按一下就播。音量由瀏覽器／系統控制；實際遊戲裡 sfx bus 音量 0.8。全部 CC0（見 audio/CREDITS.md）。</p>
+<div id="app"></div>
+<script>
+const G=[
+["戰鬥陀螺：合體與發射",[["tp_fuse","合體一瞬間（喀嚓鎖上）"],["tp_launch","發射（拉繩＋加速旋轉）"]]],
+["戰鬥陀螺：撞擊",[["tp_clash1","撞擊 輕"],["tp_clash2","撞擊 中"],["tp_clash3","撞擊 重"],["tp_ko","決勝一擊／被撞出場"]]],
+["戰鬥陀螺：流程",[["tp_count","3、2、1 倒數嗶"],["tp_round","回合勝負揭曉「鏘」"],["tp_cheer","觀眾歡呼"],["tp_victory","整場勝利短號角"]]],
+["寵物進化",[["ev_charge","蓄力（能量上升）"],["ev_burst","白光爆開"],["ev_sparkle","亮相閃閃發光"]]]];
+let M=null,cur=null;
+fetch("../../audio/manifest.json").then(r=>r.json()).then(j=>{M=j.sfx;draw()}).catch(draw);
+function draw(){
+ const app=document.getElementById("app");
+ for(const [t,l] of G){
+  const h=document.createElement("h2");h.textContent=t;app.appendChild(h);
+  const g=document.createElement("div");g.className="grid";app.appendChild(g);
+  for(const [k,u] of l){
+   const m=M&&M[k];
+   const b=document.createElement("button");
+   b.innerHTML="<b>"+k+"</b><span>"+u+"</span><br><i>"+(m?m.duration+" 秒 · 峰值 "+m.peak_dBFS+" dB · RMS "+m.activeRms_dBFS+" dB":"")+"</i>";
+   b.onclick=()=>{ if(cur){cur.pause();} const a=new Audio("../../audio/sfx/"+k+".mp3");cur=a;b.classList.add("on");a.onended=()=>b.classList.remove("on");a.play();setTimeout(()=>b.classList.remove("on"),(m?m.duration*1000:1500)+100)};
+   g.appendChild(b);
+  }
+ }
+}
+</script></body></html>
