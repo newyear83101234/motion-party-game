@@ -3,7 +3,7 @@
 // 八個模式：釣魚 / 點餐 / 積木 / 尋寶 / 翻牌 / 聲調氣球 / 打地鼠 / 跳跳蛙（後兩個 2026-10-10 加）。長期動力：貼紙圖鑑（每個詞一張貼紙）＋星星罐孵蛋（解鎖朋友）。
 // 設計依據：櫻木花道（遊戲設計）＋寧次（UI/UX）2026-09-09 審查報告；規格見 memory project-zhuyin-game.md
 import { WORDS, PHRASES, CATS, FRIENDS } from "./zhuyin-words.js";
-import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js?v=10";
+import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js?v=11";
 import { voiceUnlock, voiceSay, voiceStop, voiceSpeaking, voicePreload, voiceCtx, voiceBind } from "./zhuyin-voice.js?v=8";
 import A from "./zhuyin-audio.js?v=3";               // 音訊引擎：一個 AudioContext、music／sfx／voice／ambience 四條 bus（docs/zhuyin-v5-plan.md §5）
 import * as RW from "./zhuyin-rewards.js?v=3";   // 獎勵系統（扭蛋機）純邏輯
@@ -846,9 +846,10 @@ function pickMeta(m) {
   if (m === "dress") return null;
   if (m === "tower") return towerMeta();               // 10-13 挑戰燈塔：最高第幾層
   if (m === "bubble" || m === "deliver") { const n = Object.keys(save[m].stars || {}).length; return el("span", "pk-txt", `🏁 ${n}／${m === "bubble" ? BUBBLE_N : DELIVER_TASKS} 關・越後面越難`); }   // 10-13：關卡制的難度＝第幾關（泡泡 50、配送 12），寫出總關數讓家長看得懂
-  if (m === "tops") return el("span", "pk-txt", `🎟️ ${save.tops.tickets + (save.tops.freeUsed ? 0 : 1)}・對手段位 ${topsRankLabel()}`);   // 10-13 v7：陀螺的難度＝對手段位（新手→銅→銀→金→彩虹）
+  if (m === "tops") return el("span", "pk-txt", topsTrial() ? "🎁 第一次免費玩・之後 15 顆星換 1 張券" : `🎟️ ${save.tops.tickets}・對手段位 ${topsRankLabel()}`);   // 10-13 阿葉「第一次不用星星就可以玩，後面才需要」：本來就第一次免費，介紹卡寫清楚   // 10-13 v7：陀螺的難度＝對手段位（新手→銅→銀→金→彩虹）
   return starRow(m === "detective" ? save.detective.best : save.best[m] || 0);
 }
+function topsTrial() { return !!(save && save.tops && !save.tops.freeUsed); }   // 陀螺第一次免費那場還沒用過（function 宣告：開頁 loadSlot→renderMenu 比這行早跑）；   // 10-13 阿葉「陀螺第一次不用貼紙或星星就可以玩，要先讓人玩一次看看才知道」：還沒用過第一次免費＝可以試玩（貼紙不夠、歸仁區還沒開也行）
 const pickNeed = (m, info = {}) => m === "dress" ? (info.locked ? Math.max(1, (info.need || 20) - stickerCount()) : 0) : MODES[m] ? Math.max(0, MODES[m].need - stickerCount()) : 0;
 function showPick(m, info = {}) {
   const g = GAME_INFO[m]; if (!g || mode) return;
@@ -2209,7 +2210,7 @@ function renderDeliverPick() {
 // 第一次玩：教學交給模組唸（start({ intro:true })：卡片等教學講完才出來）；之後 intro:false（主程式本來就不唸開場語，見 SELF_INTRO）。
 // 答對一題（模組的 onCorrect）＝點心 +1、同樂廣場讀字週 +1；演出完（onWin）存檔 save.detective＝{ seen, best }，結算走共用 showResult（星星＝模組算的、點心再 +2、唸 WIN_TALK）。
 let detectiveMod = null, detectiveGame = null, detectiveRun = null, detectiveWinTalk = "", detectiveAdv = null;
-const importDetective = () => detectiveMod || (detectiveMod = import("./zhuyin-detective.js?v=4").catch(e => { detectiveMod = null; throw e; }));
+const importDetective = () => detectiveMod || (detectiveMod = import("./zhuyin-detective.js?v=5").catch(e => { detectiveMod = null; throw e; }));
 const DETECTIVE_FAIL = "偵探社現在打不開，等一下再試試看！";
 async function buildDetective() {
   const tok = navToken; let m;
