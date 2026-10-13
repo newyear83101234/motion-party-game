@@ -4,6 +4,7 @@
 //   只用 + − × ÷ 和 Math.sqrt（IEEE 754 保證每台機器算出一樣的位元），不用 sin／cos／exp（各家瀏覽器實作可能差最後一位，
 //   混沌系統會放大成不同勝負）。畫面（js/zhuyin-tops.js）只「播放」這裡算好的軌跡。
 // 能力影響（規格 §3）：重量＝質量（也略大顆）、穩定＝轉速衰減慢＋比較不亂晃、攻擊＝碰撞時給對方的推力與轉速傷害、防禦＝被撞時的抵抗。
+// v2（10-13）：五個字先合體（fuseStats）成一顆大陀螺，一對一三戰兩勝（simulateMatch）；simRound 本身沒變（多了 o.big 放大半徑、撞擊紀錄多帶 d）。
 import { hashStr, rhymeOf, splitSyl, ANIMALS, COLORS, STRONG } from "./zhuyin-tops-power.js?v=1";   // ?v=1：跟 js/zhuyin-tops.js 的 import 網址完全一樣（同一份模組）
 
 export const SIM = {
@@ -34,9 +35,11 @@ export function topParams(st) {
   return { m: 0.7 + 1.1 * w, r: 0.5 + 0.2 * w, stab: s, atk: a, def: d, decay: SIM.DECAY + SIM.DECAY_UNSTABLE * (1 - s), jit: SIM.JITTER * (1.15 - 0.85 * s) };
 }
 
-// 一回合：sa／sb＝兩顆的能力；回傳 { n（步數）, f（每步 [x0,y0,S0,x1,y1,S1]）, hits:[{k,x,y,s}], end:{k, loser:0|1, how:"out"|"stop"|"time"}, p:[參數] }
-export function simRound(sa, sb, seed) {
+// 一回合：sa／sb＝兩顆的能力；o.big＝合體陀螺（v2：半徑 × FUSE.R，撞得到的範圍大、比較常互撞）
+// 回傳 { n（步數）, f（每步 [x0,y0,S0,x1,y1,S1]）, hits:[{k,x,y,s,d:[0 號被扣的轉速, 1 號被扣的]}], end:{k, loser:0|1, how:"out"|"stop"|"time"}, p:[參數] }
+export function simRound(sa, sb, seed, o = {}) {
   const rnd = rng(seed), P = [topParams(sa), topParams(sb)], dt = SIM.DT;
+  if (o.big) for (const p of P) p.r *= FUSE.R;
   const x = [-2.6 + (rnd() - 0.5) * 0.6, 2.6 + (rnd() - 0.5) * 0.6], y = [(rnd() - 0.5) * 1.2, (rnd() - 0.5) * 1.2];
   const vx = [1.8 + rnd() * 1.0, -1.8 - rnd() * 1.0], vy = [-1.4 - rnd() * 1.2, 1.4 + rnd() * 1.2];   // 對衝＋各自往側邊甩（發射的弧線）
   const S = [1 - SIM.LAUNCH / 2 + SIM.LAUNCH * rnd(), 1 - SIM.LAUNCH / 2 + SIM.LAUNCH * rnd()];   // 發射力道（運氣）
@@ -81,7 +84,7 @@ export function simRound(sa, sb, seed) {
         const d1 = SIM.DMG * (0.25 + P[0].atk) * (0.5 + 0.5 * S[0]) * (1 - 0.6 * P[1].def) * (0.5 + sp) * mr * luck0;
         const d0 = SIM.DMG * (0.25 + P[1].atk) * (0.5 + 0.5 * S[1]) * (1 - 0.6 * P[0].def) * (0.5 + sp) / mr * luck1;
         S[0] -= d0; S[1] -= d1;
-        hits.push({ k, x: (x[0] + x[1]) / 2, y: (y[0] + y[1]) / 2, s: sp > 0.15 ? sp : 0.15 });
+        hits.push({ k, x: (x[0] + x[1]) / 2, y: (y[0] + y[1]) / 2, s: sp > 0.15 ? sp : 0.15, d: [d0, d1] });   // d：誰被撞得比較慘（畫面：碎片從那顆多噴一點）
         cool = SIM.COOLDOWN;
       }
     }
@@ -132,16 +135,43 @@ export function boostStats(stats, hits) {
   return out;
 }
 
-// 一場：5 回合一對一（第 1 字對第 1 字…），先贏 3 回合的獲勝（贏到 3 就不打了）
-// a／b＝{ p: 詞句, stats: [[w,s,a,d] × 5] }；回傳 { flip（sim 的 0 號是不是 b）, rounds:[{ i, winner:"a"|"b", how, sim }], winner, score:[a 勝, b 勝] }
-export function simulateMatch(a, b) {
+// ===== v2（10-13 阿葉）：五個字合體成一顆陀螺，一對一三戰兩勝 =====
+// 合體能力（fuseStats）：五個字的四項能力合成一組（全部只用 + − × ÷ 和 Math.round → 每台機器一樣）
+//   重量＝0.75×平均＋0.25×最重的字      （五個字疊在一起，最重的那個壓得最穩）
+//   穩定＝0.7×平均＋0.3×最不穩的字       （最弱的一環會拖累整顆）
+//   攻擊＝0.6×平均＋0.4×攻擊最強的字     （最兇的字帶頭衝）
+//   防禦＝0.75×平均＋0.25×最硬的字
+//   再以 50 為中心放大 FUSE.STRETCH 倍、限制在 1–99（五個字平均會把差異磨平；放大回來，戰力高的句子才真的比較強）。
+//   傳進來的是含加成的能力（boostStats），所以加成照樣看得見。
+// 平衡（tools/zy-test/tops.js 用 4000 場隨機詞句驗）：戰力差 1000 以上強的一方勝率約 8 成、差 250 以內約 5–6 成——戰力高贏面大，但不是必勝。
+export const FUSE = { STRETCH: 1.6, R: 1.7, ROUNDS: 3, WIN: 2 };   // R：合體陀螺半徑倍率（大顆、比較常互撞、撞出場比較多）
+export function fuseStats(stats) {
+  const out = [];
+  for (let k = 0; k < 4; k++) {
+    let sum = 0, mx = 0, mn = 99;
+    for (const s of stats) { sum += s[k]; if (s[k] > mx) mx = s[k]; if (s[k] < mn) mn = s[k]; }
+    const mean = sum / stats.length;
+    const v = k === 1 ? 0.7 * mean + 0.3 * mn : k === 2 ? 0.6 * mean + 0.4 * mx : 0.75 * mean + 0.25 * mx;
+    const w = 50 + (v - 50) * FUSE.STRETCH;
+    out.push(Math.round(w < 1 ? 1 : w > 99 ? 99 : w));
+  }
+  return out;
+}
+
+// 一場：兩顆合體陀螺打三回合，先贏 2 回合的獲勝（贏到 2 就不打了）；每回合種子不同（詞句雜湊＋回合號）→ 三回合過程不一樣
+// a／b＝{ p: 詞句, stats: [[w,s,a,d] × 5]（含加成） }；
+// 回傳 { flip（sim 的 0 號是不是 b）, rounds:[{ i, winner:"a"|"b", how, sim }], winner, score:[a 勝, b 勝], fused:{ a:[4 項], b:[4 項] } }
+// salt（預設 0＝正式對戰）：只有「第一次免費」「輸了換對手」的安慰場會用——同一對詞句換一組種子（js/zhuyin-tops.js 的 pickOpponent 找小孩會贏的那組），
+//   仍然是確定性（同一對＋同一個 salt 永遠一樣）；排行榜、一般對戰都是 salt 0。
+export function simulateMatch(a, b, salt = 0) {
   const flip = b.p < a.p, s0 = flip ? b : a, s1 = flip ? a : b;
+  const f0 = fuseStats(s0.stats), f1 = fuseStats(s1.stats);
   const rounds = [], score = [0, 0];
-  for (let i = 0; i < 5 && score[0] < 3 && score[1] < 3; i++) {
-    const sim = simRound(s0.stats[i], s1.stats[i], hashStr(s0.p + "|" + s1.p + "|" + i));
+  for (let i = 0; i < FUSE.ROUNDS && score[0] < FUSE.WIN && score[1] < FUSE.WIN; i++) {
+    const sim = simRound(f0, f1, hashStr(s0.p + "|" + s1.p + "|R" + i + (salt ? "|S" + salt : "")), { big: true });
     const loserSide = sim.end.loser === 0 ? (flip ? "b" : "a") : (flip ? "a" : "b"), winner = loserSide === "a" ? "b" : "a";
     score[winner === "a" ? 0 : 1]++;
     rounds.push({ i, winner, how: sim.end.how, sim });
   }
-  return { flip, rounds, winner: score[0] >= 3 ? "a" : "b", score };
+  return { flip, rounds, winner: score[0] >= FUSE.WIN ? "a" : "b", score, fused: { a: flip ? f1 : f0, b: flip ? f0 : f1 } };
 }

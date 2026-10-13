@@ -1,12 +1,12 @@
 {
  "meta": {
   "generated_by": "tools/voice/build_lines.py",
-  "total_lines": 829,
-  "total_chars": 5269,
+  "total_lines": 832,
+  "total_chars": 5287,
   "by_cat": {
    "intro": 10,
    "praise": 8,
-   "guide": 356,
+   "guide": 359,
    "system": 4,
    "result": 7,
    "word": 163,
@@ -2283,10 +2283,10 @@
    "src": "zhuyin-tops.js LINES.inspire"
   },
   {
-   "id": "tp_morph",
-   "text": "變身！",
+   "id": "tp_fuse",
+   "text": "合體！",
    "cat": "guide",
-   "src": "zhuyin-tops.js LINES.morph"
+   "src": "zhuyin-tops.js LINES.fuse"
   },
   {
    "id": "tp_power",
@@ -2307,16 +2307,28 @@
    "src": "zhuyin-tops.js LINES.fight"
   },
   {
-   "id": "tp_roundWin",
-   "text": "這回合你贏了！",
+   "id": "tp_launch",
+   "text": "發射！",
    "cat": "guide",
-   "src": "zhuyin-tops.js LINES.roundWin"
+   "src": "zhuyin-tops.js LINES.launch"
   },
   {
-   "id": "tp_roundLose",
-   "text": "這回合對手贏了！",
+   "id": "tp_final",
+   "text": "決勝回合！",
    "cat": "guide",
-   "src": "zhuyin-tops.js LINES.roundLose"
+   "src": "zhuyin-tops.js LINES.final"
+  },
+  {
+   "id": "tp_blueWin",
+   "text": "藍隊勝！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.blueWin"
+  },
+  {
+   "id": "tp_redWin",
+   "text": "紅隊勝！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js LINES.redWin"
   },
   {
    "id": "tp_out",
@@ -2345,13 +2357,13 @@
   },
   {
    "id": "tp_win",
-   "text": "你贏了！你的陀螺最強！",
+   "text": "勝利！你的陀螺最強！",
    "cat": "guide",
    "src": "zhuyin-tops.js LINES.win"
   },
   {
    "id": "tp_lose",
-   "text": "差一點點！再拼一句更強的吧！",
+   "text": "再接再厲！再拼一句更強的吧！",
    "cat": "guide",
    "src": "zhuyin-tops.js LINES.lose"
   },
@@ -2420,7 +2432,7 @@
   },
   {
    "id": "tp_loseRematch",
-   "text": "差一點點！可以換個對手再打一次喔！",
+   "text": "再接再厲！可以換個對手再打一次喔！",
    "cat": "guide",
    "src": "zhuyin-tops.js LINES.loseRematch"
   },
@@ -2646,22 +2658,28 @@
    "src": "zhuyin-tops.js ROUND_LINES（每回合開始）"
   },
   {
-   "id": "tp_round_3",
-   "text": "第三回合！",
+   "id": "tp_rankup_1",
+   "text": "升段了！現在是銅牌！",
    "cat": "guide",
-   "src": "zhuyin-tops.js ROUND_LINES（每回合開始）"
+   "src": "zhuyin-tops.js RANK_UP（v7 段位升段）"
   },
   {
-   "id": "tp_round_4",
-   "text": "第四回合！",
+   "id": "tp_rankup_2",
+   "text": "升段了！現在是銀牌！",
    "cat": "guide",
-   "src": "zhuyin-tops.js ROUND_LINES（每回合開始）"
+   "src": "zhuyin-tops.js RANK_UP（v7 段位升段）"
   },
   {
-   "id": "tp_round_5",
-   "text": "第五回合！",
+   "id": "tp_rankup_3",
+   "text": "升段了！現在是金牌！",
    "cat": "guide",
-   "src": "zhuyin-tops.js ROUND_LINES（每回合開始）"
+   "src": "zhuyin-tops.js RANK_UP（v7 段位升段）"
+  },
+  {
+   "id": "tp_rankup_4",
+   "text": "升段了！現在是彩虹！",
+   "cat": "guide",
+   "src": "zhuyin-tops.js RANK_UP（v7 段位升段）"
   },
   {
    "id": "tp_bonus_double",

@@ -132,43 +132,64 @@
 /* ---------- 對戰 HUD ---------- */
 .tp-hud { position: absolute; inset: 0; pointer-events: none; }
 .tp-hud button { pointer-events: auto; }
-.tp-team { position: absolute; top: var(--m); width: var(--stripw, 30%); display: flex; flex-direction: column; gap: 0.3em; font-size: var(--chipf, 20px); }
-.tp-team.tp-me { left: calc(var(--u) * 29); align-items: flex-start; }
-.tp-team.tp-opp { right: var(--m); align-items: flex-end; }
+/* v2（10-13）：兩隊顏色 藍隊 #2ab4ff／紅隊 #ff5626；上方兩隊名字＋耐力長條＋百分比，中間 ROUND＋三個得分點 */
+.tp-wrap { --blue: #2ab4ff; --blue-d: #0b5c9e; --red: #ff5626; --red-d: #a32a0c; }
+.tp-team { position: absolute; top: var(--m); width: var(--stripw, 30%); display: flex; flex-direction: column; gap: 0.25em; font-size: var(--chipf, 20px); padding: 0.3em 0.45em 0.35em; border-radius: 0.6em; }
+.tp-team.tp-me { left: calc(var(--u) * 29); align-items: flex-start; background: linear-gradient(90deg, rgba(10, 70, 140, 0.85), rgba(10, 70, 140, 0.35)); border: 0.12em solid var(--blue); box-shadow: 0 0 0.8em rgba(42, 180, 255, 0.45); }
+.tp-team.tp-opp { right: var(--m); align-items: flex-end; background: linear-gradient(270deg, rgba(140, 30, 10, 0.85), rgba(140, 30, 10, 0.35)); border: 0.12em solid var(--red); box-shadow: 0 0 0.8em rgba(255, 86, 38, 0.45); }
 .tp-port .tp-team { top: calc(var(--u) * 15); }
 .tp-port .tp-team.tp-me { left: var(--m); }
 .tp-chips { display: flex; gap: 0.18em; }
-.tp-chip { position: relative; display: flex; align-items: center; justify-content: center; padding: 0.12em 0.05em 0.12em 0.2em; border-radius: 0.35em; background: rgba(255, 255, 255, 0.92); color: #2b2440; font-weight: 900; line-height: 1; border: 0.12em solid transparent; transition: transform 0.2s; }
+.tp-chip { position: relative; display: flex; align-items: center; justify-content: center; padding: 0.12em 0.05em 0.12em 0.2em; border-radius: 0.35em; background: rgba(255, 255, 255, 0.95); color: #2b2440; font-weight: 900; line-height: 1; border: 0.1em solid transparent; }
+.tp-me .tp-chip { border-color: var(--blue); }
+.tp-opp .tp-chip { border-color: var(--red); }
 .tp-chip .ac { margin-right: 0.5em; }
-.tp-me .tp-chip.tp-now { border-color: #4fd2ff; transform: scale(1.18); box-shadow: 0 0 0.6em #4fd2ff; z-index: 1; }
-.tp-opp .tp-chip.tp-now { border-color: #ff5a6e; transform: scale(1.18); box-shadow: 0 0 0.6em #ff5a6e; z-index: 1; }
-.tp-chip.tp-won::after { content: "⭐"; position: absolute; right: -0.35em; top: -0.45em; font-size: 0.7em; }
-.tp-chip.tp-lost { opacity: 0.45; filter: grayscale(1); }
-.tp-gauge { width: 100%; height: 0.55em; border-radius: 1em; background: rgba(255, 255, 255, 0.18); overflow: hidden; }
+.tp-gauge { width: 100%; height: 0.75em; border-radius: 1em; background: rgba(0, 0, 0, 0.45); overflow: hidden; border: 0.08em solid rgba(255, 255, 255, 0.5); }
 .tp-gfill { display: block; height: 100%; border-radius: 1em; transform-origin: left; transform: scaleX(1); }
-.tp-me .tp-gfill { background: linear-gradient(90deg, #4fd2ff, #b6f0ff); }
-.tp-opp .tp-gfill { background: linear-gradient(90deg, #ff5a6e, #ffb0bb); transform-origin: right; }
-.tp-opp .tp-gauge { direction: rtl; }
-.tp-score { position: absolute; left: 50%; top: var(--m); transform: translateX(-50%); display: flex; align-items: center; gap: 0.25em; font-size: max(30px, calc(var(--u) * 6.5)); font-weight: 900; text-shadow: 0 0.08em 0 #120c35; }
+.tp-me .tp-gfill { background: linear-gradient(90deg, #0f8fe0, #4fd2ff 70%, #c9f3ff); }
+.tp-opp .tp-gfill { background: linear-gradient(270deg, #e0300f, #ff7a45 70%, #ffd0b8); transform-origin: right; }
+.tp-gfill.tp-low { animation: tpLow 0.5s ease-in-out infinite alternate; }
+@keyframes tpLow { to { filter: brightness(1.6) saturate(1.4); } }
+.tp-glab { display: flex; align-items: baseline; gap: 0.4em; font-size: 0.72em; font-weight: 900; line-height: 1; }
+.tp-gpct { font-size: 1.25em; font-variant-numeric: tabular-nums; min-width: 2.6em; }
+.tp-me .tp-gpct { color: #9fe6ff; } .tp-opp .tp-gpct { color: #ffc0a8; }
+.tp-score { position: absolute; left: 50%; top: var(--m); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 0.15em; font-weight: 900; text-shadow: 0 0.08em 0 #120c35; }
 .tp-port .tp-score { top: calc(var(--u) * 3); }
-.tp-score b:first-child { color: #7ee0ff; } .tp-score b:last-child { color: #ff8a9a; }
-.tp-tag { position: absolute; left: 0; top: 0; font-size: max(20px, calc(var(--u) * 3.8)); font-weight: 900; background: #fff; color: #2b2440; border-radius: 0.45em; padding: 0.06em 0.05em 0.06em 0.3em; line-height: 1;
-  border: 0.14em solid var(--c, #4fd2ff); box-shadow: 0 0.15em 0.4em rgba(0, 0, 0, 0.35); will-change: transform; }
-.tp-tag.tp-opp { --c: #ff5a6e; }
+.tp-round { font-size: max(22px, calc(var(--u) * 4)); letter-spacing: 0.08em; color: #ffe27a; font-style: italic; }
+.tp-dots { display: flex; gap: 0.35em; font-size: max(22px, calc(var(--u) * 3.8)); }
+.tp-dot { width: 1em; height: 1em; border-radius: 50%; border: 0.14em solid rgba(255, 255, 255, 0.85); background: rgba(0, 0, 0, 0.35); }
+.tp-dot.tp-dot-now { border-color: #ffe27a; box-shadow: 0 0 0.5em #ffe27a; animation: tpPulse 0.9s ease-in-out infinite; }
+.tp-dot.tp-dot-me { background: radial-gradient(circle at 35% 35%, #c9f3ff, var(--blue) 60%, var(--blue-d)); border-color: #fff; box-shadow: 0 0 0.5em var(--blue); }
+.tp-dot.tp-dot-opp { background: radial-gradient(circle at 35% 35%, #ffd0b8, var(--red) 60%, var(--red-d)); border-color: #fff; box-shadow: 0 0 0.5em var(--red); }
+.tp-tag { position: absolute; left: 0; top: 0; font-size: max(17px, calc(var(--u) * 2.8)); font-weight: 900; color: #fff; border-radius: 0.5em; padding: 0.1em 0.2em 0.1em 0.45em; line-height: 1;
+  background: var(--c, var(--blue)); border: 0.12em solid #fff; box-shadow: 0 0.12em 0.4em rgba(0, 0, 0, 0.4); will-change: transform; pointer-events: none; }
+.tp-tag.tp-opp { --c: var(--red); }
+.tp-tag.tp-hid { visibility: hidden; }
 .tp-tag .ac { margin-right: 0.55em; }
+.tp-tag::after { content: ""; position: absolute; left: 50%; bottom: -0.42em; transform: translateX(-50%); border: 0.3em solid transparent; border-top-color: #fff; border-bottom: 0; }
 .tp-banner { position: absolute; left: 0; right: 0; top: 46%; height: 0; display: flex; justify-content: center; pointer-events: none; }
 .tp-bn { position: absolute; transform: translateY(-50%); font-size: max(34px, calc(var(--u) * 8)); font-weight: 900; color: #fff; white-space: nowrap; letter-spacing: 0.04em;
   text-shadow: 0 0.06em 0 #2b1a6e, 0 0 0.25em rgba(80, 40, 200, 0.9), 0 0 0.6em rgba(80, 40, 200, 0.6); }
 .tp-bn.tp-bnin { animation: tpBnIn 0.4s cubic-bezier(0.2, 1.5, 0.4, 1) both; }
 .tp-bn.tp-bnout { animation: tpBnOut 0.35s ease both; }
-.tp-bn-count { font-size: max(70px, calc(var(--u) * 18)); color: #ffd54a; }
-.tp-bn-go { font-size: max(52px, calc(var(--u) * 13)); color: #ffd54a; }
-.tp-bn-how { top: -1.1em; color: #ffe6a3; }
+.tp-bn-count { font-size: max(80px, calc(var(--u) * 20)); color: #ffd54a; text-shadow: 0 0.05em 0 #b86a00, 0 0 0.3em rgba(255, 180, 40, 0.9); }
+.tp-bn-go { font-size: max(56px, calc(var(--u) * 14)); color: #ffd54a; font-style: italic; text-shadow: 0 0.05em 0 #b84a00, 0 0 0.35em rgba(255, 120, 30, 0.95); }
+.tp-bn-round { font-size: max(48px, calc(var(--u) * 11)); color: #ffe27a; font-style: italic; letter-spacing: 0.1em; }
+.tp-bn-final2 { font-size: max(46px, calc(var(--u) * 11)); color: #ff6a3d; text-shadow: 0 0.05em 0 #6e1400, 0 0 0.3em rgba(255, 60, 20, 0.95), 0 0 0.8em rgba(255, 200, 60, 0.7); }
+.tp-bn-fuse { font-size: max(64px, calc(var(--u) * 16)); color: #fff; text-shadow: 0 0.05em 0 #0b5c9e, 0 0 0.3em #4fd2ff, 0 0 0.8em #2ab4ff; }
+.tp-bn-how { top: -1.15em; color: #ffe6a3; }
+.tp-bn-blue { font-size: max(52px, calc(var(--u) * 12)); color: #c9f3ff; text-shadow: 0 0.06em 0 #0b3d6e, 0 0 0.3em #2ab4ff, 0 0 0.8em #2ab4ff; }
+.tp-bn-red { font-size: max(52px, calc(var(--u) * 12)); color: #ffe0d0; text-shadow: 0 0.06em 0 #6e1a05, 0 0 0.3em #ff5626, 0 0 0.8em #ff5626; }
 .tp-bn-win, .tp-bn-final { color: #ffd54a; }
-.tp-bn-final { font-size: max(48px, calc(var(--u) * 12)); }
-.tp-bn-lose { color: #c9d8ff; }
+.tp-bn-final { font-size: max(64px, calc(var(--u) * 16)); text-shadow: 0 0.06em 0 #8a5200, 0 0 0.3em rgba(255, 200, 60, 0.95), 0 0 0.9em rgba(255, 160, 40, 0.8); }
+.tp-bn-rank { top: 1.35em; font-size: max(30px, calc(var(--u) * 6.5)); color: #fff6c2; }
+.tp-bn-lose { color: #c9d8ff; font-size: max(48px, calc(var(--u) * 11)); }
 .tp-ff { position: absolute; right: var(--m); bottom: var(--m); width: max(64px, calc(var(--u) * 12)); height: max(64px, calc(var(--u) * 12)); border-radius: 50%; background: rgba(255, 255, 255, 0.92); font-size: max(30px, calc(var(--u) * 6)); box-shadow: 0 0.12em 0 #a99ad8, 0 0.25em 0.6em rgba(0, 0, 0, 0.35); }
 .tp-ff.tp-on { background: #ffd54a; animation: tpPulse 0.6s ease-in-out infinite; }
+/* 整個畫面閃白光（合體、重擊、撞出場）；--fa＝最亮多少 */
+.tp-flash { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 50% 50%, #fff 0%, #fff 40%, rgba(220, 240, 255, 0.9) 100%); opacity: 0; }
+.tp-flash.tp-flashing { animation: tpFlash 0.34s ease-out both; }
+@keyframes tpFlash { 0% { opacity: var(--fa, 0.8); } 100% { opacity: 0; } }
 
 /* ---------- 結算／排行榜／沒券 ---------- */
 .tp-result, .tp-boardsov, .tp-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: var(--m); background: rgba(10, 6, 30, 0.42); }
@@ -283,8 +304,6 @@
 .tp-cheer { position: absolute; transform: translate(-50%, -50%); font-size: max(26px, calc(var(--u) * 5)); font-weight: 900; color: #7ee0ff; text-shadow: 0 0.06em 0 #12306e, 0 0 0.4em rgba(80, 200, 255, 0.9); pointer-events: none; white-space: nowrap; animation: tpCheer 0.9s ease-out both; }
 @keyframes tpCheer { 0% { opacity: 0; scale: 0.5; } 20% { opacity: 1; scale: 1.15; } 100% { opacity: 0; scale: 1; translate: 0 -1.6em; } }
 .tp-cheerhint { position: absolute; left: 50%; bottom: calc(var(--m) + max(70px, calc(var(--u) * 13))); transform: translateX(-50%); font-size: max(18px, calc(var(--u) * 3.2)); font-weight: 900; color: #fff; background: rgba(30, 20, 80, 0.72); border-radius: 999px; padding: 0.25em 0.9em; white-space: nowrap; pointer-events: none; animation: tpPulse 1.2s ease-in-out infinite; }
-.tp-ff-x { position: absolute; right: -0.3em; top: -0.35em; font-size: 0.42em; font-weight: 900; background: #ff7b3d; color: #fff; border-radius: 999px; padding: 0.05em 0.35em; display: none; }
-.tp-ff.tp-auto2 .tp-ff-x { display: block; }
 /* 15 格集點卡 */
 .tp-stars { display: flex; flex-direction: column; align-items: center; gap: 0.15em; background: #fff6d8; border: 2px solid #ffd54a; border-radius: 0.7em; padding: 0.25em 0.6em 0.3em; font-size: max(15px, calc(var(--u) * 2.4)); color: #6b4a00; }
 .tp-stars-h { display: flex; gap: 0.5em; align-items: baseline; font-weight: 900; }
@@ -340,3 +359,48 @@
 @keyframes tpBnOut { to { opacity: 0; scale: 0.7; } }
 @keyframes tpSpin { to { transform: translate(-50%, -50%) rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .tp-go.tp-ready, .tp-fight, .tp-ok.tp-ready, .tp-kb.tp-wanttone .tp-tone, .tp-key.tp-guide, .tp-cand.tp-guide, .tp-egg-ic, .tp-rematch, .tp-cheerhint { animation: none; } }
+
+/* ---------- v2（10-13）合體：五張能力卡收成一張「合體陀螺」卡、看過一次可以點一下跳過 ---------- */
+.tp-card.tp-merge { opacity: 0; transform: translate(calc(-50% + var(--dx, 0px)), -40%) scale(0.3); transition: opacity 0.35s ease-in, transform 0.4s ease-in; }   /* --dx：飛到畫面中間（relayout 算） */
+.tp-fcard { position: absolute; top: 0; width: min(64vw, calc(var(--u) * 78)); transform: translate(-50%, 18%) scale(0.6); opacity: 0; pointer-events: none;
+  transition: opacity 0.35s 0.1s, transform 0.5s cubic-bezier(0.2, 1.5, 0.4, 1) 0.1s;
+  background: linear-gradient(135deg, rgba(8, 60, 120, 0.92), rgba(22, 13, 64, 0.92)); border-radius: calc(var(--u) * 2); padding: 0.4em 0.8em 0.55em; border: 0.14em solid #2ab4ff;
+  box-shadow: 0 0 1.2em rgba(42, 180, 255, 0.55); font-size: max(13px, calc(var(--u) * 2.3)); }
+.tp-fcard.tp-in { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.tp-fcard-h { display: flex; align-items: center; justify-content: center; gap: 0.6em; margin-bottom: 0.15em; }
+.tp-fcard-t { font-weight: 900; font-size: 1.15em; color: #9fe6ff; white-space: nowrap; }
+.tp-fchips { display: flex; gap: 0.2em; font-size: 1.45em; }
+.tp-fchip { display: flex; align-items: center; background: #fff; color: #2b2440; border-radius: 0.3em; padding: 0.08em 0.05em 0.08em 0.18em; font-weight: 900; line-height: 1; border: 0.08em solid #2ab4ff; }
+.tp-fchip .ac { margin-right: 0.5em; }
+.tp-fchip.tp-glow { animation: tpCardGlow 0.9s ease both; border-color: #ffd54a; }
+.tp-fbars { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1.2em; }
+.tp-fcard .tp-fill { transform: scaleX(1); }
+.tp-fcard:not(.tp-in) .tp-fill { transform: scaleX(0); }
+.tp-fcard:has(.tp-boost) { border-color: #ffd54a; }
+.tp-side .tp-fcard { width: min(70vw, 560px); font-size: 12px; padding: 0.25em 0.6em 0.35em; }
+.tp-port .tp-fbars { grid-template-columns: 1fr; }
+.tp-port .tp-fcard { width: calc(100vw - 2 * var(--m)); }
+.tp-skip { position: absolute; left: 50%; bottom: calc(var(--m) + 0.5em); transform: translateX(-50%); font-size: max(17px, calc(var(--u) * 3)); font-weight: 900; color: #fff; background: rgba(20, 14, 60, 0.7); border-radius: 999px; padding: 0.25em 1em; white-space: nowrap; pointer-events: none; animation: tpPulse 1.2s ease-in-out infinite; }
+.tp-vs-rank { grid-column: 1 / -1; justify-self: center; display: flex; gap: 0.4em; align-items: baseline; font-size: 0.8em; color: #ffe27a; }
+.tp-vs-rank b { background: rgba(255, 255, 255, 0.14); border-radius: 999px; padding: 0.02em 0.6em; color: #fff; }
+.tp-side .tp-vs-rank { font-size: 12px; }
+/* 對手亮相：「我的陀螺」藍、「對手」紅（兩隊顏色一致） */
+.tp-vs-l { background: var(--red, #ff5626); }
+.tp-pw-track.tp-pw-me .tp-pw-fill { background: linear-gradient(90deg, #0f8fe0, #4fd2ff 70%, #c9f3ff); }
+.tp-pw-track.tp-pw-opp .tp-pw-fill { background: linear-gradient(90deg, #e0300f, #ff7a45 70%, #ffd0b8); }
+.tp-pw-who.tp-pw-me .tp-vs-l { background: var(--blue, #2ab4ff); }
+/* 結算：比分兩隊色＋段位 */
+.tp-rscore { display: flex; align-items: center; justify-content: center; gap: 0.25em; flex-wrap: wrap; }
+.tp-rs-me { color: #1590d8; } .tp-rs-opp { color: #e0451b; }
+.tp-rrank { display: inline-flex; align-items: baseline; gap: 0.3em; margin-left: 0.5em; font-size: 0.72em; color: #6b5fa0; background: #f3edff; border-radius: 999px; padding: 0.05em 0.6em; }
+.tp-rrank b { color: #2b2440; }
+.tp-rrank.tp-up { background: #fff1b8; color: #a35d00; box-shadow: 0 0 0 0.12em #ffd54a; }
+.tp-rup { font-style: normal; }
+.tp-side .tp-rrank { font-size: 15px; }
+@media (prefers-reduced-motion: reduce) {
+  .tp-flash.tp-flashing { animation-duration: 0.5s; }
+  .tp-skip, .tp-dot.tp-dot-now, .tp-gfill.tp-low { animation: none; }
+  .tp-bn.tp-bnin { animation: tpFade 0.25s ease both; }
+  .tp-fchip.tp-glow, .tp-card.tp-glow { animation: none; }
+}
+@keyframes tpFade { from { opacity: 0; } to { opacity: 1; } }

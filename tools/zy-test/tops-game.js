@@ -151,9 +151,14 @@ function mock(PZ) {
     ok("① 教學只唸一次（模組唸，主程式不重複）", sp1.filter(t => t === INTRO).length === 1, J(sp1));
     await shot(p, "tops-type");
     // ② 第一次免費
-    const s0 = await TS(p);
+    const s0 = await TS(p), lab0 = await p.evaluate(() => window.__zy.topsRankLabel && window.__zy.topsRankLabel());
+    // v7：攔下主程式換背景音樂、播音效（合體起＝battle、對戰用 tp_* 音效）
+    await p.evaluate(() => { window.__bgmLog = []; const a = window.__zyAudio, f = a.playBgm, g = a.sfx; a.playBgm = (k, o) => { window.__bgmLog.push(k); return f.call(a, k, o); }; window.__sfxLog = []; a.sfx = (n, o) => { window.__sfxLog.push(n); return g.call(a, n, o); }; });
     const m1 = await playMatch(p, "宇宙強爸爸", "tops");
     const s1 = await TS(p), st1 = await TP(p), pend = await p.evaluate(() => window.__zy.topsPending);
+    const au1 = await p.evaluate(() => ({ bgm: window.__bgmLog.slice(), sfx: [...new Set(window.__sfxLog)], want: window.__zyAudio.debug().want, lab: window.__zy.topsRankLabel() }));
+    ok("v7 合體起換對戰音樂 battle（manifest 有這首）；對戰播 tp_ 音效（合體、倒數、發射、撞擊、回合）", au1.bgm.includes("battle") && au1.want === "battle" && ["tp_fuse", "tp_count", "tp_launch", "tp_round"].every(n => au1.sfx.includes(n)) && au1.sfx.some(n => /^tp_clash[123]$/.test(n)), J(au1));
+    ok("v7 段位：一開始「🔰 新手」→ 第一場贏了升一段（存檔 rank 1、介紹卡用的 topsRankLabel()＝「🥉 銅牌」）、onWin 帶 rank", lab0 === "🔰 新手" && s0.rank === 0 && s1.rank === 1 && au1.lab === "🥉 銅牌" && st1.win && st1.win.rank && st1.win.rank.from === 0 && st1.win.rank.to === 1, J({ lab0, r0: s0.rank, r1: s1.rank, lab: au1.lab, rank: st1.win && st1.win.rank }));
     ok("② 第一次免費：下場不扣券（tickets 0）、freeUsed＝1", s0.tickets === 0 && !s0.freeUsed && s1.tickets === 0 && s1.freeUsed === 1, J({ s0, s1: { t: s1.tickets, f: s1.freeUsed } }));
     ok("② 打完一場：存檔 best／home／history、沒有待退的券", m1.ok && s1.best && s1.best.p === "宇宙強爸爸" && s1.best.power === st1.power && s1.home.some(e => e.p === "宇宙強爸爸") && s1.history.length === 1 && s1.history[0].p === "宇宙強爸爸" && pend === null, J({ m1, best: s1.best, home: s1.home, hist: s1.history, pend }));
     ok("B6a 第一次免費那場：挑會贏的對手（贏了）；history 記下對手（同一句再下場時避開）", st1.win && st1.win.win === true && st1.oppWhy === "free" && s1.history[0].o === st1.opp.p, J({ win: st1.win && st1.win.score, opp: st1.opp, o: s1.history[0].o }));
@@ -257,8 +262,8 @@ function mock(PZ) {
     const ir = await p.evaluate(c => window.__zyB.importCode(c), code); await reopen(p);
     const s7b = await TS(p);
     ok("⑦ 備份碼帶陀螺存檔：刪掉後還原回來", gone.tickets === 0 && !gone.freeUsed && !gone.best && ir === "ok" && J(s7b) === J(s7), J({ gone, ir, s7b }));
-    const bad = await p.evaluate(() => { const code = "ZY2:" + btoa(unescape(encodeURIComponent(JSON.stringify({ v: 2, hw: 20, p: [{ s: ["貓"], st: 3, eg: 0, b: {}, i: [], m: 8, tp: { tickets: 99, starsBank: -5, freeUsed: "yes", best: { p: "太長太長太長了", power: 5 }, home: [{ p: "宇宙強爸爸", power: 1e9 }, { p: "<b>壞</b>", power: 3 }], history: "x" } }, null, null] })))); const d = window.__zyB.readCode(code); return d && d.slots[0] && d.slots[0].tops; });
-    ok("⑦ 備份碼裡亂寫的陀螺資料會被清乾淨（券 ≤3、starsBank ≥0、詞句要剛好 5 個國字、戰力 ≤9999）", bad && bad.tickets === 3 && bad.starsBank === 0 && bad.freeUsed === 1 && bad.best === null && J(bad.home) === J([{ p: "宇宙強爸爸", power: 9999 }]) && J(bad.history) === "[]", J(bad));
+    const bad = await p.evaluate(() => { const code = "ZY2:" + btoa(unescape(encodeURIComponent(JSON.stringify({ v: 2, hw: 20, p: [{ s: ["貓"], st: 3, eg: 0, b: {}, i: [], m: 8, tp: { tickets: 99, starsBank: -5, freeUsed: "yes", best: { p: "太長太長太長了", power: 5 }, home: [{ p: "宇宙強爸爸", power: 1e9 }, { p: "<b>壞</b>", power: 3 }], history: "x", rank: 99 } }, null, null] })))); const d = window.__zyB.readCode(code); return d && d.slots[0] && d.slots[0].tops; });
+    ok("⑦ 備份碼裡亂寫的陀螺資料會被清乾淨（券 ≤3、starsBank ≥0、詞句要剛好 5 個國字、戰力 ≤9999、段位 ≤4）", bad && bad.tickets === 3 && bad.starsBank === 0 && bad.freeUsed === 1 && bad.best === null && J(bad.home) === J([{ p: "宇宙強爸爸", power: 9999 }]) && J(bad.history) === "[]" && bad.rank === 4, J(bad));
     // ⑤b 下場扣了券就重新整理頁面（iPad 分頁被回收）：重開時券退回（10-12 里維必修 2：以前退券只靠記憶體變數，重新整理就沒了）
     const lsTops = () => p.evaluate(() => JSON.parse(localStorage.getItem("zy1_tops") || "null"));
     const goMid = async () => {

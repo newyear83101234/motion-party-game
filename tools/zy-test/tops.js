@@ -8,6 +8,8 @@
 //     10-12 櫻木／里維改善：A1 候選點一下就確定、選字中按注音＝先確定 A2 灰鍵 A3 候選排序（三聲變調、兒童常用字、emoji）A4 🎲 填空引導
 //     A5 沒券存成陀螺蛋＋集點卡、有券先問孵蛋 B6 第一次免費挑會贏的、輸了換對手、避開打過的 B7 只有第 1 回合倒數、4-5 回合 2 倍速、點畫面加油
 //     B8 戰力長條＋等級 B9 加成發光＋對戰強化（確定性）C10 變身出錯 onFail C11 火花顏色 C12 字典逾時 C13 gauge 快取 C14 import 版號 C15 結算降像素比
+//     v2（10-13）：合體能力公式、三戰兩勝確定性＋平衡、段位名字與倍率、tp_ 音效鍵在 manifest；合體轉場（五顆→一顆、卡片收成一張、第二次可跳過）、
+//     每回合 3-2-1、兩隊顏色、碎片＋停格、得分點＝比分、段位升段、減少動態（ZY_BASE 指定伺服器，例：http://127.0.0.1:8781）
 const { launch } = require("./lib");
 const path = require("path"), fs = require("fs"), os = require("os"), vm = require("vm"), cp = require("child_process");
 const { pathToFileURL } = require("url");
@@ -110,6 +112,49 @@ async function playToEnd(p, n = 1) {                          // 下場 → 開�
       how[r.end.how] = (how[r.end.how] || 0) + 1; maxN = Math.max(maxN, r.n); const pa = P.charPower(sa), pb = P.charPower(sb); if (Math.abs(pa - pb) > 300) { favN++; if ((pa > pb) === (r.end.loser === 1)) fav++; } }
     ok("對戰物理：每回合 ≤12 秒、撞出場／停下來／時間到都會發生、單字戰力多 300 的勝率 65–90%", maxN <= 720 && how.out > 50 && how.stop > 300 && how.time > 20 && fav / favN > 0.65 && fav / favN < 0.9,
       `撞出場 ${how.out}、停下來 ${how.stop}、時間到 ${how.time}（1500 回合）；強方勝率 ${(fav / favN * 100).toFixed(0)}%`); }
+
+  // ===== v2（10-13 阿葉）：五個字合體、三戰兩勝、段位、音效鍵（Node） =====
+  {
+    const bteam = ph => { const w = P.powerOf(ph, D); return { p: ph, stats: SIMM.boostStats(w.perChar.map(c => c.stats), SIMM.bonusHits(w)), power: w.total }; };
+    // 合體能力：照公式手算一次（重量 0.75 平均＋0.25 最大、穩定 0.7 平均＋0.3 最小、攻擊 0.6 平均＋0.4 最大、防禦 0.75 平均＋0.25 最大，以 50 為中心 ×1.6、1–99）
+    const T0 = bteam("紅色翹翹板"), mine = SIMM.fuseStats(T0.stats);
+    const hand = [0, 1, 2, 3].map(k => { const v = T0.stats.map(s => s[k]), mean = v.reduce((a, b) => a + b, 0) / 5, mx = Math.max(...v), mn = Math.min(...v);
+      const x = k === 1 ? 0.7 * mean + 0.3 * mn : k === 2 ? 0.6 * mean + 0.4 * mx : 0.75 * mean + 0.25 * mx; return Math.round(Math.min(99, Math.max(1, 50 + (x - 50) * SIMM.FUSE.STRETCH))); });
+    ok("v2 合體能力＝五個字（含加成）照公式合成、1–99（紅色翹翹板）", JSON.stringify(mine) === JSON.stringify(hand) && mine.every(v => v >= 1 && v <= 99), JSON.stringify({ mine, hand }));
+    // 三戰兩勝：每場 2–3 回合、贏家剛好 2 勝；三回合種子不同（同一場的回合軌跡不一樣）；確定性（同兩句 3 次一樣、A 打 B＝B 打 A）
+    let shapeOk = true, sameSeed = 0, m3 = 0; const pairs = [];
+    for (let t = 0; t < 300; t++) {
+      const a = bteam(Array.from({ length: 5 }, () => D.chars[Math.floor(rnd() * 3000)]).join("")), b = bteam(Array.from({ length: 5 }, () => D.chars[Math.floor(rnd() * 3000)]).join(""));
+      const m = SIMM.simulateMatch(a, b), w = m.winner === "a" ? 0 : 1;
+      if (m.rounds.length < 2 || m.rounds.length > 3 || m.score[w] !== 2 || m.score[1 - w] > 1) shapeOk = false;
+      if (m.rounds.length === 3) { m3++; if (m.rounds[0].sim.n === m.rounds[1].sim.n && m.rounds[1].sim.n === m.rounds[2].sim.n) sameSeed++; }
+      if (t < 20) pairs.push([a, b]);
+    }
+    const detOk = pairs.every(([a, b]) => { const x = sig(SIMM.simulateMatch(a, b)), y = sig(SIMM.simulateMatch(a, b)), r = SIMM.simulateMatch(b, a), o = SIMM.simulateMatch(a, b); return x === y && r.winner !== o.winner && r.rounds.every((q, i) => q.how === o.rounds[i].how); });
+    ok("v2 三戰兩勝：每場 2–3 回合、先拿 2 勝的贏；三回合過程不一樣（種子不同）；同兩句每次一樣、A 打 B＝B 打 A", shapeOk && m3 > 50 && sameSeed === 0 && detOk, JSON.stringify({ shapeOk, m3, sameSeed, detOk }));
+    // 平衡：戰力高贏面大但不是必勝（隨機詞句 3000 場）
+    const bk = { near: [0, 0], mid: [0, 0], far: [0, 0] }; const how3 = {}; let maxN = 0;
+    for (let t = 0; t < 3000; t++) {
+      const a = bteam(Array.from({ length: 5 }, () => D.chars[Math.floor(rnd() * 3000)]).join("")), b = bteam(Array.from({ length: 5 }, () => D.chars[Math.floor(rnd() * 3000)]).join(""));
+      const m = SIMM.simulateMatch(a, b), diff = Math.abs(a.power - b.power), k = diff < 250 ? "near" : diff < 1000 ? "mid" : "far";
+      bk[k][0]++; if ((a.power > b.power) === (m.winner === "a")) bk[k][1]++;
+      for (const r of m.rounds) { how3[r.how] = (how3[r.how] || 0) + 1; maxN = Math.max(maxN, r.sim.n); }
+    }
+    const pc = k => bk[k][1] / bk[k][0];
+    ok("v2 平衡：戰力差 1000 以上強的勝率 75–95%、250–1000 約 6–8 成、250 以內 40–70%（不是必勝）；撞出場與停下來都會發生、每回合 ≤12 秒", pc("far") >= 0.75 && pc("far") <= 0.95 && pc("mid") >= 0.55 && pc("mid") <= 0.85 && pc("near") >= 0.4 && pc("near") <= 0.7 && how3.out > 300 && how3.stop > 1000 && maxN <= 720,
+      `差≥1000：${(pc("far") * 100).toFixed(0)}%、250–1000：${(pc("mid") * 100).toFixed(0)}%、<250：${(pc("near") * 100).toFixed(0)}%；${JSON.stringify(how3)}`);
+    // 段位名字跟主程式一樣（介紹卡用 zhuyin.js 的 TOPS_RANKS）；對手目標倍率越高段越強
+    const mainSrc0 = fs.readFileSync(path.join(ROOT, "js/zhuyin.js"), "utf8");
+    const rkMod = [...tsrc.split("export const RANKS = [")[1].split("];")[0].matchAll(/name: "([^"]+)", ico: "([^"]+)"/g)].map(m => m[2] + m[1]);
+    const rkMain = [...mainSrc0.split("const TOPS_RANKS = [")[1].split("];")[0].matchAll(/\["([^"]+)", "([^"]+)"\]/g)].map(m => m[1] + m[2]);
+    const fac = JSON.parse(tsrc.match(/export const RANK_FACTOR = (\[[^\]]+\]);/)[1]);
+    ok("v2 段位：新手→銅牌→銀牌→金牌→彩虹，模組 RANKS＝主程式 TOPS_RANKS；對手目標倍率一段比一段高（新手 <1、彩虹 >1）；主程式有 topsRankLabel()", rkMod.length === 5 && JSON.stringify(rkMod) === JSON.stringify(rkMain) && fac.every((v, i) => !i || v > fac[i - 1]) && fac[0] < 1 && fac[4] > 1 && /function topsRankLabel\(\)/.test(mainSrc0),
+      JSON.stringify({ rkMod, rkMain, fac }));
+    // 音效／音樂鍵：模組用的 tp_* 都在 audio/manifest.json（分身 S 做的）、battle 在 bgm
+    const man = JSON.parse(fs.readFileSync(path.join(ROOT, "audio/manifest.json"), "utf8"));
+    const sfxKeys = [...tsrc.split("export const SFX = {")[1].split("};")[0].matchAll(/"(tp_[a-z0-9_]+)"/g)].map(m => m[1]);
+    ok("v2 音效鍵 tp_fuse／launch／count／clash1-3／ko／round／cheer／victory 都在 manifest、模組要的 bgm「battle」也在", sfxKeys.length === 10 && sfxKeys.every(k => man.sfx[k]) && !!man.bgm.battle && /bgm\("battle"\)/.test(tsrc), JSON.stringify({ sfxKeys, miss: sfxKeys.filter(k => !man.sfx[k]) }));
+  }
 
   const browser = await launch();
 
@@ -473,15 +518,23 @@ async function playToEnd(p, n = 1) {                          // 下場 → 開�
       await p.evaluate(() => { window.__bn = []; window.__speeds = new Set(); new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => n.classList && n.classList.contains("tp-bn") && window.__bn.push(n.textContent)))).observe(document.querySelector(".tp-banner"), { childList: true });
         setInterval(() => { const s = window.__tp.game.state(); if (s && s.round && s.round.stage === "fight") window.__speeds.add(s.round.i + ":" + s.round.speed); }, 20); });
       await p.evaluate(() => window.__tp.game.debug.setPhrase("紅色翹翹板")); await p.click(".tp-go");
+      // v2 合體：五顆小陀螺（藍隊色）→ 白光 → 一顆合體陀螺；五張能力卡收成一張合體卡
+      await p.waitForFunction(() => { const s = window.__tp.game.state(); return s.fuse && s.fuse.t > 1.2 && !s.fuse.burst; }, null, { timeout: 30000, polling: 50 });
+      const fz1 = await p.evaluate(() => ({ w: window.__tp.game.debug.world(), cards: document.querySelectorAll(".tp-card.tp-in").length, skip: window.__tp.game.state().fuse.skip }));
+      await p.waitForFunction(() => window.__tp.game.state().fuse.burst, null, { timeout: 30000, polling: 30 });
+      await sleep(120);
+      const fz2 = await p.evaluate(() => ({ w: window.__tp.game.debug.world(), fcard: document.querySelector(".tp-fcard").classList.contains("tp-in"), merged: document.querySelectorAll(".tp-card.tp-merge").length, bn: [...document.querySelectorAll(".tp-bn")].map(e => e.textContent.replace(/[ㄅ-ㄩˊˇˋ˙\s]/g, "")), s: window.__tp.game.state() }));
       await p.waitForFunction(() => window.__tp.game.state().glowed >= 6, null, { timeout: 30000 });   // 紅色翹翹板：疊字 2＋同聲調 3＋顏色 1 顆
       await sleep(250);
-      const glow = await p.evaluate(() => ({ cards: document.querySelectorAll(".tp-card.tp-glow").length, boosts: [...document.querySelectorAll(".tp-boost")].map(e => e.textContent), w: window.__tp.game.debug.world() }));
+      const glow = await p.evaluate(() => ({ cards: document.querySelectorAll(".tp-fchip.tp-glow").length, boosts: [...document.querySelectorAll(".tp-boost")].map(e => e.textContent), w: window.__tp.game.debug.world() }));
       if (label) await shot(p, "1024x768_bonus_glow");
       await p.waitForFunction(() => !document.querySelector(".tp-fight").disabled, null, { timeout: 30000 }); await sleep(400);
       if (label) await shot(p, "1024x768_vs_bars");
       await p.click(".tp-fight");
       await p.waitForFunction(() => { const s = window.__tp.game.state(); return s.round && s.round.stage === "fight"; }, null, { timeout: 30000 });
       const pr1 = await p.evaluate(() => window.__tp.game.debug.world().pr);
+      const hud = await p.evaluate(() => ({ w: window.__tp.game.debug.world(), dots: document.querySelectorAll(".tp-dots .tp-dot").length, round: (document.querySelector(".tp-round") || {}).textContent, tags: [...document.querySelectorAll(".tp-tag")].map(e => e.textContent.replace(/[ㄅ-ㄩˊˇˋ˙\s]/g, "")),
+        tagBg: [...document.querySelectorAll(".tp-tag")].map(e => getComputedStyle(e).backgroundColor), plateB: [...document.querySelectorAll(".tp-team")].map(e => getComputedStyle(e).borderTopColor), pct: [...document.querySelectorAll(".tp-gpct")].map(e => e.textContent) }));
       let sp = null;
       if (cheers) {
         for (let k = 0; k < cheers; k++) { await p.mouse.click(300 + k * 60, 420); await sleep(40); }
@@ -490,17 +543,27 @@ async function playToEnd(p, n = 1) {                          // 下場 → 開�
       }
       await waitWin(p, 1, 180000);
       await p.waitForFunction(() => document.querySelector(".tp-rpanel"), null, { timeout: 30000 }); await sleep(300);
-      const end = await p.evaluate(() => ({ w: window.__tp.calls.win[0], pr: window.__tp.game.debug.world().pr, bn: window.__bn.slice(), speeds: [...window.__speeds], s: window.__tp.game.state() }));
-      return { glow, pr1, sp, end };
+      const end = await p.evaluate(() => ({ w: window.__tp.calls.win[0], pr: window.__tp.game.debug.world().pr, bn: window.__bn.slice(), speeds: [...window.__speeds], s: window.__tp.game.state(), wd: window.__tp.game.debug.world(),
+        dotsMe: document.querySelectorAll(".tp-dot.tp-dot-me").length, dotsOpp: document.querySelectorAll(".tp-dot.tp-dot-opp").length, plays: window.__tp.calls.play.slice() }));
+      return { glow, pr1, sp, end, fz1, fz2, hud };
     };
     const A = await runMatch(6, true), B = await runMatch(0, false);
-    const cnt = t => A.end.bn.filter(x => x.replace(/[ㄅ-ㄩˊˇˋ˙\s]/g, "") === t).length, rounds = A.end.w.score[0] + A.end.w.score[1];
-    ok("B7 只有第 1 回合 3-2-1 倒數，之後直接「發射！」（每回合都有發射）", cnt("3") === 1 && cnt("2") === 1 && cnt("1") === 1 && cnt("發射！") === rounds && A.end.s.countdown === 1, JSON.stringify({ rounds, bn: A.end.bn.map(x => x.replace(/[ㄅ-ㄩˊˇˋ˙\s]/g, "")) }));
-    const sp45 = A.end.speeds.filter(x => +x.split(":")[0] >= 3), sp13 = A.end.speeds.filter(x => +x.split(":")[0] < 3);
-    ok("B7 第 4、5 回合預設 2 倍速（第 1–3 回合 1 倍）", sp13.every(x => x.endsWith(":1")) && sp45.every(x => x.endsWith(":2")) && (rounds < 4 || sp45.length >= 1), JSON.stringify(A.end.speeds));
+    const strip = x => x.replace(/[ㄅ-ㄩˊˇˋ˙\s]/g, ""), cnt = t => A.end.bn.filter(x => strip(x) === t).length, rounds = A.end.w.score[0] + A.end.w.score[1];
+    ok("v2 合體轉場：五顆小陀螺（藍隊色）＋五張能力卡 → 白光「合體！」→ 只剩一顆合體陀螺、五張卡收成一張合體卡；第一次不能跳過",
+      A.fz1.w.tops === 6 && A.fz1.cards === 5 && !A.fz1.skip && A.fz2.w.tops === 1 && A.fz2.fcard && A.fz2.merged === 5 && A.fz2.bn.includes("合體！") && A.fz2.s.spoken.includes("合體！") && A.fz2.s.flashes >= 1 && JSON.stringify(A.fz2.s.fused) === JSON.stringify(SIMM.fuseStats(SIMM.boostStats(P.powerOf("紅色翹翹板", D).perChar.map(c => c.stats), SIMM.bonusHits(P.powerOf("紅色翹翹板", D))))),
+      JSON.stringify({ fz1: { tops: A.fz1.w.tops, cards: A.fz1.cards }, fz2: { tops: A.fz2.w.tops, fcard: A.fz2.fcard, merged: A.fz2.merged, bn: A.fz2.bn, fused: A.fz2.s.fused } }));
+    ok("v2 每回合都有「ROUND／決勝回合」＋3、2、1 倒數＋「發射！」；三戰兩勝（比分 2:0／2:1／0:2／1:2）",
+      cnt("3") === rounds && cnt("2") === rounds && cnt("1") === rounds && cnt("發射！") === rounds && A.end.s.countdown === rounds && A.end.s.launches === rounds && cnt("ROUND1") === 1 && (rounds < 3 || cnt("決勝回合！") === 1) && rounds >= 2 && rounds <= 3 && Math.max(...A.end.w.score) === 2,
+      JSON.stringify({ rounds, score: A.end.w.score, bn: A.end.bn.map(strip) }));
+    ok("v2 兩隊顏色不同：合體陀螺藍隊 #2ab4ff／紅隊 #ff5626、碗裡名字牌「藍隊／紅隊」、名字牌外框兩色、耐力 100% 開始；上方 ROUND＋三個得分點",
+      JSON.stringify(A.hud.w.teams) === JSON.stringify(["me:#2ab4ff", "opp:#ff5626"]) && A.hud.tags.join() === "藍隊,紅隊" && A.hud.tagBg[0] !== A.hud.tagBg[1] && A.hud.plateB[0] !== A.hud.plateB[1] && A.hud.pct.every(x => parseInt(x) >= 95) && A.hud.dots === 3 && /ROUND 1/.test(A.hud.round || ""), JSON.stringify(A.hud));
+    ok("v2 撞擊：有撞就噴碎片（InstancedMesh、上限 150 塊）、中／重擊會停格、tp_clash 音效；結束時得分點＝比分、勝負大字「藍隊勝！／紅隊勝！」＋「勝利！／再接再厲」",
+      A.end.s.hitN >= 2 && A.end.wd.debrisMade >= 10 && A.end.wd.debris <= A.end.wd.debrisCap && A.end.s.holds >= 1 && A.end.plays.some(n => /^tp_clash[123]$/.test(n)) && A.end.dotsMe === A.end.w.score[0] && A.end.dotsOpp === A.end.w.score[1] &&
+      cnt("藍隊勝！") === A.end.w.score[0] && cnt("紅隊勝！") === A.end.w.score[1] && cnt(A.end.w.win ? "勝利！" : "再接再厲") === 1,
+      JSON.stringify({ hitN: A.end.s.hitN, lv: A.end.s.hitLv, holds: A.end.s.holds, debris: A.end.wd.debrisMade, dots: [A.end.dotsMe, A.end.dotsOpp], score: A.end.w.score }));
     ok("B7 點畫面加油：冒火花、跳出「加油！」字、歡呼；純表演——有沒有加油，同一場結果完全一樣", A.sp.cheers === 6 && A.sp.w.sparks > 0 && A.sp.txt.some(t => /加油|衝啊|好棒/.test(t)) && JSON.stringify(A.end.w.rounds) === JSON.stringify(B.end.w.rounds) && A.end.w.win === B.end.w.win, JSON.stringify({ c: A.sp.cheers, sparks: A.sp.w.sparks, txt: A.sp.txt, same: JSON.stringify(A.end.w.rounds) === JSON.stringify(B.end.w.rounds) }));
     ok("C11 火花有顏色（顏色緩衝有更新，不再全黑）", A.sp.w.sparkColor > 0.3, String(A.sp.w.sparkColor));
-    ok("B9 加成徽章跳出時：觸發的陀螺發光跳一下、能力卡標出對戰加了什麼（⚔️+10 這種）、換金色光圈", A.glow.cards >= 1 && A.glow.boosts.length >= 4 && A.glow.w.gold.includes("me:紅") && A.glow.w.gold.includes("me:翹"), JSON.stringify(A.glow));
+    ok("B9 加成徽章跳出時：合體卡上觸發的字發光、標出對戰加了什麼（⚔️+10 這種，一種加成一個）、合體陀螺換金色光圈", A.glow.cards >= 4 && A.glow.boosts.length === 3 && A.glow.w.gold.includes("me:紅色翹翹板"), JSON.stringify(A.glow));
     ok("B9 對戰中：有加成的陀螺（兩隊都算）帶金色光圈", (A.sp.gold || []).length >= 1, JSON.stringify(A.sp.gold));
     ok("C15 結算期間 3D 像素比降到 1（對戰中是 2）", A.pr1 === 2 && A.end.pr === 1, JSON.stringify({ battle: A.pr1, result: A.end.pr }));
     // C10 enterMorph 出錯 → onFail({why:"morph"})
@@ -513,6 +576,55 @@ async function playToEnd(p, n = 1) {                          // 下場 → 開�
     ok("C10 變身流程出錯（enterMorph reject）＝catch 住、console.warn、onFail({why:\"morph\"})（主程式會回小島並退券）", mf.fail.some(f => f.why === "morph") && mf.warns.length >= 1, JSON.stringify(mf));
     ok("B7–C15 段：沒有錯誤", errs.length === 0, errs.join(" | "));
     await ctx.close();
+  }
+  {
+    // v2：合體第二次起點一下跳過、段位升段（試玩頁沒給 api.rank＝模組自己記）、對手照段位挑、減少動態
+    const { ctx, p, errs } = await open(browser, 1024, 768, "fast=6&tickets=99");
+    const one = async (ph, skipTap) => {
+      await p.evaluate(() => window.__tp.game.start()); await waitPhase(p, "type");
+      await p.evaluate(ph => window.__tp.game.debug.setPhrase(ph), ph);
+      const w0 = await p.evaluate(() => window.__tp.calls.win.length);
+      await p.click(".tp-go"); await waitPhase(p, "morph");
+      let sk = null;
+      if (skipTap) {
+        await p.waitForFunction(() => { const s = window.__tp.game.state(); return s.fuse && s.fuse.t > 0.3; }, null, { timeout: 20000, polling: 30 });
+        const before = await p.evaluate(() => ({ skip: window.__tp.game.state().fuse.skip, hint: !document.querySelector(".tp-skip").classList.contains("tp-off") }));
+        await p.mouse.click(500, 300); await sleep(150);
+        sk = { ...before, after: await p.evaluate(() => window.__tp.game.state().fuse) };
+      }
+      await p.waitForFunction(() => { const s = window.__tp.game.state(); return s.opp && !document.querySelector(".tp-fight").disabled; }, null, { timeout: 30000 });
+      const pre = await S(p);
+      await p.click(".tp-fight"); await p.evaluate(() => window.__tp.game.debug.fast(true)); await waitWin(p, w0 + 1);
+      return { pre, sk, w: await p.evaluate(n => window.__tp.calls.win[n], w0) };
+    };
+    const r1 = await one("閃電小烏龜", false), r2 = await one("閃電小烏龜", true);
+    ok("v2 合體：這次開頁第一次看完整（沒有跳過提示）；第二次起有「點一下跳過」、點一下直接白光合體", r1.pre.fuse && !r1.pre.fuse.skip && r1.pre.fuse.done && r2.sk && r2.sk.skip && r2.sk.hint && r2.sk.after.burst && r2.sk.after.skipped, JSON.stringify({ first: r1.pre.fuse, second: r2.sk }));
+    // 段位：用 debug.setRank 直接設；對手目標＝戰力 × 倍率；贏了升一段、到彩虹不再升、輸了不降
+    const fac = JSON.parse(tsrc.match(/export const RANK_FACTOR = (\[[^\]]+\]);/)[1]);
+    const tg = r1.pre.oppTarget === Math.round(r1.pre.power * fac[r1.pre.rank]);
+    const rkOk = w => w.rank && w.rank.to === (w.win ? Math.min(4, w.rank.from + 1) : w.rank.from);
+    await p.evaluate(() => window.__tp.game.debug.setRank(4));
+    const r3 = await one("閃電小烏龜", true);
+    ok("v2 段位：從新手開始；對手目標戰力＝我的戰力×段位倍率；贏了 from→from+1、輸了不變、接著下一場；彩虹（4）贏了還是 4",
+      tg && r1.pre.rank === 0 && rkOk(r1.w) && rkOk(r2.w) && r2.w.rank.from === r1.w.rank.to && rkOk(r3.w) && r3.w.rank.from === 4 && r3.w.rank.to === 4 && r3.pre.rank === 4 && r3.pre.oppTarget === Math.round(r3.pre.power * fac[4]),
+      JSON.stringify({ t1: [r1.pre.oppTarget, r1.pre.power, r1.pre.rank], ranks: [r1.w.win, r1.w.rank, r2.w.win, r2.w.rank], r3: r3.w.rank, t3: r3.pre.oppTarget }));
+    // 結算面板：段位＋升段箭頭
+    await p.waitForFunction(() => document.querySelector(".tp-rrank"), null, { timeout: 30000 }).catch(() => {});
+    const rk = await p.evaluate(() => { const e = document.querySelector(".tp-rrank"); return e && e.textContent.replace(/[ㄅ-ㄩˊˇˋ˙\s]/g, ""); });
+    ok("v2 結算面板顯示段位（🌈彩虹）", /段位🌈彩虹/.test(rk || ""), rk);
+    ok("v2 段：沒有錯誤", errs.length === 0, errs.join(" | "));
+    await ctx.close();
+    // 減少動態：畫面閃光最多 0.25、3D 震動打兩折、鏡頭不推近
+    const rmc = await browser.newContext({ viewport: { width: 1024, height: 768 }, reducedMotion: "reduce" });
+    const rp = await rmc.newPage(); const rerr = [];
+    rp.on("pageerror", e => { rerr.push(e.message); allErrs.push("[rm] PAGEERR " + e.message); });
+    await rp.goto(LAB + "?mute=1&clean=1&home=clear&fast=4&tickets=9");
+    await rp.waitForFunction(() => window.__tp && window.__tp.ready, null, { timeout: 20000 });
+    await rp.evaluate(() => window.__tp.game.debug.setPhrase("紅色翹翹板")); await rp.click(".tp-go");
+    await rp.waitForFunction(() => { const s = window.__tp.game.state(); return s.fuse && s.fuse.burst; }, null, { timeout: 30000, polling: 30 });
+    const rmv = await rp.evaluate(() => ({ rm: window.__tp.game.state().rm, fa: +getComputedStyle(document.querySelector(".tp-flash")).getPropertyValue("--fa") }));
+    ok("v2 減少動態（prefers-reduced-motion）：模組知道、合體白光最多 0.25（平常 1）", rmv.rm === true && rmv.fa > 0 && rmv.fa <= 0.25 && !rerr.length, JSON.stringify(rmv));
+    await rmc.close();
   }
   {
     // C12 字典 fetch 逾時（攔截字典請求不回應）→ onFail("dict")

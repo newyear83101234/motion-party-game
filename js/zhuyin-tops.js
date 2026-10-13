@@ -1,5 +1,8 @@
-// ===================== 注音小島：注音戰鬥陀螺（拼 5 個字→變 5 顆陀螺→一對一對戰） =====================
-// 規格：docs/zhuyin-tops-spec.md。給 5 歲小孩：用大顆注音鍵盤拼字（學注音的核心）、選字、湊滿 5 個字下場；
+// ===================== 注音小島：注音戰鬥陀螺（拼 5 個字→合體成 1 顆陀螺→一對一三戰兩勝） =====================
+// v2（10-13 阿葉）：5 個字選好 → 合體轉場（5 顆小陀螺飛到中間越轉越快、白光一閃）→ 一顆合體陀螺（頂面一圈 5 個字）→
+//   對手（照段位挑）→ 三戰兩勝（每回合 3、2、1 發射；撞擊火花＋碎片＋衝擊圈＋震動＋停格＋重擊拉近；決勝慢動作）。
+//   兩隊顏色：小孩＝藍隊（藍青）、對手＝紅隊（紅橘）。段位：新手→銅牌→銀牌→金牌→彩虹（贏一場升一段，存檔在主程式）。
+// 規格：docs/zhuyin-tops-spec.md（v2 在 §6）。給 5 歲小孩：用大顆注音鍵盤拼字（學注音的核心）、選字、湊滿 5 個字下場；
 // 字形決定陀螺能力（字典離線預算，js/zhuyin-tops-dict.json），整句戰力公式在 js/zhuyin-tops-power.js（後端 GAS 用同一份），
 // 對戰物理在 js/zhuyin-tops-sim.js（確定性：同樣兩句每次結果一樣）。遊戲不唸小孩打的字，只唸固定台詞（LINES）。
 //
@@ -9,8 +12,10 @@
 //   api（都可省略的標 ?）：
 //     say talk play later paused     跟其他遊戲一樣（later＝gLater，暫停凍得住；play 名稱不存在要安靜略過）
 //     onWin(info)                    分出勝負當下呼叫一次（主程式馬上存檔）：
-//                                    { win, power, phrase, z, score:[我,對手], opponent:{p,power}, rounds:[{ i, me, them, win, how }], bonuses:[{id,name,value}],
-//                                      record（＝打破我家排行第一名）, home（更新後的我家排行前 5）}
+//                                    { win, power, phrase, z, score:[我,對手], opponent:{p,power}, rounds:[{ i, win, how }], bonuses:[{id,name,value}],
+//                                      record（＝打破我家排行第一名）, home（更新後的我家排行前 5）, rank:{ from, to }（段位 0..4；贏了 to＝from＋1，最高 4）}
+//     rank?()                        目前段位 0..4（新手、銅牌、銀牌、金牌、彩虹）；沒給＝模組自己記（只在記憶體）
+//     bgm?(key)                      換背景音樂：合體起＝"battle"；回打字畫面／陀螺蛋＝null（主程式換回這個遊戲平常的音樂）
 //     onSubmit(phrase, power)        可能進全島榜前 5 才呼叫（只送詞句本身＋前端算的戰力；伺服器要自己重算）；
 //                                    可回傳 Promise<{ pending?, rank? }> → pending＝顯示「審核後就會上榜喔！」
 //     leaderboard()                  Promise<{ island:[{p,power}], home:[{p,power,z?}] }>（舊格式：直接回陣列＝island）
@@ -28,7 +33,7 @@
 // stop()：dispose renderer、停 rAF、作廢所有舊回呼（run 號碼）、清語音佇列。
 import * as THREE from "three";
 import * as TP from "./zhuyin-tops-power.js?v=1";          // ?v=1：跟 js/zhuyin-tops-sim.js 的 import 網址完全一樣（同一份模組）；改了一起升
-import { SIM, topParams, simulateMatch, bonusHits, boostStats, BOOST } from "./zhuyin-tops-sim.js?v=1";
+import { SIM, topParams, simulateMatch, bonusHits, boostStats, BOOST, fuseStats, FUSE } from "./zhuyin-tops-sim.js?v=1";
 import { WORDS, PHRASES, FRIENDS } from "./zhuyin-words.js";   // 兒童常用字（候選字排前面）；網址跟 js/zhuyin.js 一樣（同一份，不會再抓一次）
 
 const ROOT = new URL("../", import.meta.url).href;
@@ -45,18 +50,20 @@ export const LINES = {
   bad: "這個拼不出字喔，再試試看！",
   full: "五個字都好了，可以下場囉！",
   inspire: "這句怎麼樣？",
-  morph: "變身！",
+  fuse: "合體！",
   power: "戰力出來囉！",
   vs: "對手來了！",
   fight: "陀螺，發射！",
-  roundWin: "這回合你贏了！",
-  roundLose: "這回合對手贏了！",
+  launch: "發射！",
+  final: "決勝回合！",
+  blueWin: "藍隊勝！",
+  redWin: "紅隊勝！",
   out: "撞出場了！",
   stop: "停下來了！",
   time: "時間到，看誰轉得久！",
   last: "最後一擊！",
-  win: "你贏了！你的陀螺最強！",
-  lose: "差一點點！再拼一句更強的吧！",
+  win: "勝利！你的陀螺最強！",
+  lose: "再接再厲！再拼一句更強的吧！",
   record: "新紀錄！",
   pending: "審核後就會上榜喔！",
   ranked: "上榜了！",
@@ -67,18 +74,29 @@ export const LINES = {
   eggAsk: "你有陀螺蛋！要孵出來對戰嗎？",
   starCard: "集滿十五顆星星，就能換一張陀螺券！",
   rematch: "換個對手，再打一次！",
-  loseRematch: "差一點點！可以換個對手再打一次喔！",
+  loseRematch: "再接再厲！可以換個對手再打一次喔！",
   cheer: "加油！加油！",
   cheerHint: "點畫面，幫你的陀螺加油！",
   vsPre: "對手是：",
 };
 // 內建詞句（骰子詞庫、島上傳說）有預錄配音：唸成「宇宙強爸爸！」；對手是內建詞句時唸「對手是：」＋「宇宙強爸爸！」（兩段，見 js/zhuyin-voice.js 的 split）
 export const sayPhrase = p => p + "！";
-export const ROUND_LINES = ["第一回合！", "第二回合！", "第三回合！", "第四回合！", "第五回合！"];
+// 三戰兩勝：第 3 回合一定是 1:1 → 唸 LINES.final「決勝回合！」，所以只要前兩回合
+export const ROUND_LINES = ["第一回合！", "第二回合！"];
+// 升段（贏一場升一段；to＝1..4 用第 to−1 句）
+export const RANK_UP = ["升段了！現在是銅牌！", "升段了！現在是銀牌！", "升段了！現在是金牌！", "升段了！現在是彩虹！"];
+// 段位（對手難度）：新手 → 銅牌 → 銀牌 → 金牌 → 彩虹。對手戰力目標＝我的戰力 × FACTOR（越高段越接近或略高於我的）
+//   主程式 js/zhuyin.js 的 TOPS_RANKS（介紹卡顯示目前段位）是同一份名字（tools/zy-test/tops.js 比對）
+export const RANKS = [{ k: 0, name: "新手", ico: "🔰" }, { k: 1, name: "銅牌", ico: "🥉" }, { k: 2, name: "銀牌", ico: "🥈" }, { k: 3, name: "金牌", ico: "🥇" }, { k: 4, name: "彩虹", ico: "🌈" }];
+export const RANK_FACTOR = [0.82, 0.92, 1.0, 1.06, 1.12];
+export const rankLabel = k => { const r = RANKS[clamp(k | 0, 0, RANKS.length - 1)]; return r.ico + " " + r.name; };
+// 兩隊顏色（小孩＝藍隊、對手＝紅隊）：陀螺、腳下光圈、名字牌、耐力條、得分點都用這個
+export const TEAM = { me: { name: "藍隊", hex: 0x2ab4ff, css: "#2ab4ff", hue: 0.56 }, opp: { name: "紅隊", hex: 0xff5626, css: "#ff5626", hue: 0.03 } };
 // 加成名稱（跟 zhuyin-tops-power.js 的 TOPS_BONUS 一樣；這裡再列一次是為了讓 build_zhuyin_ui.py 掃到注音——測試會比對兩邊一致）
 export const BONUS_TEXT = { double: "疊字加成！", rhyme: "押韻加成！", tone: "同聲調加成！", animal: "動物加成！", color: "顏色加成！", strong: "強字加成！" };
-// 音效（audio/sfx 現有的名字；音訊組做了專屬的 tops_* 再換掉這張表）
-export const SFX = { key: "tap", toneKey: "select", bad: "ng", pick: "pop", ok: "ok", morph: "hatch", ding: "ding", coin: "coin", launch: "whoosh", clash: "tap", out: "splash", topple: "flip", roundWin: "star", roundLose: "ng", win: "win", lose: "flip", record: "unlock", go: "unlock", cheer: "star", egg: "pop", boost: "coin" };
+// 音效：打字畫面用 audio/sfx 現有的；對戰用 v7 的 tp_*（docs/zhuyin-v7-plan.md §3，分身 S 做；檔案還沒到＝引擎安靜略過）
+export const SFX = { key: "tap", toneKey: "select", bad: "ng", pick: "pop", ok: "ok", ding: "ding", coin: "coin", topple: "flip", lose: "flip", record: "unlock", go: "unlock", egg: "pop", boost: "coin", gather: "whoosh",
+  fuse: "tp_fuse", launch: "tp_launch", count: "tp_count", clash1: "tp_clash1", clash2: "tp_clash2", clash3: "tp_clash3", ko: "tp_ko", round: "tp_round", cheer: "tp_cheer", victory: "tp_victory" };
 // 等級徽章（10-12 櫻木：數字看不懂誰強 → 長條＋徽章）。門檻照實際分佈（tools/zy-test/tops.js 印的：常用字詞句中位約 4700、p90 約 5900）：
 //   銅 <4200（約 2 成）、銀 4200–5199（約 4 成）、金 5200–6199（約 3 成）、彩虹 ≥6200（約 1 成）
 export const TIERS = [{ min: 0, k: 1, name: "銅陀螺", ico: "🥉" }, { min: 4200, k: 2, name: "銀陀螺", ico: "🥈" }, { min: 5200, k: 3, name: "金陀螺", ico: "🥇" }, { min: 6200, k: 4, name: "彩虹陀螺", ico: "🌈" }];
@@ -212,19 +230,19 @@ const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const BOWL_A = 0.055;                                       // 碗面高度 y＝BOWL_A × r²（拋物面＝物理裡往中心拉的力跟距離成正比）
 const bowlY = r2 => BOWL_A * r2;
 
-// 主色：四項能力最突出的那項（紫＝重、綠＝穩、紅＝攻、藍＝防），用字的雜湊微調明暗
-function topColor(st, ch) {
-  let k = 0; for (let i = 1; i < 4; i++) if (st[i] > st[k]) k = i;
-  const c = new THREE.Color(STAT_COLOR[k]), hsl = {}; c.getHSL(hsl);
-  const h = TP.hashStr(ch);
-  c.setHSL((hsl.h + ((h % 21) - 10) / 360 + 1) % 1, clamp(hsl.s + ((h >> 5) % 11 - 5) / 100, 0, 1), clamp(hsl.l + ((h >> 9) % 13 - 6) / 100, 0.3, 0.7));
+// 隊伍色（v2：兩隊顏色一定不一樣）：i＝合體前五顆小陀螺的第幾顆（同一隊的色相微調，看得出是五顆）
+function teamColor(side, i = 2) {
+  const c = new THREE.Color((TEAM[side] || TEAM.me).hex), hsl = {}; c.getHSL(hsl);
+  c.setHSL((hsl.h + (i - 2) * 0.022 + 1) % 1, hsl.s, clamp(hsl.l + (i === 2 ? 0 : i % 2 ? 0.07 : -0.04), 0.3, 0.72));
   return c;
 }
+const HOVER = 1.7;                                          // 每回合發射前，兩顆陀螺浮在碗上面多高（發射＝掉進碗裡）
 
 // ===================== 3D 世界（變身＋對戰共用；dispose() 全部收乾淨） =====================
 function createWorld(host, o) {
-  const W = { dead: false, tops: [], tw: [], sparks: null, flashes: [], shake: 0, size: [1, 1], camMode: "morph", zoom: null, gt: 0 };
+  const W = { dead: false, tops: [], tw: [], sparks: null, flashes: [], shake: 0, size: [1, 1], camMode: "morph", zoom: null, gt: 0, rm: !!o.rm };
   const own = new Set(), keep = x => { own.add(x); return x; };
+  W.addShake = v => { W.shake = Math.max(W.shake, v * (W.rm ? 0.2 : 1)); };   // 減少動態：震動只剩兩成
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
   CTX.made++; CTX.live++;
   const PR = Math.min(window.devicePixelRatio || 1, 2);
@@ -306,6 +324,53 @@ function createWorld(host, o) {
   const ringGeo = keep(new THREE.RingGeometry(0.7, 0.95, 40));
   for (let i = 0; i < 4; i++) { const m = new THREE.Mesh(ringGeo, keep(new THREE.MeshBasicMaterial({ color: 0xfff1a8, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false }))); m.rotation.x = -Math.PI / 2; m.visible = false; scene.add(m); W.flashes.push({ m, t: 1 }); }
   W.flash = (x, y, z, s) => { const f = W.flashes.reduce((a, b) => a.t > b.t ? a : b); f.t = 0; f.s = s; f.m.position.set(x, y + 0.05, z); f.m.visible = true; };
+  // ---------- v2 碎片（撞擊時陀螺外殼碎成小方塊飛出去，像 lpm1）：一個 InstancedMesh、最多 DBN 塊輪流用，掉在碗裡停一下再縮掉 ----------
+  const DBN = 150, dbGeo = keep(new THREE.BoxGeometry(0.15, 0.1, 0.15)), dbMat = keep(new THREE.MeshLambertMaterial({ color: 0xffffff }));
+  const debris = keep(new THREE.InstancedMesh(dbGeo, dbMat, DBN)); debris.instanceMatrix.setUsage(THREE.DynamicDrawUsage); debris.frustumCulled = false;   // keep：dispose 時連實例緩衝一起放掉
+  const dP = new Float32Array(DBN * 3), dV = new Float32Array(DBN * 3), dR = new Float32Array(DBN * 3), dW = new Float32Array(DBN * 3), dL = new Float32Array(DBN), dS = new Float32Array(DBN);
+  const _o = new THREE.Object3D(); _o.scale.setScalar(0); _o.updateMatrix();
+  for (let i = 0; i < DBN; i++) { debris.setMatrixAt(i, _o.matrix); debris.setColorAt(i, _c.set(0xffffff)); }
+  scene.add(debris); let dbNext = 0; W.dbActive = false; W.dbMade = 0;
+  // 從 (x,y,z) 噴 n 塊：往 (dx,dz) 那邊（離開對手的方向）±70° 散開；hex＝那顆陀螺的隊伍色（少數幾塊白／金當亮點）
+  W.debris = (x, y, z, n, dx, dz, power, hex) => {
+    const dl = Math.hypot(dx, dz) || 1, base = Math.atan2(dz / dl, dx / dl);
+    for (let k = 0; k < n; k++) {
+      const i = dbNext; dbNext = (dbNext + 1) % DBN; W.dbMade++;
+      const a = base + (Math.random() - 0.5) * 2.4, sp = (1.3 + Math.random() * 3.2) * power;
+      dP[i * 3] = x + (Math.random() - 0.5) * 0.3; dP[i * 3 + 1] = y + Math.random() * 0.2; dP[i * 3 + 2] = z + (Math.random() - 0.5) * 0.3;
+      dV[i * 3] = Math.cos(a) * sp; dV[i * 3 + 1] = 2 + Math.random() * 4.5 * power; dV[i * 3 + 2] = Math.sin(a) * sp;
+      for (let q = 0; q < 3; q++) { dR[i * 3 + q] = Math.random() * 6; dW[i * 3 + q] = (Math.random() - 0.5) * 22; }
+      dL[i] = 1.8 + Math.random() * 1.6; dS[i] = 0.55 + Math.random() * 0.9;
+      const r = Math.random(); _c.set(r < 0.12 ? 0xffffff : r < 0.2 ? 0xffd54a : hex); if (r >= 0.2) _c.offsetHSL(0, 0, (Math.random() - 0.5) * 0.18);
+      debris.setColorAt(i, _c);
+    }
+    debris.instanceColor.needsUpdate = true; W.dbActive = true;
+  };
+  const surfAt = r2 => { const r = Math.sqrt(r2); return r < 5.45 ? bowlY(r2) : r < 5.86 ? yr + 0.05 : r < 6.5 ? yr * (6.5 - r) / 0.64 : 0; };
+  function stepDebris(dt) {
+    let live = 0;
+    for (let i = 0; i < DBN; i++) {
+      if (dL[i] <= 0) continue;
+      dL[i] -= dt;
+      if (dL[i] <= 0) { _o.scale.setScalar(0); _o.updateMatrix(); debris.setMatrixAt(i, _o.matrix); continue; }
+      live++;
+      const j = i * 3; dV[j + 1] -= 13 * dt;
+      dP[j] += dV[j] * dt; dP[j + 1] += dV[j + 1] * dt; dP[j + 2] += dV[j + 2] * dt;
+      const sf = surfAt(dP[j] * dP[j] + dP[j + 2] * dP[j + 2]) + 0.04;
+      if (dP[j + 1] < sf) { dP[j + 1] = sf; if (dV[j + 1] < 0) dV[j + 1] = -dV[j + 1] * 0.32; dV[j] *= 0.55; dV[j + 2] *= 0.55; dW[j] *= 0.6; dW[j + 1] *= 0.6; dW[j + 2] *= 0.6; }
+      for (let q = 0; q < 3; q++) dR[j + q] += dW[j + q] * dt;
+      _o.position.set(dP[j], dP[j + 1], dP[j + 2]); _o.rotation.set(dR[j], dR[j + 1], dR[j + 2]);
+      _o.scale.setScalar(dS[i] * Math.min(1, dL[i] / 0.45)); _o.updateMatrix(); debris.setMatrixAt(i, _o.matrix);
+    }
+    debris.instanceMatrix.needsUpdate = true;
+    if (!live) W.dbActive = false;
+    W.dbLive = live;
+  }
+  // ---------- v2 撞擊閃光（面向鏡頭的一團白光，0.2 秒）----------
+  const imps = [0, 1, 2].map(() => { const s = new THREE.Sprite(keep(new THREE.SpriteMaterial({ map: dot, color: 0xffffff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }))); s.visible = false; scene.add(s); return { s, t: 1, size: 1 }; });
+  W.impact = (x, y, z, size, hex) => { const f = imps.reduce((a, b) => a.t > b.t ? a : b); f.t = 0; f.size = size; f.s.position.set(x, y, z); f.s.material.color.set(hex); f.s.visible = true; };
+  // ---------- v2 重擊時鏡頭往撞擊點推近一下（0.55 秒；減少動態＝不推） ----------
+  W.punch = (x, z, a) => { if (!W.rm) W.pk = { x, z, a, t: 0 }; };
 
   // ---------- 陀螺 ----------
   const faceTex = (ch, z, color) => canvasTex(256, 256, (g) => {
@@ -333,11 +398,65 @@ function createWorld(host, o) {
   const auraGeo = keep(new THREE.RingGeometry(0.98, 1.22, 48)), metal = keep(new THREE.MeshLambertMaterial({ color: 0xc3cde0 }));
   const goldGeo = keep(new THREE.RingGeometry(1.26, 1.5, 48));
   W.setGold = (T, on) => { if (T && T.gold) T.gold.visible = !!on; };
-  W.makeTop = (ch, z, st, side) => {
-    const P = topParams(st), color = topColor(st, ch), dark = color.clone().multiplyScalar(0.7);
+  // 每顆陀螺自己的材質／貼圖記在 T.res，removeTops 時一起釋放（合體後的五顆小陀螺、換對手時舊的對手）
+  let resList = null; const keepT = x => { own.add(x); if (resList) resList.push(x); return x; };
+  // v2 合體陀螺的頂面：一圈五個字（字都朝上、旁邊直排注音）＋中間隊伍色星星
+  const bigFaceTex = (p, zs, color) => canvasTex(512, 512, g => {
+    const c = "#" + color.getHexString(), dk = "#" + color.clone().multiplyScalar(0.5).getHexString(), lt = "#" + color.clone().lerp(new THREE.Color(0xffffff), 0.55).getHexString();
+    const disc = (r, f) => { g.fillStyle = f; g.beginPath(); g.arc(256, 256, r, 0, Math.PI * 2); g.fill(); };
+    disc(256, dk); disc(242, c);
+    for (let i = 0; i < 20; i++) { g.save(); g.translate(256, 256); g.rotate(i / 20 * Math.PI * 2); g.fillStyle = "rgba(255,255,255,0.3)"; g.fillRect(-5, -242, 10, 18); g.restore(); }
+    disc(214, "#fffdf6"); g.strokeStyle = lt; g.lineWidth = 7; g.beginPath(); g.arc(256, 256, 206, 0, Math.PI * 2); g.stroke();
+    disc(48, c); g.fillStyle = "#fff"; g.beginPath();
+    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 13 : 32; g.lineTo(256 + Math.cos(a) * r, 256 + Math.sin(a) * r); }
+    g.fill();
+    g.textAlign = "center"; g.textBaseline = "middle";
+    [...p].forEach((ch, i) => {
+      const a = -Math.PI / 2 + i * Math.PI * 2 / 5, cx = 256 + Math.cos(a) * 142, cy = 256 + Math.sin(a) * 142;
+      const zz = (zs && zs[i]) || "", t = TONE_NUM[zz.slice(-1)] || 0, sym = t ? zz.slice(0, -1) : zz, hasZ = sym.length > 0;
+      g.fillStyle = "#2b2440"; g.font = `900 100px ${HAN_FONT}`; g.fillText(ch, hasZ ? cx - 13 : cx, cy + 5);
+      if (hasZ) {
+        const s = 23, x = cx + 50, top = cy - (sym.length - 1) * s * 0.5;
+        g.font = `800 ${s}px ${HAN_FONT}`; [...sym].forEach((q, k) => g.fillText(q, x, top + k * s));
+        if (t >= 2 && t <= 4) { g.font = `900 ${s * 0.95}px ${HAN_FONT}`; g.fillText("ˊˇˋ"[t - 2], x + s * 0.72, top + (sym.length - 1) * s - s * 0.42); }
+        if (t === 5) { g.beginPath(); g.arc(x, top - s * 0.78, 3.5, 0, Math.PI * 2); g.fill(); }
+      }
+    });
+  });
+  const glowRingGeo = keep(new THREE.TorusGeometry(0.6, 0.035, 6, 48)), gemGeo = keep(new THREE.SphereGeometry(0.075, 10, 8));
+  // 合體陀螺：同一組零件放大（半徑＝物理的 P.r，sim 的 FUSE.R 倍）、隊伍色、刀刃 4–8 片、環上一圈發光線、頂蓋邊五顆寶石（五個字合體的記號）
+  W.makeBig = (p, zs, st, side) => {
+    resList = [];
+    const P = topParams(st); P.r *= FUSE.R;
+    const color = teamColor(side, 2), dark = color.clone().multiplyScalar(0.55), light = color.clone().lerp(new THREE.Color(0xffffff), 0.45);
     const holder = new THREE.Group(), tilt = new THREE.Group(), spin = new THREE.Group(); holder.add(tilt); tilt.add(spin);
-    const matMain = keep(new THREE.MeshLambertMaterial({ color, vertexColors: true })), matDark = keep(new THREE.MeshLambertMaterial({ color: dark }));
-    const face = keep(new THREE.MeshLambertMaterial({ map: faceTex(ch, z, color) }));
+    const matMain = keepT(new THREE.MeshLambertMaterial({ color, vertexColors: true, emissive: color.clone().multiplyScalar(0.2) }));
+    const matDark = keepT(new THREE.MeshLambertMaterial({ color: dark, emissive: dark.clone().multiplyScalar(0.25) }));
+    const matGlow = keepT(new THREE.MeshBasicMaterial({ color: light, toneMapped: false }));
+    const face = keepT(new THREE.MeshLambertMaterial({ map: (() => { const t = bigFaceTex(p, zs, color); resList.push(t); return t; })(), emissive: 0x1a1a1a }));
+    const parts = [new THREE.Mesh(coneGeo, metal), new THREE.Mesh(ringGeoT, matMain)];
+    const nb = 4 + Math.round(P.atk * 4);
+    for (let i = 0; i < nb; i++) { const b = new THREE.Mesh(bladeGeo, matDark), a = i / nb * Math.PI * 2; b.position.set(Math.cos(a) * 0.67, 0.44, Math.sin(a) * 0.67); b.rotation.y = -a + 0.5; b.scale.set(1.2, 1.25, 1.2); parts.push(b); }
+    for (const q of parts) { q.castShadow = true; spin.add(q); }
+    const glow = new THREE.Mesh(glowRingGeo, matGlow); glow.position.y = 0.47; glow.rotation.x = Math.PI / 2; spin.add(glow);
+    const cap = new THREE.Mesh(capGeo, [matDark, face, matDark]); cap.position.y = 0.58; cap.rotation.y = Math.PI / 2; cap.scale.set(1.28, 1, 1.28); cap.castShadow = true; tilt.add(cap);   // 頂蓋放大：五個字才看得清楚
+    for (let i = 0; i < 5; i++) { const g = new THREE.Mesh(gemGeo, matGlow), a = (i + 0.5) / 5 * Math.PI * 2; g.position.set(Math.cos(a) * 0.71, 0.5, Math.sin(a) * 0.71); tilt.add(g); }
+    const aura = new THREE.Mesh(auraGeo, keepT(new THREE.MeshBasicMaterial({ color: (TEAM[side] || TEAM.me).hex, transparent: true, opacity: 0.85, depthWrite: false, toneMapped: false, side: THREE.DoubleSide })));
+    aura.position.y = 0.14; holder.add(aura);
+    const gold = new THREE.Mesh(goldGeo, keepT(new THREE.MeshBasicMaterial({ color: 0xffd54a, transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false, side: THREE.DoubleSide })));
+    gold.visible = false; aura.add(gold);
+    tilt.scale.setScalar(P.r / 0.69); aura.scale.setScalar(P.r * 1.45);
+    scene.add(holder); holder.visible = false;
+    const T = { ch: p, z: zs, st, P, holder, tilt, spin, aura, gold, color, side, S: 1, x: 0, y: 0, ang: 0, wob: Math.random() * 6, fall: null, pop: 1, big: true, lift: 0, res: resList };
+    resList = null;
+    W.tops.push(T); W.shDirty = true; return T;
+  };
+  W.makeTop = (ch, z, st, side, idx = 2) => {
+    resList = [];
+    const P = topParams(st), color = teamColor(side, idx), dark = color.clone().multiplyScalar(0.7);
+    const holder = new THREE.Group(), tilt = new THREE.Group(), spin = new THREE.Group(); holder.add(tilt); tilt.add(spin);
+    const matMain = keepT(new THREE.MeshLambertMaterial({ color, vertexColors: true })), matDark = keepT(new THREE.MeshLambertMaterial({ color: dark }));
+    const face = keepT(new THREE.MeshLambertMaterial({ map: (() => { const t = faceTex(ch, z, color); resList.push(t); return t; })() }));
     const parts = [new THREE.Mesh(coneGeo, metal), new THREE.Mesh(ringGeoT, matMain), new THREE.Mesh(capGeo, [matDark, face, matDark])];
     parts[2].position.y = 0.57;
     const cap = parts.splice(2, 1)[0]; cap.castShadow = true; cap.rotation.y = Math.PI / 2; tilt.add(cap);   // 頂蓋（印字）不跟著轉：字一直看得清楚，轉動靠環上條紋和刀刃看出來
@@ -345,23 +464,31 @@ function createWorld(host, o) {
     for (let i = 0; i < nb; i++) { const b = new THREE.Mesh(bladeGeo, matDark), a = i / nb * Math.PI * 2; b.position.set(Math.cos(a) * 0.66, 0.44, Math.sin(a) * 0.66); b.rotation.y = -a + 0.5; parts.push(b); }
     for (const p of parts) { p.castShadow = true; spin.add(p); }
     // 腳下的隊伍色圈（我＝藍、對手＝紅）：貼著碗面（placeTop 時轉到碗面法線方向）
-    const aura = new THREE.Mesh(auraGeo, keep(new THREE.MeshBasicMaterial({ color: side === "me" ? 0x22b8ff : 0xff3d5a, transparent: true, opacity: 0.85, depthWrite: false, toneMapped: false, side: THREE.DoubleSide })));
+    const aura = new THREE.Mesh(auraGeo, keepT(new THREE.MeshBasicMaterial({ color: (TEAM[side] || TEAM.me).hex, transparent: true, opacity: 0.85, depthWrite: false, toneMapped: false, side: THREE.DoubleSide })));
     aura.position.y = 0.14; holder.add(aura);   // 稍微浮起來：碗面是彎的，貼太低外緣會沉到碗面下面看不見
     // 金色光圈（有加成的字：10-12 櫻木「加成看得見」）：掛在隊伍色圈外面、跟著它貼碗面；W.setGold 打開
-    const gold = new THREE.Mesh(goldGeo, keep(new THREE.MeshBasicMaterial({ color: 0xffd54a, transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false, side: THREE.DoubleSide })));
+    const gold = new THREE.Mesh(goldGeo, keepT(new THREE.MeshBasicMaterial({ color: 0xffd54a, transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false, side: THREE.DoubleSide })));
     gold.visible = false; aura.add(gold);
     const sc = P.r / 0.69; tilt.scale.setScalar(sc); aura.scale.setScalar(P.r * 1.45);
     scene.add(holder); holder.visible = false;
-    const T = { ch, z, st, P, holder, tilt, spin, aura, gold, color, side, S: 1, x: 0, y: 0, ang: 0, wob: Math.random() * 6, fall: null, pop: 1 };
+    const T = { ch, z, st, P, holder, tilt, spin, aura, gold, color, side, S: 1, x: 0, y: 0, ang: 0, wob: Math.random() * 6, fall: null, pop: 1, lift: 0, res: resList };
+    resList = null;
     W.tops.push(T); W.shDirty = true; return T;
   };
   const _n = new THREE.Vector3(), _z = new THREE.Vector3(0, 0, 1);
   W.placeTop = (T, x, y, S) => {
     if (T.x !== x || T.y !== y) W.shDirty = true;
-    T.x = x; T.y = y; T.S = S; T.holder.position.set(x, bowlY(x * x + y * y), y);
+    T.x = x; T.y = y; T.S = S; T.holder.position.set(x, bowlY(x * x + y * y) + (T.lift || 0), y);   // lift：發射前浮在空中／合體時飄起來
     _n.set(-2 * BOWL_A * x, 1, -2 * BOWL_A * y).normalize(); T.aura.quaternion.setFromUnitVectors(_z, _n);
   };
-  W.removeTops = list => { for (const T of list) { T.holder.removeFromParent(); const i = W.tops.indexOf(T); if (i >= 0) W.tops.splice(i, 1); } W.shDirty = true; };
+  // 拿掉陀螺＝連它自己的材質、貼圖一起釋放（共用的幾何不動，世界 dispose 時才收）
+  W.removeTops = list => {
+    for (const T of list) {
+      T.holder.removeFromParent(); const i = W.tops.indexOf(T); if (i >= 0) W.tops.splice(i, 1);
+      for (const x of T.res || []) { own.delete(x); if (x.dispose) x.dispose(); } T.res = [];
+    }
+    W.shDirty = true;
+  };
 
   // ---------- 鏡頭：把目標放進畫面的某個矩形（上下有介面） ----------
   const tgt = new THREE.Vector3(), camPos = new THREE.Vector3();
@@ -386,13 +513,17 @@ function createWorld(host, o) {
     }
     if (W.zoom) { W.zoom.k = Math.min(1, W.zoom.k + dt * 2.2); const k = ease(W.zoom.k); dist *= 1 - 0.16 * k; ty += 0.15 * k; }   // 慢動作：再推近一點（中心照樣跟著兩顆陀螺）
     else if (W.zoomOut != null) { W.zoomOut = Math.max(0, W.zoomOut - dt * 1.6); }
+    if (W.pk) {                                              // 重擊：鏡頭往撞擊點推近一下再退回（0.55 秒）
+      W.pk.t += dt; const u = W.pk.t / 0.55;
+      if (u >= 1) W.pk = null; else { const e = Math.sin(Math.min(1, u * 3) * Math.PI / 2) * (1 - u); dist *= 1 - W.pk.a * e; tx += (W.pk.x - tx) * 0.35 * e; tz += (W.pk.z - tz) * 0.35 * e; }
+    }
     tgt.set(tx, ty, tz); camPos.set(tx, ty + Math.sin(el) * dist, tz + Math.cos(el) * dist);
     if (W.shake > 0) { camPos.x += (Math.random() - 0.5) * W.shake * 0.5; camPos.y += (Math.random() - 0.5) * W.shake * 0.35; W.shake = Math.max(0, W.shake - dt * 3); }
     cam.position.copy(camPos); cam.lookAt(tgt); cam.updateMatrixWorld(); cam.updateProjectionMatrix();
   };
   const _v = new THREE.Vector3();
   W.project = (x, y, z) => { _v.set(x, y, z).project(cam); return { x: (_v.x + 1) / 2 * W.size[0], y: (1 - _v.y) / 2 * W.size[1], behind: _v.z > 1 }; };
-  W.topScreen = T => { const p = T.holder.position; return W.project(p.x, p.y + 0.95 * T.P.r / 0.69, p.z); };
+  W.topScreen = T => { const p = T.holder.position; return W.project(p.x, p.y + (T.big ? 1.25 : 0.95) * T.P.r / 0.69, p.z); };
   W.tween = (dur, fn, done) => { W.tw.push({ t: 0, dur, fn, done }); };
 
   // ---------- 每格 ----------
@@ -420,7 +551,7 @@ function createWorld(host, o) {
         T.wob += (3 + 7 * (1 - S)) * dt;
         T.tilt.rotation.set(Math.cos(T.wob) * wob, 0, Math.sin(T.wob) * wob);
       }
-      T.aura.material.opacity = T.fall ? 0 : 0.45 + 0.45 * Math.min(1, S);
+      T.aura.material.opacity = T.fall || T.lift > 0.3 ? 0 : 0.45 + 0.45 * Math.min(1, S);   // 浮在空中（發射前、合體時）不畫腳下光圈
       if (T.gold.visible) T.gold.material.opacity = T.fall ? 0 : 0.6 + 0.35 * Math.sin(W.gt * 6);
     }
     // 火花
@@ -432,6 +563,8 @@ function createWorld(host, o) {
     }
     spGeo.attributes.position.needsUpdate = true;
     for (const f of W.flashes) { if (f.t >= 1) { f.m.visible = false; continue; } f.t = Math.min(1, f.t + dt * 2.6); f.m.scale.setScalar(0.6 + f.t * 2.4 * (f.s || 1)); f.m.material.opacity = (1 - f.t) * 0.9; }
+    if (W.dbActive) stepDebris(dt);
+    for (const f of imps) { if (f.t >= 1) { f.s.visible = false; continue; } f.t = Math.min(1, f.t + dt * 5); f.s.scale.setScalar(f.size * (0.45 + 1.4 * f.t)); f.s.material.opacity = 1 - f.t; }
     // 燈：碗口彩虹慢慢轉；撞擊時全亮
     W.rimFlash = Math.max(0, W.rimFlash - dt * 2);
     for (let i = 0; i < rimN; i++) rimLights.setColorAt(i, _c.setHSL((i / rimN + W.gt * 0.12) % 1, 0.9, 0.55 + 0.4 * W.rimFlash));
@@ -444,7 +577,9 @@ function createWorld(host, o) {
   };
   W.stats = () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geos: renderer.info.memory.geometries, texs: renderer.info.memory.textures, pr: renderer.getPixelRatio(),
     sparkColor: (() => { let m = 0; for (let i = 0; i < SPN; i++) if (spLife[i] > 0) m = Math.max(m, spCol[i * 3], spCol[i * 3 + 1], spCol[i * 3 + 2]); return m; })(), sparks: spLife.reduce((a, l) => a + (l > 0), 0),
-    gold: W.tops.filter(T => T.gold.visible && T.holder.visible).map(T => T.side + ":" + T.ch) });
+    gold: W.tops.filter(T => T.gold.visible && T.holder.visible).map(T => T.side + ":" + T.ch),
+    debris: dL.reduce((a, l) => a + (l > 0), 0), debrisMade: W.dbMade, debrisCap: DBN, tops: W.tops.length,
+    teams: W.tops.filter(T => T.big && T.holder.visible).map(T => T.side + ":#" + T.color.getHexString()) });
   W.dispose = () => {
     if (W.dead) return; W.dead = true;
     const geos = new Set(), mats = new Set();
@@ -474,6 +609,13 @@ export function createTopsGame(root, api) {
   const SPD = () => Math.max(0.25, +api.speed || 1);
   const play = (n, r) => { try { api.play && api.play(SFX[n] || n, r); } catch (e) { /* 音效失敗不影響遊戲 */ } };
   const paused = () => { try { return !!(api.paused && api.paused()); } catch (e) { return false; } };
+  // v2：背景音樂（合體起＝battle；回打字／陀螺蛋＝null＝主程式換回平常的）、段位、合體看過幾次
+  let bgmK = null, memRank = 0, fuseSeen = 0;
+  const bgm = k => { if (k === bgmK) return; bgmK = k; try { api.bgm && api.bgm(k); } catch (e) { /* 音樂失敗不影響遊戲 */ } };
+  const curRank = () => { let r = NaN; try { if (api.rank) r = Math.floor(+api.rank()); } catch (e) {} return clamp(Number.isFinite(r) ? r : memRank, 0, RANKS.length - 1); };
+  const reducedMotion = () => { try { return !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches); } catch (e) { return false; } };
+  // 整個畫面閃白光（a＝最亮多少；減少動態＝最多 0.25）
+  function flashScreen(a) { if (!E || !st) return; E.flash.style.setProperty("--fa", String(st.rm ? Math.min(0.25, a * 0.35) : a)); bump(E.flash, "tp-flashing"); st.flashes = (st.flashes || 0) + 1; }
   const mk = (tag, cls, parent, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; if (parent) parent.appendChild(e); return e; };
   const btn = (cls, parent, txt, fn, label) => { const b = mk("button", cls, parent, txt); b.type = "button"; if (label) b.setAttribute("aria-label", label); if (fn) b.onclick = e => { if (!st || paused()) return; fn(e); }; return b; };
   const hasTicket = () => { let n = 0, free = false; try { n = +api.tickets() || 0; } catch (e) {} try { free = !!(api.firstFree && api.firstFree()); } catch (e) {} return n > 0 || free; };
@@ -517,6 +659,7 @@ export function createTopsGame(root, api) {
     root.classList.add("tp-root");
     const wrap = mk("div", "tp-wrap", root);
     const stage = mk("div", "tp-stage", wrap);
+    const flash = mk("div", "tp-flash", wrap);                 // v2 合體／重擊的白光（整個畫面閃一下；減少動態＝很淡）
     const loading = mk("div", "tp-loading", wrap, "🌀");
     // 打字
     const type = mk("div", "tp-type tp-off", wrap);
@@ -554,24 +697,30 @@ export function createTopsGame(root, api) {
     const badges = mk("div", "tp-badges", mhead);
     const cards = mk("div", "tp-cards", morph), cardEls = [];
     for (let i = 0; i < 5; i++) cardEls.push(mk("div", "tp-card", cards));
+    const fcard = mk("div", "tp-fcard", cards);                 // v2 合體後：五張能力卡收成這一張「合體陀螺」
+    const skip = mk("div", "tp-skip tp-off", morph, "👆 點一下跳過");
     const vs = mk("div", "tp-vs", morph);
     const vsInfo = mk("div", "tp-vs-info", vs);
     const fight = btn("tp-fight", vs, "⚔️", () => tapFight(), "開戰"); mk("span", "tp-go-t", fight, "開戰！");
-    // 對戰
+    // 對戰（v2：上方兩隊名字＋耐力長條、中間 ROUND＋三個得分點）
     const hud = mk("div", "tp-hud tp-off", wrap);
     const teams = [mk("div", "tp-team tp-me", hud), mk("div", "tp-team tp-opp", hud)];
     const score = mk("div", "tp-score", hud);
-    const tags = [mk("div", "tp-tag tp-me", hud), mk("div", "tp-tag tp-opp", hud)];
-    const banner = mk("div", "tp-banner", hud);
-    const ff = btn("tp-ff", hud, "⏩", () => toggleFast(), "快轉"); mk("span", "tp-ff-x", ff, "2×");   // 第 4、5 回合自動 2 倍速時亮「2×」
+    const tags = [mk("div", "tp-tag tp-me tp-off", hud), mk("div", "tp-tag tp-opp tp-off", hud)];
+    const ff = btn("tp-ff", hud, "⏩", () => toggleFast(), "快轉");
     const cheerHint = mk("div", "tp-cheerhint tp-off", hud, "👆 點畫面幫陀螺加油！");
+    const banner = mk("div", "tp-banner", wrap);               // v2：大字放在最外層（合體的「合體！」也要看得到），在結算面板下面
     // 結算、排行榜、沒券／陀螺蛋
     const result = mk("div", "tp-result tp-off", wrap);
     const msg = mk("div", "tp-msg tp-off", wrap);
     const boards = mk("div", "tp-boardsov tp-off", wrap);
-    E = { wrap, stage, loading, type, head, tools, inspire, boardBtn, slotrow, slots, slotEls, go, goT, note, candbar, prev, cands, next, tip, fillAll, kb, keys, morph, mhead, legend, total, num, badges, cards, cardEls, vs, vsInfo, fight, hud, teams, score, tags, banner, ff, cheerHint, result, msg, boards, gfill: [] };
-    // 對戰中點畫面＝幫陀螺加油（純表演：火花＋歡呼，不影響結果——對戰早就算好了）
-    on(wrap, "pointerdown", e => { if (!st || st.phase !== "battle" || paused() || (e.target && e.target.closest && e.target.closest("button"))) return; cheer(e); });
+    E = { wrap, stage, flash, loading, type, head, tools, inspire, boardBtn, slotrow, slots, slotEls, go, goT, note, candbar, prev, cands, next, tip, fillAll, kb, keys, morph, mhead, legend, total, num, badges, cards, cardEls, fcard, fchips: [], skip, vs, vsInfo, fight, hud, teams, score, tags, banner, ff, cheerHint, result, msg, boards, gfill: [], gpct: [] };
+    // 對戰中點畫面＝幫陀螺加油（純表演：火花＋歡呼，不影響結果——對戰早就算好了）；合體中（看過一次以後）點一下＝跳過
+    on(wrap, "pointerdown", e => {
+      if (!st || paused() || (e.target && e.target.closest && e.target.closest("button"))) return;
+      if (st.phase === "battle") cheer(e);
+      else if (st.phase === "morph" && st.fuse && st.fuse.skip && !st.fuse.burst) skipFuse();
+    });
   }
   function teardown() {
     if (raf) cancelAnimationFrame(raf); raf = 0;
@@ -588,10 +737,12 @@ export function createTopsGame(root, api) {
   function enterTypeOrEggs() { if (hasTicket() && getEggs().length) showEggs(); else enterType(); }
   function enterType() {
     st.phase = "type"; st.slots = [null, null, null, null, null]; st.cur = 0; st.comp = { ini: "", med: "", fin: "" }; st.tone = null; st.cands = []; st.candZ = []; st.sel = 0; st.page = 0; st.saidFull = false; st.guide = null; st.hatch = null;
-    st.myTops = st.oppTops = st.cur2 = st.circle = st.match = st.rs = st.win = st.submit = st.opp = st.power = null; st.score = null; st.fast = false; st.tl.length = 0; st.statusEl = null; st.saidSubmit = false;
+    st.cur2 = st.champ = st.match = st.rs = st.win = st.submit = st.opp = st.power = null; st.score = null; st.fast = false; st.tl.length = 0; st.statusEl = null; st.saidSubmit = false;
+    st.fuse = st.smallTops = st.bigMe = st.bigOpp = st.fused = st.oppB = st.oppFused = st.rankUp = null; st.wantVs = false;
     E.result.textContent = ""; E.boards.classList.add("tp-off"); E.wrap.classList.remove("tp-slowmo"); E.banner.textContent = "";
     showOnly("type"); E.loading.classList.add("tp-off");
     if (W) { W.dispose(); W = null; }
+    bgm(null);
     E.stage.classList.remove("tp-on");
     st.eggMode = !hasTicket();
     relayout(); paintType();
@@ -806,7 +957,7 @@ export function createTopsGame(root, api) {
   // 有券又有蛋：先問要不要孵蛋（點蛋＝直接下場；也可以打新的）
   function showEggs() {
     st.phase = "eggs";
-    if (W) { W.dispose(); W = null; } E.stage.classList.remove("tp-on");
+    if (W) { W.dispose(); W = null; } E.stage.classList.remove("tp-on"); bgm(null);
     const card = msgCard("tp-eggpick");
     mk("div", "tp-msg-t", card, "你有陀螺蛋！要孵出來對戰嗎？");
     const list = mk("div", "tp-egg-list", card);
@@ -835,10 +986,17 @@ export function createTopsGame(root, api) {
   }
   function ensureWorld() {
     if (W) return W;
-    try { W = createWorld(E.stage, { onFail: why => { try { api.onFail && api.onFail({ why }); } catch (e) {} } }); E.stage.insertBefore(W.canvas, E.stage.firstChild); }
+    try { W = createWorld(E.stage, { rm: st.rm, onFail: why => { try { api.onFail && api.onFail({ why }); } catch (e) {} } }); E.stage.insertBefore(W.canvas, E.stage.firstChild); }
     catch (e) { console.warn("[tops] WebGL 失敗", e); W = null; try { api.onFail && api.onFail({ why: "nowebgl" }); } catch (e2) {} }
     return W;
   }
+  // ===================== 下場 → 合體（v2，10-13 阿葉：「5 個注音選出來後，會有一個轉場動畫合體變成一顆陀螺」） =====================
+  // 合體轉場（遊戲時鐘、st.fuse 狀態機在 frame() 裡跑；約 3 秒；這次開頁第二次起點一下跳過）：
+  //   0.1–0.6 秒  五顆小陀螺「叮」一顆一顆跳出來（各帶一個字），下面是每個字的能力卡
+  //   0.85–2.3    飛到中間繞圈、越轉越快、越飄越高（拖藍色火花）
+  //   2.3         白光一閃＋震動＋「合體！」→ 一顆大陀螺（頂面一圈五個字）；五張能力卡收成一張「合體陀螺」卡
+  //   3.1         合體完成 → 戰力數字跑出來、加成徽章、對手從天上掉下來（showVs）
+  const FUSE_T = { pop0: 0.1, pop: 0.12, gather: 0.85, burst: 2.3, end: 3.1 };
   async function enterMorph() {
     st.phase = "morph"; showOnly("morph"); E.morph.classList.remove("tp-shown");
     const my = run;
@@ -846,50 +1004,108 @@ export function createTopsGame(root, api) {
     st.power = TP.powerOf(st.phrase, Dk);
     st.stats = st.power.perChar.map(c => c.stats);
     st.hits = bonusHits(st.power); st.bstats = boostStats(st.stats, st.hits);   // 對戰用的能力：加成的字某項 +N（不改戰力）
+    st.fused = fuseStats(st.bstats);                          // 合體陀螺的四項能力（js/zhuyin-tops-sim.js 的 fuseStats）
+    bgm("battle");
     ensureWorld(); E.stage.classList.add("tp-on");
-    if (W) { st.myTops = st.phrase.split("").map((ch, i) => W.makeTop(ch, st.z[i], st.stats[i], "me")); }
+    if (W) {
+      st.smallTops = [...st.phrase].map((ch, i) => W.makeTop(ch, st.z[i], st.stats[i], "me", i));
+      st.bigMe = W.makeBig(st.phrase, st.z, st.fused, "me");
+      st.smallTops.forEach((T, i) => { W.placeTop(T, (i - 2) * 2.05, 0, 0.35); T.holder.scale.setScalar(0.001); });
+    }
+    E.num.textContent = "0"; E.badges.textContent = ""; E.vsInfo.textContent = ""; E.vs.classList.remove("tp-shown"); E.morph.classList.remove("tp-vson", "tp-fused"); E.fight.disabled = true;
+    E.total.querySelectorAll(".tp-tier").forEach(x => x.remove()); E.total.classList.add("tp-hide");
+    E.cardEls.forEach((c, i) => { c.classList.remove("tp-merge"); paintCard(c, st.power.perChar[i], st.z[i]); });
+    paintFcard();
+    st.fuse = { t: 0, popped: 0, gath: false, burst: false, done: false, skip: fuseSeen > 0, trail: 0, skipped: false };
+    E.skip.classList.toggle("tp-off", !st.fuse.skip);
     relayout();
-    E.num.textContent = "0"; E.badges.textContent = ""; E.vsInfo.textContent = ""; E.vs.classList.remove("tp-shown"); E.morph.classList.remove("tp-vson"); E.fight.disabled = true; E.total.querySelectorAll(".tp-tier").forEach(x => x.remove());
-    E.cardEls.forEach((c, i) => paintCard(c, st.power.perChar[i], st.z[i]));
     startLoop();
-    talk(LINES.morph, true);
-    // 一顆一顆「叮」變出來
-    st.myTops && st.myTops.forEach((T, i) => { const lx = (i - 2) * 2.05; W.placeTop(T, lx, 0, 0.35); T.holder.scale.setScalar(0.001); });
-    for (let i = 0; i < 5; i++) at(0.35 + i * 0.42, () => {
-      play("ding", 1 + i * 0.12);
-      const T = st.myTops && st.myTops[i];
-      if (T) { T.holder.visible = true; W.tween(0.5, u => T.holder.scale.setScalar(Math.max(0.001, easeOutBack(u))), null); W.spark(T.x, 0.6, T.y, 22, 0.7); W.flash(T.x, bowlY(T.x * T.x), T.y, 0.8); }
-      E.cardEls[i].classList.add("tp-in");
-    });
-    const tRoll = 0.35 + 5 * 0.42 + 0.2;
-    at(tRoll, () => { talk(LINES.power); rollNumber(E.num, st.power.total, 1.3, () => { const t = tierOf(st.power.total); bump(mk("span", "tp-tier tp-tier" + t.k, E.total, t.ico + " " + t.name), "tp-pop"); }); });
-    const bon = st.power.bonuses;
-    bon.forEach((b, k) => at(tRoll + 1.4 + k * 0.7, () => { const e = mk("span", "tp-badge", E.badges, b.name + " +" + b.value); bump(e, "tp-pop"); play("coin", 1 + k * 0.1); talk(b.name); glowBonus(b.id); }));
     const board = await st.boardP;
     if (my !== run || !st) return;
     st.board = st.board || board;                             // 同一場連玩：沿用上一局更新過的我家排行
     st.opp = pickOpponent(st.board, { free: st.isFree });
-    at(tRoll + 1.6 + bon.length * 0.7, () => showVs());
+    if (st.wantVs) { st.wantVs = false; showVs(); }
   }
-  // 加成徽章跳出來：觸發的那幾顆陀螺一起發光跳一下、換金色光圈；能力卡標出對戰時加了什麼（⚔️+10）
-  function glowBonus(id) {
-    const idx = (st.hits && st.hits[id]) || [], B = BOOST[id]; if (!B) return;
-    idx.forEach((i, n) => {
-      const c = E.cardEls[i];
-      if (c) { bump(c, "tp-glow"); const bx = c.querySelector(".tp-boosts") || mk("div", "tp-boosts", c); bump(mk("span", "tp-boost", bx, STAT_ICON[B[0]] + "+" + B[1]), "tp-pop"); }
-      const T = st.myTops && st.myTops[i];
-      if (T && W) {
-        W.setGold(T, true);
-        const y0 = bowlY(T.x * T.x + T.y * T.y);
-        W.tween(0.5, u => { T.holder.position.y = y0 + Math.sin(u * Math.PI) * 0.9; }, () => { T.holder.position.y = y0; });
-        W.spark(T.x, 1.1, T.y, 18, 0.6, 0.13); W.flash(T.x, y0, T.y, 0.7);
-      }
+  function stepFuse(dt) {
+    const F = st.fuse; F.t += dt;
+    const t = F.t, T = st.smallTops;
+    while (F.popped < 5 && t >= FUSE_T.pop0 + F.popped * FUSE_T.pop) {   // 一顆一顆「叮」跳出來
+      const i = F.popped++; play("ding", 1 + i * 0.12); E.cardEls[i].classList.add("tp-in");
+      if (W && T) { const s = T[i]; s.holder.visible = true; W.tween(0.35, u => s.holder.scale.setScalar(Math.max(0.001, easeOutBack(u))), null); W.spark(s.x, 0.6, s.y, 14, 0.6, TEAM.me.hue); }
+    }
+    if (!F.gath && t >= FUSE_T.gather) { F.gath = true; play("gather", 0.9); }
+    if (F.gath && !F.burst && W && T) {                        // 飛到中間繞圈：角度前慢後快、圈越縮越小、越飄越高
+      const u = clamp((t - FUSE_T.gather) / (FUSE_T.burst - FUSE_T.gather), 0, 1), e = u * u;
+      const th = u * 1.4 + e * u * 10, rad = 2.6 * (1 - e) + 0.35 * e, lift = 0.25 + 1.3 * Math.sin(u * Math.PI / 2), k = ease(clamp(u / 0.2, 0, 1));
+      T.forEach((s, i) => {
+        const a = th + i / 5 * Math.PI * 2 - Math.PI / 2, rowX = (i - 2) * 2.05, cx = Math.cos(a) * rad, cz = Math.sin(a) * rad * 0.8;
+        s.lift = lift * k; W.placeTop(s, rowX + (cx - rowX) * k, cz * k, 0.35 + 1.0 * u); s.holder.scale.setScalar(1 - 0.35 * e);
+      });
+      F.trail += dt; if (F.trail > 0.07) { F.trail = 0; T.forEach(s => W.spark(s.x, s.holder.position.y + 0.3, s.y, 2, 0.25, TEAM.me.hue)); }
+      W.addShake(0.05 * e);
+    }
+    if (!F.burst && t >= FUSE_T.burst) fuseBurst();
+    if (F.burst && !F.done && F.t >= FUSE_T.end) { F.done = true; afterFuse(); }
+  }
+  // 點一下跳過（看過一次合體以後）：直接到白光那一刻
+  function skipFuse() { const F = st.fuse; if (!F || F.burst) return; F.skipped = true; F.t = FUSE_T.burst; fuseBurst(); }
+  function fuseBurst() {
+    const F = st.fuse; F.burst = true; F.t = Math.max(F.t, FUSE_T.burst); fuseSeen++;
+    E.skip.classList.add("tp-off");
+    while (F.popped < 5) E.cardEls[F.popped++].classList.add("tp-in");
+    if (W) {
+      if (st.smallTops) { W.removeTops(st.smallTops); st.smallTops = null; }
+      const B = st.bigMe; B.holder.visible = true; B.lift = 0; W.placeTop(B, 0, 0, 0.8); B.holder.scale.setScalar(0.001);
+      W.tween(0.55, u => B.holder.scale.setScalar(Math.max(0.001, easeOutBack(u))), null);
+      W.flash(0, 0.05, 0, 2.4); W.flash(0, 0.05, 0, 1.3); W.spark(0, 1.0, 0, 70, 1.4, TEAM.me.hue); W.spark(0, 1.0, 0, 30, 1.1, 0.13);
+      W.impact(0, 0.9, 0, 6, 0xffffff); W.addShake(0.9); W.rimFlash = 1;
+    }
+    flashScreen(1); play("fuse");
+    banner("合體！", "tp-bn-fuse", 1.1); talk(LINES.fuse, true);
+    E.cardEls.forEach(c => c.classList.add("tp-merge"));
+    E.fcard.classList.add("tp-in"); E.morph.classList.add("tp-fused");
+  }
+  function afterFuse() {
+    E.total.classList.remove("tp-hide");
+    talk(LINES.power); rollNumber(E.num, st.power.total, 1.1, () => { const t = tierOf(st.power.total); bump(mk("span", "tp-tier tp-tier" + t.k, E.total, t.ico + " " + t.name), "tp-pop"); });
+    const bon = st.power.bonuses;
+    bon.forEach((b, k) => at(1.2 + k * 0.7, () => { const e = mk("span", "tp-badge", E.badges, b.name + " +" + b.value); bump(e, "tp-pop"); play("coin", 1 + k * 0.1); talk(b.name); glowBonus(b.id); }));
+    at(1.4 + bon.length * 0.7, () => { if (st.opp) showVs(); else st.wantVs = true; });   // 對手還沒挑好（排行榜還在讀）＝挑好就亮相
+  }
+  // 「合體陀螺」卡：五個字（含注音）＋合體後的四項能力（含加成）
+  function paintFcard() {
+    const c = E.fcard; c.textContent = ""; c.classList.remove("tp-in");
+    const h = mk("div", "tp-fcard-h", c); zText(mk("span", "tp-fcard-t", h), "合體陀螺");
+    const chips = mk("div", "tp-fchips", h);
+    E.fchips = [...st.phrase].map((ch, i) => { const s = mk("span", "tp-fchip", chips); s.dataset.i = i; s.appendChild(acSpan(ch, st.z[i])); return s; });
+    const bars = mk("div", "tp-fbars", c);
+    st.fused.forEach((v, k) => {
+      const r = mk("div", "tp-bar", bars); r.style.setProperty("--c", STAT_COLOR[k]); r.style.setProperty("--v", v / 99);
+      mk("i", "", r, STAT_ICON[k]); const tr = mk("span", "tp-track", r); mk("span", "tp-fill", tr); mk("em", "", r, String(v));
     });
-    if (idx.length) { play("boost", 1.3); st.glowed = (st.glowed || 0) + idx.length; }
+    mk("div", "tp-boosts", c);
   }
-  // 對手亮相：兩隊戰力長條並排＋等級徽章（10-12 櫻木：數字看不懂誰強）；內建詞句的對手唸出來（「對手是：」＋「爺爺的鬍子！」兩段預錄）
+  // 加成徽章跳出來：觸發的那幾個字在合體卡上發光、卡上標出對戰時加了什麼（⚔️+10）、合體陀螺換金色光圈跳一下
+  function glowBonus(id) {
+    const idx = (st.hits && st.hits[id]) || [], B = BOOST[id]; if (!B || !idx.length) return;
+    idx.forEach(i => { const c = E.fchips[i]; if (c) bump(c, "tp-glow"); });
+    const bx = E.fcard.querySelector(".tp-boosts"); if (bx) bump(mk("span", "tp-boost", bx, STAT_ICON[B[0]] + "+" + B[1]), "tp-pop");
+    const T = st.bigMe;
+    if (T && W) {
+      W.setGold(T, true);
+      const y0 = bowlY(T.x * T.x + T.y * T.y);
+      W.tween(0.5, u => { T.holder.position.y = y0 + Math.sin(u * Math.PI) * 0.7; }, () => { T.holder.position.y = y0; });
+      W.spark(T.x, 1.4, T.y, 20, 0.6, 0.13); W.flash(T.x, y0, T.y, 1.0);
+    }
+    play("boost", 1.3); st.glowed = (st.glowed || 0) + idx.length;
+  }
+  // 對手亮相：紅隊合體陀螺從天上掉進碗裡（我的往左讓位）＋兩隊戰力長條並排＋等級徽章＋目前段位；內建詞句的對手唸出來
   function showVs() {
+    if (!st || st.phase !== "morph" || !st.opp) return;
+    const oppPw = TP.powerOf(st.opp.p, Dk);
+    st.oppHits = bonusHits(oppPw); st.oppB = boostStats(oppPw.perChar.map(c => c.stats), st.oppHits); st.oppFused = fuseStats(st.oppB);   // 兩隊都套自己詞句的加成（同一場仍然確定性）
     E.vsInfo.textContent = "";
+    const rk = mk("div", "tp-vs-rank", E.vsInfo); zText(mk("span", "", rk), "段位"); mk("b", "", rk, rankLabel(curRank()));
     const top = Math.max(8000, st.power.total, st.opp.power) * 1.02;
     const row = (cls, label, p, z, power) => {
       const who = mk("div", "tp-pw-who " + cls, E.vsInfo); mk("span", "tp-vs-l", who, label); if (p) who.appendChild(phraseEl(p, z, "tp-ph tp-vs-ph"));
@@ -899,7 +1115,17 @@ export function createTopsGame(root, api) {
     };
     row("tp-pw-me", "我的陀螺", null, null, st.power.total);
     row("tp-pw-opp", "對手", st.opp.p, st.opp.z, st.opp.power);
-    E.vs.classList.add("tp-shown"); E.morph.classList.add("tp-vson"); E.fight.disabled = false; bump(E.vs, "tp-pop"); play("launch");
+    if (W && st.bigMe) {
+      if (st.bigOpp) W.removeTops([st.bigOpp]);
+      const O = st.bigOpp = W.makeBig(st.opp.p, st.opp.z, st.oppFused, "opp"), B = st.bigMe, x0 = B.x;
+      W.setGold(O, st.oppHits && Object.keys(st.oppHits).length > 0);
+      O.holder.visible = true; O.lift = 6; W.placeTop(O, 2.4, 0, 0.8);
+      W.tween(0.45, u => { O.lift = 6 * (1 - u) * (1 - u); W.placeTop(O, 2.4, 0, 0.8); }, () => {
+        O.lift = 0; W.placeTop(O, 2.4, 0, 0.8); W.spark(2.4, 0.6, 0, 40, 1.1, TEAM.opp.hue); W.flash(2.4, bowlY(2.4 * 2.4), 0, 1.5); W.addShake(0.7); play("clash2", 0.8);
+      });
+      W.tween(0.5, u => W.placeTop(B, x0 + (-2.4 - x0) * ease(u), 0, 0.8), null);
+    }
+    E.vs.classList.add("tp-shown"); E.morph.classList.add("tp-vson"); E.fight.disabled = false; bump(E.vs, "tp-pop"); play("launch", 0.8);
     if (INSPIRE.some(x => x[0] === st.opp.p)) talk(LINES.vsPre + sayPhrase(st.opp.p)); else talk(LINES.vs);   // 不唸小孩打的字：只有內建詞句才唸
     relayout();
   }
@@ -925,94 +1151,98 @@ export function createTopsGame(root, api) {
   function battleStatsOf(p) { const pw = TP.powerOf(p, Dk); return boostStats(pw.perChar.map(c => c.stats), bonusHits(pw)); }
   // 這句打過哪些對手（存檔的最近紀錄＋這次開頁打的）
   function foughtWith(p) { const b = (st.board && st.board.recent) || []; return new Set([...b, ...fought].filter(e => e.p === p).map(e => e.o)); }
-  // 對手：開局指定的＞全島榜＋島上傳說＋隨機靈感（同一句打過的先避開——10-12 櫻木）裡戰力最接近的 3 隊挑一隊（照詞句雜湊挑）
-  //   mode.free（第一次免費那場）／mode.rematch（輸了換對手）：先把候選對手都模擬一遍（確定性，跟等一下真的打的一模一樣），挑戰力最接近、小孩會贏的那隊
+  // 對手：開局指定的＞全島榜＋島上傳說＋隨機靈感（同一句打過的先避開——10-12 櫻木）裡，戰力最接近「段位目標」的 3 隊挑一隊（照詞句雜湊挑）
+  //   段位目標（v2）＝我的戰力 × RANK_FACTOR[段位]：新手 0.82（比我弱）→ 銅 0.92 → 銀 1.0 → 金 1.06 → 彩虹 1.12（略強）
+  //   mode.free（第一次免費那場）／mode.rematch（輸了換對手）：先把候選對手都模擬一遍（確定性，跟等一下真的打的一模一樣），挑最接近目標、小孩會贏的那隊
   function pickOpponent(board, mode = {}) {
-    const o = st.opts && st.opts.opponent;
+    const o = st.opts && st.opts.opponent; st.oppSalt = 0;
     if (o && !mode.rematch && typeof o.p === "string" && [...o.p].length === 5) return { p: o.p, z: o.z ? (Array.isArray(o.z) ? o.z : o.z.split(" ")) : zOf(o.p, Dk), power: TP.powerOf(o.p, Dk).total };
     const seen = new Set([st.phrase]); let pool = [];
     for (const p of [...board.island.map(e => e.p), ...LEGENDS, ...INSPIRE.map(x => x[0])]) if (!seen.has(p)) { seen.add(p); pool.push({ p, power: TP.powerOf(p, Dk).total }); }
-    pool.sort((a, b) => Math.abs(a.power - st.power.total) - Math.abs(b.power - st.power.total) || (a.p < b.p ? -1 : 1));
+    const target = st.power.total * RANK_FACTOR[curRank()]; st.oppTarget = Math.round(target);
+    pool.sort((a, b) => Math.abs(a.power - target) - Math.abs(b.power - target) || (a.p < b.p ? -1 : 1));
     const done = foughtWith(st.phrase); if (mode.rematch && st.opp) done.add(st.opp.p);
     const fresh = pool.filter(e => !done.has(e.p)); if (fresh.length) pool = fresh;
     const mkOpp = e => ({ p: e.p, power: e.power, z: zOf(e.p, Dk, (board.island.find(x => x.p === e.p) || {}).z) });
     if (mode.free || mode.rematch) {
-      const me = { p: st.phrase, stats: st.bstats };
-      for (const e of pool.slice(0, 16)) if (simulateMatch(me, { p: e.p, stats: battleStatsOf(e.p) }).winner === "a") { st.oppWhy = mode.free ? "free" : "rematch"; return mkOpp(e); }
+      // v2 合體後弱的句子（例：力了人八十）幾乎每隊都打不贏 → 先找正式種子（salt 0）會贏的；都沒有才換一組種子（安慰場的「好運」，同樣確定性）
+      const me = { p: st.phrase, stats: st.bstats }, cand = pool.slice(0, 16).map(e => ({ e, t: { p: e.p, stats: battleStatsOf(e.p) } }));
+      for (let salt = 0; salt < 12; salt++) for (const c of cand) if (simulateMatch(me, c.t, salt).winner === "a") { st.oppWhy = mode.free ? "free" : "rematch"; st.oppSalt = salt; return mkOpp(c.e); }
     }
     st.oppWhy = "near";
     return mkOpp(pool[TP.hashStr(st.phrase) % Math.min(3, pool.length)]);
   }
 
-  // ===================== 對戰 =====================
+  // ===================== 對戰（v2：合體陀螺一對一、三戰兩勝） =====================
+  // 每回合：「ROUND N」（第 3 回合＝「決勝回合！」）→ 兩顆浮在碗上 → 3、2、1（tp_count）→「發射！」掉進碗裡 → 播放 sim 算好的軌跡
+  //   → 撞擊特效（hitFx）→ 一顆轉不動或被撞出場 → 「藍隊勝！／紅隊勝！」＋得分點 → 下一回合；先拿 2 勝的贏。決勝那一擊慢動作。
   function tapFight() {
-    if (st.phase !== "morph" || !st.opp) return;
+    if (!st || st.phase !== "morph" || !st.opp || !st.oppB) return;
     st.phase = "battle"; showOnly("hud"); play("go");
-    const oppPw = TP.powerOf(st.opp.p, Dk), oppStats = oppPw.perChar.map(c => c.stats);
-    st.oppHits = bonusHits(oppPw); st.oppB = boostStats(oppStats, st.oppHits);   // 兩隊都套自己詞句的加成（同一場仍然確定性）
-    st.match = simulateMatch({ p: st.phrase, stats: st.bstats }, { p: st.opp.p, stats: st.oppB });
-    st.mySide = st.match.flip ? 1 : 0; st.score = [0, 0]; st.ri = -1; st.fast = false; st.cheers = 0; E.ff.classList.remove("tp-on", "tp-auto2");
-    const boosted = h => { const s = new Set(); for (const id in h) h[id].forEach(i => s.add(i)); return s; };
-    st.myBoost = boosted(st.hits); st.oppBoost = boosted(st.oppHits);
-    if (W) {
-      if (st.oppTops) W.removeTops(st.oppTops);
-      st.myTops.forEach((T, i) => { T.holder.visible = false; T.holder.scale.setScalar(1); W.setGold(T, st.myBoost.has(i)); });
-      st.oppTops = [...st.opp.p].map((ch, i) => { const T = W.makeTop(ch, st.opp.z[i], oppStats[i], "opp"); W.setGold(T, st.oppBoost.has(i)); return T; });
-    }
+    st.match = simulateMatch({ p: st.phrase, stats: st.bstats }, { p: st.opp.p, stats: st.oppB }, st.oppSalt || 0);   // oppSalt：安慰場才可能不是 0（pickOpponent）
+    st.mySide = st.match.flip ? 1 : 0; st.score = [0, 0]; st.ri = -1; st.fast = false; st.cheers = 0; st.hitN = 0; st.hitLv = [0, 0, 0, 0]; st.holds = 0; E.ff.classList.remove("tp-on");
+    if (W && st.bigMe && !st.bigOpp) { st.bigOpp = W.makeBig(st.opp.p, st.opp.z, st.oppFused, "opp"); }
     paintTeams(); relayout();
     nextRound(); startLoop();                                  // 迴圈一定在跑（沒有 3D 時對戰也要靠它往前走）
   }
+  // 上方兩隊：名字（國字＋注音）＋耐力長條＋百分比（隊伍色）；中間 ROUND＋三個得分點
   function paintTeams() {
-    const t = [{ p: st.phrase, z: st.z, cls: "tp-me", b: st.myBoost }, { p: st.opp.p, z: st.opp.z, cls: "tp-opp", b: st.oppBoost }];
-    E.gfill = [];
+    const t = [{ p: st.phrase, z: st.z, cls: "tp-me" }, { p: st.opp.p, z: st.opp.z, cls: "tp-opp" }];
+    E.gfill = []; E.gpct = []; st.gpctV = [-1, -1];
     t.forEach((tm, k) => {
       const el = E.teams[k]; el.textContent = "";
       const chips = mk("div", "tp-chips", el);
-      [...tm.p].forEach((ch, i) => { const c = mk("span", "tp-chip" + (tm.b && tm.b.has(i) ? " tp-boosted" : ""), chips); c.dataset.i = i; c.appendChild(acSpan(ch, tm.z[i])); });
+      [...tm.p].forEach((ch, i) => { const c = mk("span", "tp-chip", chips); c.dataset.i = i; c.appendChild(acSpan(ch, tm.z[i])); });
       const g = mk("div", "tp-gauge", el); E.gfill[k] = mk("span", "tp-gfill", g);   // 10-12 里維：快取，paintGauges 每格不用再 querySelector
+      const lab = mk("div", "tp-glab", el); zText(mk("span", "tp-glab-t", lab), "耐力"); E.gpct[k] = mk("b", "tp-gpct", lab, "100%");
     });
     paintScore();
   }
-  function paintScore() { E.score.textContent = ""; mk("b", "", E.score, String(st.score[0])); mk("span", "", E.score, ":"); mk("b", "", E.score, String(st.score[1])); }
+  function paintScore() {
+    E.score.textContent = "";
+    const i = st.rs ? st.rs.i : Math.max(0, st.ri), done = st.score ? st.score[0] + st.score[1] : 0;
+    mk("div", "tp-round", E.score, "ROUND " + (i + 1));
+    const dots = mk("div", "tp-dots", E.score);
+    for (let k = 0; k < FUSE.ROUNDS; k++) {
+      const r = st.match && st.match.rounds[k];
+      mk("span", "tp-dot" + (k < done && r ? (r.winner === "a" ? " tp-dot-me" : " tp-dot-opp") : k === i && st.rs ? " tp-dot-now" : ""), dots);
+    }
+  }
   function banner(text, cls = "", dur = 1.4) {
     const b = zText(mk("div", "tp-bn " + cls, E.banner), text); bump(b, "tp-bnin");
     at(dur, () => { b.classList.add("tp-bnout"); at(0.35, () => b.remove()); });
   }
   function nextRound() {
-    if (st.score[0] >= 3 || st.score[1] >= 3 || st.ri >= 4) return finishMatch();
+    if (st.score[0] >= FUSE.WIN || st.score[1] >= FUSE.WIN || st.ri >= FUSE.ROUNDS - 1) return finishMatch();
     st.ri++;
     const R = st.match.rounds[st.ri]; if (!R) return finishMatch();
     const i = st.ri, sim = R.sim;
-    st.rs = { R, sim, i, t: 0, hi: 0, stage: "intro", slow: false, decisive: (R.winner === "a" ? st.score[0] : st.score[1]) === 2 };
-    E.teams.forEach(el => el.querySelectorAll(".tp-chip").forEach(c => c.classList.toggle("tp-now", +c.dataset.i === i)));
-    if (W) {
-      [...st.myTops, ...st.oppTops].forEach(T => { T.holder.visible = false; T.fall = null; T.tilt.rotation.set(0, 0, 0); T.holder.scale.setScalar(1); });
-      st.cur2 = [st.mySide === 0 ? st.myTops[i] : st.oppTops[i], st.mySide === 0 ? st.oppTops[i] : st.myTops[i]];   // sim 的 0 號、1 號
-      st.cur2.forEach((T, s) => { T.holder.visible = true; W.placeTop(T, sim.f[s * 3], sim.f[s * 3 + 1], sim.f[s * 3 + 2]); });
-      W.zoom = null; W.follow = { x: 0, z: 0, r: 4.6 };
+    st.rs = { R, sim, i, t: 0, hi: 0, stage: "intro", slow: false, hold: 0, drop: 0, rub: 0, decisive: (R.winner === "a" ? st.score[0] : st.score[1]) === FUSE.WIN - 1, s0: [sim.f[2] || 1, sim.f[5] || 1] };
+    if (W && st.bigMe && st.bigOpp) {
+      [st.bigMe, st.bigOpp].forEach(T => { T.holder.visible = true; T.fall = null; T.tilt.rotation.set(0, 0, 0); T.holder.scale.setScalar(1); });
+      st.cur2 = st.mySide === 0 ? [st.bigMe, st.bigOpp] : [st.bigOpp, st.bigMe];   // sim 的 0 號、1 號
+      st.cur2.forEach((T, s) => { T.lift = HOVER; W.placeTop(T, sim.f[s * 3], sim.f[s * 3 + 1], 0.45); });
+      W.zoom = null; W.zoomOut = null; W.pk = null; W.follow = { x: 0, z: 0, r: 5.6 };
     }
-    E.tags.forEach(t => t.classList.add("tp-off"));
-    // 縮短（10-12 櫻木）：只有第 1 回合 3-2-1 倒數，之後直接「發射！」；第 4、5 回合預設 2 倍速（⏩ 照樣 3 倍）
-    st.rs.speed = i >= 3 ? 2 : 1; E.ff.classList.toggle("tp-auto2", i >= 3);
-    banner(`第 ${i + 1} 回合`, "tp-bn-round", 1.1); talk(ROUND_LINES[i], true);
-    const launch = () => {
-      banner("發射！", "tp-bn-go", 0.7); play("launch"); if (i === 0) talk(LINES.fight);
-      st.rs.stage = "fight"; E.tags.forEach(t => t.classList.remove("tp-off")); paintTags();
-      if (i === 0) { E.cheerHint.classList.remove("tp-off"); if (!saidCheerHint) { saidCheerHint = true; talk(LINES.cheerHint); } }
-    };
-    if (i === 0) {
-      st.countdown = (st.countdown || 0) + 1;
-      at(1.25, () => { banner("3", "tp-bn-count", 0.4); play("key", 0.9); });
-      at(1.7, () => { banner("2", "tp-bn-count", 0.4); play("key", 1.0); });
-      at(2.15, () => { banner("1", "tp-bn-count", 0.4); play("key", 1.1); });
-      at(2.6, launch);
-    } else at(0.9, launch);
+    paintScore(); paintGauges(st.rs.s0);
+    E.tags.forEach(t => t.classList.remove("tp-off")); paintTags();
+    if (i === FUSE.ROUNDS - 1) { banner("決勝回合！", "tp-bn-final2", 1.0); talk(LINES.final, true); }
+    else { banner("ROUND " + (i + 1), "tp-bn-round", 1.0); talk(ROUND_LINES[i], true); }
+    st.countdown = (st.countdown || 0) + 1;
+    [3, 2, 1].forEach((n, k) => at(1.15 + k * 0.5, () => { banner(String(n), "tp-bn-count", 0.4); play("count", 1 + k * 0.05); }));
+    at(2.65, () => launch(i));
+  }
+  function launch(i) {
+    const rs = st.rs; if (!rs || rs.i !== i || rs.stage !== "intro") return;
+    banner("發射！", "tp-bn-go", 0.7); play("launch"); talk(i === 0 ? LINES.fight : LINES.launch);
+    rs.stage = "fight"; rs.drop = 0.28; st.launches = (st.launches || 0) + 1;
+    if (i === 0) { E.cheerHint.classList.remove("tp-off"); if (!saidCheerHint) { saidCheerHint = true; talk(LINES.cheerHint); } }
   }
   // 點畫面幫陀螺加油（純表演：我的陀螺冒藍色火花、碗口燈亮一下、歡呼音效；對戰早就算好了，不影響結果）
   function cheer(e) {
     st.cheers = (st.cheers || 0) + 1; E.cheerHint.classList.add("tp-off");
-    const T = st.cur2 && st.cur2[st.mySide];
-    if (W && T && T.holder.visible && !T.fall) { W.spark(T.x, T.holder.position.y + 0.7, T.y, 16, 0.55, 0.55); W.rimFlash = Math.max(W.rimFlash, 0.5); }
+    const T = st.bigMe;
+    if (W && T && T.holder.visible && !T.fall) { W.spark(T.x, T.holder.position.y + 0.9, T.y, 16, 0.55, TEAM.me.hue); W.rimFlash = Math.max(W.rimFlash, 0.5); }
     const r = root.getBoundingClientRect(), f = mk("div", "tp-cheer", E.hud, ["加油！", "衝啊！", "好棒！"][st.cheers % 3]);
     f.style.left = ((e && e.clientX != null ? e.clientX : r.left + r.width / 2) - r.left) + "px"; f.style.top = ((e && e.clientY != null ? e.clientY : r.top + r.height / 2) - r.top) + "px";
     later(() => f.remove(), 900);
@@ -1020,22 +1250,31 @@ export function createTopsGame(root, api) {
     if (st.cheers === 1) talk(LINES.cheer);
   }
   function stepBattle(gdt) {
-    const rs = st.rs; if (!rs || rs.stage !== "fight") return;
+    const rs = st.rs; if (!rs) return;
+    if (rs.stage === "intro") {                                // 發射前：浮在碗上面慢慢轉、上下飄
+      if (W && st.cur2) st.cur2.forEach((T, s) => { T.lift = HOVER + Math.sin(st.clock * 4 + s * 2) * 0.1; W.placeTop(T, T.x, T.y, 0.45); });
+      return;
+    }
+    if (rs.stage !== "fight") return;
+    if (rs.hold > 0) { rs.hold -= gdt; return; }               // 撞擊停格（遊戲時鐘：暫停時一起凍住、⏩ 時短一點）
     const sim = rs.sim, n = sim.n;
     const slowFrom = rs.decisive ? Math.max(0, sim.end.k - 48) : Infinity;
     let k = rs.t / SIM.DT;
-    if (k >= slowFrom && !rs.slow) {                          // 決勝回合的最後一擊：慢動作＋鏡頭拉近
+    if (k >= slowFrom && !rs.slow) {                          // 決勝的最後一擊：慢動作＋鏡頭拉近
       rs.slow = true; talk(LINES.last, true);
       if (W) W.zoom = { k: 0 };
       E.wrap.classList.add("tp-slowmo");
     }
     rs.t += gdt * (rs.slow ? 0.28 : 1);
     k = Math.min(n, rs.t / SIM.DT);
-    // 碰撞特效
+    if (rs.drop > 0) {                                         // 發射：0.28 秒內從空中掉進碗裡（落地火花＋震一下）
+      rs.drop = Math.max(0, rs.drop - gdt); const lift = HOVER * Math.pow(rs.drop / 0.28, 2);
+      if (st.cur2) st.cur2.forEach(T => { T.lift = lift; });
+      if (rs.drop === 0) landFx();
+    }
     while (rs.hi < sim.hits.length && sim.hits[rs.hi].k <= k) {
-      const h = sim.hits[rs.hi++], y = bowlY(h.x * h.x + h.y * h.y) + 0.45;
-      if (W) { W.spark(h.x, y, h.y, Math.round(14 + 40 * h.s), 0.6 + h.s); W.flash(h.x, y - 0.4, h.y, 0.6 + h.s); W.shake = Math.max(W.shake, 0.15 + h.s * 0.6); W.rimFlash = Math.min(1, 0.4 + h.s); }
-      play("clash", 0.75 + h.s * 0.6);
+      const h = sim.hits[rs.hi++]; hitFx(h);
+      if (rs.hold > 0) { k = h.k; rs.t = k * SIM.DT; break; }  // 停格停在撞上的那一格
     }
     const k0 = Math.floor(k), k1 = Math.min(n, k0 + 1), u = k - k0, f = sim.f;
     const S = [0, 0];
@@ -1047,50 +1286,90 @@ export function createTopsGame(root, api) {
     rs.S = S;
     if (W && st.cur2) {
       const a = st.cur2[0], b = st.cur2[1], sep = Math.hypot(a.x - b.x, a.y - b.y);
-      W.follow = { x: clamp((a.x + b.x) / 2 * 0.7, -2.4, 2.4), z: clamp((a.y + b.y) / 2 * 0.7, -2.4, 2.4), r: clamp(sep / 2 + 2.4, 3.8, 5.95) };
+      W.follow = { x: clamp((a.x + b.x) / 2 * 0.7, -2.4, 2.4), z: clamp((a.y + b.y) / 2 * 0.7, -2.4, 2.4), r: clamp(sep / 2 + 2.7, 4.2, 5.95) };
+      // 兩顆貼著轉（還沒算碰撞、只是擦過）：一直冒小火花（純表演）
+      rs.rub += gdt;
+      if (sep < (a.P.r + b.P.r) * 1.12 && S[0] > 0.08 && S[1] > 0.08 && rs.rub > 0.06) { rs.rub = 0; W.spark((a.x + b.x) / 2, bowlY(a.x * a.x + a.y * a.y) + 0.55, (a.y + b.y) / 2, 4, 0.45); }
     }
     paintGauges(S); paintTags();
     if (k >= n) endRound();
+  }
+  function landFx() {
+    if (!W || !st.cur2) return;
+    st.cur2.forEach(T => { const y = bowlY(T.x * T.x + T.y * T.y); W.spark(T.x, y + 0.25, T.y, 18, 0.8, T.side === "me" ? TEAM.me.hue : TEAM.opp.hue); W.flash(T.x, y, T.y, 1.1); });
+    W.addShake(0.4); play("clash1", 0.75);
+  }
+  // 撞擊（sim 的 hits）：強度看這一下兩顆一共被扣多少轉速（h.d；合體陀螺互撞時 h.s 幾乎都頂到 1，分不出輕重）
+  //   扣 ≥0.10（約前 25%）＝重擊、≥0.065＝中擊、其餘輕擊 → 金屬聲 tp_clash1/2/3、金黃＋兩隊色火花、兩顆都噴碎片（被撞得慘的那顆噴比較多）、衝擊圈、白光、震動；
+  //   中擊停格 0.05 秒；重擊停格 0.12 秒＋鏡頭往撞擊點推近＋整個畫面閃白光
+  function hitFx(h) {
+    const dm = h.d ? h.d[0] + h.d[1] : 0.07, s = clamp((dm - 0.03) / 0.1, 0.15, 1), lvl = dm >= 0.1 ? 3 : dm >= 0.065 ? 2 : 1, rs = st.rs;
+    play("clash" + lvl, 0.92 + Math.random() * 0.16);
+    st.hitN = (st.hitN || 0) + 1; st.hitLv[lvl]++;
+    if (lvl >= 2) { rs.hold = lvl === 3 ? 0.12 : 0.05; st.holds++; }
+    if (lvl === 3) flashScreen(0.45);
+    if (!W || !st.cur2) return;
+    const y = bowlY(h.x * h.x + h.y * h.y) + 0.6;
+    W.spark(h.x, y, h.y, Math.round(16 + 36 * s), 0.7 + s);
+    W.spark(h.x, y, h.y, Math.round(5 + 12 * s), 0.6 + s, TEAM.me.hue); W.spark(h.x, y, h.y, Math.round(5 + 12 * s), 0.6 + s, TEAM.opp.hue);
+    const d = h.d || [1, 1], tot = (d[0] + d[1]) || 1;
+    st.cur2.forEach((T, j) => {
+      const O = st.cur2[1 - j], n = Math.round((3 + 22 * s) * (0.35 + 1.3 * d[j] / tot) * (W.rm ? 0.6 : 1));
+      W.debris(T.x, T.holder.position.y + 0.55, T.y, n, T.x - O.x, T.y - O.y, 0.6 + s, T.color.getHex());
+    });
+    W.flash(h.x, y - 0.5, h.y, 0.7 + s * 1.2); if (lvl === 3) W.flash(h.x, y - 0.5, h.y, 2.2);
+    W.impact(h.x, y, h.y, 1.6 + 3 * s, 0xfff2c0);
+    W.addShake(0.18 + 0.75 * s); W.rimFlash = Math.min(1, 0.4 + s);
+    if (lvl === 3) W.punch(h.x, h.y, 0.2);
   }
   function endRound() {
     const rs = st.rs; rs.stage = "end"; E.cheerHint.classList.add("tp-off");
     const R = rs.R, sim = rs.sim, lo = sim.end.loser, how = sim.end.how;
     const meWon = R.winner === "a";
     if (W && st.cur2) {
-      const T = st.cur2[lo], n = sim.n, f = sim.f;
-      if (how === "out") {
+      const T = st.cur2[lo], O = st.cur2[1 - lo], n = sim.n, f = sim.f;
+      if (how === "out") {                                     // 撞出場：飛出去＋大爆炸
         const vx = (f[n * 6 + lo * 3] - f[(n - 1) * 6 + lo * 3]) / SIM.DT, vz = (f[n * 6 + lo * 3 + 1] - f[(n - 1) * 6 + lo * 3 + 1]) / SIM.DT;
         T.fall = { kind: "out", t: 0, x: T.x, z: T.y, y: T.holder.position.y, vx: vx * 1.25, vz: vz * 1.25, vy: 3.2 };
-        W.shake = 1; W.spark(T.x, T.holder.position.y + 0.4, T.y, 50, 1.4); W.rimFlash = 1; play("out"); W.follow = { x: 0, z: 0, r: 5.95 };
-      } else { T.fall = { kind: "topple", t: 0, dir: Math.random() * Math.PI * 2 }; T.S = 0; play("topple"); }
+        W.addShake(1.2); W.spark(T.x, T.holder.position.y + 0.4, T.y, 60, 1.5); W.impact(T.x, T.holder.position.y + 0.6, T.y, 6, 0xffffff); W.rimFlash = 1;
+        W.debris(T.x, T.holder.position.y + 0.5, T.y, 26, T.x - O.x, T.y - O.y, 1.3, T.color.getHex());
+        play("ko"); W.follow = { x: 0, z: 0, r: 5.95 }; flashScreen(0.55);
+      } else {                                                 // 轉不動倒下
+        T.fall = { kind: "topple", t: 0, dir: Math.random() * Math.PI * 2 }; T.S = 0;
+        W.debris(T.x, T.holder.position.y + 0.4, T.y, 10, T.x - O.x, T.y - O.y, 0.6, T.color.getHex());
+        play(rs.decisive ? "ko" : "topple");
+      }
       W.zoomOut = 1;
-    }
+    } else play(how === "out" || rs.decisive ? "ko" : "topple");
     st.score[meWon ? 0 : 1]++;
     paintScore(); bump(E.score, "tp-pop");
-    const myChip = E.teams[0].querySelector(`.tp-chip[data-i="${rs.i}"]`), opChip = E.teams[1].querySelector(`.tp-chip[data-i="${rs.i}"]`);
-    if (myChip) myChip.classList.add(meWon ? "tp-won" : "tp-lost"); if (opChip) opChip.classList.add(meWon ? "tp-lost" : "tp-won");
     const howText = how === "out" ? "撞出場！" : how === "stop" ? "停下來了！" : "時間到！比轉速！";
     talk(how === "out" ? LINES.out : how === "stop" ? LINES.stop : LINES.time, true);
     const slowEnd = rs.slow ? 1.0 : 0.5;
     at(slowEnd, () => { if (W) W.zoom = null; E.wrap.classList.remove("tp-slowmo"); });
     at(0.35, () => banner(howText, "tp-bn-how", 1.0));
-    at(1.45, () => { banner(meWon ? "🎉 這回合你贏了！" : "這回合對手贏了！", meWon ? "tp-bn-win" : "tp-bn-lose", 1.2); play(meWon ? "roundWin" : "roundLose"); talk(meWon ? LINES.roundWin : LINES.roundLose); });
-    at(3.0, () => nextRound());
+    at(1.4, () => { banner(meWon ? "藍隊勝！" : "紅隊勝！", meWon ? "tp-bn-blue" : "tp-bn-red", 1.3); play("round"); if (meWon) play("cheer", 1); talk(meWon ? LINES.blueWin : LINES.redWin); });
+    at(3.1, () => nextRound());
   }
+  // 耐力＝現在轉速 ÷ 這回合發射時的轉速（0–100%）；sim 的 0／1 號轉成 我／對手
   function paintGauges(S) {
-    const mine = S[st.mySide], theirs = S[1 - st.mySide];
-    const g = E.gfill;
-    if (g[0]) g[0].style.transform = `scaleX(${clamp(mine / 1.35, 0, 1)})`;
-    if (g[1]) g[1].style.transform = `scaleX(${clamp(theirs / 1.35, 0, 1)})`;
+    const s0 = (st.rs && st.rs.s0) || [1, 1], v = [S[st.mySide] / s0[st.mySide], S[1 - st.mySide] / s0[1 - st.mySide]];
+    const g = E.gfill, p = E.gpct;
+    for (let k = 0; k < 2; k++) {
+      const x = clamp(v[k], 0, 1);
+      if (g[k]) { g[k].style.transform = `scaleX(${x})`; g[k].classList.toggle("tp-low", x < 0.3); }
+      const pc = Math.round(x * 100); if (p[k] && st.gpctV[k] !== pc) { st.gpctV[k] = pc; p[k].textContent = pc + "%"; }
+    }
   }
+  // 碗裡的名字牌：藍隊／紅隊（隊伍色），跟著陀螺頭上
   function paintTags() {
-    if (!W || !st.cur2 || !st.rs) return;
-    const R = st.rs, i = R.i;
-    [0, 1].forEach(k => {                                     // 0＝我、1＝對手
-      const T = k === 0 ? st.myTops[i] : st.oppTops[i], el = E.tags[k];
-      if (!T || !T.holder.visible) { el.classList.add("tp-off"); return; }
-      if (!el.firstChild || el.dataset.ch !== T.ch) { el.textContent = ""; el.dataset.ch = T.ch; el.appendChild(acSpan(T.ch, T.z)); }
-      const p = W.topScreen(T); el.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -110%)`;
+    if (!W || !st.bigMe || !st.bigOpp) return;
+    [0, 1].forEach(k => {                                     // 0＝我（藍隊）、1＝對手（紅隊）
+      const T = k === 0 ? st.bigMe : st.bigOpp, el = E.tags[k];
+      if (!T.holder.visible || (T.fall && T.fall.kind === "out" && T.fall.t > 0.6)) { el.classList.add("tp-hid"); return; }
+      el.classList.remove("tp-hid");
+      if (!el.firstChild) zText(el, k === 0 ? TEAM.me.name : TEAM.opp.name);
+      const p = W.topScreen(T); el.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -115%)`;
     });
   }
   function toggleFast() { st.fast = !st.fast; E.ff.classList.toggle("tp-on", st.fast); play("key", st.fast ? 1.4 : 0.9); }
@@ -1099,14 +1378,17 @@ export function createTopsGame(root, api) {
   function finishMatch() {
     if (st.phase === "result") return;
     st.phase = "result"; st.rs = null;
-    const win = st.score[0] >= 3, board = st.board || { island: [], home: [] };
+    const win = st.score[0] >= FUSE.WIN, board = st.board || { island: [], home: [] };
     const power = st.power.total, entry = { p: st.phrase, power, z: st.z };
     const record = !board.home.length || power > board.home[0].power;
     const home = homeInsert(board.home, entry);
+    // 段位：贏一場升一段（最高彩虹）；主程式在 onWin 存起來（沒給 api.rank 的試玩頁＝模組自己記）
+    const from = curRank(), to = win ? Math.min(RANKS.length - 1, from + 1) : from;
+    st.rankUp = to > from ? { from, to } : null; memRank = to;
     const info = {
       win, power, phrase: st.phrase, z: st.z.slice(), score: st.score.slice(), opponent: { p: st.opp.p, power: st.opp.power },
-      rounds: st.match.rounds.slice(0, st.score[0] + st.score[1]).map(r => ({ i: r.i, me: st.phrase[r.i], them: st.opp.p[r.i], win: r.winner === "a", how: r.how })),
-      bonuses: st.power.bonuses.map(b => ({ ...b })), record, home,
+      rounds: st.match.rounds.slice(0, st.score[0] + st.score[1]).map(r => ({ i: r.i, win: r.winner === "a", how: r.how })),
+      bonuses: st.power.bonuses.map(b => ({ ...b })), record, home, rank: { from, to },
     };
     st.win = info;
     fought.push({ p: st.phrase, o: st.opp.p }); if (fought.length > 30) fought.shift();   // 同一句再下場時避開打過的對手
@@ -1124,26 +1406,29 @@ export function createTopsGame(root, api) {
       Promise.resolve(ret).then(r => { if (my !== run || !st) return; st.submit.res = r || null; paintSubmit(); }).catch(() => {});
     }
     st.board = { ...board, island: isl, home };
-    E.cheerHint.classList.add("tp-off"); E.ff.classList.remove("tp-auto2");
+    E.cheerHint.classList.add("tp-off");
     st.canRematch = !win && !st.rematchUsed;                 // 輸了：一次免費「換個對手再打」（不用重打字、不扣券；每張券限一次）
-    banner(win ? "🏆 你贏了！" : "差一點點！", win ? "tp-bn-final" : "tp-bn-lose", 1.6);
-    play(win ? "win" : "lose"); talk(win ? LINES.win : st.canRematch ? LINES.loseRematch : LINES.lose, true);
-    if (W && st.myTops) {                                     // 贏了：我的 5 顆在碗裡排一圈轉；輸了：對手的
-      const team = win ? st.myTops : st.oppTops;
-      [...st.myTops, ...st.oppTops].forEach(T => { T.holder.visible = false; T.fall = null; T.tilt.rotation.set(0, 0, 0); });
-      team.forEach((T, i) => { const a = i / 5 * Math.PI * 2 - Math.PI / 2; T.holder.visible = true; W.placeTop(T, Math.cos(a) * 2.2, Math.sin(a) * 2.2, 1); });
-      st.circle = team; W.zoom = null; W.follow = { x: 0, z: 0, r: 4.2 }; E.tags.forEach(t => t.classList.add("tp-off"));
-      if (win) for (let k = 0; k < 4; k++) at(0.2 + k * 0.35, () => W && W.spark((Math.random() - 0.5) * 6, 1.5, (Math.random() - 0.5) * 4, 40, 1.2));
+    banner(win ? "勝利！" : "再接再厲", win ? "tp-bn-final" : "tp-bn-lose", 1.8);
+    play(win ? "victory" : "lose"); if (win) play("cheer", 1.05);
+    talk(win ? LINES.win : st.canRematch ? LINES.loseRematch : LINES.lose, true);
+    if (W && st.bigMe && st.bigOpp) {                         // 贏的那顆回到碗中間轉（輸的收起來）；贏了：兩色彩帶火花
+      const champ = win ? st.bigMe : st.bigOpp, other = win ? st.bigOpp : st.bigMe;
+      other.holder.visible = false; other.fall = null;
+      champ.fall = null; champ.tilt.rotation.set(0, 0, 0); champ.lift = 0; champ.holder.visible = true; W.placeTop(champ, 0, 0, 1);
+      st.champ = champ; W.zoom = null; W.pk = null; W.follow = { x: 0, z: 0, r: 4.2 }; E.tags.forEach(t => t.classList.add("tp-off"));
+      if (win) for (let k = 0; k < 5; k++) at(0.15 + k * 0.3, () => W && W.spark((Math.random() - 0.5) * 6, 1.6, (Math.random() - 0.5) * 4, 45, 1.3, k % 2 ? TEAM.me.hue : 0.13));
     }
-    if (record) at(1.2, () => { play("record"); talk(LINES.record); });
-    at(1.9, () => showResult());
+    if (st.rankUp) at(1.0, () => { banner("升段！" + rankLabel(st.rankUp.to), "tp-bn-rank", 1.3); play("record"); talk(RANK_UP[st.rankUp.to - 1]); });
+    if (record) at(st.rankUp ? 1.7 : 1.2, () => { play("record"); talk(LINES.record); });
+    at(2.4, () => showResult());
   }
   function showResult() {
     const r = st.win; E.result.textContent = "";
     const pan = mk("div", "tp-rpanel" + (r.win ? " tp-rwin" : ""), E.result);
     const left = mk("div", "tp-rleft", pan);
-    mk("div", "tp-rtitle", left, r.win ? "🏆 你贏了！" : "差一點點！");
-    mk("div", "tp-rscore", left, `${r.score[0]} : ${r.score[1]}`);
+    mk("div", "tp-rtitle", left, r.win ? "🏆 勝利！" : "再接再厲！");
+    const sc = mk("div", "tp-rscore", left); mk("b", "tp-rs-me", sc, String(r.score[0])); mk("span", "", sc, ":"); mk("b", "tp-rs-opp", sc, String(r.score[1]));
+    const rk = mk("span", "tp-rrank" + (st.rankUp ? " tp-up" : ""), sc); zText(mk("span", "", rk), "段位"); mk("b", "", rk, rankLabel(r.rank.to)); if (st.rankUp) mk("i", "tp-rup", rk, "⬆️");
     left.appendChild(phraseEl(r.phrase, r.z, "tp-ph tp-rph"));
     const pw = mk("div", "tp-rpow", left); mk("span", "", pw, "戰力"); mk("b", "", pw, String(r.power)); const tr = tierOf(r.power); mk("span", "tp-tier tp-tier" + tr.k, pw, tr.ico + " " + tr.name);
     if (r.record) bump(mk("div", "tp-rec", left, "✨ 新紀錄！"), "tp-pop");
@@ -1165,13 +1450,13 @@ export function createTopsGame(root, api) {
     if (!st || st.phase !== "result" || !st.canRematch || st.rematchUsed) return;
     st.rematchUsed = true; st.canRematch = false; st.rematches = (st.rematches || 0) + 1;
     play("go");
-    st.tl.length = 0; st.match = st.rs = st.win = st.submit = st.score = st.circle = st.cur2 = st.statusEl = null; st.fast = false;
+    st.tl.length = 0; st.match = st.rs = st.win = st.submit = st.score = st.champ = st.cur2 = st.statusEl = st.oppB = st.oppFused = st.rankUp = null; st.fast = false;
     E.result.textContent = ""; E.banner.textContent = ""; E.wrap.classList.remove("tp-slowmo"); E.tags.forEach(t => t.classList.add("tp-off"));
     st.opp = pickOpponent(st.board, { rematch: true });
     if (W) {
-      W.lowPower(false); if (st.oppTops) W.removeTops(st.oppTops); st.oppTops = null;
-      W.zoom = null; W.zoomOut = null; W.shake = 0;
-      st.myTops.forEach((T, i) => { T.fall = null; T.tilt.rotation.set(0, 0, 0); T.holder.scale.setScalar(1); T.holder.visible = true; W.placeTop(T, (i - 2) * 2.05, 0, 0.35); });
+      W.lowPower(false); if (st.bigOpp) W.removeTops([st.bigOpp]); st.bigOpp = null;
+      W.zoom = null; W.zoomOut = null; W.pk = null; W.shake = 0;
+      const B = st.bigMe; if (B) { B.fall = null; B.tilt.rotation.set(0, 0, 0); B.holder.scale.setScalar(1); B.holder.visible = true; B.lift = 0; W.placeTop(B, 0, 0, 0.8); }
     }
     st.phase = "morph"; showOnly("morph"); E.vsInfo.textContent = ""; E.vs.classList.remove("tp-shown"); E.morph.classList.remove("tp-vson"); E.fight.disabled = true;
     relayout();
@@ -1260,15 +1545,15 @@ export function createTopsGame(root, api) {
       rect = { x: m, y: headH + m, w: Wd - 2 * m, h: Math.max(80, Hd - headH - cardH - vsH - 3 * m) };
       w.setProperty("--cardh", cardH + "px"); w.setProperty("--cardy", (rect.y + rect.h) + "px");
       if (W) W.fit(Wd, Hd, rect, "morph");
-      if (W && st.myTops) st.myTops.forEach((T, i) => { const p = W.project((i - 2) * 2.05, 0, 0), c = E.cardEls[i]; c.style.left = p.x + "px"; });
-      if (!W) E.cardEls.forEach((c, i) => { c.style.left = (Wd / 2 + (i - 2) * Wd / 5.4) + "px"; });
+      E.cardEls.forEach((c, i) => { const x = W ? W.project((i - 2) * 2.05, 0, 0).x : Wd / 2 + (i - 2) * Wd / 5.4; c.style.left = x + "px"; c.style.setProperty("--dx", (Wd / 2 - x) + "px"); });   // 合體前五張卡在五顆小陀螺下面；合體時飛到中間（--dx）
+      E.fcard.style.left = (Wd / 2) + "px";
     } else {
-      const hudH = side ? 64 : Math.max(84, 13 * vm);
+      const hudH = side ? 76 : Math.max(port ? 150 : 100, (port ? 21 : 15) * vm);   // v2 名字＋耐力條＋百分比（直式名字牌在 🏠🎵 下面，比較高）
       rect = { x: m, y: hudH, w: Wd - 2 * m, h: Hd - hudH - m };
       if (st.phase === "result") rect = { x: 0, y: 0, w: Wd, h: Hd };
       if (W) W.fit(Wd, Hd, rect, "battle");
     }
-    const stripW = port ? Wd / 2 - m - 8 * vm : Wd / 2 - 29 * vm - Math.max(48, 7 * vm) - g;   // 左邊讓出 🏠🎵、中間讓出比分
+    const stripW = port ? Wd / 2 - m - 8 * vm : Wd / 2 - 29 * vm - Math.max(84, 12.5 * vm) - g;   // 左邊讓出 🏠🎵、中間讓出 ROUND＋得分點
     w.setProperty("--stripw", stripW + "px"); w.setProperty("--chipf", clamp(stripW / 10.8, 16, 30) + "px");
     L = { Wd, Hd, vm, land, side, port, kw, kh, S, C, rect };
   }
@@ -1279,18 +1564,19 @@ export function createTopsGame(root, api) {
     raf = requestAnimationFrame(frame);
     if (!st) return;
     // 效能體檢 10-12：沒有 3D 要畫、也沒有排程（打字、沒券、載入中）→ 停掉迴圈（下場 enterMorph()、開戰 tapFight() 會再 startLoop()）
-    if (!W && st.phase !== "battle" && !st.tl.length && !st.rolls.length) { cancelAnimationFrame(raf); raf = 0; return; }
+    if (!W && st.phase !== "battle" && !st.tl.length && !st.rolls.length && !(st.fuse && !st.fuse.done)) { cancelAnimationFrame(raf); raf = 0; return; }
     if (lastMs && now - lastMs < 1000 / 30 - 3) return;       // 最多 30 格／秒（-3ms 容許 rAF 抖動，跟小島一樣；物理是事先模擬好的，播放用 gdt，不受格數影響）
     const real = lastMs ? Math.min(0.05, (now - lastMs) / 1000) : 0; lastMs = now;
-    const gdt = paused() ? 0 : real * SPD() * (st.phase === "battle" ? (st.fast ? 3 : (st.rs && st.rs.speed) || 1) : 1);   // ⏩＝3 倍；第 4、5 回合預設 2 倍
+    const gdt = paused() ? 0 : real * SPD() * (st.phase === "battle" && st.fast ? 3 : 1);   // ⏩＝對戰 3 倍
     st.clock += gdt;
     runTimeline(); if (!st) return;
     if (st.rolls.length) { const r = st.rolls.splice(0); r.forEach(f => f()); }
+    const fusing = st.phase === "morph" && st.fuse && !st.fuse.done;
+    if (fusing) { stepFuse(gdt); if (!st) return; }
     if (st.phase === "battle") { stepBattle(gdt); if (st.rs && st.rs.stage === "end") paintTags(); }   // 回合結束後名牌照樣跟著（飛出場的那顆、倒下的那顆）
     if (W) {
-      if (st.circle) st.circle.forEach((T, i) => { const a = i / 5 * Math.PI * 2 - Math.PI / 2 + st.clock * 0.6; W.placeTop(T, Math.cos(a) * 2.2, Math.sin(a) * 2.2, 0.9); });
-      if (st.phase === "morph" && st.myTops) st.myTops.forEach(T => { T.S = 0.35; });
-      W.liveShadow = st.phase === "battle" || !!st.circle;   // 對戰中、結算繞圈：陀螺一直在移動 → 陰影每格重畫
+      if (st.champ) W.placeTop(st.champ, 0, 0, 1);            // 結算：贏的那顆在碗中間一直轉
+      W.liveShadow = st.phase === "battle" || !!st.champ || fusing;   // 對戰中、合體中、結算：陀螺一直在動 → 陰影每格重畫
       W.frame(gdt, real);
     }
   }
@@ -1300,8 +1586,8 @@ export function createTopsGame(root, api) {
     stop();
     run++;
     const my = run;
-    st = { phase: "load", opts, spoken: [], tl: [], rolls: [], clock: 0, slots: [null, null, null, null, null], cur: 0, comp: { ini: "", med: "", fin: "" }, tone: null, cands: [], candZ: [], sel: 0, page: 0, ticketUsed: 0 };
-    voice.q.length = 0; voice.busy = false; voice.tok++;
+    st = { phase: "load", opts, spoken: [], tl: [], rolls: [], clock: 0, slots: [null, null, null, null, null], cur: 0, comp: { ini: "", med: "", fin: "" }, tone: null, cands: [], candZ: [], sel: 0, page: 0, ticketUsed: 0, rm: reducedMotion() };
+    voice.q.length = 0; voice.busy = false; voice.tok++; bgmK = null;   // 主程式進遊戲時已經放這個遊戲平常的音樂
     build(); relayout(); showOnly();
     st.boardP = Promise.resolve().then(() => api.leaderboard ? api.leaderboard() : null).catch(() => null);
     st.readyP = loadDict(api.dictUrl, +api.dictTimeout || 15000).then(D => {
@@ -1329,7 +1615,9 @@ export function createTopsGame(root, api) {
     return {
       phase: st.phase, slots: st.slots.map(s => s && { ...s }), cur: st.cur, comp: compSylSafe(), tone: st.tone, cands: st.cands.slice(), sel: st.sel, page: st.page,
       phrase: st.phrase || null, power: st.power ? st.power.total : null, opp: st.opp ? { p: st.opp.p, power: st.opp.power } : null,
-      round: st.rs ? { i: st.rs.i, stage: st.rs.stage, slow: st.rs.slow, speed: st.rs.speed || 1 } : null, score: st.score ? st.score.slice() : null, fast: !!st.fast,
+      round: st.rs ? { i: st.rs.i, stage: st.rs.stage, slow: st.rs.slow, hold: st.rs.hold, decisive: st.rs.decisive } : null, score: st.score ? st.score.slice() : null, fast: !!st.fast,
+      fuse: st.fuse ? { t: st.fuse.t, burst: st.fuse.burst, done: st.fuse.done, skip: st.fuse.skip, skipped: st.fuse.skipped } : null, fused: st.fused || null, oppFused: st.oppFused || null,
+      rank: curRank(), rankUp: st.rankUp || null, oppTarget: st.oppTarget || null, oppSalt: st.oppSalt || 0, hitN: st.hitN || 0, hitLv: st.hitLv ? st.hitLv.slice() : null, holds: st.holds || 0, launches: st.launches || 0, flashes: st.flashes || 0, rm: !!st.rm,
       win: st.win || null, submit: st.submit || null, spoken: st.spoken.slice(), ticketUsed: st.ticketUsed, clock: st.clock, layout: L && { ...L },
       candZ: (st.candZ || []).slice(), keysOff: st.phase === "type" ? [...keysOff()] : [], guide: st.phase === "type" ? guideNext() : null, guideCh: st.guide ? st.guide.ch : null,
       eggMode: !!st.eggMode, eggs: Dk ? getEggs() : [], hatch: st.hatch || null, oppWhy: st.oppWhy || null, isFree: !!st.isFree,
@@ -1348,6 +1636,7 @@ export function createTopsGame(root, api) {
     breakMorph: () => { if (st) st.breakMorph = true; },       // 測試：下一次變身丟錯（驗 onFail("morph")）
     cheer: (x, y) => { if (st && st.phase === "battle") cheer({ clientX: x, clientY: y }); },
     rematch: () => rematch(), fought: () => fought.slice(), resetInspire: () => { if (st) st.inspireN = 0; },
+    skipFuse: () => { if (st && st.phase === "morph" && st.fuse && st.fuse.skip) skipFuse(); }, fuseSeen: () => fuseSeen, setRank: n => { memRank = clamp(n | 0, 0, RANKS.length - 1); },
   };
   return { start, stop, relayout, state, debug };
 }
