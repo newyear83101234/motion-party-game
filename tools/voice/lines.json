@@ -1,12 +1,12 @@
 {
  "meta": {
   "generated_by": "tools/voice/build_lines.py",
-  "total_lines": 829,
-  "total_chars": 5269,
+  "total_lines": 913,
+  "total_chars": 5803,
   "by_cat": {
    "intro": 10,
    "praise": 8,
-   "guide": 356,
+   "guide": 440,
    "system": 4,
    "result": 7,
    "word": 163,
@@ -3368,6 +3368,510 @@
    "text": "燈塔現在打不開，等一下再試試看！",
    "cat": "guide",
    "src": "zhuyin.js 挑戰燈塔接線（10-13）"
+  },
+  {
+   "id": "evo_call_1",
+   "text": "小熊進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_1",
+   "text": "超級小熊！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_1",
+   "text": "小熊好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_2",
+   "text": "小兔進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_2",
+   "text": "超級小兔！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_2",
+   "text": "小兔好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_3",
+   "text": "小貓進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_3",
+   "text": "超級小貓！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_3",
+   "text": "小貓好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_4",
+   "text": "小狐狸進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_4",
+   "text": "超級小狐狸！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_4",
+   "text": "小狐狸好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_5",
+   "text": "熊貓進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_5",
+   "text": "超級熊貓！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_5",
+   "text": "熊貓好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_6",
+   "text": "企鵝進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_6",
+   "text": "超級企鵝！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_6",
+   "text": "企鵝好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_7",
+   "text": "青蛙進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_7",
+   "text": "超級青蛙！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_7",
+   "text": "青蛙好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_8",
+   "text": "小獅子進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_8",
+   "text": "超級小獅子！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_8",
+   "text": "小獅子好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_9",
+   "text": "小狗進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_9",
+   "text": "超級小狗！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_9",
+   "text": "小狗好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_10",
+   "text": "小雞進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_10",
+   "text": "超級小雞！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_10",
+   "text": "小雞好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_11",
+   "text": "小豬進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_11",
+   "text": "超級小豬！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_11",
+   "text": "小豬好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_12",
+   "text": "乳牛進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_12",
+   "text": "超級乳牛！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_12",
+   "text": "乳牛好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_13",
+   "text": "猴子進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_13",
+   "text": "超級猴子！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_13",
+   "text": "猴子好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_14",
+   "text": "無尾熊進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_14",
+   "text": "超級無尾熊！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_14",
+   "text": "無尾熊好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_15",
+   "text": "長頸鹿進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_15",
+   "text": "超級長頸鹿！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_15",
+   "text": "長頸鹿好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_16",
+   "text": "老虎進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_16",
+   "text": "超級老虎！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_16",
+   "text": "老虎好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_17",
+   "text": "小鹿進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_17",
+   "text": "超級小鹿！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_17",
+   "text": "小鹿好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_18",
+   "text": "鸚鵡進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_18",
+   "text": "超級鸚鵡！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_18",
+   "text": "鸚鵡好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_19",
+   "text": "蜜蜂進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_19",
+   "text": "超級蜜蜂！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_19",
+   "text": "蜜蜂好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_20",
+   "text": "螃蟹進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_20",
+   "text": "超級螃蟹！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_20",
+   "text": "螃蟹好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_21",
+   "text": "河狸進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_21",
+   "text": "超級河狸！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_21",
+   "text": "河狸好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_22",
+   "text": "山豬進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_22",
+   "text": "超級山豬！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_22",
+   "text": "山豬好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_23",
+   "text": "北極熊進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_23",
+   "text": "超級北極熊！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_23",
+   "text": "北極熊好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_24",
+   "text": "毛毛蟲進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_24",
+   "text": "超級毛毛蟲！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_24",
+   "text": "毛毛蟲好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_25",
+   "text": "小象進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_25",
+   "text": "超級小象！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_25",
+   "text": "小象好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_26",
+   "text": "小恐龍進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_26",
+   "text": "超級小恐龍！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_26",
+   "text": "小恐龍好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_27",
+   "text": "小鯨魚進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_27",
+   "text": "超級小鯨魚！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_27",
+   "text": "小鯨魚好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "evo_call_28",
+   "text": "彩虹小龍進化——",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 演出字幕（zhuyin.js startEvolve callText）"
+  },
+  {
+   "id": "evo_super_28",
+   "text": "超級彩虹小龍！",
+   "cat": "guide",
+   "src": "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）"
+  },
+  {
+   "id": "evo_ready_28",
+   "text": "彩虹小龍好像要進化了！",
+   "cat": "guide",
+   "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
   },
   {
    "id": "unlock_need_1",

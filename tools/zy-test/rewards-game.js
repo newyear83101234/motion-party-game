@@ -65,6 +65,9 @@ const rw = p => p.evaluate(() => JSON.parse(localStorage.getItem("zy1_rewards") 
   await p.evaluate(() => { document.getElementById("menuBtn").click(); }); await sleep(800);
   await p.evaluate(() => document.getElementById("settingsBtn").click()); await sleep(400);
   ok("家長頁：扭蛋機率與統計", await p.evaluate(() => /70%/.test(document.getElementById("settings").textContent) && /抽過 1 次/.test(document.getElementById("rwStats").textContent)), await p.evaluate(() => document.getElementById("rwStats").textContent));
+  ok("v7 家長頁：寵物進化規則＋夥伴（小兔還沒變超級）", await p.evaluate(() => /寵物進化/.test(document.getElementById("rwEvo").textContent) && /小兔還沒變超級/.test(document.getElementById("rwEvo").textContent)), await p.evaluate(() => document.getElementById("rwEvo").textContent.slice(-40)));
+  r = await rw(p);
+  ok("v7 存檔有 evo（長大的夥伴不集能量、選單沒有進化膠囊）", r.evo && JSON.stringify(r.evo.e) === "{}" && r.evo.done.length === 0 && await p.evaluate(() => document.getElementById("evoBtn").classList.contains("hidden")), JSON.stringify(r.evo));
   const rt = await p.evaluate(() => { const c = window.__zyB.exportCode(); const d = window.__zyB.readCode(c); return { hasRw: !!(d && d.slots[0] && d.slots[0].rewards && d.slots[0].rewards.pulls === 1) }; });
   ok("備份碼帶獎勵資料（讀回來抽過 1 次）", rt.hasRw, JSON.stringify(rt));
   await p.evaluate(() => document.getElementById("settingsClose").click());

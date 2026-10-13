@@ -87,6 +87,7 @@ const SPOTS = [
 // 寵物：models.json 有列的自製模型優先；沒有就用 Kenney Cube Pets 原檔（依檔名猜）
 const PET_KENNEY = { cat: "animal-cat", fox: "animal-fox", lion: "animal-lion", panda: "animal-panda", penguin: "animal-penguin", bunny: "animal-bunny" };
 const PET_H = 1.0, STAGE_SCALE = { 1: 0.75, 2: 1, 3: 1.15 };   // 寵物身高（長大＝原尺寸）；寶寶 0.75、超級 1.15
+const EVO_SCALE = 1.15;                                // v7 進化型（p.evo）：超級再大 1.15 倍（≈ 原尺寸 1.32 倍）
 
 // ---------- 狀態 ----------
 let renderer, scene, camera, sun, hemi, stage, tagLayer, finger, opts;
@@ -2273,7 +2274,11 @@ function restPet(a) {
 function wakeOne() {
   const resting = agents.filter(o => o.kind === "pet" && !o.e).sort((p, q) => p.restSince - q.restSince);
   if (!resting.length || !parkDoor) return;
-  const a = resting[0], sp = parkDoor.edges[0], freed = a.slot;
+  wakePet(resting[0]);
+}
+function wakePet(a) {                                   // 指定這隻從公園門口走出去（v7：能量滿要進化的那隻一定要在路上，頭上的 ✨ 才看得到）
+  if (!parkDoor || a.e) return;
+  const sp = parkDoor.edges[0], freed = a.slot;
   Object.assign(a, { e: sp, fwd: sp.b !== parkDoor, s: 0, x: parkDoor.x, z: parkDoor.z, slot: -1, pause: 0, wait: 0, home: false });
   a.holder.visible = true;
   if (freed >= 0) { const hidden = agents.find(o => o.kind === "pet" && !o.e && o.slot < 0 && o !== a); if (hidden) { hidden.slot = freed; hidden.x = restSlots[freed].x; hidden.z = restSlots[freed].z; hidden.holder.visible = true; } }
@@ -2285,7 +2290,7 @@ function rotatePets(now) {
   if (walking.length < MAX_WALK && resting.length) { wakeOne(); return; }
   if (!resting.length || now - lastRotate < 9000 || walking.some(o => o.home)) return;
   lastRotate = now;
-  const cand = walking.filter(o => !o.jump && !o.e.spur); if (cand.length) cand[Math.floor(agentRand() * cand.length)].home = true;
+  const cand = walking.filter(o => !o.jump && !o.e.spur && !(o.f && o.f.ready)); if (cand.length) cand[Math.floor(agentRand() * cand.length)].home = true;
 }
 const _q1 = {};
 function stepAgents(t, dt) {
@@ -2339,10 +2344,12 @@ function updateAgentVisuals(t, dt) {
       a.body.position.y = a.moving ? Math.abs(Math.sin(a.phase)) * 0.03 : 0;
       if (a.jump) { const u = (performance.now() - a.jump) / 600; if (u >= 1) { a.jump = 0; a.obj.position.y = 0; a.obj.rotation.y = 0; } else { a.obj.position.y = Math.sin(Math.PI * u) * 0.6; a.obj.rotation.y = easeOutBack(u) * Math.PI * 2; } }
       if (a.spark) a.spark.rotation.y = t * 2;
+      if (a.evoFx) evoAnim(a.evoFx, t);
     }
     _m4.compose(_v.set(a.x, gy + 0.06, a.z), _q.identity(), _s.set(a.r * 2.6, 1, a.r * 2.6)); agentBlob.setMatrixAt(n++, _m4);
   }
   agentBlob.count = n; agentBlob.instanceMatrix.needsUpdate = true;
+  placeEvoTags();
 }
 // 寵物模型：身體（＋尾巴等）合成一個 mesh、四隻腳分兩組（對角線同一組）→ 每隻 3 個 draw call，走路時兩組輪流抬腳
 function splitPet(obj, crowd) {
@@ -2387,8 +2394,8 @@ async function spawnPet(p) {
   holder.userData.agent = a;
   const walking = agents.filter(o => o.kind === "pet" && o.e).length;
   agents.push(a); pets.set(p.id, a);
-  if (walking < MAX_WALK || !parkDoor) placeAgent(a, "pet"); else restPet(a);   // 路上已經夠多：先在寵物公園休息
-  applyStage(a, p.stage);
+  if (walking < MAX_WALK || !parkDoor || p.ready) placeAgent(a, "pet"); else restPet(a);   // 路上已經夠多：先在寵物公園休息（能量滿要進化的那隻例外）
+  applyStage(a, p.stage); evoTagSync(a);
   return a;
 }
 // 配件（models.json 有列才載；10-12 寵物換裝）：原點＝掛點（頭上 head＝頭頂、旁邊 head_side＝頭側、背上 back＝背後上方）。
@@ -2409,17 +2416,19 @@ async function wear(a, name) {
 const wearSig = w => w && typeof w === "object" ? [w.head, w.side, w.back].map(x => x || "").join(",") : "";
 async function applyStage(a, stage) {
   stage = STAGE_SCALE[stage] ? stage : 2; a.stage = stage;
-  const s = STAGE_SCALE[stage], token = {}; a.wearToken = token;
+  const evo = stage === 3 && !!(a.f && a.f.evo);         // v7 進化型（超級才會有）
+  const s = STAGE_SCALE[stage] * (evo ? EVO_SCALE : 1), token = {}; a.wearToken = token;
   a.obj.scale.setScalar(s); a.hit.scale.setScalar(s); a.r = 0.4 * s;
   for (const m of a.worn || []) a.body.remove(m);
   a.worn = [];
   if (a.spark) { a.obj.remove(a.spark); a.spark = null; }
+  evoLook(a, evo);                                       // 配件還沒掛回去前做（只加亮寵物自己的身體）
   // 穿什麼＝p.wear { head, side, back }（zhuyin.js hubPets 用 RW.wearOf 算好：玩家自己選的優先，沒選的超級寵物＝皇冠＋披風）；沒給就照同一個規則算預設
   // 寶寶頭上空著＝頭頂小芽；超級＝身邊閃光
   const w = a.f.wear && typeof a.f.wear === "object" ? a.f.wear : RWD.wearOf({ pets: { [a.id]: { stage } } }, a.id);
   const names = [w.head, w.side, w.back].filter(n => n && WEAR[n]);
   if (stage === 1 && !w.head) names.push("baby_tuft");
-  if (stage === 3) {
+  if (stage === 3 && !evo) {                            // 進化型改用 evoLook 的光點（比這三顆多、會繞著飛）
     const sp = new THREE.Group(); a.spark = sp; sp.userData.dyn = true; a.obj.add(sp);
     for (let k = 0; k < 3; k++) mesh(new THREE.OctahedronGeometry(0.06, 0), new THREE.MeshBasicMaterial({ color: "#fff3a0", toneMapped: false }), { x: Math.cos(k * 2.1) * 0.55, y: 0.5 + k * 0.25, z: Math.sin(k * 2.1) * 0.55, parent: sp, shadow: false });
   }
@@ -2427,7 +2436,65 @@ async function applyStage(a, stage) {
   if (a.wearToken !== token) return;
   for (const m of ms) if (m) { a.body.add(m); a.worn.push(m); }
 }
-function removeAgent(a) { if (a.sickTag) { a.sickTag.remove(); a.sickTag = null; } scene.remove(a.holder); for (const g of a.geos || []) g.dispose(); const i = agents.indexOf(a); if (i >= 0) agents.splice(i, 1); }   // 配件是共用快取，不釋放
+// ---------- v7 寵物進化（docs/zhuyin-v7-plan.md §2.2）：進化型（p.evo）＝再大 1.15 倍＋腳下兩圈光環＋繞著身體往上飄的光點＋頭上轉圈的金色星星（進化徽記）＋身體顏色加亮；
+// 能量滿（p.ready）＝頭上一顆發光的 ✨（DOM，點了 opts.onEvolve(id)；點寵物本身也一樣）。共用的幾何／材質第一次用到才建，材質放進 matCache（dispose 一起收）。
+let evoKit = null;
+const evoMats = new Map();                              // 原本的材質 → 加亮版（同一個材質只複製一次）
+function evoKitGet() {
+  if (evoKit) return evoKit;
+  const keep = (k, m) => { matCache.set("evo:" + k, m); return m; };
+  const glow = (c, op) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: op, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, blending: THREE.AdditiveBlending });
+  const sh = new THREE.Shape();
+  for (let i = 0; i < 10; i++) { const r = i % 2 ? 0.075 : 0.17, a = Math.PI / 2 + i * Math.PI / 5; if (i) sh.lineTo(Math.cos(a) * r, Math.sin(a) * r); else sh.moveTo(Math.cos(a) * r, Math.sin(a) * r); }
+  const star = new THREE.ExtrudeGeometry(sh, { depth: 0.05, bevelEnabled: true, bevelSize: 0.018, bevelThickness: 0.018, bevelSegments: 1 }); star.center();
+  evoKit = { ring: new THREE.RingGeometry(0.5, 0.6, 48), ring2: new THREE.RingGeometry(0.68, 0.71, 48), dot: new THREE.OctahedronGeometry(0.05, 0), star,
+    ringM: keep("ring", glow("#ffd84a", 0.7)), ring2M: keep("ring2", glow("#7df3ff", 0.55)),
+    dotM: keep("dot", new THREE.MeshBasicMaterial({ color: "#fff3a0", toneMapped: false })), dot2M: keep("dot2", new THREE.MeshBasicMaterial({ color: "#a8f7ff", toneMapped: false })),
+    starM: keep("star", new THREE.MeshLambertMaterial({ color: "#ffd23f", emissive: "#ff9d00", emissiveIntensity: 0.6 })) };
+  return evoKit;
+}
+function brightMat(m) {                                 // 顏色更亮：自己發一點暖白光（Lambert 的 emissive）
+  if (!m || !m.isMaterial) return m;
+  let b = evoMats.get(m); if (b) return b;
+  b = m.clone(); if (b.emissive) { b.emissive.set("#fff0c8"); b.emissiveIntensity = 0.24; } else if (b.color) b.color.multiplyScalar(1.15);
+  evoMats.set(m, b); matCache.set("evo:b" + b.uuid, b); return b;
+}
+function evoLook(a, on) {
+  if (a.evoFx) { a.obj.remove(a.evoFx.g); a.evoFx = null; }
+  a.obj.traverse(o => { if (o.isMesh && o.userData.baseMat) { o.material = o.userData.baseMat; delete o.userData.baseMat; } });   // 先還原（換存檔位：這隻在別的存檔還沒進化）
+  if (!on) return;
+  a.obj.traverse(o => { if (o.isMesh && o.material && !Array.isArray(o.material)) { o.userData.baseMat = o.material; o.material = brightMat(o.material); } });   // 這時配件已經拿下來了：只加亮寵物的身體與腳
+  const K = evoKitGet(), g = new THREE.Group(); g.userData.dyn = true;
+  const flat = (geo, m, y) => { const r = new THREE.Mesh(geo, m); r.rotation.x = -Math.PI / 2; r.position.y = y; r.renderOrder = 2; g.add(r); return r; };
+  const r1 = flat(K.ring, K.ringM, 0.03), r2 = flat(K.ring2, K.ring2M, 0.035), dots = [];
+  for (let k = 0; k < 8; k++) { const d = new THREE.Mesh(K.dot, k % 2 ? K.dot2M : K.dotM); d.userData.k = k; g.add(d); dots.push(d); }
+  const hd = a.anchors.head, st = new THREE.Mesh(K.star, K.starM); st.position.set(hd.x, hd.y + 0.45, hd.z); g.add(st);   // 皇冠（超級預設）上面再高一點
+  g.traverse(o => { o.castShadow = false; o.receiveShadow = false; });
+  a.obj.add(g); a.evoFx = { g, r1, r2, dots, st, y0: st.position.y };
+}
+function evoAnim(f, t) {
+  f.r1.rotation.z = t * 0.8; f.r2.rotation.z = -t * 0.5;
+  for (const d of f.dots) { const k = d.userData.k, ph = (t * 0.35 + k / 8) % 1, ang = t * 1.6 + k * Math.PI / 4; d.position.set(Math.cos(ang) * 0.58, 0.1 + ph * 1.25, Math.sin(ang) * 0.58); d.scale.setScalar(1.1 - ph * 0.7); d.rotation.y = t * 3; }
+  f.st.rotation.y = t * 1.8; f.st.position.y = f.y0 + Math.sin(t * 2.2) * 0.05;
+}
+function evoTagSync(a) {                               // 能量滿 → 頭上一顆會跳的 ✨（沒滿／進化完 → 拿掉）
+  const want = !!(a.f && a.f.ready) && !dead && !!tagLayer;
+  if (want && !a.evoTag) {
+    const t = document.createElement("button"); t.type = "button"; t.className = "hub-evo"; t.textContent = "✨"; t.setAttribute("aria-label", (a.f && a.f.name) || "");
+    t.addEventListener("click", e => { e.stopPropagation(); try { if (opts.onEvolve) opts.onEvolve(a.f.id); } catch (err) {} });
+    tagLayer.appendChild(t); a.evoTag = t;
+  } else if (!want && a.evoTag) { a.evoTag.remove(); a.evoTag = null; }
+}
+function placeEvoTags() {                              // 每格：✨ 跟著寵物頭頂（在公園小屋裡看不到＝藏起來）
+  for (const a of pets.values()) {
+    const tg = a.evoTag; if (!tg) continue;
+    if (!a.holder.visible) { tg.style.visibility = "hidden"; continue; }
+    _v.set(a.x, a.holder.position.y + PET_H * a.obj.scale.x * 1.32 + 0.15, a.z).project(camera);
+    tg.style.visibility = _v.z > 1 ? "hidden" : "";
+    tg.style.transform = `translate3d(${((_v.x + 1) / 2 * innerWidth).toFixed(1)}px, ${((1 - _v.y) / 2 * innerHeight).toFixed(1)}px, 0) translate(-50%, -100%)`;
+  }
+}
+function removeAgent(a) { if (a.sickTag) { a.sickTag.remove(); a.sickTag = null; } if (a.evoTag) { a.evoTag.remove(); a.evoTag = null; } scene.remove(a.holder); for (const g of a.geos || []) g.dispose(); const i = agents.indexOf(a); if (i >= 0) agents.splice(i, 1); }   // 配件是共用快取，不釋放
 const spawning = new Set();
 function syncPets() {
   if (!built || !petWant) return;                     // 建築都到了才載寵物（先把頻寬讓給建築）
@@ -2435,8 +2502,9 @@ function syncPets() {
   for (const [id, a] of pets) {
     const w = want.get(id);
     if (!w || (w.glb || "") !== (a.f.glb || "")) { removeAgent(a); pets.delete(id); continue; }
-    const changed = wearSig(w.wear) !== wearSig(a.f.wear);   // 換裝畫面改了穿著 → 重穿
+    const changed = wearSig(w.wear) !== wearSig(a.f.wear) || !!w.evo !== !!a.f.evo;   // 換裝畫面改了穿著／剛進化 → 重穿（進化型的大小、光環、星星在 applyStage 裡）
     a.f = w; if (w.stage !== a.stage || changed) applyStage(a, w.stage);
+    evoTagSync(a); if (w.ready) wakePet(a);              // v7 能量滿：頭上 ✨、從公園出來
   }
   for (const p of petWant) if (!pets.has(p.id) && !spawning.has(p.id) && !failedPets.has(p.id + "|" + p.glb)) {
     spawning.add(p.id);
@@ -2665,6 +2733,7 @@ function pickMode(m) {
 function tapPet(a) {
   if (a.jump) return;
   a.jump = performance.now();
+  if (a.f && a.f.ready && opts.onEvolve) { try { opts.onEvolve(a.f.id); } catch (e) {} return; }   // v7 能量滿：點牠＝看進化（跟點頭上的 ✨ 一樣）
   try { opts.onFriend(a.f); } catch (e) {}
 }
 const raycaster = new THREE.Raycaster(), ndc = new THREE.Vector2();
@@ -3300,6 +3369,11 @@ if (DEBUG) window.__hub3d = {
   tagRect(m) { const r = DEFS.find(x => x.mode === m).tag.getBoundingClientRect(); return { x0: r.left, x1: r.right, y0: r.top, y1: r.bottom }; },
   petScreen(id) { const p = pets.get(id); if (!p) return null; _v.set(0, PET_H * 0.45 * (STAGE_SCALE[p.stage] || 1), 0).applyMatrix4(p.holder.matrixWorld).project(camera); return { x: (_v.x + 1) / 2 * innerWidth, y: (1 - _v.y) / 2 * innerHeight }; },
   pets: () => [...pets.keys()],
+  // v7 寵物進化：evo（進化型）、ready（能量滿）、scale（obj 縮放）、fx（光環／星星在）、bright（加亮的 mesh 數）、tag（頭上 ✨ 在畫面上的框；看不到＝null）
+  evo: id => { const a = pets.get(id); if (!a) return null; let bright = 0; a.obj.traverse(o => { if (o.isMesh && o.userData.baseMat) bright++; });
+    const r = a.evoTag && a.evoTag.isConnected && a.evoTag.style.visibility !== "hidden" ? a.evoTag.getBoundingClientRect() : null;
+    return { evo: !!a.f.evo, ready: !!a.f.ready, stage: a.stage, scale: +a.obj.scale.x.toFixed(3), fx: !!a.evoFx, bright, walking: !!a.e, visible: a.holder.visible, tag: r && r.width ? { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) } : null }; },
+  tapPet: id => { const a = pets.get(id); if (a) tapPet(a); return !!a; },
   worn: id => { const a = pets.get(id); return a ? { stage: a.stage, items: (a.worn || []).filter(m => m.parent === a.body).map(m => m.userData.wear).sort(), want: a.f.wear || null } : null; },   // 寵物換裝：這隻身上現在掛了哪些配件（3D 場景裡真的掛在身上的）
   // 寵物特寫（截圖用）：所有寵物停下來、鏡頭拉近對準這隻（z＝縮放倍率）
   petFocus(id, z = 3.2) { const a = pets.get(id); if (!a) return false; noPause = true; for (const b of agents) if (b.kind === "pet") { b.pause = 1e9; b.moving = false; } user.zoom = z; _v.set(a.x, 0.5, a.z).applyMatrix4(camera.matrixWorldInverse); user.px = _v.x - view.cx; user.py = _v.y - view.cy; return true; },

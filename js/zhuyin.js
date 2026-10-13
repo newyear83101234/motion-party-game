@@ -711,7 +711,8 @@ function showLoading(on) { $("loading").classList.toggle("hidden", !on); }
 // ---------- 3D 選單小島（js/zhuyin-hub3d.js）----------
 // 島上走的寵物：[{ id, glb, stage, name }]（獎勵系統做好後改讀存檔裡的 pets）
 const PET_GLB = { cust_bear: "bear", cust_rabbit: "bunny", cust_cat: "cat", cust_fox: "fox", cust_panda: "panda", cust_penguin: "penguin", cust_frog: "frog", cust_lion: "lion" };
-const hubPets = () => Object.entries(save.rw.pets).map(([id, p]) => ({ id, name: RW.PET[id].name, stage: p.stage || 2, glb: `IMAGE/zy3d/models/${id}.glb`, wear: RW.wearOf(save.rw, id) }));   // 小島上走的：全部收集到的寵物（寶寶／長大／超級）；wear＝身上穿什麼（換裝畫面選的，超級沒選＝皇冠＋披風）
+const hubPets = () => Object.entries(save.rw.pets).map(([id, p]) => ({ id, name: RW.PET[id].name, stage: p.stage || 2, glb: `IMAGE/zy3d/models/${id}.glb`, wear: RW.wearOf(save.rw, id),
+  evo: RW.isEvo(save.rw, id), ready: RW.evoIsReady(save.rw, id) }));   // 小島上走的：全部收集到的寵物（寶寶／長大／超級）；wear＝身上穿什麼（換裝畫面選的，超級沒選＝皇冠＋披風）；v7 evo＝進化型（更大＋光環＋星星）、ready＝能量滿（頭上發光 ✨，點了看進化）
 const hubDecor = () => save.rw.decor.map(id => ({ id, glb: `IMAGE/zy3d/models/${id}.glb` }));
 // 選單要用時才動態載入 Three.js＋模型；網址加 ?no3d、沒有 WebGL、載入失敗或 8 秒內沒好 → 退回原本卡片選單（遊戲照常玩）
 let hub = null;
@@ -736,6 +737,7 @@ function initHub() {
     onGacha: () => { play("select"); openGacha(); },   // 獎勵系統（docs/zhuyin-rewards-spec.md）
     stickers: stickerCount, onCivic: (k, info) => PZ(() => civicEvent(k, info)), onPlace: (p, open, st) => PZ(() => { placeButtons(p, st || { town: open }); if (!mode) playBgm(menuBgmKey(p)); }),   // 換島＝換選單音樂
     onDress: () => PZ(() => { play("select"); openDress(save.rw.partner, "menu"); }),   // 10-12 寵物服裝店（彩虹島）→ 換裝畫面（先選夥伴）
+    onEvolve: id => PZ(() => startEvolve(id)),          // v7 點頭上發光的 ✨（或點那隻寵物）＝看進化演出
     onPick: (m, info) => PZ(() => (m ? showPick(m, info) : hidePick())),   // 10-12 點一下建築＝介紹卡；收起來＝null
     pickArea: () => { const r = $("pick").getBoundingClientRect(); return r.height ? { top: r.top } : null; },
     onIsle: p => { play("whoosh"); hub.goPlace(p); },     // 10-12 點遠方的島／橋頭路牌＝飛過去（跟地點鈕一樣的音效）
@@ -2373,8 +2375,14 @@ async function towerBoard(force) {                     // 讀同樂廣場的 doG
 function towerGive(g) {                                // 爬塔的獎勵：星星進星星罐（滿了換扭蛋幣）、扭蛋幣；不扣任何東西
   const n = Math.max(0, Math.min(5, Math.floor(+(g && g.stars)) || 0)), c = Math.max(0, Math.min(3, Math.floor(+(g && g.coins)) || 0));
   if (n) { save.stars += n; statsStars("tower", n); RW.creditJar(save.rw, save.stars); topsCredit(n); pzAdd("star", n); }
-  if (c) save.rw.coins += c;
+  if (c) { save.rw.coins += c; PZ(() => RW.evoAdd(save.rw, RW.EVO_GAIN.boss)); }   // v7：爬塔只在「第一次打倒某隻守塔怪」給扭蛋幣（zhuyin-tower.js clearFloor 的 coin）→ 同時給進化能量 +40
   if (n || c) persist();
+}
+// v7 進化能量（爬塔）：樓層＝存爬塔進度時看「最高通過樓層」有沒有比記號高（RW.evoTower，第一次到新樓層每層 +2）；守塔怪＝towerGive 的 coins。
+// 不改 zhuyin-tower.js：接在 towerApi 的 store／give 上。爬塔中不跳任何畫面、不出聲（不打斷）；能量集滿＝回小島時貓頭鷹提醒（evoMenu）。
+function evoTowerStore(t) {
+  const prev = lsGet(K("tower"), null), tb0 = save.rw.evo ? save.rw.evo.tb : -1, r = RW.evoTower(save.rw, t && t.best, prev && prev.best);
+  if (r.got || save.rw.evo.tb !== tb0) lsSet(K("rewards"), save.rw);   // 只存獎勵（第一次對上記號也存，不然重整後又從 -1 開始）
 }
 function towerExit(where) {                            // 結算的「去玩別的」＝回小島；連輸 2 場的「去泡泡灣」＝回小島後點泡泡（解鎖、選關照原本的流程）
   goMenu();
@@ -2382,7 +2390,7 @@ function towerExit(where) {                            // 結算的「去玩別�
 }
 const towerApi = () => ({
   say: (t, r, cb) => say(t, r, cb), talk: (t, cb) => talk(t, cb), play: (n, r) => play(n, r), stopVoice: () => stopSpeech(), paused: () => gamePaused,
-  load: () => lsGet(K("tower"), null), store: t => { lsSet(K("tower"), t); }, give: g => towerGive(g),
+  load: () => lsGet(K("tower"), null), store: t => { PZ(() => evoTowerStore(t)); lsSet(K("tower"), t); }, give: g => towerGive(g),   // v7：存之前先比最高樓層（進化能量）
   playFloor: o => (TOWER_STUB ? null : playFloor(o)),  // 主程式 7 個遊戲的一層（§2.4）；網址 ?towerstub＝用模組的模擬關卡（tools/zy-test/tower.js 測爬塔流程用）
   playBubbleBoss: o => (TOWER_STUB ? null : playBubbleBoss(o)),   // 泡泡守塔怪（§3）
   net: () => towerNet(), post: b => towerPost(b), board: f => towerBoard(f),
@@ -2465,6 +2473,7 @@ function showResult() {
   pzAdd("star", jarAdd); const pzGain = PZ(() => plaza.roundGain()); PZ(() => plaza.flushSoon(2500));   // 同樂廣場：收集週＝結算拿到的星星；這一局幫了多少（左上小字）；演出完合併送出
   const rwGain = { coins: RW.creditJar(save.rw, save.stars), stamp: RW.stampToday(save.rw, today()), cats: RW.categoryBonus(save.rw, CATS.map(c => ({ id: c.id, words: WORDS.filter(w => w.c === c.id).map(w => w.h) })), save.stickers), treats: roundTreats, fed: RW.feed(save.rw, roundTreats),
     tickets: topsCredit(jarAdd) };                     // 10-12 陀螺券：這次的星星也存進陀螺的 starsBank（跟星星罐分開算，不扣罐子）
+  rwGain.evo = PZ(() => evoAfterRound(L, roundStars, lvr, roundTreats)) || null;   // v7 進化能量：第 3 級以上 3 星、每天第一次餵點心（只加給超級的夥伴）
   persist();
   const st = rs = { tok: navToken, T: [], fly: [], done: false, said: false, record, stamped: false, jarFrom, t0: performance.now(), k: earned.length, rw: rwGain, lv: lvr };
   st.pz = pzGain || null;                              // 同樂廣場：{ n, key, unit } 或 null（沒幫到／關掉／從沒連上過）
@@ -2602,9 +2611,10 @@ function renderGacha() {
 async function spinGacha(useGold) {
   if (gachaBusy) return;
   const prize = RW.pull(save.rw, { useGold }); if (!prize) { renderGacha(); return; }
+  if (prize.amount) PZ(() => { prize.evo = RW.evoFeedDay(save.rw, today()); });   // v7：點心包／重複寵物換點心也算「今天第一次餵點心」（進化能量 +5）
   gachaBusy = true; if (!persist()) guideSay("存檔空間滿了，請爸媽到家長設定看一下喔！", false); renderGacha(); play("select");
   try { await gachaShow(prize); } catch (e) { console.warn("[gacha]", e); }
-  finally { gachaBusy = false; persist(); renderGacha(); updateJar(); if (hub) { hub.setPets(hubPets()); hub.setDecor(hubDecor()); } }
+  finally { gachaBusy = false; persist(); renderGacha(); updateJar(); if (hub) { hub.setPets(hubPets()); hub.setDecor(hubDecor()); } PZ(evoSync); }
 }
 async function gachaShow(prize) {
   const m = $("gachaMachine"), cap = $("gachaCap"), box = $("gachaPrize"); box.classList.add("hidden"); box.innerHTML = "";
@@ -2627,6 +2637,7 @@ async function gachaShow(prize) {
   else if (prize.kind === "wear" && RW.WEAR_BY_ID[prize.id]) { play("wear"); showPrize(RW.WEAR_BY_ID[prize.id].name, RW.wearGotLine(prize.id), `IMAGE/zhuyin/wear_${prize.id}.webp`); talk(RW.wearGotLine(prize.id)); }   // 10-12 寵物配件（普通獎）
   else { showPrize("🍪 點心 +" + prize.amount, "點心會餵給你的夥伴，讓牠長大！"); talk("拿到點心了！"); }
   if (prize.grew) { const p = RW.PET[save.rw.partner]; queueTalk(`${p.name}${prize.grew === 3 ? "變成超級" : "長大"}了！`); }
+  if (prize.evo && prize.evo.full && RW.PET[prize.evo.id]) queueTalk(`${RW.PET[prize.evo.id].name}好像要進化了！`);   // v7：點心讓夥伴的進化能量剛好集滿
 }
 function showPrize(title, sub, img) {
   const box = $("gachaPrize"); box.innerHTML = "";
@@ -2646,6 +2657,8 @@ function rewardStrip(st) {
   if (g.cats.length) add(`🎉 ${g.cats.map(id => CATS.find(c => c.id === id)?.label).join("、")}貼紙集滿！🪙 +${g.cats.length}`);
   if (g.fed.grew) { const p = RW.PET[save.rw.partner]; add(`✨ ${p.name}${g.fed.grew === 3 ? "變成超級" : "長大"}了！`); setTimeout(() => { if (rs === st) talk(`${p.name}${g.fed.grew === 3 ? "變成超級" : "長大"}了！`); }, 1200); }
   if (g.tickets && stickerCount() >= MODES.tops.need) { add(`🎟️ 陀螺券 +${g.tickets}`); setTimeout(() => { if (rs === st) queueTalk("拿到一張陀螺券了！"); }, 1600); }   // 10-12 陀螺券（陀螺競技場開了才提：還沒開的先默默存著）
+  if (g.evo && g.evo.got) add(`💫 進化能量 +${g.evo.got}`);   // v7 寵物進化：能量只給超級的夥伴；集滿＝回小島點牠看進化
+  if (g.evo && g.evo.full && RW.PET[g.evo.id]) { const nm = RW.PET[g.evo.id].name; add(`🌟 ${nm}要進化了！`); setTimeout(() => { if (rs === st) queueTalk(`${nm}好像要進化了！`); }, 2000); }
   if (st.pz) {   // 10-12 同樂廣場：左下角小字（不跳出、不打斷；css/zhuyin-plaza.css）；寬度到右下星星罐左邊為止
     document.querySelectorAll("#result > .pz-note").forEach(x => x.remove());
     const nt = el("div", "pz-note", `🎪 ＋${st.pz.n} 已經算進大家的進度囉！`), jr = $("hatchHint").getBoundingClientRect();
@@ -2712,12 +2725,15 @@ async function openAlbum(cat) {
 // 動物朋友圖鑑：28 格；收集到的＝圖＋名字＋階段，點一下選成「夥伴」（點心餵牠）；沒收集到＝剪影＋稀有度框
 function renderPets(grid) {
   for (const p of RW.PETS) {
-    const have = save.rw.pets[p.id], card = el("button", "pet-card " + p.tier + (have ? "" : " none") + (save.rw.partner === p.id ? " partner" : ""));
+    const have = save.rw.pets[p.id], evo = !!have && RW.isEvo(save.rw, p.id), card = el("button", "pet-card " + p.tier + (have ? "" : " none") + (save.rw.partner === p.id ? " partner" : "") + (evo ? " evo" : ""));
+    if (evo) { card.appendChild(el("div", "pc-aura")); card.appendChild(evoBadge()); }   // v7 進化型：圖後面一圈光、左上角星星徽記（css/zhuyin.css「寵物進化」段）
     const i = el("img", "pc-img"); i.src = `IMAGE/zhuyin/pets/${p.id}.webp`; i.alt = ""; i.loading = "lazy"; card.appendChild(i);
     if (have) {
-      card.appendChild(el("div", "pc-n", p.name));
-      card.appendChild(el("div", "pc-s", ["", "寶寶", "長大", "超級"][have.stage] + (save.rw.partner === p.id ? "・夥伴" : "")));
+      const nm = evo ? RW.evoName(p.id) : p.name;
+      card.appendChild(el("div", "pc-n" + (nm.length >= 5 ? " long" : ""), nm));
+      card.appendChild(el("div", "pc-s", (evo ? "進化" : ["", "寶寶", "長大", "超級"][have.stage]) + (save.rw.partner === p.id ? "・夥伴" : "")));
       const left = RW.toNextStage(have); if (save.rw.partner === p.id && left) card.appendChild(el("div", "pc-s", `再 ${left} 個🍪${have.stage === 1 ? "長大" : "變超級"}`));
+      if (!evo && have.stage >= 3 && (save.rw.partner === p.id || RW.evoEnergy(save.rw, p.id) > 0)) card.appendChild(evoBar(p.id));   // v7 進化能量條（夥伴才會集；換掉的夥伴留著原本的能量）
       card.onclick = () => { play("select"); save.rw.partner = p.id; persist(); say(p.name); openAlbum("pets"); };
       const dr = el("span", "pc-dress", "👗"); dr.setAttribute("role", "button"); dr.setAttribute("aria-label", "換裝");   // 右上角小 👗：直接幫這隻換裝（不改夥伴）
       dr.onclick = e => { e.stopPropagation(); play("select"); openDress(p.id, "album"); }; card.appendChild(dr);
@@ -2725,6 +2741,99 @@ function renderPets(grid) {
     grid.appendChild(card);
   }
 }
+
+// ---------- 寵物進化（v7，docs/zhuyin-v7-plan.md §2；2026-10-13）----------
+// 能量（數值＝js/zhuyin-rewards.js 的 EVO_GAIN，只給「已經超級、還沒進化」的夥伴）：第 3 級以上拿 3 星 +10、每天第一次餵點心 +5（結算 evoAfterRound／扭蛋點心包 spinGacha）、
+//   爬塔第一次到新樓層每層 +2、第一次打倒守塔怪 +40（towerApi 的 store／give → evoTowerStore／towerGive）。
+// 能量滿 → 回小島：選單「✨ 進化！」膠囊（#evoBtn，卡片選單也有）＋3D 小島那隻頭上的 ✨（hubPets 的 ready）＋貓頭鷹「XX好像要進化了！」（evoMenu）。
+// 點了＝startEvolve：只在小島選單或圖鑑（遊戲中、爬塔中不演）。演出＝js/zhuyin-evolve.js（第一次完整、之後點一下跳過；減少動態＝不轉不震）。
+// 音樂：進化曲 evolve（manifest bgm、loop:false＝一次性，走 A.sfx 播；跳過／結束 A.stopSfx 淡出 1 秒）；原本的背景音樂先停、演完放回原本那首（A.debug().want）。
+// 介面副作用：不呼叫 nav()／goMenu()、不換 .screen、不清 gLater；演出蓋住全黑後 hub.hide()（3D 小島停止渲染），演完 hub.resume()（留在原本那座島）；
+//   從圖鑑點的：演完重畫圖鑑（openAlbum("pets")，它自己會 nav()）。進化在演出「開始前」就存檔（中途關掉頁面也不會白集）。
+let evoBusy = false, evoModP = null, evoHintAt = 0;
+const EVO_SOUNDS = ["evolve", "ev_charge", "ev_burst", "ev_sparkle"];
+const evoReduce = () => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } };
+function importEvolve() { return evoModP || (evoModP = import("./zhuyin-evolve.js?v=1").catch(e => { evoModP = null; throw e; })); }
+// 結算這一局給的進化能量（showResult 呼叫）→ { got 加了幾點, full 剛好集滿, id 夥伴 }
+function evoAfterRound(L, stars, lvr, treats) {
+  const got = [];
+  if (L >= 3 && stars >= 3 && lvr && !lvr.low) got.push(RW.evoAdd(save.rw, RW.EVO_GAIN.star3));   // 暖身局（比最高級低 2 級以上）不算
+  if (treats > 0) got.push(RW.evoFeedDay(save.rw, today()));
+  return { got: got.reduce((s, r) => s + r.got, 0), full: got.some(r => r.full), id: save.rw.partner };
+}
+function evoBadge(cls = "") { const b = el("span", "evo-badge" + (cls ? " " + cls : "")); b.appendChild(el("i")); return b; }   // 進化徽記：金色星星（css 畫）
+// 圖鑑卡片的進化能量條：條＋右邊「進化後的剪影」（發光的黑影＋小星星＝目標）；集滿＝「✨ 進化！」點了直接看演出（不換夥伴）
+function evoBar(id) {
+  const n = RW.evoEnergy(save.rw, id), full = n >= RW.EVO_MAX, row = el("div", "pc-evo" + (full ? " full" : ""));
+  const bar = el("div", "pc-evo-bar"), fill = el("i"); fill.style.width = Math.round(Math.min(1, n / RW.EVO_MAX) * 100) + "%"; bar.appendChild(fill);
+  bar.appendChild(el("b", "", full ? "✨ 進化！" : `💫 ${n}/${RW.EVO_MAX}`));
+  const goal = el("span", "pc-evo-goal"), gi = el("img"); gi.src = `IMAGE/zhuyin/pets/${id}.webp`; gi.alt = ""; gi.loading = "lazy"; goal.append(gi, evoBadge("mini"));
+  row.append(bar, goal);
+  if (full) { row.setAttribute("role", "button"); row.onclick = e => { e.stopPropagation(); startEvolve(id); }; }
+  return row;
+}
+// 選單的「✨ 進化！」膠囊：能量滿的那隻（夥伴優先）；沒有就藏起來。有的話先抓演出模組與音效（點下去不用等）。回傳那隻的 id 或 null
+function evoSync() {
+  const b = $("evoBtn"); if (!b) return null;
+  const ids = RW.evoReadyList(save.rw), id = ids.includes(save.rw.partner) ? save.rw.partner : ids[0] || null;
+  b.classList.toggle("hidden", !id); if (!id) return null;
+  if (b.dataset.pet !== id) { b.dataset.pet = id; const im = b.querySelector("img"); if (im) im.src = `IMAGE/zhuyin/pets/${id}.webp`; }
+  importEvolve().catch(() => {}); PZ(() => A.preloadSfx(EVO_SOUNDS).catch(() => {}));
+  return id;
+}
+// 回小島（renderMenu）：膠囊＋貓頭鷹提醒「XX好像要進化了！」（排在天氣那句後面；45 秒內講過就不再講，renderMenu 很多地方會叫）
+let evoHintPend = false;
+function evoMenu() {
+  const id = evoSync(); if (!id || mode || evoBusy || evoHintPend || (evoHintAt && performance.now() - evoHintAt < 45000)) return;
+  evoHintPend = true; let tries = 0;
+  const go = () => {
+    if (mode || evoBusy || $("menu").classList.contains("hidden") || !RW.evoIsReady(save.rw, id)) { evoHintPend = false; return; }
+    if (document.body.classList.contains("gate-on") || talking()) { if (++tries < 60) setTimeout(go, 1000); else evoHintPend = false; return; }   // 開始畫面還在／貓頭鷹在講別的（開場招呼、天氣）：等講完再說
+    evoHintPend = false; evoHintAt = performance.now();
+    const t = `${RW.PET[id].name}好像要進化了！`; guideSay(t, false); queueTalk(t);
+  };
+  setTimeout(go, 900);
+}
+// 家長設定「扭蛋機」段：進化規則（從 RW.EVO_GAIN 產生，不寫死）＋目前狀況
+function evoParentText() {
+  const G = RW.EVO_GAIN, p = save.rw.partner, done = (save.rw.evo && save.rw.evo.done) || [], pn = RW.PET[p] ? RW.PET[p].name : p;
+  const now = RW.isEvo(save.rw, p) ? `目前的夥伴：${RW.evoName(p)}（已進化）。` : RW.canCharge(save.rw, p) ? `目前的夥伴${pn}：進化能量 ${RW.evoEnergy(save.rw, p)}/${RW.EVO_MAX}。` : `目前的夥伴${pn}還沒變超級（變超級之後才開始集進化能量）。`;
+  return [`🌟 寵物進化：夥伴變成超級之後，集滿進化能量 ${RW.EVO_MAX} 就能進化成「超級＋名字」（第 3 級以上拿 3 星 +${G.star3}，暖身局不算；每天第一次餵點心 +${G.feedDay}；挑戰燈塔第一次到新樓層每層 +${G.floor}；第一次打贏守塔怪 +${G.boss}）。能量滿了回小島點牠看進化，進化不會退回去。`,
+    now + (done.length ? `已進化：${done.map(id => RW.evoName(id)).join("、")}。` : "")];
+}
+// 看進化演出（小島的 ✨／選單膠囊／圖鑑的「✨ 進化！」）。回傳 Promise<是否演了>
+async function startEvolve(id) {
+  const scr = [...document.querySelectorAll(".screen")].find(s => !s.classList.contains("hidden")), where = scr ? scr.id : "";
+  if (evoBusy || tower || (where !== "menu" && where !== "album") || !RW.evoIsReady(save.rw, id)) return false;   // 不在遊戲中途／爬塔中打斷
+  evoBusy = true;
+  const p = RW.PET[id], sup = RW.evoName(id), canSkip = !!(save.rw.evo && save.rw.evo.seen), tok = navToken;
+  let hidHub = false;
+  const bgmWas = PZ(() => A.debug().want) || null;     // 演完放回原本的音樂（選單＝島的音樂；圖鑑＝原本在放的那首）
+  play("select"); stopSpeech(); A.stopBgm({ fade: 0.8 });
+  RW.evolve(save.rw, id); persist();                    // 先存：演出中關掉頁面也已經進化
+  try {
+    let mod = null; try { mod = await importEvolve(); } catch (e) { console.warn("[evolve] 演出模組載入失敗，直接進化", e); }
+    if (mod) {
+      const ready = A.preloadSfx(EVO_SOUNDS, { low: false }).catch(() => null);
+      await mod.playEvolve({ img: `IMAGE/zhuyin/pets/${id}.webp`, callText: `${p.name}進化——`, revealText: `${sup}！`, okText: "🎉 太棒了", canSkip, reduce: evoReduce(), ready,
+        sfx: (n, r) => play(n, r || 1), say: t => talk(t), confetti: host => confetti(40, host),
+        music: on => { if (!on) A.stopSfx("evolve", { fade: 1 }); else if (save.music) A.sfx("evolve", { gain: 0.7 }); },   // 背景音樂關著＝不放進化曲（音效照放）；停＝1 秒淡出（跳過、按太棒了）
+        onDark: () => { if (where === "menu" && hub && tok === navToken) { hub.hide(); hidHub = true; } } });
+    } else { confetti(40); talk(`${sup}！`); }
+    save.rw.evo.seen = 1;                                // 看過一次完整的 → 之後可以跳過
+  } catch (e) { console.warn("[evolve]", e); }
+  finally {
+    PZ(() => A.stopSfx("evolve", { fade: 1 })); persist(); evoBusy = false;
+    if (tok === navToken) {
+      if (bgmWas) playBgm(bgmWas);
+      if (where === "menu" && !mode) { if (hub) { if (hidHub) hub.resume(); hub.setPets(hubPets()); } PZ(evoSync); updateJar(); }
+      else if (!$("album").classList.contains("hidden")) openAlbum("pets");
+    }
+  }
+  return true;
+}
+{ const b = $("evoBtn"); if (b) b.onclick = () => { const id = b.dataset.pet; if (id) startEvolve(id); }; }
+if (location.search.includes("debug")) window.__zyEvo = Object.assign(window.__zyEvo || {}, { start: id => startEvolve(id), sync: () => evoSync(), towerStore: t => evoTowerStore(t), towerGive: g => towerGive(g), get busy() { return evoBusy; } });   // 測試用（tools/zy-test/evolve.js）：towerStore／towerGive＝爬塔存檔／給獎勵的接點
 
 // ---------- 寵物換裝（js/zhuyin-dress.js，10-12；docs/zhuyin-v5-plan.md §3）----------
 // 入口：彩虹島「寵物服裝店」（hub3d opts.onDress）、圖鑑「🐣 動物朋友」的「👗 換裝」大鈕（開目前的夥伴）與每張卡右上角的 👗（開那一隻）。
@@ -2816,6 +2925,7 @@ function renderMenu() {
   PZ(placePlazaBtn);                                   // 🎪（10-12 同樂廣場）先放好位置，3D 小島擺鏡頭才會避開它
   if (hub) { hub.refresh(); hub.setPets(hubPets()); hub.setDecor(hubDecor()); }   // 3D 小島跟著更新：鎖頭、鏡頭擺位、島上走的寵物、扭蛋抽到的裝飾
   PZ(() => { pzSync(); if (!document.body.classList.contains("gate-on")) plaza.refresh(); });   // 同樂廣場：慶祝裝飾、小紅標、遊戲中累積的新消息（貓頭鷹）；回小島順便讀一次（30 秒內讀過就不讀）
+  PZ(evoMenu);                                         // v7 寵物進化：能量滿＝選單的「✨ 進化！」膠囊＋貓頭鷹提醒（小島上那隻頭上的 ✨ 由 hubPets 的 ready 帶過去）
 }
 let menuPrefetch = null;
 function goMenu() {
@@ -2919,6 +3029,7 @@ function renderSettings() {
   renderMix(); renderStats();
   const odds = $("rwOdds"); if (odds) { odds.innerHTML = ""; for (const t of RW.oddsText()) odds.appendChild(el("div", "", t)); }   // 機率公開：跟 js/zhuyin-rewards.js 的 RATES／PITY／GACHA_WEAR 同一份資料產生
   $("rwStats").textContent = `扭蛋幣 ${save.rw.coins}、金幣 ${save.rw.gold}、點心 ${save.rw.treats}、動物朋友 ${Object.keys(save.rw.pets).length}/${RW.PETS.length}、抽過 ${save.rw.pulls} 次`;
+  PZ(() => { const e = $("rwEvo"); if (e) { e.innerHTML = ""; for (const t of evoParentText()) e.appendChild(el("div", "", t)); } });   // v7 寵物進化：規則（從 RW.EVO_GAIN 產生）＋目前的夥伴能量、已進化的
 }
 // 容易搞混的注音（目前這位）：次數多的排前面，最多 6 組
 function renderMix() {

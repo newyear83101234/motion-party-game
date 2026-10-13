@@ -57,6 +57,7 @@ export function migrate(old) {
   const r = clean || {
     pets: {}, partner: "bear", coins: 0, gold: 0, jarCoins: 0, treats: 0, decor: [], stamps: 0, stampDay: "", pity: { rare: 0, ssr: 0 }, catBonus: [], pulls: 0,
     closet: [...START_WEAR], wear: {},                               // 舊存檔沒有衣櫃：起始的帽子＋蝴蝶結（cleanRewards 也會補）
+    evo: newEvo(),                                                   // v7 寵物進化（舊存檔沒有：cleanRewards 補）
   };
   if (!clean) {
     const friendIds = Object.keys(FRIEND_PET), eggs = Math.max(0, Math.min(4, o.eggs | 0));
@@ -147,7 +148,62 @@ export function cleanRewards(d) {
   return { pets, partner: typeof d.partner === "string" && own(PET, d.partner) && own(pets, d.partner) ? d.partner : "bear", coins: num(d.coins, 999), gold: num(d.gold, 99), jarCoins: num(d.jarCoins, 99999), treats: num(d.treats, 999999),
     decor: Array.isArray(d.decor) ? d.decor.filter(x => DECOR.some(q => q.id === x)) : [], stamps: num(d.stamps, STAMPS_PER_GOLD - 1), stampDay: typeof d.stampDay === "string" ? d.stampDay.slice(0, 10) : "",
     pity: { rare: num(d.pity && d.pity.rare, PITY.rare), ssr: num(d.pity && d.pity.ssr, PITY.ssr) }, catBonus: Array.isArray(d.catBonus) ? d.catBonus.filter(x => typeof x === "string").slice(0, 50) : [], pulls: num(d.pulls, 99999),
-    closet, wear };
+    closet, wear, evo: cleanEvo(d.evo, pets) };
+}
+
+// ---------- 寵物進化（v7，docs/zhuyin-v7-plan.md §2；2026-10-13）----------
+// 超級（第 3 階段）的寵物再集滿「進化能量」就能進化成「超級XX」（外型：3D 更大＋光環粒子＋星星徽記＋顏色更亮；2D 圖鑑疊光暈＋徽記）。
+// 存檔 rw.evo = { e: { 寵物id: 能量 1..EVO_MAX }, done: [已進化的寵物id], day: 最後一次「每天第一次餵點心」加能量的日期, tb: 爬塔最高樓層記號（-1＝還沒對過）, seen: 1＝進化演出完整看過一次（之後可以跳過） }
+// 能量只加給「夥伴」，而且夥伴要已經是超級、還沒進化；不是的話這次不加（不扣、不存起來）。能量滿了＝等小孩在小島點牠看演出（evolve() 才算進化）。永不倒退：進化不會退回去。
+export const EVO_MAX = 100;
+export const EVO_GAIN = { star3: 10, floor: 2, boss: 40, feedDay: 5 };   // 第 3 級以上拿 3 星（暖身局不算）、爬塔第一次到新樓層（每層）、打倒守塔怪（爬塔第一次打倒那隻）、每天第一次餵點心
+export const evoName = id => "超級" + (own(PET, id) ? PET[id].name : "");   // 進化後的名字（圖鑑、演出橫幅）
+const newEvo = () => ({ e: {}, done: [], day: "", tb: -1, seen: 0 });
+function cleanEvo(v, pets) {                                          // 存檔不可信：只留有這隻、已經超級的；能量 1..EVO_MAX；進化過的不留能量
+  const o = v && typeof v === "object" && !Array.isArray(v) ? v : {}, out = newEvo();
+  const sup = id => own(pets, id) && pets[id].stage >= 3;
+  if (Array.isArray(o.done)) for (const id of o.done) if (typeof id === "string" && sup(id) && !out.done.includes(id)) out.done.push(id);
+  if (o.e && typeof o.e === "object" && !Array.isArray(o.e)) for (const [id, n] of Object.entries(o.e)) { const x = Math.min(EVO_MAX, Math.max(0, Math.floor(+n) || 0)); if (x > 0 && sup(id) && !out.done.includes(id)) out.e[id] = x; }
+  out.day = typeof o.day === "string" ? o.day.slice(0, 10) : "";
+  out.tb = Number.isFinite(+o.tb) && +o.tb >= 0 ? Math.min(9999, Math.floor(+o.tb)) : -1;
+  out.seen = o.seen ? 1 : 0;
+  return out;
+}
+const evoOf = rw => (rw.evo && typeof rw.evo === "object" && !Array.isArray(rw.evo) && rw.evo.e && Array.isArray(rw.evo.done) ? rw.evo : (rw.evo = newEvo()));
+export const isEvo = (rw, id) => !!(rw && rw.evo && Array.isArray(rw.evo.done) && rw.evo.done.includes(id));
+export const evoEnergy = (rw, id) => (rw && rw.evo && rw.evo.e && own(rw.evo.e, id) ? rw.evo.e[id] | 0 : 0);
+// 這隻現在能不能集能量：已收集、超級、還沒進化
+export const canCharge = (rw, id) => !!(rw && rw.pets && own(rw.pets, id) && (rw.pets[id].stage | 0) >= 3 && !isEvo(rw, id));
+export const evoIsReady = (rw, id) => canCharge(rw, id) && evoEnergy(rw, id) >= EVO_MAX;
+export const evoReadyList = rw => (rw && rw.pets ? Object.keys(rw.pets).filter(id => evoIsReady(rw, id)) : []);   // 能量滿、等著看演出的（換過夥伴的話可能不只一隻）
+// 加能量給夥伴。回傳 { got 這次加了幾點（0＝夥伴不能集）, id, full 這次剛好集滿 }
+export function evoAdd(rw, n) {
+  const id = rw && rw.partner, add = Math.max(0, Math.floor(+n) || 0);
+  if (!add || !canCharge(rw, id)) return { got: 0, id, full: false };
+  const ev = evoOf(rw), before = evoEnergy(rw, id), after = Math.min(EVO_MAX, before + add);
+  ev.e[id] = after;
+  return { got: after - before, id, full: before < EVO_MAX && after >= EVO_MAX };
+}
+// 每天第一次餵點心（結算、扭蛋點心包）＋5。夥伴不能集的那天不算用掉（換成超級夥伴後同一天還能拿）
+export function evoFeedDay(rw, day) {
+  const ev = evoOf(rw);
+  if (ev.day === day || !canCharge(rw, rw.partner)) return { got: 0, id: rw.partner, full: false };
+  const r = evoAdd(rw, EVO_GAIN.feedDay); if (r.got || evoIsReady(rw, rw.partner)) ev.day = day;
+  return r;
+}
+// 爬塔：最高通過樓層 best 比上次記的高 → 每多 1 層 +2（記號 tb 只往上；第一次對＝用存之前的樓層 prev 當起點，不補發以前爬的）
+export function evoTower(rw, best, prev) {
+  const ev = evoOf(rw), b = Math.max(0, Math.floor(+best) || 0);
+  if (ev.tb < 0) ev.tb = Math.max(0, Math.floor(+prev) || 0);
+  if (b <= ev.tb) return { got: 0, id: rw.partner, full: false };
+  const floors = b - ev.tb; ev.tb = b;
+  return evoAdd(rw, floors * EVO_GAIN.floor);
+}
+// 看完（或開始看）進化演出：這隻變成進化型。回傳成功與否（能量沒滿／已經進化＝false）
+export function evolve(rw, id) {
+  if (!evoIsReady(rw, id)) return false;
+  const ev = evoOf(rw); ev.done.push(id); delete ev.e[id];
+  return true;
 }
 
 // ---------- 寵物換裝：純邏輯 ----------
