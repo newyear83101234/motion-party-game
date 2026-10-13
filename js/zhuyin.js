@@ -2824,6 +2824,7 @@ async function startEvolve(id) {
   RW.evolve(save.rw, id); persist();                    // 先存：演出中關掉頁面也已經進化
   try {
     let mod = null; try { mod = await importEvolve(); } catch (e) { console.warn("[evolve] 演出模組載入失敗，直接進化", e); }
+    if (tok !== navToken || mode) return true;          // 10-13 里維：等載入的時候已經點去別的地方（開了遊戲）→ 不演（進化已存檔，下次回小島看得到新樣子）
     if (mod) {
       const ready = A.preloadSfx(EVO_SOUNDS, { low: false }).catch(() => null);
       await mod.playEvolve({ img: `IMAGE/zhuyin/pets/${id}.webp`, callText: `${p.name}進化——`, revealText: `${sup}！`, okText: "🎉 太棒了", canSkip, reduce: evoReduce(), ready,
@@ -3179,7 +3180,7 @@ function applyNight() {
   const on = s.night > 0.5;
   if (on !== nightShown) {
     const first = nightShown === null; nightShown = on; document.body.classList.toggle("night", on);
-    if (!first && !mode && !dressFrom) playBgm(menuBgmKey());   // 主島天黑／天亮：選單音樂換成搖籃曲／白天的（在別的島不變；遊戲中、換裝畫面中等回選單再換）
+    if (!first && !mode && !dressFrom && !evoBusy) playBgm(menuBgmKey());   // 10-13 里維：進化演出中不換（演完會放回原本的音樂）   // 主島天黑／天亮：選單音樂換成搖籃曲／白天的（在別的島不變；遊戲中、換裝畫面中等回選單再換）
     if (on) for (const id of Object.keys(MODES)) {
       const sc = $(id); if (!sc || sc.querySelector(":scope > .night-sky")) continue;
       const sky = el("div", "night-sky");

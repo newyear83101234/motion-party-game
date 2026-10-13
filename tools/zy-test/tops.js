@@ -452,8 +452,10 @@ async function playToEnd(p, n = 1) {                          // 下場 → 開�
     // C14（靜態）：import 網址版號一致
     const simSrc = fs.readFileSync(path.join(ROOT, "js/zhuyin-tops-sim.js"), "utf8"), mainSrc = fs.readFileSync(path.join(ROOT, "js/zhuyin.js"), "utf8");
     const imp = s => [...s.matchAll(/from "\.\/(zhuyin-tops-[\w-]+\.js[^"]*)"/g)].map(m => m[1]);
-    ok("C14 tops.js 與 sim.js 對 power.js 的 import 網址完全一樣（?v=1）、tops.js 對 sim.js ?v=1、字典 ?v=1；主程式 import tops.js?v=1",
-      imp(tsrc).includes("zhuyin-tops-power.js?v=1") && imp(simSrc).join() === "zhuyin-tops-power.js?v=1" && imp(tsrc).includes("zhuyin-tops-sim.js?v=1") && /DICT_URL = ROOT \+ "js\/zhuyin-tops-dict\.json\?v=1"/.test(tsrc) && mainSrc.includes('"./zhuyin-tops.js?v=1"') && mainSrc.includes('"./zhuyin-tops-dict.json?v=1"'), JSON.stringify({ tops: imp(tsrc), sim: imp(simSrc) }));
+    // 10-13：不寫死數字（升版後測試就壞），改驗「同一個檔在每個地方的版號一致」
+    const powT = imp(tsrc).find(u => u.startsWith("zhuyin-tops-power.js")), dictT = (tsrc.match(/DICT_URL = ROOT \+ "js\/(zhuyin-tops-dict\.json\?v=\d+)"/) || [])[1];
+    ok("C14 tops.js 與 sim.js 對 power.js 的 import 網址完全一樣、tops.js 有帶版號 import sim.js、字典網址主程式與模組一樣、主程式帶版號 import tops.js",
+      !!powT && /\?v=\d+$/.test(powT) && imp(simSrc).join() === powT && imp(tsrc).some(u => /^zhuyin-tops-sim\.js\?v=\d+$/.test(u)) && !!dictT && mainSrc.includes(`"./${dictT}"`) && /"\.\/zhuyin-tops\.js\?v=\d+"/.test(mainSrc), JSON.stringify({ tops: imp(tsrc), sim: imp(simSrc), dictT }));
     ok("C13 paintGauges 不再每格 querySelector（用 paintTeams 快取的 E.gfill）", /function paintGauges[\s\S]{0,200}E\.gfill/.test(tsrc) && !/function paintGauges\(S\) \{[^}]*querySelector/.test(tsrc));
     // KID_EXTRA 有收配送站商品／禮物、寵物名
     const dsrc = fs.readFileSync(path.join(ROOT, "js/zhuyin-deliver.js"), "utf8"), rsrc = fs.readFileSync(path.join(ROOT, "js/zhuyin-rewards.js"), "utf8");

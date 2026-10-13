@@ -139,6 +139,14 @@ export function playEvolve(opts = {}) {
     }
     function frame(now) {
       if (closed) return;
+      try { frameBody(now); } catch (e) {               // 10-13 里維：畫面出錯不要卡在黑幕（「太棒了」永遠不出現、蓋板擋住全部操作）
+        console.warn("[evolve] frame", e);
+        while (ev < EVENTS.length) { try { EVENTS[ev++].fn(); } catch (x) {} }
+        ok.classList.add("on"); return;
+      }
+      raf = requestAnimationFrame(frame);
+    }
+    function frameBody(now) {
       const t = now - t0, dt = Math.min(0.05, Math.max(0, (now - (last || now)) / 1000)); last = now;
       while (ev < EVENTS.length && t >= EVENTS[ev].at) EVENTS[ev++].fn();
       drawBg(t, intensity(t), warm);
@@ -152,7 +160,6 @@ export function playEvolve(opts = {}) {
       ringAng += rs * dt * (o.reduce ? 0.3 : 1);
       ringA.style.transform = `translate(-50%,-50%) rotateX(72deg) rotateZ(${ringAng.toFixed(1)}deg)`;
       ringB.style.transform = `translate(-50%,-50%) rotateX(68deg) rotateY(14deg) rotateZ(${(-ringAng * 1.3).toFixed(1)}deg)`;
-      raf = requestAnimationFrame(frame);
     }
     function doSkip(e) {   // 第二次起：點一下＝直接跳到白光爆開
       if (!o.canSkip || skipped || closed || !t0) return;
@@ -177,6 +184,7 @@ export function playEvolve(opts = {}) {
       if (closed) return;
       if (o.onDark) try { o.onDark(); } catch (e) {}
       t0 = performance.now(); last = 0; raf = requestAnimationFrame(frame);
+      setTimeout(() => { if (!closed) ok.classList.add("on"); }, T.ok + 4000);   // 保險：分頁在背景 rAF 不跑等情況，時間到一定給「太棒了」
     };
     const born = performance.now();   // 暗場淡入至少 0.65 秒才開始（不然一開場就閃）
     Promise.race([Promise.resolve(o.ready).catch(() => {}), new Promise(r => setTimeout(r, 1200))]).then(() => setTimeout(go, Math.max(0, 650 - (performance.now() - born))));
