@@ -188,6 +188,39 @@
    "source": "numpy 合成（tools/audio/party_pick.py synth_party）",
    "license": "自製（CC0）",
    "sourceUrl": null
+  },
+  "battle": {
+   "file": "audio/bgm/battle.mp3",
+   "use": "注音戰鬥陀螺對戰（v7 三戰兩勝）",
+   "duration": 51.216,
+   "truePeak_dBTP": -7.6,
+   "loop": true,
+   "loopStart": 0.5,
+   "loopEnd": 50.715646,
+   "loopLength": 50.215646,
+   "bpm": 86.0,
+   "lufs": -18.0,
+   "seamCheck": {
+    "energy_diff_db": 0.55,
+    "jump_ratio": 0.25
+   },
+   "candidate": "battle_b_48",
+   "source": "Suno（suno.com/song/64d17994-8225-4797-813f-8f16dc8d9ba1）",
+   "license": "Suno Pro 方案生成（instrumental，v6 模型）；Suno 服務條款：付費方案生成的歌曲著作權與商用權歸使用者，不需標示",
+   "geminiReview": "This high-energy rock track is a perfect, seamlessly looping fit for an exciting kids' battle scene."
+  },
+  "evolve": {
+   "file": "audio/bgm/evolve.mp3",
+   "use": "寵物進化演出（一次性，不循環；第 8.0 秒高潮＝新外型亮相）",
+   "duration": 22.0,
+   "truePeak_dBTP": -5.0,
+   "loop": false,
+   "hitTime": 8.0,
+   "lufs": -16.0,
+   "candidate": "evolve_a_16（原曲第 16.08 秒高潮前 8 秒自做蓄力：時變低通＋漸強＋riser）",
+   "source": "Suno（suno.com/song/bdd56324-4b6f-421a-8685-cf8799d035b5）",
+   "license": "Suno Pro 方案生成（instrumental，v6 模型）；Suno 服務條款：付費方案生成的歌曲著作權與商用權歸使用者，不需標示",
+   "geminiReview": "This track perfectly matches the requested shape with a great build-up, a well-timed triumphant hit, and a heroic celebratory theme."
   }
  },
  "sfx": {

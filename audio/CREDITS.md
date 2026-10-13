@@ -83,3 +83,10 @@
 | ev_charge | Freesound「Power_Up」 — https://freesound.org/people/gulfstreamav/sounds/843330/ — CC0 |
 | ev_burst | Freesound「Fire Burst Flash」+「magic burst」+ Kenney impactBell_heavy_000 + 合成閃光 — https://freesound.org/people/Za-Games/sounds/539972/ ; https://freesound.org/people/DAN2008/sounds/214455/ — CC0 |
 | ev_sparkle | Freesound「Sparkling Star 01.wav」 — https://freesound.org/people/LilMati/sounds/462095/ — CC0 |
+
+## v7 新增背景音樂（10-13）
+
+| 鍵 | 來源與授權 |
+|---|---|
+| battle | Suno 生成（Pro 方案，instrumental）— 注音戰鬥陀螺對戰；50 秒無縫循環（tools/audio/v7_music2.py）。付費方案生成歌曲的權利歸使用者，不需標示 |
+| evolve | Suno 生成（Pro 方案，instrumental）— 寵物進化演出；取原曲高潮，前 8 秒用時變低通＋漸強＋riser 自做蓄力（tools/audio/v7_evolve_build.py）。同上 |
