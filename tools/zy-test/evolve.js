@@ -56,8 +56,10 @@ const waitPhase = (p, ph, ms = 15000) => p.waitForFunction(ph => { const o = doc
     await track("sil", 1300, "2-spin-silhouette");
     ok("字幕「小象進化——」出現＋配音", await p.evaluate(() => { const c = document.querySelector(".evo-cap"); return c.classList.contains("on") && c.textContent === "小象進化——" && window.__spoken.some(s => s.text === "小象進化——"); }));
     ok("剪影：發光的白色剪影疊上來", await p.evaluate(() => document.querySelector(".evo-pet").classList.contains("sil") && getComputedStyle(document.querySelector(".evo-sil")).opacity > 0.5));
-    await waitPhase(p, "burst"); seen.push("burst@" + ((Date.now() - t0) / 1000).toFixed(1)); await sleep(120); await shot(p, "3-white-burst");
-    ok("白光爆開（flash 亮著）", await p.evaluate(() => +getComputedStyle(document.querySelector(".evo-flash")).opacity > 0.6), await p.evaluate(() => getComputedStyle(document.querySelector(".evo-flash")).opacity));
+    await waitPhase(p, "burst"); seen.push("burst@" + ((Date.now() - t0) / 1000).toFixed(1));
+    const flashMax = await p.evaluate(async () => { let m = 0; const t = performance.now(); while (performance.now() - t < 500) { m = Math.max(m, +getComputedStyle(document.querySelector(".evo-flash")).opacity); await new Promise(r => requestAnimationFrame(r)); } return m; });   // 10-13：取爆開後 0.5 秒內最亮（機器忙時單點取樣會錯過）
+    await shot(p, "3-white-burst");
+    ok("白光爆開（flash 亮著）", flashMax > 0.6, flashMax);
     await track("reveal", 1300, "4-reveal");
     ok("亮相：新外型＋徽記＋橫幅「閃耀小象！」＋配音", await p.evaluate(() => document.querySelector(".evo-pet").classList.contains("new") && document.querySelector(".evo-banner").classList.contains("on") && document.querySelector(".evo-banner").textContent === "閃耀小象！" && window.__spoken.some(s => s.text === "閃耀小象！")));
     await track("done", 500, "4b-done");

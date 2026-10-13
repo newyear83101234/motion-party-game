@@ -205,7 +205,7 @@ const seq = arr => { let k = 0; return () => arr[k++ % arr.length]; };
   ok("滿了＝ready 名單有小熊、還沒進化", R.evoIsReady(rw, "bear") && R.evoReadyList(rw).join() === "bear" && !R.isEvo(rw, "bear"));
   ok("evolve：進化、能量清掉、不能再進化", R.evolve(rw, "bear") && R.isEvo(rw, "bear") && !("bear" in rw.evo.e) && !R.evolve(rw, "bear") && R.evoAdd(rw, 10).got === 0);
   ok("evolve：能量沒滿／沒有這隻＝false", !R.evolve(rw, "cat") && !R.evolve(rw, "dragon") && !R.evolve(rw, "constructor"));
-  ok("evoName：超級＋名字", R.evoName("elephant") === "超級小象" && R.evoName("dragon") === "超級彩虹小龍");
+  ok("evoName：閃耀＋名字（第 3 階段才叫超級）", R.evoName("elephant") === "閃耀小象" && R.evoName("dragon") === "閃耀彩虹小龍");
 }
 {
   const rw = R.migrate({}); rw.pets.cat.stage = 3; rw.partner = "cat";
