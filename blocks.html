@@ -9,11 +9,12 @@
   <meta name="theme-color" content="#3b5bb5">
   <link rel="icon" href="data:,">
   <title>方塊爆破</title>
-  <link rel="modulepreload" href="js/blocks-core.js?v=2">
+  <link rel="modulepreload" href="js/blocks-core.js?v=3">
   <!-- 數字／英文用圓體 Nunito（手機沒有 Arial Rounded；中文會自動退回系統字） -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@800;900&display=swap" rel="stylesheet">
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Nunito:wght@800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@800;900&display=swap"></noscript>
   <style>
     :root {
       --bg1: #4a6fd6; --bg2: #2c3f8f;
@@ -151,6 +152,7 @@
       <button class="tg" data-opt="sound"><span class="ic">🔊</span>音效</button>
       <button class="tg" data-opt="vib"><span class="ic">📳</span>震動</button>
     </div>
+    <div class="sub" style="font-size:13px;opacity:.8">iPhone 沒聲音？檢查側邊靜音鍵</div>
   </div>
 
   <!-- 結束（經典） -->
@@ -183,6 +185,6 @@
     <button class="btn gray small" id="bResLevels">關卡列表</button>
   </div>
 
-  <script type="module" src="js/blocks.js?v=2"></script>
+  <script type="module" src="js/blocks.js?v=3"></script>
 </body>
 </html>

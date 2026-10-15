@@ -27,6 +27,8 @@ const check = (name, ok, info = "") => { results.push((ok ? "✅ " : "❌ ") + n
   // 1) 經典模式：用滑鼠真的拖一塊上去
   await p.click("#bClassic"); await p.waitForTimeout(500);
   const L = await p.evaluate(() => ({ ...__bb.L }));
+  // 開局有隨機預擺的方塊 → 先清空，拖到哪裡都放得下（測的是拖曳，不是盤面）
+  await p.evaluate(() => { const S = __bb.game.S; for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) S.grid[r][c] = null; });
   const before = await p.evaluate(() => __bb.game.S.moves);
   await p.mouse.move(L.sx[1], L.ty); await p.mouse.down();
   await p.mouse.move(L.sx[1], L.ty - 80, { steps: 4 });

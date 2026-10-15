@@ -1,5 +1,5 @@
 // 方塊爆破 — 畫面、拖曳操作、特效、音效、存檔（遊戲規則全在 blocks-core.js）
-import * as C from "./blocks-core.js?v=2";
+import * as C from "./blocks-core.js?v=3";
 
 const $ = id => document.getElementById(id);
 const cv = $("cv"), ctx = cv.getContext("2d");
@@ -20,13 +20,15 @@ if (!Number.isFinite(best)) best = 0;
 const adv = Object.assign({ done: [] }, store.get("adv", {}));   // done：過了的關卡號碼
 if (!Array.isArray(adv.done)) adv.done = [];
 adv.done = adv.done.filter(n => Number.isInteger(n));
+if (!Number.isFinite(adv.wins)) adv.wins = 0;
 let runId = 0;               // 每開一局 +1：結束／過關演出的計時器回來時比對，不是這局的就不演
 let bestAtStart = 0, recordShown = false;
 
 // ── 排行榜：這台裝置經典模式的前五名，不用註冊（名字記在本機）──
 const RANK_N = 5;
 let rank = (() => { const r = store.get("rank", []); return Array.isArray(r) ? r.filter(e => e && Number.isFinite(e.s) && typeof e.n === "string").slice(0, RANK_N) : []; })();
-let myName = String(store.get("name", "") || "").slice(0, 8);
+const cut8 = v => [...String(v || "")].slice(0, 8).join("");
+let myName = cut8(store.get("name", ""));
 let lastEntry = null;        // 剛擠進榜的那一筆（結束畫面改名字用）
 function addRank(score, moves) {
   lastEntry = null;
@@ -62,7 +64,7 @@ function dailyStreak() {
 const stats = Object.assign({ games: 0, lines: 0, blocks: 0, bestCombo: 0, maxLines: 0, allClears: 0 }, store.get("stats", {}));
 for (const k of Object.keys(stats)) if (!Number.isFinite(stats[k])) stats[k] = 0;
 function setName(v, alsoEntry) {
-  myName = String(v || "").trim().slice(0, 8); store.set("name", myName);
+  myName = cut8(String(v || "").trim()); store.set("name", myName);
   if (alsoEntry && lastEntry) { lastEntry.n = myName || "我"; store.set("rank", rank); }
 }
 
@@ -95,6 +97,15 @@ function blockSprite(k, s) {
   gr.addColorStop(0, mix(base, 0.14)); gr.addColorStop(1, mix(base, -0.04));
   g.fillStyle = gr; g.fillRect(x0 + b, x0 + b, x1 - x0 - 2 * b, x1 - x0 - 2 * b);
   g.fillStyle = "rgba(255,255,255,.38)"; g.beginPath(); g.ellipse(px * 0.34, px * 0.3, px * 0.12, px * 0.06, -0.6, 0, Math.PI * 2); g.fill();
+  sprites.set(key, cvs); return cvs;
+}
+// 👍 圖（emoji 畫一次存起來）
+function thumbSprite(s) {
+  const px = qpx(s), key = "t|" + px;
+  let cvs = sprites.get(key); if (cvs) return cvs;
+  cvs = document.createElement("canvas"); cvs.width = cvs.height = px;
+  const g = cvs.getContext("2d"); g.font = `${Math.round(px * 0.82)}px sans-serif`; g.textAlign = "center"; g.textBaseline = "middle";
+  g.fillText("👍", px / 2, px * 0.54);
   sprites.set(key, cvs); return cvs;
 }
 // 寶石圖示
@@ -134,7 +145,7 @@ function layout() {
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
   const sa = parseFloat(getComputedStyle(probe).paddingTop) || 0;
   const hud = Math.min(170, Math.max(104, H * 0.17)) + sa;
-  const B = Math.floor(Math.min(W - 20, (H - hud - 16) / 1.42, 620));
+  const B = Math.max(120, Math.floor(Math.min(W - 20, (H - hud - 16) / 1.42, 620)));
   const pad = Math.round(B * 0.025);
   const cell = (B - pad * 2) / C.N;
   const T = cell * 3.3;
@@ -149,7 +160,8 @@ function layout() {
   L.gear = { x: W - 34, y: sa + 36, r: 22 };
   sprites.clear(); boardImg = null;
 }
-window.addEventListener("resize", layout);
+window.addEventListener("resize", () => { if (document.activeElement && document.activeElement.tagName === "INPUT") return; layout(); });
+document.addEventListener("focusout", e => { if (e.target.tagName === "INPUT") setTimeout(layout, 300); });   // 鍵盤收起後補排一次
 
 // ── 音效（Web Audio 合成，不用音檔）──
 const AU = { ctx: null, out: null };
@@ -208,13 +220,13 @@ const MUSIC_VOL = 0.42;
 function loadTrack(name) {
   if (MUS.buf[name]) return Promise.resolve(MUS.buf[name]);
   if (MUS.loading[name]) return MUS.loading[name];
-  if (MUS.failed[name]) return Promise.reject(new Error("failed before"));   // 抓不到過就不再每次點擊重抓
+  if (MUS.failed[name] && Date.now() - MUS.failed[name] < 30000) return Promise.reject(new Error("failed recently"));   // 剛失敗過 30 秒內不重抓
   const a = au(); if (!a) return Promise.reject(new Error("no audio"));
   MUS.loading[name] = fetch(BGM[name].src)
     .then(r => { if (!r.ok) throw new Error("BGM " + r.status + " " + BGM[name].src); return r.arrayBuffer(); })
     .then(ab => new Promise((ok, bad) => a.decodeAudioData(ab, ok, bad)))
     .then(b => (MUS.buf[name] = b))
-    .catch(err => { console.warn(err); delete MUS.loading[name]; MUS.failed[name] = true; throw err; });
+    .catch(err => { console.warn(err); delete MUS.loading[name]; MUS.failed[name] = Date.now(); throw err; });
   return MUS.loading[name];
 }
 // 換曲：舊的淡出、新的淡入；同一首就只調音量
@@ -237,10 +249,14 @@ function music(name, level = 1) {
     s.start(0, 0);
     g.gain.setTargetAtTime(MUSIC_VOL * MUS.level, a.currentTime, 0.4);
     MUS.src = s; MUS.gain = g;
+    for (const k of Object.keys(MUS.buf)) if (k !== name) delete MUS.buf[k];
   }).catch(() => { if (MUS.cur === name) MUS.cur = null; });
 }
 // 第一次點畫面任何地方：建立音效引擎、把該放的音樂放出來（iOS 一定要在點擊裡）
-document.addEventListener("pointerdown", () => { const had = !!AU.ctx; au(); if (!had || !MUS.cur) music(MUS.want, MUS.level); }, true);
+["pointerdown", "pointerup", "touchend", "click"].forEach(evn => document.addEventListener(evn, () => {
+  const had = !!AU.ctx, a = au();
+  if (!had || !MUS.cur || (a && a.state !== "running")) music(MUS.want, MUS.level);
+}, true));
 
 // ── 特效狀態 ──
 const pops = new Map();      // 剛放下的格子 → 開始時間（彈一下）
@@ -311,7 +327,7 @@ function saveGame() {
   if (game.S.over || game.S.won) store.del(k); else store.set(k, game.serialize());
 }
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) { saveGame(); drag = null; backAnim = null; }
+  if (document.hidden) { saveGame(); drag = null; backAnim = null; if (AU.ctx) AU.ctx.suspend().catch(() => {}); }
   else if (AU.ctx) au();
 });
 
@@ -397,7 +413,7 @@ function doPlace(i, r, c) {
     if (ev.patternDone) {
       patT = now + 120; patCells = ev.cleared.map(q => [q.r, q.c]);
       texts.push({ kind: "pattern", str: "Pattern Finished!", x: W / 2, y: L.gy + L.cell * 4.2, size: L.cell * 0.9, t0: now + 150, dur: 1800 });
-      setTimeout(() => sfx.win(), 150);
+      const rid = runId; setTimeout(() => { if (rid === runId) sfx.win(); }, 150);
     }
     trauma = Math.min(1, trauma + (ev.lines >= 3 ? 0.32 + 0.12 * (ev.lines - 3) : 0) + (ev.allClear ? 0.45 : 0));
     if (ev.lines >= 4 || ev.allClear) flashT = now;
@@ -410,7 +426,7 @@ function doPlace(i, r, c) {
     if (!recordShown && bestAtStart > 0) {
       recordShown = true;
       texts.push({ kind: "praise", str: "New Best!", x: W / 2, y: L.by + L.cell * 1.2, size: L.cell * 0.85, t0: now + 300, dur: 1800 });
-      setTimeout(() => { confetti(60, L.sa + 40); sfx.win(); }, 300);
+      const rid = runId; setTimeout(() => { if (rid === runId) { confetti(60, L.sa + 40); sfx.win(); } }, 300);
     }
   }
   // 先記進度再演（演出中關掉 App 也不會白打）
@@ -419,8 +435,13 @@ function doPlace(i, r, c) {
   saveGame();
   const id = runId;
   if (ev.won) { locked = true; setTimeout(() => { if (id === runId) winSeq(); }, 900); }
-  else if (ev.over) { locked = true; setTimeout(() => { if (id === runId) overSeq(); }, 450); }
+  else if (ev.over) {
+    locked = true;
+    if (game.S.mode === "classic") overRankIdx = addRank(game.S.score, game.S.moves);
+    setTimeout(() => { if (id === runId) overSeq(); }, 450);
+  }
 }
+let overRankIdx = -1;
 function overSeq() {
   overT = now; sfx.over(); vib(60);
   if (game.S.mode === "adventure") { adv.wins = 0; store.set("adv", adv); }
@@ -431,7 +452,7 @@ function overSeq() {
       $("overScore").textContent = game.S.score.toLocaleString();
       $("overBest").textContent = "👑 " + best.toLocaleString();
       $("overNew").style.display = game.S.score >= best && game.S.score > bestAtStart ? "" : "none";
-      const idx = addRank(game.S.score, game.S.moves);
+      const idx = overRankIdx;
       $("overRankBox").style.display = idx >= 0 ? "" : "none";
       $("overRankMsg").textContent = idx === 0 ? "🥇 排行榜第一名！" : "進入前五名！第 " + (idx + 1) + " 名";
       $("overName").value = myName;
@@ -631,8 +652,8 @@ function drawStickers() {
       const sc = t < 120 ? ease(t / 120) * 1.1 : 1.1 - 0.1 * Math.min(1, (t - 120) / 80);
       ctx.globalAlpha = 0.85; ctx.strokeStyle = "rgba(255,255,255,.75)"; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(x, y, R * sc, 0, Math.PI * 2); ctx.stroke();
-      ctx.globalAlpha = 1; ctx.font = `${Math.round(L.cell * 0.55 * sc)}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText("👍", x, y + 1);
+      ctx.globalAlpha = 1; const ts = L.cell * 0.68 * sc;
+      ctx.drawImage(thumbSprite(L.cell * 0.68), x - ts / 2, y - ts / 2, ts, ts);
     } else {
       const u = (t - 380) / 320;
       ctx.globalAlpha = 1 - u; ctx.strokeStyle = "#fff"; ctx.lineWidth = 2.2; ctx.lineCap = "round";
@@ -650,7 +671,9 @@ function drawPattern() {
   const t = (now - patT) / 900; if (t < 0 || t >= 1) return;
   ctx.save(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 2.5; ctx.shadowColor = "#bfe8ff"; ctx.shadowBlur = 10;
   ctx.globalAlpha = 1 - t;
-  for (const [r, c] of patCells) { rrect(ctx, L.gx + c * L.cell + 4, L.gy + r * L.cell + 4, L.cell - 8, L.cell - 8, 5); ctx.stroke(); }
+  ctx.beginPath();
+  for (const [r, c] of patCells) { const x = L.gx + c * L.cell + 4, y = L.gy + r * L.cell + 4, w = L.cell - 8; ctx.moveTo(x + 5, y); ctx.arcTo(x + w, y, x + w, y + w, 5); ctx.arcTo(x + w, y + w, x, y + w, 5); ctx.arcTo(x, y + w, x, y, 5); ctx.arcTo(x, y, x + w, y, 5); ctx.closePath(); }
+  ctx.stroke();
   ctx.restore();
 }
 // 連擊中：分數後面一顆藍綠色鑽石，連越多越大（原版 9.6.8）
@@ -747,8 +770,8 @@ function fancyText(o, t) {
     ctx.shadowBlur = 0; ctx.fillStyle = "#fff"; ctx.fillText(o.str, 0, 0);
   } else if (o.kind === "combo") {
     // 「Combo」斜體白藍＋大一號的金色數字
-    ctx.font = "italic " + font(o.size); const w1 = ctx.measureText("Combo").width;
-    ctx.font = "italic " + font(o.size * 1.3); const w2 = o.str ? ctx.measureText(o.str).width + o.size * 0.12 : 0;
+    if (o.w1 === undefined) { ctx.font = "italic " + font(o.size); o.w1 = ctx.measureText("Combo").width; ctx.font = "italic " + font(o.size * 1.3); o.w2 = o.str ? ctx.measureText(o.str).width + o.size * 0.12 : 0; }
+    const w1 = o.w1, w2 = o.w2;
     const x0 = -(w1 + w2) / 2;
     ctx.textAlign = "left"; ctx.lineWidth = o.size * 0.22; ctx.strokeStyle = "#13286e";
     ctx.font = "italic " + font(o.size); ctx.strokeText("Combo", x0, 0);
@@ -760,7 +783,7 @@ function fancyText(o, t) {
     }
   } else {
     const [c1, c2, st] = o.kind === "pattern" ? ["#e8ff6a", "#7fe03a", "#1f5a12"] : (PRAISE_STYLE[o.str] || ["#fff", "#ddd", "#1b2466"]);
-    ctx.font = font(o.size); const w = ctx.measureText(o.str).width;
+    ctx.font = font(o.size); if (o.w === undefined) o.w = ctx.measureText(o.str).width; const w = o.w;
     // Excellent 以上：後面一道彩虹拱門（原版）
     if (o.str === "Excellent!" || o.str === "Amazing!" || o.str === "Unbelievable!") {
       const cols = ["#ff4d4d", "#ff9d2e", "#ffe04a", "#5fe04a", "#3ab6ff", "#9b5cff"];
@@ -772,7 +795,8 @@ function fancyText(o, t) {
     ctx.fillStyle = grad(w, c1, c2); ctx.fillText(o.str, 0, 0);
     // 兩側 👍（Great 以上）
     if (o.kind === "praise" && !/^(Good!|New Best!)$/.test(o.str)) {
-      ctx.font = `${Math.round(o.size * 0.62)}px sans-serif`; ctx.fillText("👍", -w / 2 - o.size * 0.5, 0); ctx.fillText("👍", w / 2 + o.size * 0.5, 0);
+      const ts = o.size * 0.78, tim = thumbSprite(ts);
+      ctx.drawImage(tim, -w / 2 - o.size * 0.5 - ts / 2, -ts / 2, ts, ts); ctx.drawImage(tim, w / 2 + o.size * 0.5 - ts / 2, -ts / 2, ts, ts);
     }
   }
   ctx.restore();
@@ -1002,7 +1026,8 @@ document.querySelectorAll(".tg").forEach(b => {
 });
 
 // 測試用：headless 測試直接操作（tools/bb-test/）
-window.__bb = { get game() { return game; }, C, L, doPlace, startClassic, startLevel, show, get current() { return current; } };
+window.__bb = { get game() { return game; }, C, L, doPlace, startClassic, startLevel, show, get current() { return current; },
+  get mus() { return { cur: MUS.cur, want: MUS.want, playing: !!MUS.src, ctx: AU.ctx ? AU.ctx.state : null }; } };
 
 layout();
 requestAnimationFrame(frame);
