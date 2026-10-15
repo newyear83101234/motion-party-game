@@ -281,7 +281,8 @@ function digOne(grid, cells, rng) {
 
 // ── 經典模式開局盤面：原版 9.6.8 一開局就預擺一片同色方塊（影片實例 35 格，塊狀團塊、沒有整條滿的、好幾條差 1~2 格）──
 // 這些格子標 pat:true，全部消光時「Pattern Finished!」
-export const START = { min: 30, max: 38, seeds: 7 };
+// 10-15 阿葉玩過說「預設的方塊太多」→ 從 30~38 格（約半盤，照影片）降到 12~18 格（約四分之一盤）
+export const START = { min: 12, max: 18, seeds: 4 };
 export function startPattern(rng) {
   const grid = newGrid(), k = Math.floor(rng() * COLORS);
   const target = START.min + Math.floor(rng() * (START.max - START.min + 1));

@@ -1,5 +1,5 @@
 // 方塊爆破 — 畫面、拖曳操作、特效、音效、存檔（遊戲規則全在 blocks-core.js）
-import * as C from "./blocks-core.js?v=3";
+import * as C from "./blocks-core.js?v=4";
 
 const $ = id => document.getElementById(id);
 const cv = $("cv"), ctx = cv.getContext("2d");
