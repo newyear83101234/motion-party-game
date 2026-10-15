@@ -1,5 +1,5 @@
 // 方塊爆破 — 畫面、拖曳操作、特效、音效、存檔（遊戲規則全在 blocks-core.js）
-import * as C from "./blocks-core.js?v=4";
+import * as C from "./blocks-core.js?v=5";
 
 const $ = id => document.getElementById(id);
 const cv = $("cv"), ctx = cv.getContext("2d");
@@ -66,6 +66,96 @@ for (const k of Object.keys(stats)) if (!Number.isFinite(stats[k])) stats[k] = 0
 function setName(v, alsoEntry) {
   myName = cut8(String(v || "").trim()); store.set("name", myName);
   if (alsoEntry && lastEntry) { lastEntry.n = myName || "我"; store.set("rank", rank); }
+  // 雲端榜上的名字也跟著改（停手 1.2 秒才送，打字中不一直送）
+  clearTimeout(setName.t); setName.t = setTimeout(() => netSubmit(0, 0), 1200);
+}
+
+// ── 朋友排行榜（雲端：Supabase 專案 block-blast-rank，東京）──
+// 這把是 Supabase 的「publishable key」：設計上就是公開給網頁用的，不是秘密。
+// 資料表本身不給讀寫；只能呼叫 bb_submit / bb_board / bb_me 三個函式（伺服器檢查分數範圍、名字長度、每台手機只留最高分）
+const NET = { url: "https://vtfkmvnksnzxrlpmhidv.supabase.co/rest/v1/rpc/", key: "sb_publishable_v9oBuj-TyonYOCt0IzPDnA_73o1DPNT" };
+// 這台手機的身分（隨機產生、只存在這台；不會顯示給別人）
+const deviceId = (() => {
+  let d = store.get("dev", null);
+  if (typeof d !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(d)) {
+    try { d = crypto.randomUUID(); } catch {
+      const b = crypto.getRandomValues(new Uint8Array(16)); b[6] = b[6] & 15 | 64; b[8] = b[8] & 63 | 128;
+      const h = [...b].map(x => x.toString(16).padStart(2, "0")).join("");
+      d = `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+    }
+    store.set("dev", d);
+  }
+  return d;
+})();
+async function rpc(fn, body, ms = 7000) {
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms);
+  try {
+    const r = await fetch(NET.url + fn, { method: "POST", headers: { apikey: NET.key, "Content-Type": "application/json" }, body: JSON.stringify(body), signal: ctl.signal });
+    if (!r.ok) throw new Error(fn + " HTTP " + r.status);
+    return await r.json();
+  } finally { clearTimeout(t); }
+}
+let onlineTop = store.get("top_cache", null);   // { rows, at } 上次抓到的前五名（離線時顯示）
+let onlineMe = store.get("me_cache", null);     // { rank, best, players }
+// 送分數：失敗（沒網路）就記下來，下次開遊戲／打開排行榜時補送
+async function netSubmit(score, moves) {
+  try {
+    const r = await rpc("bb_submit", { p_device: deviceId, p_name: myName || "玩家", p_score: Math.max(0, Math.round(score)), p_moves: Math.max(0, moves | 0) });
+    const p = store.get("pending", null); if (p && p.s <= (r[0] && r[0].best)) store.del("pending");
+    if (r[0] && r[0].best > 0) { onlineMe = { rank: r[0].rank, best: r[0].best, players: r[0].players }; store.set("me_cache", onlineMe); }
+    return onlineMe;
+  } catch (err) {
+    if (score > 0) { const p = store.get("pending", null); if (!p || score > p.s) store.set("pending", { s: score, m: moves }); }
+    return null;
+  }
+}
+async function netBoard() {
+  try { const rows = await rpc("bb_board", { p_limit: 5, p_device: deviceId }); onlineTop = { rows, at: Date.now() }; store.set("top_cache", onlineTop); return onlineTop; }
+  catch { return null; }
+}
+async function netMe() {
+  try { const r = await rpc("bb_me", { p_device: deviceId }); onlineMe = r[0] ? { rank: r[0].rank, best: r[0].best, players: r[0].players } : null; store.set("me_cache", onlineMe); return onlineMe; }
+  catch { return onlineMe; }
+}
+function flushPending() {
+  const p = store.get("pending", null);
+  if (p && p.s > 0) return netSubmit(p.s, p.m);
+  return Promise.resolve(null);
+}
+// 有雲端榜之前就玩過的最高分：第一次開時補上傳一次
+if (!store.get("synced", false)) {
+  if (best > 0 && !store.get("pending", null)) store.set("pending", { s: best, m: Math.max(rank[0] ? rank[0].m || 0 : 0, stats.blocks) });
+  store.set("synced", true);
+}
+flushPending();
+// 名字顯示前去掉看不見的字元（控制字元、零寬、左右方向控制），用字元編號判斷
+function invisibleChar(ch) {
+  const n = ch.codePointAt(0);
+  return n < 32 || n === 127 || (n >= 0x200b && n <= 0x200f) || (n >= 0x202a && n <= 0x202e) || (n >= 0x2060 && n <= 0x2064) || (n >= 0x2066 && n <= 0x2069) || n === 0xfeff;
+}
+function cleanName(v) { return [...String(v || "")].filter(ch => !invisibleChar(ch)).join("").trim(); }
+function fmtDay(iso) { const d = new Date(iso); return isNaN(d) ? "" : (d.getMonth() + 1) + "/" + d.getDate(); }
+function renderOnline(ol, top, msgIfEmpty) {
+  ol.innerHTML = "";
+  const rows = top && Array.isArray(top.rows) ? top.rows : null;
+  if (!rows || !rows.length) {
+    const li = document.createElement("li"); li.className = "empty";
+    li.textContent = rows ? "還沒有人上榜，當第一名吧！" : (msgIfEmpty || "連不上網路，等等再看看");
+    ol.appendChild(li); return;
+  }
+  rows.forEach((e, i) => {
+    const li = document.createElement("li"); if (e.is_me) li.className = "me";
+    const cell = (cls, txt) => { const s = document.createElement("span"); s.className = cls; s.textContent = txt; li.appendChild(s); };
+    cell("md", ["🥇", "🥈", "🥉"][i] || String(i + 1)); cell("nm", cleanName(e.name) || "玩家"); cell("sc", Number(e.score || 0).toLocaleString()); cell("dt", fmtDay(e.updated_at));
+    ol.appendChild(li);
+  });
+}
+function meText(me) {
+  return me && me.best > 0 ? `你目前第 ${me.rank} 名（共 ${me.players} 人）・最高 ${Number(me.best).toLocaleString()} 分` : "你還沒上榜，玩一局經典模式就會上去";
+}
+function toast(msg) {
+  const el = document.createElement("div"); el.className = "toast"; el.textContent = msg; document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2200);
 }
 
 // ── 色票：原版那種亮色寶石方塊；最後一個是結束時的灰 ──
@@ -437,11 +527,11 @@ function doPlace(i, r, c) {
   if (ev.won) { locked = true; setTimeout(() => { if (id === runId) winSeq(); }, 900); }
   else if (ev.over) {
     locked = true;
-    if (game.S.mode === "classic") overRankIdx = addRank(game.S.score, game.S.moves);
+    if (game.S.mode === "classic") { overRankIdx = addRank(game.S.score, game.S.moves); overNet = game.S.score > 0 ? netSubmit(game.S.score, game.S.moves) : Promise.resolve(null); }
     setTimeout(() => { if (id === runId) overSeq(); }, 450);
   }
 }
-let overRankIdx = -1;
+let overRankIdx = -1, overNet = Promise.resolve(null);
 function overSeq() {
   overT = now; sfx.over(); vib(60);
   if (game.S.mode === "adventure") { adv.wins = 0; store.set("adv", adv); }
@@ -452,12 +542,18 @@ function overSeq() {
       $("overScore").textContent = game.S.score.toLocaleString();
       $("overBest").textContent = "👑 " + best.toLocaleString();
       $("overNew").style.display = game.S.score >= best && game.S.score > bestAtStart ? "" : "none";
-      const idx = overRankIdx;
-      $("overRankBox").style.display = idx >= 0 ? "" : "none";
-      $("overRankMsg").textContent = idx === 0 ? "🥇 排行榜第一名！" : "進入前五名！第 " + (idx + 1) + " 名";
+      const idx = overRankIdx, sc = game.S.score, rid = runId;
+      $("overRankBox").style.display = sc > 0 ? "" : "none";
+      $("overRankMsg").textContent = "🌏 上傳成績到朋友排行…";
       $("overName").value = myName;
       renderRank($("overRank"), idx);
       show("sOver");
+      overNet.then(me => me ? netBoard().then(top => ({ me, top })) : null).then(res => {
+        if (rid !== runId || current !== "sOver") return;
+        if (!res) { $("overRankMsg").textContent = idx >= 0 ? "這台手機第 " + (idx + 1) + " 名（沒網路，等等會補上傳）" : "沒網路，成績等等會補上傳"; return; }
+        $("overRankMsg").textContent = res.me.rank === 1 ? `🥇 朋友排行第一名！（共 ${res.me.players} 人）` : `🌏 朋友排行第 ${res.me.rank} 名（共 ${res.me.players} 人）`;
+        if (res.top) renderOnline($("overRank"), res.top);
+      });
     } else {
       $("resTitle").textContent = "You Can Do It!";
       $("resStars").textContent = "💪";
@@ -961,7 +1057,8 @@ function show(id) {
   if (id === "sMenu") refreshMenu();
   if (id === "sLevels") refreshLevels();
   if (id === "sRank") {
-    renderRank($("rankList"), -1); $("rankName").value = myName;
+    $("rankName").value = myName;
+    showRankTab(rankTab);
     $("statBox").innerHTML = "";
     [["👑 最高分", best], ["🎮 經典局數", stats.games], ["🧱 放了幾塊", stats.blocks], ["💥 消了幾條", stats.lines],
      ["🔥 最高連擊", stats.bestCombo], ["⚡ 一次最多消", stats.maxLines + " 條"], ["✨ 全清次數", stats.allClears], ["📅 每日挑戰", daily.done.length + " 天"]]
@@ -971,12 +1068,37 @@ function show(id) {
   if (id === "sMenu" || id === "sLevels" || id === "sRank") music("menu");
   else if (game) music(game.S.mode === "classic" ? "classic" : "adventure", id === null ? 1 : 0.35);
 }
+let rankTab = "online";
+function showRankTab(tab) {
+  rankTab = tab;
+  document.querySelectorAll(".tab").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
+  if (tab === "local") { $("rankSub").textContent = "經典模式・這台手機的前五名"; $("rankMe").textContent = ""; renderRank($("rankList"), -1); return; }
+  $("rankSub").textContent = "經典模式・所有朋友的前五名（每人只算最高分）";
+  renderOnline($("rankList"), onlineTop, "讀取中…");
+  $("rankMe").textContent = onlineMe ? meText(onlineMe) : "";
+  flushPending().then(() => Promise.all([netBoard(), netMe()])).then(([top, me]) => {
+    if (current !== "sRank" || rankTab !== "online") return;
+    if (top) renderOnline($("rankList"), top);
+    else { renderOnline($("rankList"), onlineTop, "連不上網路，先看「這台手機」"); if (onlineTop) $("rankSub").textContent = "（離線，顯示上次的排行）"; }
+    $("rankMe").textContent = top ? meText(me) : $("rankMe").textContent;
+  });
+}
+document.querySelectorAll(".tab").forEach(b => b.onclick = () => showRankTab(b.dataset.tab));
+// 傳給朋友：手機用系統分享（LINE 等），電腦複製網址
+$("bShare").onclick = async () => {
+  const url = location.origin + location.pathname;
+  const text = myName ? `${myName} 邀你來玩方塊爆破，比比看誰分數高！` : "來玩方塊爆破，比比看誰分數高！";
+  try { if (navigator.share) { await navigator.share({ title: "方塊爆破", text, url }); return; } } catch (err) { if (err && err.name === "AbortError") return; }
+  try { await navigator.clipboard.writeText(text + " " + url); toast("網址已複製，貼給朋友就好"); }
+  catch { prompt("複製這個網址傳給朋友：", url); }
+};
 function refreshMenu() {
   $("menuBest").textContent = best > 0 ? "👑 最高分 " + best.toLocaleString() : "";
   $("bAdventure").textContent = adv.done.length >= C.LEVEL_COUNT ? "冒險關卡・全破！" : "冒險關卡・第 " + maxUnlocked() + " 關";
   const sv = store.get("save_classic", null);
   $("classicSub").textContent = sv && !sv.over && Number.isFinite(sv.score) && sv.moves > 0 ? "上一局 " + sv.score.toLocaleString() + " 分，接著玩" : "";
   $("menuAdv").textContent = "已過 " + adv.done.length + " / " + C.LEVEL_COUNT + " 關";
+  $("bRank").textContent = onlineMe && onlineMe.best > 0 ? `🏆 排行榜・朋友第 ${onlineMe.rank} 名` : "🏆 排行榜";
   const today = C.dateKey(), st = dailyStreak(), doneToday = daily.done.includes(today);
   $("bDaily").textContent = "📅 每日挑戰" + (doneToday ? " ✓" : "");
   $("dailySub").textContent = (st ? "🔥 連續 " + st + " 天" : "每天一題，連續玩會累積🔥") + (doneToday ? "・今天完成了" : "");
@@ -1011,7 +1133,11 @@ $("bResLevels").onclick = () => show(game && game.S.mode === "daily" ? "sMenu" :
 $("bRank").onclick = () => show("sRank");
 $("bRankBack").onclick = () => show("sMenu");
 $("rankName").oninput = e => setName(e.target.value, false);
-$("overName").oninput = e => { setName(e.target.value, true); renderRank($("overRank"), lastEntry ? rank.indexOf(lastEntry) : -1); };
+$("overName").oninput = e => {
+  setName(e.target.value, true);
+  if (onlineTop && onlineTop.rows) { onlineTop.rows.forEach(r => { if (r.is_me) r.name = myName || "玩家"; }); renderOnline($("overRank"), onlineTop); }
+  else renderRank($("overRank"), lastEntry ? rank.indexOf(lastEntry) : -1);
+};
 ["rankName", "overName"].forEach(id => $(id).addEventListener("keydown", e => { if (e.key === "Enter") e.target.blur(); }));
 // 暫停畫面的三顆開關（音樂／音效／震動）
 document.querySelectorAll(".tg").forEach(b => {

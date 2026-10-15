@@ -18,6 +18,8 @@ const check = (name, ok, info = "") => { results.push((ok ? "✅ " : "❌ ") + n
 (async () => {
   const browser = await chromium.launch({ headless: true, executablePath: findShell() });
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true });
+  // 雲端排行榜：測試一律用測試專用 device（00000000-0000-4000-8000- 開頭，伺服器端不列入排行），不會在朋友榜留假資料
+  await ctx.addInitScript(() => { try { if (!localStorage.getItem("bb_dev")) localStorage.setItem("bb_dev", JSON.stringify("00000000-0000-4000-8000-0000000000aa")); } catch (e) {} });
   const p = await ctx.newPage(); const errs = [];
   p.on("pageerror", e => errs.push("PAGEERR " + e.message));
   p.on("console", m => { if (m.type() === "error") errs.push("CONSOLE " + m.text().slice(0, 160)); });
@@ -164,15 +166,24 @@ const check = (name, ok, info = "") => { results.push((ok ? "✅ " : "❌ ") + n
     __bb.doPlace(0, 0, 7);
   });
   await p.waitForTimeout(2600);
-  const rk = await p.evaluate(() => ({ cur: __bb.current, box: getComputedStyle(document.getElementById("overRankBox")).display, rows: document.querySelectorAll("#overRank li.me").length }));
+  // 等雲端回應（訊息從「上傳中…」換掉為止，最多 8 秒）
+  await p.waitForFunction(() => !/上傳成績/.test(document.getElementById("overRankMsg").textContent), null, { timeout: 8000 }).catch(() => {});
+  const rk = await p.evaluate(() => ({ cur: __bb.current, box: getComputedStyle(document.getElementById("overRankBox")).display, msg: document.getElementById("overRankMsg").textContent }));
   await p.fill("#overName", "阿葉"); await p.waitForTimeout(100);
   const stored = await p.evaluate(() => JSON.parse(localStorage.getItem("bb_rank") || "[]"));
-  check("結束後進排行榜＋可改名", rk.cur === "sOver" && rk.box !== "none" && rk.rows === 1 && stored[0] && stored[0].n === "阿葉", JSON.stringify({ rk, top: stored[0] }));
+  check("結束後進本機榜＋可改名", rk.cur === "sOver" && rk.box !== "none" && stored[0] && stored[0].n === "阿葉", JSON.stringify({ rk, top: stored[0] }));
+  check("結束後上傳朋友排行", /朋友排行第(一名| \d+ 名)/.test(rk.msg), rk.msg);
   await p.screenshot({ path: path.join(OUT, "12-over-rank.png") });
-  await p.click("#bOverHome"); await p.click("#bRank"); await p.waitForTimeout(200);
+  await p.waitForTimeout(1500);   // 改名停手 1.2 秒才送雲端
+  await p.click("#bOverHome"); await p.click("#bRank"); await p.waitForTimeout(2500);
+  const online = await p.evaluate(() => ({ me: document.getElementById("rankMe").textContent, list: document.getElementById("rankList").textContent }));
+  check("朋友排行頁（雲端）", /你目前第 \d+ 名/.test(online.me) && !/讀取中/.test(online.list), JSON.stringify(online).slice(0, 120));
+  await p.screenshot({ path: path.join(OUT, "13-rank-online.png") });
+  await p.click('.tab[data-tab="local"]'); await p.waitForTimeout(200);
   const rankTxt = await p.textContent("#rankList");
-  check("排行榜頁顯示", /阿葉/.test(rankTxt) && /1,2/.test(rankTxt), rankTxt.slice(0, 40));
+  check("這台手機分頁", /阿葉/.test(rankTxt) && /1,2/.test(rankTxt), rankTxt.slice(0, 40));
   await p.screenshot({ path: path.join(OUT, "13-rank.png") });
+  await p.click('.tab[data-tab="online"]');
   await p.click("#bRankBack");
 
   // 10) 每日挑戰：同一天開兩次盤面一樣、上方顯示每日挑戰

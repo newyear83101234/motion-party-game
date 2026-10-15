@@ -14,6 +14,8 @@ fs.mkdirSync(OUT, { recursive: true });
 (async () => {
   const browser = await chromium.launch({ headless: true, executablePath: findShell() });
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+  // 雲端排行榜：測試一律用測試專用 device（00000000-0000-4000-8000- 開頭，伺服器端不列入排行），不會在朋友榜留假資料
+  await ctx.addInitScript(() => { try { if (!localStorage.getItem("bb_dev")) localStorage.setItem("bb_dev", JSON.stringify("00000000-0000-4000-8000-0000000000aa")); } catch (e) {} });
   const p = await ctx.newPage(); const errs = [];
   p.on("pageerror", e => errs.push(e.message));
   await p.goto(URL); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(500);

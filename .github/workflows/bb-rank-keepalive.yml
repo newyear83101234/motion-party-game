@@ -1,0 +1,23 @@
+# 方塊爆破 朋友排行榜（Supabase 免費專案 block-blast-rank）保活：
+# 免費專案一週沒有足夠的資料庫活動會被自動暫停 → 每天兩次讀一下排行榜。
+# 這把是 Supabase「publishable key」，本來就公開在 js/blocks.js 給網頁用，不是秘密。
+name: bb-rank-keepalive
+
+on:
+  schedule:
+    - cron: "17 3,15 * * *"   # 台灣時間每天 11:17、23:17
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 讀一次排行榜
+        run: |
+          curl -fsS -X POST "https://vtfkmvnksnzxrlpmhidv.supabase.co/rest/v1/rpc/bb_top" \
+            -H "apikey: sb_publishable_v9oBuj-TyonYOCt0IzPDnA_73o1DPNT" \
+            -H "Content-Type: application/json" \
+            -d '{"p_limit":1}'
