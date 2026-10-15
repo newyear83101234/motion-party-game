@@ -9,7 +9,11 @@
   <meta name="theme-color" content="#3b5bb5">
   <link rel="icon" href="data:,">
   <title>方塊爆破</title>
-  <link rel="modulepreload" href="js/blocks-core.js?v=1">
+  <link rel="modulepreload" href="js/blocks-core.js?v=2">
+  <!-- 數字／英文用圓體 Nunito（手機沒有 Arial Rounded；中文會自動退回系統字） -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@800;900&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg1: #4a6fd6; --bg2: #2c3f8f;
@@ -19,7 +23,7 @@
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg2); color: var(--ink);
-      font-family: "Arial Rounded MT Bold", "Nunito", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+      font-family: "Nunito", "Arial Rounded MT Bold", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
       touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; overscroll-behavior: none; }
     #cv { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
     /* 置中但螢幕太矮（橫向）時可以捲：上下用 margin:auto 置中，不用 justify-content:center（超出時頂端會被切掉捲不到） */
@@ -29,33 +33,75 @@
     .screen > :first-child { margin-top: auto; }
     .screen > :last-child { margin-bottom: auto; }
     .dim { background: rgba(18, 26, 66, .78); backdrop-filter: blur(3px); }
-    .solid { background: linear-gradient(180deg, var(--bg1), var(--bg2)); }
-    h1 { margin: 0 0 6px; font-size: clamp(40px, 12vw, 64px); letter-spacing: 2px; line-height: 1.05; text-align: center;
-      text-shadow: 0 4px 0 #1d2a66, 0 8px 18px rgba(0,0,0,.35); }
-    h1 .a { color: #ffd54a; } h1 .b { color: #7fe0ff; }
+    .solid { background: transparent; }
+    /* 標誌：每個字是一顆立體方塊 */
+    .logo { display: flex; gap: clamp(6px, 2vw, 10px); margin: 0 0 10px; }
+    .tile { width: clamp(60px, 19vw, 84px); aspect-ratio: 1; display: grid; place-items: center; border-radius: 16px;
+      font-size: clamp(36px, 11.5vw, 52px); font-weight: 900; color: #fff; line-height: 1;
+      text-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 2px rgba(0,0,0,.4);
+      box-shadow: inset 0 7px 0 rgba(255,255,255,.42), inset 0 -9px 0 rgba(0,0,0,.24), inset 6px 0 0 rgba(255,255,255,.12), inset -6px 0 0 rgba(0,0,0,.1),
+        0 6px 0 #1d2a66, 0 12px 20px rgba(0,0,0,.35);
+      animation: bob 2.6s ease-in-out infinite; }
+    .tile:nth-child(1) { background: linear-gradient(#ff6b5f, #d83a30); --r: -6deg; }
+    .tile:nth-child(2) { background: linear-gradient(#ffc04a, #f08a1c); --r: 4deg; animation-delay: -.6s; }
+    .tile:nth-child(3) { background: linear-gradient(#5edcff, #23a6dc); --r: -3deg; animation-delay: -1.2s; }
+    .tile:nth-child(4) { background: linear-gradient(#c27bff, #8d45d8); --r: 6deg; animation-delay: -1.8s; }
+    @keyframes bob { 0%, 100% { transform: translateY(0) rotate(var(--r)); } 50% { transform: translateY(-7px) rotate(var(--r)); } }
+    @media (prefers-reduced-motion: reduce) { .tile { animation: none; transform: rotate(var(--r)); } }
     h2 { margin: 0; font-size: 30px; text-shadow: 0 3px 0 #1d2a66; }
     .big { font-size: 56px; font-weight: 900; text-shadow: 0 4px 0 #1d2a66; line-height: 1; }
     .sub { color: var(--ink2); font-size: 17px; text-align: center; }
     .btn { appearance: none; border: 0; border-radius: 18px; min-width: 240px; padding: 15px 22px; font: inherit; font-size: 22px;
-      font-weight: 800; color: #fff; cursor: pointer; box-shadow: 0 6px 0 rgba(0,0,0,.25); transition: transform .08s; }
-    .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.25); }
-    .btn.green { background: linear-gradient(#6fdc4f, #3fae2c); }
-    .btn.blue { background: linear-gradient(#5ec8ff, #2f8ee6); }
-    .btn.orange { background: linear-gradient(#ffb547, #f07f1c); }
-    .btn.gray { background: linear-gradient(#8d9bc9, #63709e); }
+      font-weight: 900; color: #fff; cursor: pointer; transition: transform .08s;
+      box-shadow: inset 0 2px 0 rgba(255,255,255,.4), inset 0 -4px 0 rgba(0,0,0,.18), 0 6px 0 rgba(0,0,0,.28);
+      text-shadow: 0 2px 0 var(--ts, rgba(0,0,0,.35)), 0 0 3px rgba(0,0,0,.35); }
+    .btn:active { transform: translateY(4px); box-shadow: inset 0 2px 0 rgba(255,255,255,.4), 0 2px 0 rgba(0,0,0,.28); }
+    .btn.green { background: linear-gradient(#58cc3a, #2e931f); --ts: #1f6b14; }
+    .btn.blue { background: linear-gradient(#4cb8f5, #2479d0); --ts: #13508f; }
+    .btn.orange { background: linear-gradient(#ffa63d, #e6700f); --ts: #8a3a00; }
+    .btn.gray { background: linear-gradient(#8592c2, #5b6797); --ts: #2f3866; }
     .btn.small { min-width: 0; font-size: 18px; padding: 11px 18px; }
     .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
     .card { background: var(--panel); border-radius: 22px; padding: 18px 22px; text-align: center; min-width: 260px; }
     .best { color: var(--gold); font-size: 20px; font-weight: 800; }
     /* 關卡選擇 */
     #levelGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: min(100%, 420px);
-      max-height: 62vh; overflow-y: auto; padding: 6px; touch-action: pan-y; }
+      max-height: 62vh; overflow-y: auto; padding: 8px 6px 28px; touch-action: pan-y; scrollbar-width: none;
+      -webkit-mask-image: linear-gradient(#000 85%, transparent); mask-image: linear-gradient(#000 85%, transparent); }
+    #levelGrid::-webkit-scrollbar { display: none; }
     .lv { aspect-ratio: 1; border-radius: 16px; border: 0; font: inherit; font-size: 20px; font-weight: 900; color: #fff;
-      background: linear-gradient(#5ec8ff, #2f8ee6); box-shadow: 0 4px 0 rgba(0,0,0,.25); position: relative; cursor: pointer; }
-    .lv.done { background: linear-gradient(#6fdc4f, #3fae2c); }
-    .lv.lock { background: linear-gradient(#7c86ad, #59628a); color: rgba(255,255,255,.55); cursor: default; }
-    .lv .st { position: absolute; left: 0; right: 0; bottom: 3px; font-size: 10px; letter-spacing: -1px; }
+      background: linear-gradient(#4cb8f5, #2479d0); position: relative; cursor: pointer; text-shadow: 0 2px 0 #13508f;
+      box-shadow: inset 0 2px 0 rgba(255,255,255,.4), 0 4px 0 rgba(0,0,0,.25); transition: transform .08s; }
+    .lv:active { transform: translateY(3px); }
+    .lv.done { background: linear-gradient(#58cc3a, #2e931f); text-shadow: 0 2px 0 #1f6b14; }
+    .lv.lock { background: #4a5380; box-shadow: inset 0 2px 6px rgba(0,0,0,.25); cursor: default; font-size: 18px; }
+    .lv.cur { animation: glow 1.4s ease-in-out infinite; }
+    @keyframes glow { 0%, 100% { box-shadow: inset 0 2px 0 rgba(255,255,255,.4), 0 4px 0 rgba(0,0,0,.25), 0 0 0 0 rgba(255,213,74,.0); }
+      50% { box-shadow: inset 0 2px 0 rgba(255,255,255,.4), 0 4px 0 rgba(0,0,0,.25), 0 0 0 5px rgba(255,213,74,.75); } }
+    .lv .st { position: absolute; left: 0; right: 0; bottom: 3px; font-size: 12px; letter-spacing: -1px; }
+    /* 暫停畫面的圖示開關（取代原生勾選框） */
+    .tg { appearance: none; border: 0; font: inherit; width: 84px; height: 84px; border-radius: 22px; color: #fff; font-size: 14px; font-weight: 900;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer;
+      background: linear-gradient(#4cb8f5, #2479d0); box-shadow: inset 0 2px 0 rgba(255,255,255,.4), 0 5px 0 rgba(0,0,0,.28); }
+    .tg .ic { font-size: 32px; line-height: 1; }
+    .tg.off { background: linear-gradient(#7c86ad, #59628a); }
+    .tg.off .ic { filter: grayscale(1); opacity: .6; }
     .toggle { display: flex; align-items: center; gap: 10px; font-size: 20px; }
+    /* 排行榜 */
+    .rank { list-style: none; margin: 0; padding: 0; width: min(100%, 360px); display: flex; flex-direction: column; gap: 8px; }
+    .rank li { display: flex; align-items: center; gap: 10px; background: var(--panel); border-radius: 14px; padding: 10px 14px; font-size: 18px; }
+    .rank li.me { background: rgba(255, 213, 74, .28); box-shadow: 0 0 0 2px #ffd54a inset; }
+    .rank .md { width: 30px; text-align: center; font-size: 22px; font-weight: 900; }
+    .rank .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 800; }
+    .rank .sc { font-weight: 900; color: #ffd54a; }
+    .rank .dt { font-size: 12px; color: var(--ink2); width: 44px; text-align: right; }
+    .rank .empty { justify-content: center; color: var(--ink2); }
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; width: min(100%, 360px); font-size: 14px; color: var(--ink2); }
+    .stats div { display: flex; justify-content: space-between; background: rgba(255,255,255,.07); border-radius: 10px; padding: 6px 10px; }
+    .stats b { color: #fff; }
+    .namebox { display: flex; align-items: center; gap: 8px; font-size: 17px; color: var(--ink2); justify-content: center; }
+    .namebox input { font: inherit; font-size: 18px; width: 9em; padding: 8px 12px; border-radius: 12px; border: 0; text-align: center;
+      background: rgba(255,255,255,.92); color: #1d2a66; font-weight: 800; user-select: text; -webkit-user-select: text; }
     .hint { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(10px + env(safe-area-inset-bottom));
       color: rgba(255,255,255,.55); font-size: 13px; z-index: 5; pointer-events: none; }
   </style>
@@ -65,12 +111,25 @@
 
   <!-- 主選單 -->
   <div id="sMenu" class="screen solid on">
-    <h1><span class="a">方塊</span><br><span class="b">爆破</span></h1>
-    <div class="best" id="menuBest">👑 0</div>
+    <div class="logo" aria-label="方塊爆破"><span class="tile">方</span><span class="tile">塊</span><span class="tile">爆</span><span class="tile">破</span></div>
+    <div class="best" id="menuBest"></div>
     <button class="btn green" id="bClassic">經典模式</button>
     <div class="sub" id="classicSub" style="margin-top:-6px"></div>
     <button class="btn orange" id="bAdventure">冒險關卡</button>
     <div class="sub" id="menuAdv"></div>
+    <button class="btn blue" id="bDaily">📅 每日挑戰</button>
+    <div class="sub" id="dailySub" style="margin-top:-6px"></div>
+    <button class="btn blue small" id="bRank">🏆 排行榜</button>
+  </div>
+
+  <!-- 排行榜（存在這台裝置、不用註冊） -->
+  <div id="sRank" class="screen solid">
+    <h2>🏆 排行榜</h2>
+    <div class="sub">經典模式・前五名</div>
+    <ol class="rank" id="rankList"></ol>
+    <label class="namebox">我的名字 <input id="rankName" maxlength="8" autocomplete="off" enterkeyhint="done"></label>
+    <div class="stats" id="statBox"></div>
+    <button class="btn gray small" id="bRankBack">← 回主選單</button>
   </div>
 
   <!-- 關卡選擇 -->
@@ -88,8 +147,9 @@
     <button class="btn orange" id="bRestart">重新開始</button>
     <button class="btn gray" id="bHome">回主選單</button>
     <div class="row">
-      <label class="toggle"><input type="checkbox" id="optSound" checked> 音效</label>
-      <label class="toggle"><input type="checkbox" id="optVib" checked> 震動</label>
+      <button class="tg" data-opt="music"><span class="ic">🎵</span>音樂</button>
+      <button class="tg" data-opt="sound"><span class="ic">🔊</span>音效</button>
+      <button class="tg" data-opt="vib"><span class="ic">📳</span>震動</button>
     </div>
   </div>
 
@@ -102,6 +162,11 @@
       <div class="best" id="overBest" style="margin-top:8px">👑 0</div>
       <div class="sub" id="overNew" style="color:#ffd54a;display:none;margin-top:6px">新紀錄！</div>
     </div>
+    <div id="overRankBox" style="display:none;width:min(100%,360px)">
+      <div class="sub" id="overRankMsg" style="color:#ffd54a;font-weight:800">進入前五名！</div>
+      <label class="namebox">名字 <input id="overName" maxlength="8" autocomplete="off" enterkeyhint="done"></label>
+    </div>
+    <ol class="rank" id="overRank"></ol>
     <button class="btn green" id="bAgain">再玩一次</button>
     <button class="btn gray small" id="bOverHome">回主選單</button>
   </div>
@@ -118,6 +183,6 @@
     <button class="btn gray small" id="bResLevels">關卡列表</button>
   </div>
 
-  <script type="module" src="js/blocks.js?v=1"></script>
+  <script type="module" src="js/blocks.js?v=2"></script>
 </body>
 </html>

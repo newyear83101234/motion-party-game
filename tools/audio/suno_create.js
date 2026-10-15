@@ -2,7 +2,8 @@
 const path = require("path");
 const G = require("child_process").execSync("npm root -g").toString().trim();
 const { chromium } = require(path.join(G, "@playwright/mcp/node_modules/playwright"));
-const STYLE = "instrumental, children's video game music, bright cheerful tropical island, ukulele strums, marimba melody, glockenspiel sparkles, light shaker, soft bass, 105 BPM, gentle steady groove, loopable, no vocals, no choir";
+// 用法：node suno_create.js ["風格描述"]（不給就用注音小島的預設）
+const STYLE = process.argv[2] || "instrumental, children's video game music, bright cheerful tropical island, ukulele strums, marimba melody, glockenspiel sparkles, light shaker, soft bass, 105 BPM, gentle steady groove, loopable, no vocals, no choir";
 (async () => {
   const b = await chromium.connectOverCDP("http://127.0.0.1:9222");
   const p = await b.contexts()[0].newPage();

@@ -150,6 +150,50 @@ const check = (name, ok, info = "") => { results.push((ok ? "✅ " : "❌ ") + n
   await p.waitForTimeout(250);
   check("pointercancel 不會放下", (await p.evaluate(() => __bb.game.S.moves)) === m0);
 
+  // 9) 排行榜：經典結束後進前五名、改名字會跟著改、排行榜頁看得到
+  await p.evaluate(() => { localStorage.removeItem("bb_rank"); localStorage.setItem("bb_name", ""); });
+  await p.reload(); await p.waitForTimeout(400);
+  await p.click("#bClassic"); await p.waitForTimeout(300);
+  await p.evaluate(() => {
+    const S = __bb.game.S;
+    for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) S.grid[r][c] = ((r + c) % 2 === 0 || r === 0) ? { k: (r + c) % 7, gem: null } : null;
+    S.grid[0][7] = null; S.grid[1][7] = null; S.score = 1234;
+    S.tray = [{ id: "i2v", k: 3, gems: null }, { id: "o3", k: 1, gems: null }, null];
+    __bb.doPlace(0, 0, 7);
+  });
+  await p.waitForTimeout(2600);
+  const rk = await p.evaluate(() => ({ cur: __bb.current, box: getComputedStyle(document.getElementById("overRankBox")).display, rows: document.querySelectorAll("#overRank li.me").length }));
+  await p.fill("#overName", "阿葉"); await p.waitForTimeout(100);
+  const stored = await p.evaluate(() => JSON.parse(localStorage.getItem("bb_rank") || "[]"));
+  check("結束後進排行榜＋可改名", rk.cur === "sOver" && rk.box !== "none" && rk.rows === 1 && stored[0] && stored[0].n === "阿葉", JSON.stringify({ rk, top: stored[0] }));
+  await p.screenshot({ path: path.join(OUT, "12-over-rank.png") });
+  await p.click("#bOverHome"); await p.click("#bRank"); await p.waitForTimeout(200);
+  const rankTxt = await p.textContent("#rankList");
+  check("排行榜頁顯示", /阿葉/.test(rankTxt) && /1,2/.test(rankTxt), rankTxt.slice(0, 40));
+  await p.screenshot({ path: path.join(OUT, "13-rank.png") });
+  await p.click("#bRankBack");
+
+  // 10) 每日挑戰：同一天開兩次盤面一樣、上方顯示每日挑戰
+  await p.click("#bDaily"); await p.waitForTimeout(400);
+  const d1 = await p.evaluate(() => ({ mode: __bb.game.S.mode, level: __bb.game.S.level, grid: JSON.stringify(__bb.game.S.grid), goals: __bb.game.S.goals.length }));
+  await p.screenshot({ path: path.join(OUT, "14-daily.png") });
+  await p.evaluate(() => __bb.startLevel(__bb.game.S.level, true, "daily")); await p.waitForTimeout(200);
+  const d2 = await p.evaluate(() => JSON.stringify(__bb.game.S.grid));
+  check("每日挑戰同一天同一題", d1.mode === "daily" && d1.goals > 0 && d1.grid === d2, `${d1.mode} ${d1.level}`);
+  // 過關 → 連續天數
+  await p.evaluate(() => { const S = __bb.game.S; S.goals.forEach(g => g.got = g.need - 1);
+    for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) S.grid[r][c] = null;
+    for (let c = 0; c < 7; c++) S.grid[7][c] = { k: 1, gem: S.goals.map(g => g.gem)[c % S.goals.length] };
+    S.tray = [{ id: "o1", k: 2, gems: null }, { id: "o2", k: 1, gems: null }, null]; __bb.doPlace(0, 7, 7); });
+  await p.waitForTimeout(2600);
+  const dres = await p.evaluate(() => ({ cur: __bb.current, title: document.getElementById("resTitle").textContent, daily: JSON.parse(localStorage.getItem("bb_daily") || "{}") }));
+  check("每日挑戰過關記連續天數", dres.cur === "sResult" && /今日挑戰完成/.test(dres.title) && (dres.daily.done || []).length === 1, JSON.stringify(dres).slice(0, 120));
+  await p.screenshot({ path: path.join(OUT, "15-daily-done.png") });
+
+  // 11) 背景音樂檔都抓得到
+  const bgm = await p.evaluate(async () => Promise.all(["menu", "classic", "adventure"].map(n => fetch("audio/bb/" + n + ".mp3").then(r => n + ":" + r.status))));
+  check("背景音樂檔存在", bgm.every(x => x.endsWith(":200")), bgm.join(" "));
+
   check("沒有 JS 錯誤", errs.length === 0, errs.slice(0, 3).join(" | "));
   console.log(results.join("\n"));
   console.log("截圖：" + OUT);

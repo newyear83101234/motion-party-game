@@ -2,30 +2,36 @@
 // 畫面／操作在 js/blocks.js；這支 node 也能直接 import 做測試（tools/bb-test/）
 // 棋盤用「每列一個 8 位元整數」表示（bit c = 第 c 欄有格子），判斷放不放得下、會不會消行都很快，出塊時才算得動「三塊都放得完嗎」
 //
-// 規則來源（2026-10-15 查證，筆記在對話 scratchpad research-blockblast.md）：
+// 規則來源：
 //   確定（多來源一致）：8×8、一次給 3 塊、三塊放完才補、不能旋轉、三塊都放不下就結束、放一格 1 分
-//   原版沒公開、各家說法矛盾 → 下面 SCORE / 出塊參數是「接近原版手感」的設計值，玩起來不像再調
+//   計分：2026-10-15 從原版 9.6.8 實機影片（YouTube sLuUEw42-cE）抄 29 筆得分反推，抽查截圖吻合（見 SCORE 註解）
+//   出塊參數：原版沒公開 → 設計值（tools/bb-test/sim.mjs 電腦對打調）
 
 export const N = 8;
 export const FULL = (1 << N) - 1;   // 一整列滿 = 255
 export const COLORS = 7;            // 方塊顏色數（色票在 blocks.js）
 export const GEMS = ["r", "b", "g", "y"];   // 冒險模式寶石：紅寶石／藍鑽／綠翡翠／金星
 
-// ── 計分（設計值）──
+// ── 計分（照原版反推）──
+// 一步得分 = 放下的格數 + 單位 × 線數係數[L] × (C+1) × 連擊加成(C)
+//   C = 畫面上顯示的連擊數（第 1 次消＝0 不顯示、第 2 次連續消＝「Combo」、第 3 次＝「Combo 2」…）
+//   線數係數：1 條 1、2 條 2、3 條 6、4 條 12（= L×(L-1)）；連擊加成：C 0~4 ×1、5~9 ×1.5、10~14 ×2（每 5 連 +0.5）
+//   影片實例：C=0 兩條 +116、C=3 一條 +231、C=4 兩條 +577、C=6 兩條 +1212、C=7 三條 +4152、C=12 四條 +17992
 export const SCORE = {
-  perCell: 1,        // 放下每格
-  // 一次消 L 條的分數（blockblastsolve 整理的版本：每條 80，5 條以上跳一級）
-  lines: [0, 80, 160, 240, 320, 600, 780],
-  comboStep: 0.25,   // 連擊倍率：第 n 連 × (1 + 0.25×(n-1)) → 5 連 ×2、9 連 ×3
-  allClear: 360,     // 盤面清空（兩個社群來源都寫 360）
-  comboGrace: 3,     // 連續 3 塊都沒消 → 連擊斷（原版是「每組三塊至少消一次」這一派）
+  perCell: 1,
+  unit: 57.7,
+  lineFactor: [0, 1, 2, 6, 12, 20, 30],
+  allClear: 360,     // 盤面清空：原版影片沒拍到，沿用兩個社群來源的 360（未證實）
+  pattern: 100,      // 開局圖案全部消光「Pattern Finished!」：影片一次 +1484 ≈ 四條×Combo(1386)+100 推的（未證實）
+  comboGrace: 3,     // 連續 3 塊都沒消才斷（影片中隔 2 塊沒消連擊還在）
 };
-// 對照原版截圖：7852 分時出現「+1080 Amazing」≈ 5 條(600) × 5 連左右(×2)，量級吻合
-export function scoreMove(cells, lines, combo, allClear) {
-  const place = cells * SCORE.perCell;
-  const base = SCORE.lines[Math.min(lines, SCORE.lines.length - 1)];
-  const clear = lines ? Math.round(base * (1 + SCORE.comboStep * (Math.max(1, combo) - 1))) : 0;
-  return { place, clear, bonus: allClear ? SCORE.allClear : 0, total: place + clear + (allClear ? SCORE.allClear : 0) };
+export const comboShown = streak => Math.max(0, streak - 1);
+export function scoreMove(cells, lines, streak, allClear, pattern = false) {
+  const place = cells * SCORE.perCell, C = comboShown(streak);
+  const lf = SCORE.lineFactor[Math.min(lines, SCORE.lineFactor.length - 1)];
+  const clear = lines ? Math.round(SCORE.unit * lf * (C + 1) * (1 + 0.5 * Math.floor(C / 5))) : 0;
+  const bonus = (allClear ? SCORE.allClear : 0) + (pattern ? SCORE.pattern : 0);
+  return { place, clear, bonus, total: place + clear + bonus };
 }
 // 鼓勵字：看一次消幾條
 export function praiseFor(lines) {
@@ -198,35 +204,37 @@ const TEMPLATES = [
 
 export const LEVEL_COUNT = 60;
 // 關卡難度旋鈕（tools/bb-test/sim.mjs adventure 用電腦對打調出來的）
-export const LV = { d0: 0.05, d1: 0.46, score0: 400, score1: 185, extra0: 2, extra1: 8, dens0: 0.16, dens1: 0.14 };
+export const LV = { d0: 0.05, d1: 0.46, score0: 800, score1: 330, score2: 2, extra0: 2, extra1: 8, dens0: 0.16, dens1: 0.14 };   // 分數關目標 = score0 + score1×n − score2×n²（後段放緩）
 // 關卡 n（1 起算）的設定：同一關每次都一樣（用 n 當種子）
-export function levelDef(n) {
+export function levelDef(n, daily = 0) {
   n = Math.min(LEVEL_COUNT, Math.max(1, Math.round(+n) || 1));   // 防呆：夾在 1..60 的整數
-  const rng = makeRng(n * 7919 + 13);
+  const rng = makeRng(daily ? daily * 2654435761 % 4294967291 : n * 7919 + 13);
   const t = (n - 1) / (LEVEL_COUNT - 1);                 // 0 → 1
   const d = LV.d0 + LV.d1 * t;                           // 出塊難度
   // 寶石種類：前 4 關 1 種，前 20 關 2 種，之後 3 種
   const nTypes = n <= 4 ? 1 : n <= 20 ? 2 : 3;
   const types = shuffle(GEMS.slice(), rng).slice(0, nTypes);
-  const scoreLevel = n % 5 === 0;                         // 每 5 關一關「分數關」
-  // 盤面：前 10 關用模板（依序）、之後模板與隨機鏡像圖案輪流
+  const scoreLevel = !daily && n % 5 === 0;               // 每 5 關一關「分數關」（每日挑戰固定收寶石）
+  // 盤面：前 10 關用模板（依序）、之後模板與隨機鏡像圖案輪流；每日挑戰隨機挑
   let rowsTpl;
-  if (n <= TEMPLATES.length) rowsTpl = TEMPLATES[n - 1];
-  else if (n % 2 === 0) rowsTpl = TEMPLATES[Math.floor(rng() * TEMPLATES.length)];
+  if (!daily && n <= TEMPLATES.length) rowsTpl = TEMPLATES[n - 1];
+  else if (daily ? rng() < 0.5 : n % 2 === 0) rowsTpl = TEMPLATES[1 + Math.floor(rng() * (TEMPLATES.length - 1))];
   else rowsTpl = randomPattern(rng, LV.dens0 + LV.dens1 * t, 0.12 + 0.08 * t);
   const grid = newGrid();
   let gemOnBoard = 0;
+  // 圖案用一個主色＋一個配色拼（全部亂色時愛心、笑臉認不出來）
+  const kMain = Math.floor(rng() * COLORS), kAlt = (kMain + 2 + Math.floor(rng() * 4)) % COLORS;
   for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
     const ch = rowsTpl[r][c];
     if (ch === ".") continue;
     let gem = null;
     if (ch !== "#" && !scoreLevel) { gem = types[(r * 3 + c) % types.length]; gemOnBoard++; }
-    grid[r][c] = { k: Math.floor(rng() * COLORS), gem };
+    grid[r][c] = { k: rng() < 0.72 ? kMain : kAlt, gem };
   }
   breakFullLines(grid, rng);
   const goals = [];
   if (scoreLevel) {
-    goals.push({ t: "score", need: Math.round((LV.score0 + LV.score1 * n) / 50) * 50 });
+    goals.push({ t: "score", need: Math.round((LV.score0 + LV.score1 * n - LV.score2 * n * n) / 50) * 50 });
   } else {
     // 每種寶石要收集的數量：盤面上的 + 從新方塊身上要收的
     const per = {}; types.forEach(g => per[g] = 0);
@@ -234,7 +242,13 @@ export function levelDef(n) {
     const extra = Math.round(LV.extra0 + LV.extra1 * t);
     types.forEach(g => goals.push({ t: "gem", gem: g, need: per[g] + extra + Math.floor(rng() * 3) }));
   }
-  return { n, d, grid, goals, gemRate: scoreLevel ? 0 : 0.34 - 0.1 * t, types };
+  return { n: daily || n, d, grid, goals, gemRate: scoreLevel ? 0 : 0.34 - 0.1 * t, types };
+}
+// ── 每日挑戰：日期當種子（同一天每次開都一樣），難度在冒險第 14~30 關之間 ──
+export function dateKey(d = new Date()) { return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
+export function dailyDef(key) {
+  key = Math.round(+key) || dateKey();
+  return levelDef(14 + (key * 37 % 17), key);
 }
 function shuffle(a, rng) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 // 左右對稱的隨機圖案（看起來像設計過的）；density = 方塊比例、gemP = 方塊帶寶石的比例
@@ -265,18 +279,40 @@ function digOne(grid, cells, rng) {
   grid[r][c] = null;
 }
 
+// ── 經典模式開局盤面：原版 9.6.8 一開局就預擺一片同色方塊（影片實例 35 格，塊狀團塊、沒有整條滿的、好幾條差 1~2 格）──
+// 這些格子標 pat:true，全部消光時「Pattern Finished!」
+export const START = { min: 30, max: 38, seeds: 7 };
+export function startPattern(rng) {
+  const grid = newGrid(), k = Math.floor(rng() * COLORS);
+  const target = START.min + Math.floor(rng() * (START.max - START.min + 1));
+  const filled = [];
+  const add = (r, c) => { if (r < 0 || c < 0 || r >= N || c >= N || grid[r][c]) return false; grid[r][c] = { k, gem: null, pat: true }; filled.push([r, c]); return true; };
+  for (let i = 0; i < START.seeds; i++) add(Math.floor(rng() * N), Math.floor(rng() * N));
+  for (let guard = 0; filled.length < target && guard < 2000; guard++) {
+    // 從已有的格子往旁邊長（長成一團一團）；偶爾另起一團
+    if (rng() < 0.08) { add(Math.floor(rng() * N), Math.floor(rng() * N)); continue; }
+    const [r, c] = filled[Math.floor(rng() * filled.length)];
+    const d = [[0, 1], [1, 0], [0, -1], [-1, 0]][Math.floor(rng() * 4)];
+    add(r + d[0], c + d[1]);
+  }
+  breakFullLines(grid, rng);
+  return grid;
+}
+
 // 經典模式難度：放了 start 塊之後開始變難，再過 span 塊到 1（之後最多到 max）
 export const DIFF = { start: 30, span: 600, max: 1.3 };
 
 // ── 一局遊戲 ──
 // opts: { mode: "classic"|"adventure", level: n, seed, saved }
 export function createGame(opts = {}) {
-  const mode = (opts.saved ? opts.saved.mode : opts.mode) === "adventure" ? "adventure" : "classic";
+  const m0 = opts.saved ? opts.saved.mode : opts.mode;
+  const mode = m0 === "adventure" || m0 === "daily" ? m0 : "classic";
   const rng = makeRng(opts.seed ?? (Math.random() * 2 ** 32));
-  const lv = mode === "adventure" ? levelDef(opts.saved ? opts.saved.level : opts.level) : null;
+  const lvNo = opts.saved ? opts.saved.level : opts.level;
+  const lv = mode === "adventure" ? levelDef(lvNo) : mode === "daily" ? dailyDef(lvNo) : null;   // daily 的 level = 日期 20261015
   const S = {
     mode, level: lv ? lv.n : 0,
-    grid: lv ? lv.grid : newGrid(),
+    grid: lv ? lv.grid : opts.empty ? newGrid() : startPattern(rng),
     tray: [null, null, null],
     score: 0, combo: 0, sinceClear: 0, moves: 0,
     goals: lv ? lv.goals.map(g => ({ ...g, got: 0 })) : [],
@@ -336,7 +372,7 @@ export function createGame(opts = {}) {
         if (!((fullRows >> rr & 1) || (fullCols >> cc & 1))) continue;
         const x = S.grid[rr][cc];
         if (!x) continue;
-        cleared.push({ r: rr, c: cc, k: x.k, gem: x.gem });
+        cleared.push({ r: rr, c: cc, k: x.k, gem: x.gem, pat: !!x.pat });
         if (x.gem) gems[x.gem] = (gems[x.gem] || 0) + 1;
         S.grid[rr][cc] = null;
       }
@@ -345,7 +381,9 @@ export function createGame(opts = {}) {
     if (lines) { S.combo += 1; S.sinceClear = 0; }
     else if (++S.sinceClear >= SCORE.comboGrace) S.combo = 0;
     const allClear = lines > 0 && S.grid.every(row => row.every(x => !x));
-    const pts = scoreMove(s.n, lines, S.combo, allClear);
+    // 開局圖案的最後一格被消掉 → Pattern Finished!
+    const patternDone = cleared.some(x => x.pat) && !S.grid.some(row => row.some(x => x && x.pat));
+    const pts = scoreMove(s.n, lines, S.combo, allClear, patternDone);
     S.score += pts.total;
     S.moves++;
     for (const g of S.goals) if (g.t === "gem" && gems[g.gem]) g.got = Math.min(g.need, g.got + gems[g.gem]);
@@ -355,7 +393,7 @@ export function createGame(opts = {}) {
       if (S.tray.every(x => !x)) { refill(); refilled = true; }
       if (!anyMove()) S.over = true;
     }
-    return { placed, clearRows, clearCols, lines, cleared, gems, pts, combo: S.combo, praise: praiseFor(lines), allClear, refilled, over: S.over, won: S.won };
+    return { placed, clearRows, clearCols, lines, cleared, gems, pts, combo: S.combo, comboShown: comboShown(S.combo), praise: praiseFor(lines), allClear, patternDone, refilled, over: S.over, won: S.won };
   }
 
   function serialize() {
