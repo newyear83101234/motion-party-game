@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#3b5bb5">
+  <link rel="icon" href="data:,">
+  <title>方塊爆破</title>
+  <link rel="modulepreload" href="js/blocks-core.js?v=1">
+  <style>
+    :root {
+      --bg1: #4a6fd6; --bg2: #2c3f8f;
+      --panel: rgba(255,255,255,.12);
+      --ink: #fff; --ink2: #dfe6ff;
+      --gold: #ffd54a;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg2); color: var(--ink);
+      font-family: "Arial Rounded MT Bold", "Nunito", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+      touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; overscroll-behavior: none; }
+    #cv { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+    /* 置中但螢幕太矮（橫向）時可以捲：上下用 margin:auto 置中，不用 justify-content:center（超出時頂端會被切掉捲不到） */
+    .screen { position: fixed; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: flex-start;
+      gap: 14px; padding: 24px 16px calc(24px + env(safe-area-inset-bottom)); z-index: 10; overflow-y: auto; touch-action: pan-y; }
+    .screen.on { display: flex; }
+    .screen > :first-child { margin-top: auto; }
+    .screen > :last-child { margin-bottom: auto; }
+    .dim { background: rgba(18, 26, 66, .78); backdrop-filter: blur(3px); }
+    .solid { background: linear-gradient(180deg, var(--bg1), var(--bg2)); }
+    h1 { margin: 0 0 6px; font-size: clamp(40px, 12vw, 64px); letter-spacing: 2px; line-height: 1.05; text-align: center;
+      text-shadow: 0 4px 0 #1d2a66, 0 8px 18px rgba(0,0,0,.35); }
+    h1 .a { color: #ffd54a; } h1 .b { color: #7fe0ff; }
+    h2 { margin: 0; font-size: 30px; text-shadow: 0 3px 0 #1d2a66; }
+    .big { font-size: 56px; font-weight: 900; text-shadow: 0 4px 0 #1d2a66; line-height: 1; }
+    .sub { color: var(--ink2); font-size: 17px; text-align: center; }
+    .btn { appearance: none; border: 0; border-radius: 18px; min-width: 240px; padding: 15px 22px; font: inherit; font-size: 22px;
+      font-weight: 800; color: #fff; cursor: pointer; box-shadow: 0 6px 0 rgba(0,0,0,.25); transition: transform .08s; }
+    .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.25); }
+    .btn.green { background: linear-gradient(#6fdc4f, #3fae2c); }
+    .btn.blue { background: linear-gradient(#5ec8ff, #2f8ee6); }
+    .btn.orange { background: linear-gradient(#ffb547, #f07f1c); }
+    .btn.gray { background: linear-gradient(#8d9bc9, #63709e); }
+    .btn.small { min-width: 0; font-size: 18px; padding: 11px 18px; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+    .card { background: var(--panel); border-radius: 22px; padding: 18px 22px; text-align: center; min-width: 260px; }
+    .best { color: var(--gold); font-size: 20px; font-weight: 800; }
+    /* 關卡選擇 */
+    #levelGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: min(100%, 420px);
+      max-height: 62vh; overflow-y: auto; padding: 6px; touch-action: pan-y; }
+    .lv { aspect-ratio: 1; border-radius: 16px; border: 0; font: inherit; font-size: 20px; font-weight: 900; color: #fff;
+      background: linear-gradient(#5ec8ff, #2f8ee6); box-shadow: 0 4px 0 rgba(0,0,0,.25); position: relative; cursor: pointer; }
+    .lv.done { background: linear-gradient(#6fdc4f, #3fae2c); }
+    .lv.lock { background: linear-gradient(#7c86ad, #59628a); color: rgba(255,255,255,.55); cursor: default; }
+    .lv .st { position: absolute; left: 0; right: 0; bottom: 3px; font-size: 10px; letter-spacing: -1px; }
+    .toggle { display: flex; align-items: center; gap: 10px; font-size: 20px; }
+    .hint { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(10px + env(safe-area-inset-bottom));
+      color: rgba(255,255,255,.55); font-size: 13px; z-index: 5; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <canvas id="cv"></canvas>
+
+  <!-- 主選單 -->
+  <div id="sMenu" class="screen solid on">
+    <h1><span class="a">方塊</span><br><span class="b">爆破</span></h1>
+    <div class="best" id="menuBest">👑 0</div>
+    <button class="btn green" id="bClassic">經典模式</button>
+    <div class="sub" id="classicSub" style="margin-top:-6px"></div>
+    <button class="btn orange" id="bAdventure">冒險關卡</button>
+    <div class="sub" id="menuAdv"></div>
+  </div>
+
+  <!-- 關卡選擇 -->
+  <div id="sLevels" class="screen solid">
+    <h2>冒險關卡</h2>
+    <div class="sub" id="lvSummary"></div>
+    <div id="levelGrid"></div>
+    <button class="btn gray small" id="bLvBack">← 回主選單</button>
+  </div>
+
+  <!-- 暫停 -->
+  <div id="sPause" class="screen dim">
+    <h2>暫停</h2>
+    <button class="btn green" id="bContinue">繼續</button>
+    <button class="btn orange" id="bRestart">重新開始</button>
+    <button class="btn gray" id="bHome">回主選單</button>
+    <div class="row">
+      <label class="toggle"><input type="checkbox" id="optSound" checked> 音效</label>
+      <label class="toggle"><input type="checkbox" id="optVib" checked> 震動</label>
+    </div>
+  </div>
+
+  <!-- 結束（經典） -->
+  <div id="sOver" class="screen dim">
+    <h2 id="overTitle">沒有空間了</h2>
+    <div class="card">
+      <div class="sub">分數</div>
+      <div class="big" id="overScore">0</div>
+      <div class="best" id="overBest" style="margin-top:8px">👑 0</div>
+      <div class="sub" id="overNew" style="color:#ffd54a;display:none;margin-top:6px">新紀錄！</div>
+    </div>
+    <button class="btn green" id="bAgain">再玩一次</button>
+    <button class="btn gray small" id="bOverHome">回主選單</button>
+  </div>
+
+  <!-- 關卡結果 -->
+  <div id="sResult" class="screen dim">
+    <h2 id="resTitle">過關！</h2>
+    <div class="card">
+      <div class="big" id="resStars">★★★</div>
+      <div class="sub" id="resInfo" style="margin-top:8px"></div>
+    </div>
+    <button class="btn green" id="bNext">下一關</button>
+    <button class="btn orange" id="bRetry">再試一次</button>
+    <button class="btn gray small" id="bResLevels">關卡列表</button>
+  </div>
+
+  <script type="module" src="js/blocks.js?v=1"></script>
+</body>
+</html>
