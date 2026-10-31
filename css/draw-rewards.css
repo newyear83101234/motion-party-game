@@ -223,7 +223,7 @@ img.stk:not(.ok) { opacity: 0; }   /* 圖還沒載到（或 404 正要換成 emo
 
 /* 翻頁鈕：書的左右兩側（第一頁沒有上一頁、最後一頁沒有下一頁） */
 .bk-corner { position: absolute; top: 50%; z-index: 3; width: 68px; height: 68px; margin-top: -34px; border-radius: 50%; display: grid; place-items: center;
-  font-size: 28px; color: #fff; text-shadow: 0 2px 0 rgba(150, 90, 0, .4);
+  font-size: 28px; color: #3b2a1a; text-shadow: 0 2px 0 rgba(255, 255, 255, .5);   /* 深色箭頭：白箭頭在黃底上幾乎看不到 */
   background: linear-gradient(#ffd66b, #ffb52e); box-shadow: 0 0 0 4px #fff, 0 6px 0 4px rgba(110, 70, 20, .22); transition: transform .14s var(--spring), opacity .2s; }
 .bk-corner.l { left: -96px; }
 .bk-corner.r { right: -96px; }

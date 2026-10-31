@@ -75,11 +75,11 @@
 /* 上方：左邊回首頁；右邊 找／藏 切換、三顆進度星、（藏的時候）✔️ */
 #skHome { position: absolute; z-index: 10; left: calc(16px + env(safe-area-inset-left)); top: calc(14px + env(safe-area-inset-top)); }
 .sk-right { position: absolute; z-index: 10; right: calc(16px + env(safe-area-inset-right)); top: calc(14px + env(safe-area-inset-top));
-  display: flex; align-items: center; gap: 16px; }
+  display: flex; flex-direction: row-reverse; align-items: center; gap: 16px; }   /* 找／藏切換鈕固定貼最右邊，旁邊東西多少都不會跟著移位 */
 #skHide { display: flex; gap: 6px; padding: 6px; border-radius: 48px; background: rgba(255, 255, 255, .55); box-shadow: inset 0 2px 6px rgba(90, 50, 10, .2); }
-#skHide span { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; font-size: 42px; opacity: .4;
+#skHide span { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; font-size: 42px; opacity: .7; filter: grayscale(.4);
   transition: transform .18s var(--spring), opacity .18s, background .18s; }
-#seek:not(.hiding) #skHide .sk-f, #seek.hiding #skHide .sk-h { opacity: 1; transform: scale(1.06);
+#seek:not(.hiding) #skHide .sk-f, #seek.hiding #skHide .sk-h { opacity: 1; filter: none; transform: scale(1.06);
   box-shadow: 0 0 0 4px var(--ink), 0 5px 0 rgba(59, 42, 26, .3); }
 #seek:not(.hiding) #skHide .sk-f { background: linear-gradient(#c9ecff, #7cc8ff); }
 #seek.hiding #skHide .sk-h { background: linear-gradient(#ffe0ef, #ffadd2); }
@@ -91,6 +91,7 @@
 #seek.hiding .sk-stars { display: none; }
 #skOk { display: none; background: linear-gradient(#5fd06b, #2e9e3e); box-shadow: 0 4px 0 #1f7a2c, 0 8px 14px rgba(90, 60, 20, .14); font-size: 46px; }
 #seek.placing #skOk { display: grid; }
+#skOk .ico { width: 70%; height: 70%; filter: brightness(0) invert(1) drop-shadow(0 2px 0 rgba(0, 60, 10, .35)); }
 #skOk.ready { animation: skOkHop 1.4s ease-in-out infinite; }
 @keyframes skOkHop { 0%, 70%, 100% { transform: none; } 80% { transform: translateY(-10px) scale(1.08); } 90% { transform: none; } }
 

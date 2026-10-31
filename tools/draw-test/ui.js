@@ -111,7 +111,7 @@ function versionCheck() {
 
   // Task 6：貼紙
   const st = await p.evaluate(async () => {
-    const M = await import("./js/draw-stickers.js?v=7");
+    const M = await import("./js/draw-stickers.js?v=8");
     const ids = M.STICKERS.map(s => s.id);
     const img = await M.stickerImage("star");
     __draw.painter.sticker(img, 1000, 1200, 200);
@@ -124,7 +124,7 @@ function versionCheck() {
 
   // Task 7：特效
   await p.evaluate(async () => {
-    const M = await import("./js/draw-fx.js?v=7");
+    const M = await import("./js/draw-fx.js?v=8");
     window.__fx = __draw.fx || new M.Fx(__draw.board);   // Task 9 之後用遊戲自己的那一個，免得兩組亮粉互相干擾
     __draw.painter.clearAll();
   });
@@ -212,7 +212,7 @@ function versionCheck() {
 
   // Task 8：作品牆
   const gal = await p.evaluate(async () => {
-    const G = await import("./js/draw-gallery.js?v=7");
+    const G = await import("./js/draw-gallery.js?v=8");
     await G.wipe();
     const c = __draw.board.composite();
     const w = { id: G.newId(), art: "test-shapes", done: true, thumb: await G.thumbOf(c), image: await G.toBlob(c),
@@ -458,7 +458,7 @@ function versionCheck() {
   check("第一次選貼紙 → 自動打開選單", await on("#pop"));
   await p.tap('#pop .opt[aria-label="heart"]');
   const stk = await p.evaluate(async () => {
-    const M = await import("./js/draw-stickers.js?v=7");
+    const M = await import("./js/draw-stickers.js?v=8");
     const want = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(M.STICKERS.find(s => s.id === "heart").svg);
     const im = document.querySelector('[data-tool="sticker"] img');
     return { has: !!im, same: !!im && im.getAttribute("src") === want };
@@ -894,6 +894,20 @@ function versionCheck() {
   await p.tap("#skHome2");
   await waitOn("#home", 5000);
   check("躲貓貓按 🏠：回首頁", await on("#home") && !(await on("#seek")));
+
+  // 收集到的貼紙（皇冠、彩虹跟內建的同名）：選單裡不重複、選了畫得出收集版
+  await p.evaluate(() => { window.__rewards.reset(); window.__rewards.grantNow(["crown", "rainbow", "puppy"]); });
+  await p.evaluate(async () => { const a = (await (await fetch("IMAGE/draw/lineart/index.json")).json()).arts.find(x => x.id === "animal-1"); await __draw.startArt(a); });
+  await p.waitForFunction(() => __draw.board.labels && !__draw.S.busy, null, { timeout: 10000 });
+  await p.evaluate(() => { __draw.S.tool = "sticker"; });
+  await p.tap('#bar [data-tool="sticker"]'); await p.waitForTimeout(400);
+  const stkMenu = await p.evaluate(() => { const ids = [...document.querySelectorAll("#pop .opt")].map(b => b.getAttribute("aria-label")); return { n: ids.length, uniq: new Set(ids).size, c: ids.filter(i => i.startsWith("c:")) }; });
+  check("貼紙選單：收集到的貼紙排在後面、名稱不重複（c: 開頭）", stkMenu.n === 15 && stkMenu.uniq === 15 && stkMenu.c.join() === "c:crown,c:rainbow,c:puppy", JSON.stringify(stkMenu));
+  await p.tap('#pop .opt[aria-label="c:crown"]'); await p.waitForTimeout(400);
+  const okImg = await p.evaluate(async () => { const s = __draw.S.sticker; const src = document.querySelector('#bar [data-tool="sticker"] img')?.src || ""; return { s, src: src.includes("stickers/crown.png") }; });
+  check("選了收集的皇冠：工具鈕顯示收集版圖片", okImg.s === "c:crown" && okImg.src, JSON.stringify(okImg));
+  check("所有回首頁鈕都換成同一套立體圖示", await p.evaluate(() => ["#bHome", "#wHome", "#skHome", "#pzHome", "#bookHome", "#xHome"].every(s => document.querySelector(s + " img.ico"))));
+  await p.evaluate(() => { window.__rewards.reset(); __draw.S.tool = "brush"; });
 
   // ── 後續 task 的測試插在這一行上面 ──
   check("沒有頁面錯誤", errs.length === 0, errs.join(" | "));

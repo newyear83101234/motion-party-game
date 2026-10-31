@@ -50,6 +50,7 @@ function load() {
   return st;
 }
 
+const TIMING = { autoOpen: 3500, hint: 1500 };   // 蛋幾毫秒沒點自己開、幾毫秒出現手指（測試可調長）
 export function mountRewards(deps) {
   const A = deps.A, v = deps.v || "1";
   // 主題順序照主程式給的；主程式沒列到的主題接在後面（36 張一定都看得到）
@@ -195,9 +196,9 @@ export function mountRewards(deps) {
     phase = "wait";
     egg.classList.add("wait");
     if (early) tap();
-    timers.push(setTimeout(tap, 3500));   // 3.5 秒沒點就自己開：不會卡在這裡（櫻木：5 秒太久）
+    timers.push(setTimeout(tap, TIMING.autoOpen));   // 3.5 秒沒點就自己開：不會卡在這裡（櫻木：5 秒太久）
     let hint = null;   // 停 1.5 秒沒點：蛋上出現點擊手指（跟其他畫面同一個提示樣子）
-    timers.push(setTimeout(() => { if (phase !== "wait") return; const r = egg.getBoundingClientRect(); hint = el("div", "foil-hint"); Object.assign(hint.style, { position: "fixed", left: r.left + r.width / 2 + "px", top: r.top + r.height / 2 + "px", zIndex: 30 }); ov.append(hint); }, 1500));
+    timers.push(setTimeout(() => { if (phase !== "wait") return; const r = egg.getBoundingClientRect(); hint = el("div", "foil-hint"); Object.assign(hint.style, { position: "fixed", left: r.left + r.width / 2 + "px", top: r.top + r.height / 2 + "px", zIndex: 30 }); ov.append(hint); }, TIMING.hint));
     await opened;
     timers.forEach(clearTimeout); hint?.remove();
 
@@ -411,6 +412,7 @@ export function mountRewards(deps) {
   };
   // 給測試用
   window.__rewards = {
+    timing: TIMING,
     get state() { return state; },
     ids: ALL.map(s => s.id),
     sets: Object.fromEntries(Object.entries(SETS).map(([k, l]) => [k, l.map(x => x[0])])),

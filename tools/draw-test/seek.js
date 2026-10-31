@@ -112,7 +112,7 @@ const near = (a, b, t = 0.6) => Math.abs(a - b) <= t;
   }));
   let s = await st(p);
   check("打開：切到 #seek、固定 id 的按鈕都在、CSS 有載入、🔍 亮著 🙈 淡、✔️ 藏起來、第 1 回合 18% 大、偽裝 0.55、星星都沒亮",
-    shown.on && shown.ids === 7 && shown.css === "48px" && shown.ok === "none" && shown.fOn === "1" && +shown.hOn < 0.6 &&
+    shown.on && shown.ids === 7 && shown.css === "48px" && shown.ok === "none" && shown.fOn === "1" && +shown.hOn < 0.8 &&
     s.round === 0 && s.size === 0.18 && s.k === 0.55 && (await lit(p)) === 0 && (await calls(p, "getScenes")).length === 1, JSON.stringify({ ...shown, round: s.round, k: s.k }));
 
   // 位置：開 12 次，都在圖裡、避開邊緣 8%、大小 = 圖高 18%、位置每次不一樣

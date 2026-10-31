@@ -4,7 +4,7 @@
   --press: 0 1px 0 var(--wood-d), 0 2px 4px rgba(90, 60, 20, .12);
   --spring: cubic-bezier(.3, 1.6, .5, 1); }
 /* 字型：jf open 粉圓（OFL），只收畫面用到的字（tools/draw-font.mjs 產生），沒收到的字退回蘋方 */
-@font-face { font-family: "Huninn"; src: url("../fonts/huninn-draw.woff2?v=7") format("woff2"); font-display: swap; }
+@font-face { font-family: "Huninn"; src: url("../fonts/huninn-draw.woff2?v=8") format("woff2"); font-display: swap; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); overflow: hidden; touch-action: none;
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
@@ -22,8 +22,8 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 
 /* 首頁與作品牆 */
 .top { display: flex; align-items: center; gap: 16px; padding: 16px 20px 8px; }
-#home { background: var(--bg) url("../IMAGE/draw/ui/home-bg.jpg?v=7") center / cover; }
-.hero { padding: 12px 24px 4px; gap: 14px; }
+#home { background: var(--bg) url("../IMAGE/draw/ui/home-bg.jpg?v=8") center / cover; }
+.hero { padding: 12px 24px 22px; gap: 14px; }   /* 下面留位置給玩法鈕的小字 */
 .mascot { height: clamp(70px, 8vw, 92px); width: auto; animation: bob 2.6s ease-in-out infinite; filter: drop-shadow(0 6px 6px rgba(60, 30, 0, .2)); }
 @keyframes bob { 50% { transform: translateY(-6px) rotate(-3deg); } }
 /* 標題字：每個字不同顏色、白色粗外框、輪流上下跳 */
@@ -54,8 +54,8 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .arts, .works { flex: 1; overflow-y: auto; touch-action: pan-y; display: grid; align-content: start; gap: 20px;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); grid-auto-rows: max-content; padding: 12px 20px 24px; }
 /* 三欄（簡單／中等／困難），寬度同時受螢幕寬、高限制：兩排剛好放得下 */
-.arts { grid-template-columns: repeat(3, minmax(0, min(360px, calc((100vw - 110px) / 3), calc((100vh - 316px) / 2 * 1.333)))); justify-content: center; gap: 18px 22px; padding-top: 6px; }
-@supports (height: 100dvh) { .arts { grid-template-columns: repeat(3, minmax(0, min(360px, calc((100vw - 110px) / 3), calc((100dvh - 316px) / 2 * 1.333)))); } }
+.arts { grid-template-columns: repeat(3, minmax(0, min(360px, calc((100vw - 110px) / 3), calc((100vh - 334px) / 2 * 1.333)))); justify-content: center; gap: 18px 22px; padding-top: 6px; }
+@supports (height: 100dvh) { .arts { grid-template-columns: repeat(3, minmax(0, min(360px, calc((100vw - 110px) / 3), calc((100dvh - 334px) / 2 * 1.333)))); } }
 /* 欄頭：這一欄的難度（一次標清楚，卡片上不再各掛星星） */
 .colhead { justify-self: center; display: flex; gap: 2px; padding: 4px 16px; border-radius: 20px; background: rgba(255, 255, 255, .8); font-size: 26px; line-height: 1;
   box-shadow: 0 3px 0 rgba(226, 196, 143, .8); animation: cardIn .45s var(--spring) backwards; }
@@ -362,6 +362,8 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .modes { display: flex; gap: 12px; }
 .modes .big { width: 80px; height: 80px; border-radius: 24px; font-size: 44px; }
 .modes .big.off { display: none; }
+.modes .big::after { content: attr(data-label); position: absolute; left: 50%; top: 100%; margin-top: 4px; transform: translateX(-50%); white-space: nowrap;
+  font-size: 14px; font-weight: 700; color: #6b5233; text-shadow: 0 1px 0 #fff, 0 0 4px #fff; pointer-events: none; }
 .big.m-mirror { background: linear-gradient(#8f86ff, #5b4fd6); box-shadow: 0 4px 0 #3f35a8, 0 8px 14px rgba(40, 30, 120, .25); }
 .modes #toGallery { background: linear-gradient(#ffd9a8, #ffb35c); box-shadow: 0 4px 0 #d98a2e, 0 8px 14px rgba(140, 90, 20, .2); }
 .modes:has(#toDaily:not(.off)) #toScratch { animation: none; }

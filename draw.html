@@ -7,28 +7,28 @@
   <meta name="theme-color" content="#fff4e0">
   <title>畫畫樂園</title>
   <link rel="icon" href="data:,">
-  <link rel="preload" href="fonts/huninn-draw.woff2?v=7" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/draw.css?v=7">
-  <link rel="modulepreload" href="js/draw-core.js?v=7">
-  <link rel="modulepreload" href="js/draw-canvas.js?v=7">
-  <link rel="modulepreload" href="js/draw-paint.js?v=7">
-  <link rel="modulepreload" href="js/draw-fx.js?v=7">
-  <link rel="modulepreload" href="js/draw-gallery.js?v=7">
-  <link rel="modulepreload" href="js/draw-stickers.js?v=7">
-  <link rel="modulepreload" href="js/draw-audio.js?v=7">
-  <link rel="modulepreload" href="js/draw-particles.js?v=7">
-  <link rel="modulepreload" href="js/draw-music.js?v=7">
-  <link rel="modulepreload" href="js/draw-mirror.js?v=7">
-  <link rel="modulepreload" href="js/draw-rewards.js?v=7">
-  <link rel="modulepreload" href="js/draw-world.js?v=7">
-  <link rel="modulepreload" href="js/draw-puzzle.js?v=7">
-  <link rel="modulepreload" href="js/draw-seek.js?v=7">
+  <link rel="preload" href="fonts/huninn-draw.woff2?v=8" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/draw.css?v=8">
+  <link rel="modulepreload" href="js/draw-core.js?v=8">
+  <link rel="modulepreload" href="js/draw-canvas.js?v=8">
+  <link rel="modulepreload" href="js/draw-paint.js?v=8">
+  <link rel="modulepreload" href="js/draw-fx.js?v=8">
+  <link rel="modulepreload" href="js/draw-gallery.js?v=8">
+  <link rel="modulepreload" href="js/draw-stickers.js?v=8">
+  <link rel="modulepreload" href="js/draw-audio.js?v=8">
+  <link rel="modulepreload" href="js/draw-particles.js?v=8">
+  <link rel="modulepreload" href="js/draw-music.js?v=8">
+  <link rel="modulepreload" href="js/draw-mirror.js?v=8">
+  <link rel="modulepreload" href="js/draw-rewards.js?v=8">
+  <link rel="modulepreload" href="js/draw-world.js?v=8">
+  <link rel="modulepreload" href="js/draw-puzzle.js?v=8">
+  <link rel="modulepreload" href="js/draw-seek.js?v=8">
 </head>
 <body>
   <!-- 首頁：上排選主題，下面是線稿縮圖 -->
   <section id="home" class="screen on">
     <header class="top hero">
-      <img class="mascot" src="IMAGE/draw/ui/mascot.png?v=7" alt="" onerror="this.remove()">
+      <img class="mascot" src="IMAGE/draw/ui/mascot.png?v=8" alt="" onerror="this.remove()">
       <h1 class="logo" aria-label="畫畫樂園"><span>畫</span><span>畫</span><span>樂</span><span>園</span></h1>
       <span class="grow"></span>
       <div class="setwrap">
@@ -40,13 +40,13 @@
       </div>
       </div>
       <nav class="modes">
-        <button class="big mode m-mirror" id="toMirror" data-sfx="magic" aria-label="鏡子魔法畫">🪞</button>
-        <button class="big mode m-world off" id="toWorld" aria-label="我的世界">🌍</button>
-        <button class="big mode m-book off" id="toBook" aria-label="貼紙本">📖</button>
-        <button class="big mode m-seek" id="toSeek" data-sfx="magic" aria-label="變色龍躲貓貓">🔍</button>
-        <button class="big mode m-gacha off" id="toDaily" data-sfx="magic" aria-label="今天的扭蛋">🎰</button>
-        <button class="big gift" id="toScratch" data-sfx="magic" aria-label="刮刮樂驚喜">🎁</button>
-        <button class="big" id="toGallery" aria-label="作品牆">🖼️</button>
+        <button class="big mode m-mirror" id="toMirror" data-sfx="magic" aria-label="鏡子魔法畫" data-label="鏡子畫">🪞</button>
+        <button class="big mode m-world off" id="toWorld" aria-label="我的世界" data-label="我的世界">🌍</button>
+        <button class="big mode m-book off" id="toBook" aria-label="貼紙本" data-label="貼紙本">📖</button>
+        <button class="big mode m-seek" id="toSeek" data-sfx="magic" aria-label="變色龍躲貓貓" data-label="躲貓貓">🔍</button>
+        <button class="big mode m-gacha off" id="toDaily" data-sfx="magic" aria-label="今天的扭蛋" data-label="每日扭蛋">🎰</button>
+        <button class="big gift" id="toScratch" data-sfx="magic" aria-label="刮刮樂驚喜" data-label="刮刮樂">🎁</button>
+        <button class="big" id="toGallery" aria-label="作品牆" data-label="作品牆">🖼️</button>
       </nav>
     </header>
     <nav class="themes" id="themes"></nav>
@@ -82,13 +82,13 @@
     <!-- 刮刮樂：畫好顏色的圖蓋一層銀色刮刮膜，用手指刮開；刮完選「自己畫這張」或「再刮一張」 -->
     <canvas id="foil" class="foil"></canvas>
     <div id="scratchBar" class="after scratch-bar">
-      <div class="cheer" aria-hidden="true"><img src="IMAGE/draw/ui/mascot.png?v=7" alt="" onerror="this.remove()"><p class="sstars"><span class="sstar">★</span><span class="sstar">★</span><span class="sstar">★</span></p></div>
+      <div class="cheer" aria-hidden="true"><img src="IMAGE/draw/ui/mascot.png?v=8" alt="" onerror="this.remove()"><p class="sstars"><span class="sstar">★</span><span class="sstar">★</span><span class="sstar">★</span></p></div>
       <button class="big" id="sHome" aria-label="回首頁">🏠</button>
       <button class="big" id="sPaint" aria-label="自己畫這張">🖌️</button>
       <button class="big" id="sAgain" data-sfx="magic" aria-label="再刮一張">🎁</button>
     </div>
     <div id="after" class="after">
-      <div class="cheer" aria-hidden="true"><img src="IMAGE/draw/ui/mascot.png?v=7" alt="" onerror="this.remove()"><p><span>★</span><span>★</span><span>★</span></p></div>
+      <div class="cheer" aria-hidden="true"><img src="IMAGE/draw/ui/mascot.png?v=8" alt="" onerror="this.remove()"><p><span>★</span><span>★</span><span>★</span></p></div>
       <button class="big lead" id="aWorld" data-sfx="magic" aria-label="放進我的世界">🌍</button>
       <button class="big lead" id="aPuzzle" aria-label="變成拼圖">🧩</button>
       <button class="big" id="aMusic" data-sfx="none" aria-label="把畫彈成音樂">🎵</button>
@@ -124,6 +124,6 @@
 
   <div id="toast" class="toast"></div>
   <div id="rotate" class="rotate">📱 ↻</div>
-  <script type="module" src="js/draw.js?v=7"></script>
+  <script type="module" src="js/draw.js?v=8"></script>
 </body>
 </html>

@@ -50,6 +50,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   // ── 2. 開一顆扭蛋（指定主題）──
   await clearCalls();
+  await ev(() => { window.__rewards.timing.autoOpen = 10000; });   // 截圖很慢時蛋不要先自己開了
   await startGrant({ theme: "animal" });
   await sleep(950);
   await shot("g0-peek"); await shot("g0-peek");   // 無頭瀏覽器第一張截圖常抓到舊畫格，拍兩次留第二張
@@ -86,12 +87,13 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("蛋還在掉時點一下，落地就開（不用再點）", el2 < 5200, el2 + "ms");
   check("海洋集滿了 → 給別的主題、張數 +1", r2.length === 1 && !sets.ocean.includes(r2[0]) && await ev(() => __R.count()) === before + 1, JSON.stringify(r2));
 
-  // ── 4. 5 秒不點自己開 ──
+  // ── 4. 不點自己開（3.5 秒） ──
+  await ev(() => { window.__rewards.timing.autoOpen = 3500; });
   t0 = Date.now();
   await startGrant();
   const r3 = await waitRes(16000);
   const el3 = Date.now() - t0;
-  check("5 秒沒點自己開，最後一樣 resolve＋遮罩移除", r3.length === 1 && el3 > 6000 && el3 < 11000 && await gachaGone(), el3 + "ms");
+  check("3.5 秒沒點自己開，最後一樣 resolve＋遮罩移除", r3.length === 1 && el3 > 6000 && el3 < 11000 && await gachaGone(), el3 + "ms");
 
   // ── 5. 一次開 3 顆 ──
   await clearCalls();

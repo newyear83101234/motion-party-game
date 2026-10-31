@@ -131,7 +131,7 @@ const check = (name, ok, info = "") => { results.push((ok ? "✅ " : "❌ ") + n
   const drv = V1.filter(e => e.mode === "drive" && V2.find(o => o.id === e.id && o.mode === "drive" && o.dir === e.dir && Math.abs(o.x - e.x) < B.W * 0.3));
   const fwd = drv.every(e => (V2.find(o => o.id === e.id).x - e.x) * e.dir > 0);
   const laneOk = V2.filter(e => drv.some(d => d.id === e.id)).every(e => e.dir > 0 ? e.y >= B.H * .78 - 2 && e.y <= B.H * .93 + 2 : e.y >= B.H * .56 - 2 && e.y <= B.H * .585 + 2);
-  check("車子沿馬路橫向開（往右走近車道、往左走遠車道）", drv.length >= 3 && fwd && laneOk, `drive=${drv.length}`);
+  check("車子沿馬路橫向開（往右走近車道、往左走遠車道）", drv.length >= 3 && fwd && laneOk, `drive=${drv.length} fwd=${fwd} lane=${laneOk} ` + JSON.stringify(V2.filter(e => drv.some(d => d.id === e.id)).map(e => [Math.round(e.y / B.H * 1000) / 1000, e.dir])));
   check("車身微震", V2.some(e => e.hop > 0 && Math.abs(e.rot) > 0));
   await shot("04-vehicle.png");
   await st(() => { __world.state.speed = 5; });

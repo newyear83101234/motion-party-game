@@ -49,10 +49,13 @@ fs.mkdirSync(OUT, { recursive: true });
   await shot("02-paint");
   await p.tap('#bar [data-tool="brush"]'); await p.waitForTimeout(500); await shot("03-brushes");
   await p.tap('#bar [data-tool="brush"]');
-  await p.tap('#bar [data-tool="sticker"]'); await p.waitForTimeout(300); await p.tap('#bar [data-tool="sticker"]'); await p.waitForTimeout(500); await shot("04-stickers");
+  await p.tap('#bar [data-tool="sticker"]'); await p.waitForTimeout(600); await shot("04-stickers");
   await p.tap('#bar [data-tool="sticker"]');
   await p.tap("#bHome"); await p.waitForTimeout(1200);
   await p.tap("#toScratch"); await p.waitForTimeout(1500); await shot("12-scratch");
+  await p.tap("#sHome").catch(() => {}); await p.waitForTimeout(800);
+  await p.tap("#toSeek"); await p.waitForTimeout(6000); await shot("14-seek");
+  await p.tap("#skHome").catch(() => {}); await p.waitForTimeout(800);
   // 扭蛋：每日扭蛋機
   await p.tap("#sHome").catch(() => {}); await p.waitForTimeout(800);
   await p.evaluate(() => { __draw.show("home"); __draw.renderHome(); __draw.refreshDaily(); });
