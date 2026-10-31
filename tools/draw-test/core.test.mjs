@@ -32,6 +32,42 @@ function makeFrame() {
   check("左塊外框 1..9 × 1..18", b.x0 === 1 && b.x1 === 9 && b.y0 === 1 && b.y1 === 18, JSON.stringify(b));
 }
 
+{
+  const { w, h, rgba } = makeFrame();
+  const R = C.labelRegions(C.lineMask(rgba, w, h), w, h);
+  const left = R.labels[5 * w + 5], right = R.labels[5 * w + 15];
+
+  check("regionAt 點在塊內", C.regionAt(R.labels, w, h, 5, 5) === left);
+  const onLine = C.regionAt(R.labels, w, h, 10, 5);
+  check("regionAt 點在線上 → 找最近的一塊", onLine === left || onLine === right, `got ${onLine}`);
+  check("regionAt 半徑 0 點在線上 → -1", C.regionAt(R.labels, w, h, 0, 0, 0) === -1);
+  check("regionAt 點在圖外 → -1", C.regionAt(R.labels, w, h, -3, 5) === -1);
+
+  const m0 = C.regionMask(R.labels, w, h, left, R.boxes[left], 0);
+  check("遮罩 pad=0 只含本塊 162 點", m0.data.filter(v => v).length === 162);
+  const m2 = C.regionMask(R.labels, w, h, left, R.boxes[left], 2);
+  check("遮罩 pad=2 外框 0,0,12,20", m2.x === 0 && m2.y === 0 && m2.w === 12 && m2.h === 20, `${m2.x},${m2.y},${m2.w},${m2.h}`);
+  check("遮罩 pad=2 擴進黑線共 220 點", m2.data.filter(v => v).length === 220, `${m2.data.filter(v => v).length}`);
+  let leak = 0;
+  for (let j = 0; j < m2.h; j++) for (let i = 0; i < m2.w; i++)
+    if (m2.data[j * m2.w + i] && R.labels[(m2.y + j) * w + m2.x + i] === right) leak++;
+  check("遮罩不會漏進隔壁塊", leak === 0, `leak=${leak}`);
+
+  const u = C.rectUnion({ x: 0, y: 0, w: 4, h: 4 }, { x: 2, y: 3, w: 4, h: 4 });
+  check("rectUnion", u.x === 0 && u.y === 0 && u.w === 6 && u.h === 7, JSON.stringify(u));
+  check("rectUnion 有 null", C.rectUnion(null, { x: 1, y: 1, w: 2, h: 2 }).w === 2);
+  const c = C.rectClamp({ x: -2.5, y: 3.2, w: 10, h: 100 }, 20, 20);
+  check("rectClamp 裁進畫布", c.x === 0 && c.y === 3 && c.w === 8 && c.h === 17, JSON.stringify(c));
+  check("rectClamp 完全在外 → null", C.rectClamp({ x: 30, y: 0, w: 5, h: 5 }, 20, 20) === null);
+
+  const H = new C.History(30);
+  for (let i = 0; i < 35; i++) H.push(i);
+  check("History 最多 30 步", H.size === 30);
+  check("History pop 拿到最後一步", H.pop() === 34 && H.size === 29);
+  H.clear();
+  check("History 清空後 pop → null", H.pop() === null);
+}
+
 console.log(results.join("\n"));
 const fail = results.filter(r => r.startsWith("❌")).length;
 console.log(fail ? `\n${fail} 項失敗` : "\n全部通過");
