@@ -748,7 +748,7 @@ function walletSync() {
   for (const j of document.querySelectorAll(".jarBtn:not(#hatchHint)")) j.classList.toggle("no-star", on);
 }
 // 回小島：房子要升級＝播演出（遊戲中、開始畫面、別的演出中不播）；第一次＝貓頭鷹介紹「這塊地是你的」；今天的信還沒看＝提醒一次
-let homeShowBusy = false, homeHintDay = "", homeGoT = 0;
+let homeShowBusy = false, homeHintDay = "", homeGoT = 0, startAt = 0;   // startAt：按「開始玩」的時間
 function homeMenu() {
   walletSync(); homeUI.push();
   if (!hub || homeShowBusy) return;
@@ -757,7 +757,7 @@ function homeMenu() {
   const busyUI = () => homeUI.isOpen() || homeUI.cardOpen() || homeUI.letterOpen() || evoBusy || !!dressFrom || !$("gacha").classList.contains("hidden") || !$("pick").classList.contains("hidden");   // 扭蛋、換裝、介紹卡、我的家卡片、信開著：等關掉（櫻木）
   const go = () => {
     if (homeShowBusy || mode || $("menu").classList.contains("hidden")) return;
-    if (document.body.classList.contains("gate-on") || talking() || busyUI() || (hub.homeBusy && hub.homeBusy())) { if (++tries < 60) homeGoT = setTimeout(go, 1000); return; }   // 開始畫面還在／貓頭鷹在講別的／別的畫面開著：等一下再看
+    if (document.body.classList.contains("gate-on") || Date.now() - startAt < 1500 || talking() || busyUI() || (hub.homeBusy && hub.homeBusy())) { if (++tries < 60) homeGoT = setTimeout(go, 1000); return; }   // 開始畫面還在／剛按開始（0.3 秒後才念招呼語，這段空檔插話會把新存檔的自我介紹換成「這是你的家！」，10-31）／貓頭鷹在講別的／別的畫面開著：等一下再看
     const h = save.home, I = HM.homeInfo(h, save.stars);   // 這一刻才算（存檔可能剛變）
     if (I.lv > h.lv) {                                 // 升級演出（一次跳好幾級也只播一次，直接變成現在的樣子）
       homeShowBusy = true; const from = h.lv, to = I.lv, gardenNew = from < HM.GARDEN_LV && to >= HM.GARDEN_LV;
@@ -3237,7 +3237,7 @@ try { boot.obs = new PerformanceObserver(l => { if (boot.done) return; boot.n +=
   goMenu(); showLoading(false); $("startGate").classList.remove("hidden");
 })();
 $("startBtn").onclick = () => {                         // 開始玩：這一下點擊同時解鎖聲音、開音樂、貓頭鷹打招呼（新存檔：先自我介紹）
-  document.body.classList.remove("gate-on"); $("startGate").classList.add("hidden"); play("select");
+  document.body.classList.remove("gate-on"); $("startGate").classList.add("hidden"); play("select"); startAt = Date.now();
   A.unlock();                                          // 解鎖聲音＋開始放選單音樂（音樂關著就不放）
   const hi = helloText(); if (hi) $("guideText").textContent = hi + "快來選遊戲玩吧！";
   setTimeout(() => talk($("guideText").textContent), 300);
