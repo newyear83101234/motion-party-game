@@ -7,13 +7,13 @@
   <meta name="theme-color" content="#fff4e0">
   <title>畫畫樂園</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="css/draw.css?v=1">
-  <link rel="modulepreload" href="js/draw-core.js?v=1">
-  <link rel="modulepreload" href="js/draw-canvas.js?v=1">
-  <link rel="modulepreload" href="js/draw-paint.js?v=1">
-  <link rel="modulepreload" href="js/draw-fx.js?v=1">
-  <link rel="modulepreload" href="js/draw-gallery.js?v=1">
-  <link rel="modulepreload" href="js/draw-stickers.js?v=1">
+  <link rel="stylesheet" href="css/draw.css?v=2">
+  <link rel="modulepreload" href="js/draw-core.js?v=2">
+  <link rel="modulepreload" href="js/draw-canvas.js?v=2">
+  <link rel="modulepreload" href="js/draw-paint.js?v=2">
+  <link rel="modulepreload" href="js/draw-fx.js?v=2">
+  <link rel="modulepreload" href="js/draw-gallery.js?v=2">
+  <link rel="modulepreload" href="js/draw-stickers.js?v=2">
 </head>
 <body>
   <!-- 首頁：上排選主題，下面是線稿縮圖 -->
@@ -31,9 +31,10 @@
     <nav id="bar">
       <button id="bDone" class="btn ok" aria-label="完成">✔️</button>
       <button id="bHome" class="btn" aria-label="回首頁">🏠</button>
+      <button id="bFull" class="btn" aria-label="全螢幕"><svg viewBox="0 0 40 40" width="34" height="34" fill="none" stroke="#3b2a1a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15V5h10M25 5h10v10M35 25v10H25M15 35H5V25"/></svg></button>
       <hr>
       <button class="btn tool on" data-tool="fill" aria-label="填色桶">🪣</button>
-      <button class="btn tool" data-tool="brush" aria-label="筆刷">🖍️</button>
+      <button class="btn tool" data-tool="brush" aria-label="筆刷"></button>
       <button class="btn tool" data-tool="sticker" aria-label="貼紙">⭐</button>
       <button class="btn tool" data-tool="eraser" aria-label="橡皮擦">🧽</button>
       <hr>
@@ -41,9 +42,15 @@
       <button id="bMat" class="btn" aria-label="材質"><canvas width="64" height="64"></canvas></button>
       <button id="bClip" class="btn on" aria-label="不出線">🛡️</button>
       <hr>
-      <button id="bUndo" class="btn" aria-label="復原">↩️</button>
+      <button id="bUndo" class="btn" aria-label="復原"><span>↩️</span></button>
       <button id="bClear" class="btn hold" aria-label="清空（要按住）">🗑️<i class="ring"></i></button>
     </nav>
+    <!-- 全螢幕時右上角只留這三顆 -->
+    <div id="mini" class="mini">
+      <button id="mFull" class="btn" aria-label="離開全螢幕"><svg viewBox="0 0 40 40" width="32" height="32" fill="none" stroke="#3b2a1a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3v10H3M27 3v10h10M37 27H27v10M3 27h10v10"/></svg></button>
+      <button id="mColor" class="btn" aria-label="顏色"><span class="dot"></span></button>
+      <button id="mUndo" class="btn" aria-label="復原"><span>↩️</span></button>
+    </div>
     <div id="pop" class="pop"></div>
     <div id="after" class="after">
       <button class="big" id="aHome" aria-label="回首頁">🏠</button>
@@ -74,6 +81,6 @@
 
   <div id="toast" class="toast"></div>
   <div id="rotate" class="rotate">📱 ↻</div>
-  <script type="module" src="js/draw.js?v=1"></script>
+  <script type="module" src="js/draw.js?v=2"></script>
 </body>
 </html>

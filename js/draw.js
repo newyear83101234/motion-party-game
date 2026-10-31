@@ -1,9 +1,9 @@
 // 畫畫遊戲主程式：首頁、畫畫頁（工具列、彈出選單、手勢）、完成、作品牆
-import { Board } from "./draw-canvas.js?v=1";
-import { Painter, previewMat } from "./draw-paint.js?v=1";
-import { Fx } from "./draw-fx.js?v=1";
-import * as G from "./draw-gallery.js?v=1";
-import { STICKERS, stickerImage } from "./draw-stickers.js?v=1";
+import { Board } from "./draw-canvas.js?v=2";
+import { Painter, previewMat, previewBrush } from "./draw-paint.js?v=2";
+import { Fx } from "./draw-fx.js?v=2";
+import * as G from "./draw-gallery.js?v=2";
+import { STICKERS, stickerImage } from "./draw-stickers.js?v=2";
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -12,20 +12,23 @@ const DEV = Q.has("dev");   // 網址帶 ?dev 才看得到測試用線稿
 const ART_DIR = "IMAGE/draw/lineart/";
 const COLORS = ["#e53935", "#f06292", "#ad1457", "#ff7043", "#fb8c00", "#ffb300", "#fdd835", "#fff176",
   "#c0ca33", "#7cb342", "#43a047", "#00897b", "#4dd0e1", "#29b6f6", "#1e88e5", "#3949ab",
-  "#7e57c2", "#8e24aa", "#8d6e63", "#5d4037", "#bdbdbd", "#757575", "#212121", "#ffffff"];
+  "#7e57c2", "#8e24aa", "#8d6e63", "#5d4037", "#bdbdbd", "#757575", "#212121", "#ffffff",
+  "#ffe0bd", "#f1c27d", "#c68642", "#ffcdd2", "#c8e6c9", "#bbdefb"];   // 最後一排：三種膚色＋三種粉嫩色（畫人物用）
 const MATS = [{ kind: "solid" }, { kind: "glitter" }, ...["star", "heart", "dot", "stripe", "snow"].map(p => ({ kind: "pattern", pattern: p }))];
-const BRUSHES = [["marker", "🖊️"], ["crayon", "🖍️"], ["rainbow", "🌈"]];
+const BRUSHES = ["marker", "crayon", "rainbow", "watercolor", "spray", "neon", "sparkle", "pencil"];
+const AUTO = { ms: 10000 };            // 畫了東西多久沒再動就自動存檔（測試會改它）
 const SIZES = [10, 22, 40];            // 筆刷半徑（畫布像素）
 const STICKER_SIZE = [120, 200, 300];  // 貼紙邊長，跟著筆刷粗細
 
 const S = { tool: "fill", brush: "marker", size: 1, color: COLORS[0], mat: MATS[0], sticker: "star", clip: true,
-  art: null, workId: null, done: false, busy: false };
+  art: null, workId: null, done: false, busy: false, autoOff: false };
 const board = new Board($("#stage"));
 const painter = new Painter(board);
 const fx = new Fx(board);
 let INDEX = { themes: [], arts: [] };
 
 function show(id) {
+  if (id !== "paint") setFull(false);
   $$(".screen").forEach(s => s.classList.toggle("on", s.id === id));
   if (id === "paint") fx.sparkleStart(); else fx.sparkleStop();
 }
@@ -52,6 +55,26 @@ function hold(btn, fn) {
   for (const t of ["pointerup", "pointerleave", "pointercancel"]) btn.addEventListener(t, () => stop(true));
 }
 
+// 按鈕在手指放開時就觸發，不等瀏覽器自己合成 click：反應比較快，也避免畫完一筆後第一下按鈕被瀏覽器吃掉
+// （無頭 Chrome 實測會發生）。之後 700 毫秒內瀏覽器補送的真 click 一律吞掉：免得觸發兩次，也免得換畫面後
+// 點到新畫面同一位置的東西（幽靈點擊）。按住型按鈕（.hold）照舊
+let downBtn = null, downXY = [0, 0], fired = 0;
+document.addEventListener("pointerdown", e => {
+  const b = e.target.closest?.("button");
+  downBtn = b && !b.classList.contains("hold") && !b.disabled ? b : null;
+  downXY = [e.clientX, e.clientY];
+}, true);
+document.addEventListener("pointerup", e => {
+  const b = e.target.closest?.("button");
+  if (!b || b !== downBtn || Math.hypot(e.clientX - downXY[0], e.clientY - downXY[1]) > 20) return;
+  downBtn = null; fired = performance.now();
+  b.click();
+}, true);
+document.addEventListener("pointercancel", () => { downBtn = null; }, true);
+document.addEventListener("click", e => {
+  if (e.isTrusted && performance.now() - fired < 700) { e.stopPropagation(); e.preventDefault(); }   // b.click() 自己送的不是 isTrusted
+}, true);
+
 // ── 首頁 ──
 function renderHome(theme) {
   theme = theme || INDEX.themes[0]?.id;
@@ -62,7 +85,7 @@ function renderHome(theme) {
   }));
   const arts = INDEX.arts.filter(a => a.theme === theme && (DEV || !a.test));
   $("#arts").replaceChildren(...arts.map(a => {
-    const c = card(ART_DIR + (a.thumb || a.file) + "?v=1", () => startArt(a), a.level === 1 ? "⭐" : "⭐⭐⭐");
+    const c = card(ART_DIR + (a.thumb || a.file) + "?v=2", () => startArt(a), a.level === 1 ? "⭐" : "⭐⭐⭐");
     c.dataset.id = a.id;
     return c;
   }));
@@ -82,7 +105,7 @@ async function startArt(a, work = null) {
   $("#loading").classList.add("on");
   try {
     let ok;
-    try { ok = await board.load(a.url || ART_DIR + a.file + "?v=1"); }
+    try { ok = await board.load(a.url || ART_DIR + a.file + "?v=2"); }
     catch (e) {
       if (my !== loadSeq) return false;   // 已經被更新的請求取代，不要動畫面
       console.warn("線稿載入失敗：" + (e && e.message));   // 不用 console.error：測試把它當頁面錯誤
@@ -92,7 +115,8 @@ async function startArt(a, work = null) {
     }
     if (!ok) return false;
     painter.reset();
-    S.art = a; S.workId = null; S.done = false;
+    S.art = a; S.workId = null; S.done = false; S.autoOff = false;
+    dirty = false; clearTimeout(autoTimer); refreshUndo();
     if (work) {
       if (work.w && (work.w !== board.W || work.h !== board.H)) { console.warn("作品尺寸跟線稿不同，從空白開始"); toast("⚠️ 舊畫打不開，從空白開始"); }
       else try {
@@ -123,28 +147,58 @@ function toast(text, ms = 2500) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove("on"), ms);
 }
-// 回傳 "ok" / "full"（作品牆滿了）/ "error"（其他錯誤，已跳提示）；不往外丟錯
-async function saveWork() {
-  let c = null;
-  toast("💾", 60000);
-  const mine = toastTimer;
+// 回傳 "ok" / "full"（作品牆滿了）/ "error"（其他錯誤）；不往外丟錯
+// quiet = 自動存檔：不跳任何提示，作品牆滿了就這張先不自動存（等按 🏠／✔️ 再走整理流程）
+// 一次只存一件、照順序排隊，免得同一張新畫被存成兩件
+let saveQ = Promise.resolve();
+function saveWork(quiet = false) {
+  const run = saveQ.then(() => doSave(quiet));
+  saveQ = run;   // doSave 不會往外丟錯，排隊不會斷
+  return run;
+}
+async function doSave(quiet) {
+  if (!S.art || !board.labels) return "error";
+  let c = null, mine = 0;
+  const seq = loadSeq;
+  if (!quiet) { toast("💾", 60000); mine = toastTimer; }
   try {
+    dirty = false;   // 存檔途中又畫了東西 → onChange 會再設回 true，下一次自動存檔補上
+    const w = { id: S.workId || G.newId(), art: S.art.id, done: S.done, w: board.W, h: board.H };
     c = board.composite();
-    const w = { id: S.workId || G.newId(), art: S.art.id, done: S.done, w: board.W, h: board.H, thumb: await G.thumbOf(c), image: await G.toBlob(c),
-      color: await G.toBlob(board.color), glit: await G.toBlob(board.glit) };
-    await G.save(w); S.workId = w.id;
+    // 四張圖同一刻送去編碼，存下來的才是同一個瞬間的畫面
+    [w.thumb, w.image, w.color, w.glit] = await Promise.all([G.thumbOf(c), G.toBlob(c), G.toBlob(board.color), G.toBlob(board.glit)]);
+    await G.save(w);
+    if (seq === loadSeq) S.workId = w.id;   // 存檔途中已經換了別張圖，就不要把這個編號套到新的那張
     return "ok";
   } catch (e) {
-    if (e && e.code === "FULL") return "full";
+    if (seq === loadSeq) dirty = true;   // 已經換了別張圖就不要把新的那張標成沒存
+    if (e && e.code === "FULL") { if (quiet) S.autoOff = true; return "full"; }
     console.warn("存檔失敗：" + (e && e.message));
-    toast("⚠️ 沒存到");
+    if (!quiet) toast("⚠️ 沒存到");
     return "error";
   } finally {
     if (c) c.width = c.height = 0;
     // 存檔期間的 💾 收掉；若期間跳了別的提示（滿了／沒存到），以那個為準
-    if (toastTimer === mine && $("#toast").textContent === "💾") { clearTimeout(toastTimer); $("#toast").classList.remove("on"); }
+    if (!quiet && toastTimer === mine && $("#toast").textContent === "💾") { clearTimeout(toastTimer); $("#toast").classList.remove("on"); }
   }
 }
+
+// ── 自動存檔：畫了東西 10 秒沒再動、或切到別的 App／關掉分頁時，悄悄存一份（作品牆標 ✏️），當掉或被關掉也不會整張不見 ──
+let dirty = false, autoTimer = 0;
+function autoSave() {
+  clearTimeout(autoTimer);
+  if (S.busy || S.autoOff || !S.art || !board.labels || !$("#paint").classList.contains("on")) return;
+  fx.flush();   // 填色水波還在跑 → 先讓它進顏色層，才存得到（會觸發 onChange 設 dirty）
+  if (dirty) saveWork(true);
+}
+painter.onChange = () => {
+  refreshUndo();
+  dirty = true;
+  clearTimeout(autoTimer); autoTimer = setTimeout(autoSave, AUTO.ms);
+};
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") autoSave(); });
+window.addEventListener("pagehide", autoSave);
+function refreshUndo() { for (const b of $$("#bUndo, #mUndo")) b.classList.toggle("dim", !painter.history.size); }
 function goHome() { $("#after").classList.remove("on"); show("home"); renderHome(S.art?.theme); }
 // 作品牆滿了：提示一下就進整理模式，讓大人刪幾件；整理完按 🏠 回到原本那張畫
 function galleryFull() {
@@ -169,7 +223,10 @@ $("#bHome").onclick = async () => {
   if (S.busy) return;
   S.busy = true; fx.flush(); closePop();
   let r = "ok";
-  try { if (painter.history.size) r = await saveWork(); }   // 有畫東西才存；沒畫完的作品牆會標 ✏️
+  try {   // 先等正在跑的自動存檔，之後還有沒存到的改動才再存一次；沒畫完的作品牆會標 ✏️
+    await saveQ;
+    if (dirty) r = await saveWork();
+  }
   finally { S.busy = false; }
   if (r === "full") galleryFull();
   else if (r === "ok") goHome();
@@ -181,37 +238,77 @@ $$(".tool").forEach(b => b.onclick = () => {
   if (S.tool === t && (t === "brush" || t === "sticker")) return togglePop(t);   // 已選的工具再點一次 → 開選單
   S.tool = t; closePop();
   $$(".tool").forEach(x => x.classList.toggle("on", x === b));
+  refreshDims();
   if (firstPop[t]) { firstPop[t] = false; renderPop(t); }
 });
-$("#bColor").onclick = () => togglePop("color");
+$("#bColor").onclick = $("#mColor").onclick = () => togglePop("color");
 $("#bMat").onclick = () => togglePop("mat");
 $("#bClip").onclick = () => { S.clip = !S.clip; $("#bClip").classList.toggle("on", S.clip); };
-$("#bUndo").onclick = () => { if (S.busy) return; fx.flush(); painter.undo(); };
+$("#bUndo").onclick = $("#mUndo").onclick = () => { if (S.busy) return; fx.flush(); painter.undo(); };
 hold($("#bClear"), () => { if (S.busy) return; fx.flush(); painter.clearAll(); });
+
+// ── 全螢幕：工具列收起來、畫布放到最大，右上角只留 ⤡／顏色／復原；瀏覽器支援的話（iPad Safari）順便藏起網址列 ──
+const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement;
+function setFull(on) {
+  if ($("#paint").classList.contains("full") === on) return;
+  closePop();
+  $("#paint").classList.toggle("full", on);
+  const m = $("#mFull");   // 剛進全螢幕：「離開」鈕跳兩下，讓小孩知道從這裡回去
+  m.classList.remove("hint");
+  if (on) { void m.offsetWidth; m.classList.add("hint"); }
+  const d = document.documentElement;
+  try {
+    const p = on ? (d.requestFullscreen || d.webkitRequestFullscreen)?.call(d)
+      : fsEl() && (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
+    p?.catch?.(() => {});   // 不給全螢幕（iPhone、從主畫面開）就只換版面
+  } catch { /* 同上 */ }
+  requestAnimationFrame(() => { if (board.labels) board.fit(); });
+}
+$("#bFull").onclick = () => { if (!S.busy) setFull(true); };
+$("#mFull").onclick = () => setFull(false);
+// 用瀏覽器自己的方式離開全螢幕（iPad 左上角 ✕、往下滑）→ 版面也跟著回來
+// 反過來：按了 ⤢ 又馬上按離開，瀏覽器晚一步才進全螢幕 → 這時再把它退出來，兩邊保持一致
+for (const ev of ["fullscreenchange", "webkitfullscreenchange"]) document.addEventListener(ev, () => {
+  const full = $("#paint").classList.contains("full");
+  if (!fsEl()) setFull(false);
+  else if (!full) try { (document.exitFullscreen || document.webkitExitFullscreen)?.call(document)?.catch?.(() => {}); } catch { /* 不支援就算了 */ }
+});
 
 const stickerSrc = s => "data:image/svg+xml;charset=utf-8," + encodeURIComponent(s.svg);
 function refreshBar() {
-  $("#bColor .dot").style.background = S.color;
+  for (const d of $$("#bColor .dot, #mColor .dot")) d.style.background = S.color;
   const cv = $("#bMat canvas");
   cv.getContext("2d").drawImage(previewMat(S.mat, "#9e9e9e", cv.width), 0, 0);   // 工具列的材質預覽固定用灰色
+  refreshTools();   // 筆刷鈕的筆跡預覽跟著顏色變
 }
-// 筆刷鈕、貼紙鈕跟著目前選的筆與貼紙變
+// 筆刷鈕顯示目前那支筆用目前顏色畫的一小段（跟筆刷選單長得一樣）；貼紙鈕顯示目前的貼紙
 function refreshTools() {
-  $('[data-tool="brush"]').textContent = BRUSHES.find(b => b[0] === S.brush)?.[1] || "🖊️";
+  const bb = $('[data-tool="brush"]');
+  bb.replaceChildren(previewBrush(S.brush, S.color, 168, 100));
+  bb.dataset.brush = S.brush;
   const s = STICKERS.find(x => x.id === S.sticker), img = new Image();
   img.alt = ""; if (s) img.src = stickerSrc(s);
   $('[data-tool="sticker"]').replaceChildren(img);
+  refreshDims();
+}
+// 目前的工具用不到的設定鈕變淡（仍可以按，先選好等一下用）：彩虹筆、貼紙、橡皮擦不看顏色；只有填色桶和馬克筆吃材質
+function refreshDims() {
+  const brush = S.tool === "brush";
+  for (const b of $$("#bColor, #mColor")) b.classList.toggle("dim", S.tool === "sticker" || S.tool === "eraser" || (brush && S.brush === "rainbow"));
+  $("#bMat").classList.toggle("dim", !(S.tool === "fill" || (brush && S.brush === "marker")));
 }
 
 // ── 彈出選單 ──
-let popKind = null;
-function closePop() { popKind = null; $("#pop").classList.remove("on"); }
+let popKind = null, popTimer = 0;
+function closePop() { clearTimeout(popTimer); popKind = null; $("#pop").classList.remove("on"); }
+function closeSoon() { clearTimeout(popTimer); popTimer = setTimeout(closePop, 250); }   // 先讓小孩看到選中的框，再收起來
 function togglePop(kind) { if (popKind === kind) closePop(); else renderPop(kind); }
 function renderPop(kind) {
+  clearTimeout(popTimer);
   popKind = kind;
   const P = $("#pop");
   P.replaceChildren();
-  P.classList.add("on");
+  P.className = "pop on " + kind;
   if (kind === "color") for (const c of COLORS) {
     const b = button("sw" + (c === S.color ? " on" : ""), "", () => { S.color = c; refreshBar(); closePop(); }, c);
     b.style.background = c; P.append(b);
@@ -220,11 +317,14 @@ function renderPop(kind) {
     const b = button("opt" + (m === S.mat ? " on" : ""), "", () => { S.mat = m; refreshBar(); closePop(); }, m.pattern || m.kind);
     b.append(previewMat(m, S.color, 120)); P.append(b);
   }
-  if (kind === "brush") {
-    const r1 = el("div", "row"), r2 = el("div", "row");
-    for (const [id, icon] of BRUSHES) r1.append(button("opt" + (id === S.brush ? " on" : ""), icon, () => { S.brush = id; refreshTools(); renderPop("brush"); }, id));
+  if (kind === "brush") {   // 左邊 8 種筆（用目前的顏色畫一段給小孩看），右邊一直排粗細；選了就收起來
+    const r1 = el("div", "brushes"), r2 = el("div", "sizes");
+    for (const id of BRUSHES) {
+      const b = button("opt wide" + (id === S.brush ? " on" : ""), "", () => { S.brush = id; refreshTools(); renderPop("brush"); closeSoon(); }, id);
+      b.append(previewBrush(id, S.color)); r1.append(b);
+    }
     SIZES.forEach((_, i) => r2.append(button("opt size" + (i === S.size ? " on" : ""),
-      `<i style="width:${12 + i * 14}px;height:${12 + i * 14}px"></i>`, () => { S.size = i; renderPop("brush"); }, "size" + i)));
+      `<i style="width:${12 + i * 14}px;height:${12 + i * 14}px"></i>`, () => { S.size = i; renderPop("brush"); closeSoon(); }, "size" + i)));
     P.append(r1, r2);
   }
   if (kind === "sticker") for (const s of STICKERS) {
@@ -357,7 +457,7 @@ $("#toGallery").onclick = renderGallery;
 $("#gBack").onclick = () => {
   revokeUrls();
   $("#view").classList.remove("on");
-  if (tidy) { tidy = false; show("paint"); }   // 整理完回到原本那張畫（畫布沒重載）
+  if (tidy) { tidy = false; S.autoOff = false; show("paint"); }   // 整理完回到原本那張畫（畫布沒重載），有空位了自動存檔重新打開
   else { show("home"); renderHome(); }
 };
 $("#gTip").onclick = () => $("#tip").classList.toggle("on");
@@ -379,12 +479,12 @@ hold($("#vDel"), async () => {
 
 // ── 開始 ──
 window.addEventListener("resize", () => { if (board.labels && $("#paint").classList.contains("on")) board.fit(); });
-window.__draw = { S, board, painter, fx, G, show, renderHome, startArt, renderGallery, COLORS };
+window.__draw = { S, board, painter, fx, G, show, renderHome, startArt, renderGallery, COLORS, AUTO, setFull, autoSave, isDirty: () => dirty };
 (async () => {
   G.persist();
-  refreshBar(); refreshTools();
+  refreshBar(); refreshTools(); refreshUndo();
   try {
-    const res = await fetch(ART_DIR + "index.json?v=1");
+    const res = await fetch(ART_DIR + "index.json?v=2");
     if (!res.ok) throw new Error("HTTP " + res.status);
     INDEX = await res.json();
   } catch (e) {

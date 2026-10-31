@@ -38,6 +38,7 @@ function versionCheck() {
 
   await p.goto(BASE + "?dev&art=" + ART);
   await p.waitForFunction(() => window.__draw && __draw.board.labels, null, { timeout: 8000 });
+  await p.evaluate(() => { __draw.AUTO.ms = 1e9; });   // 自動存檔先關掉，免得測試途中偷偷多存作品；後面專門測
   const n = await p.evaluate(() => __draw.board.boxes.length);
   check("測試線稿切出 6 塊", n === 6, `count=${n}`);
   await tapImg(1450, 500);
@@ -105,7 +106,7 @@ function versionCheck() {
 
   // Task 6：貼紙
   const st = await p.evaluate(async () => {
-    const M = await import("./js/draw-stickers.js?v=1");
+    const M = await import("./js/draw-stickers.js?v=2");
     const ids = M.STICKERS.map(s => s.id);
     const img = await M.stickerImage("star");
     __draw.painter.sticker(img, 1000, 1200, 200);
@@ -118,7 +119,7 @@ function versionCheck() {
 
   // Task 7：特效
   await p.evaluate(async () => {
-    const M = await import("./js/draw-fx.js?v=1");
+    const M = await import("./js/draw-fx.js?v=2");
     window.__fx = __draw.fx || new M.Fx(__draw.board);   // Task 9 之後用遊戲自己的那一個，免得兩組亮粉互相干擾
     __draw.painter.clearAll();
   });
@@ -206,7 +207,7 @@ function versionCheck() {
 
   // Task 8：作品牆
   const gal = await p.evaluate(async () => {
-    const G = await import("./js/draw-gallery.js?v=1");
+    const G = await import("./js/draw-gallery.js?v=2");
     await G.wipe();
     const c = __draw.board.composite();
     const w = { id: G.newId(), art: "test-shapes", done: true, thumb: await G.thumbOf(c), image: await G.toBlob(c),
@@ -273,7 +274,7 @@ function versionCheck() {
   check("清空要按住 1 秒才會清", await px(1450, 500) === "255,255,255");
 
   await p.tap("#bColor");
-  check("顏色選單 24 色", await on("#pop") && await p.locator("#pop .sw").count() === 24);
+  check("顏色選單 30 色（含膚色）", await on("#pop") && await p.locator("#pop .sw").count() === 30);
   await p.tap("#pop .sw:nth-child(17)");
   check("選了顏色、選單自動收起", await p.evaluate(() => __draw.S.color) === "#7e57c2" && !(await on("#pop")));
   await p.tap("#bMat");
@@ -421,12 +422,12 @@ function versionCheck() {
   await p.tap('[data-tool="brush"]');   // 已經用過第一次自動開選單，這次要自己點第二下才開
   if (!(await on("#pop"))) await p.tap('[data-tool="brush"]');
   await p.tap('#pop .opt[aria-label="crayon"]');
-  check("選了蠟筆 → 筆刷鈕顯示 🖍️", await p.evaluate(() => document.querySelector('[data-tool="brush"]').textContent) === "🖍️");
+  check("選了蠟筆 → 筆刷鈕換成蠟筆的預覽圖", await p.evaluate(() => { const b = document.querySelector('[data-tool="brush"]'); return b.dataset.brush === "crayon" && !!b.querySelector("canvas"); }));
   await p.tap('[data-tool="sticker"]');
   check("第一次選貼紙 → 自動打開選單", await on("#pop"));
   await p.tap('#pop .opt[aria-label="heart"]');
   const stk = await p.evaluate(async () => {
-    const M = await import("./js/draw-stickers.js?v=1");
+    const M = await import("./js/draw-stickers.js?v=2");
     const want = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(M.STICKERS.find(s => s.id === "heart").svg);
     const im = document.querySelector('[data-tool="sticker"] img');
     return { has: !!im, same: !!im && im.getAttribute("src") === want };
@@ -487,6 +488,143 @@ function versionCheck() {
   // 沒按滿 1 秒放開 → 紅圈閃一下
   await p.evaluate(() => { const b = document.querySelector("#bClear"); b.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); b.dispatchEvent(new PointerEvent("pointerup", { bubbles: true })); });
   check("清空沒按滿就放開 → 紅圈閃一下", await p.evaluate(() => document.querySelector("#bClear").classList.contains("flash")));
+
+  // ── 第二版：新畫筆、全螢幕、自動存檔 ──
+  const inkIn = (x, y, w, h) => p.evaluate(([x, y, w, h]) => {   // 這個範圍裡有幾個像素不是白色
+    const d = __draw.board.ctx.getImageData(x, y, w, h).data; let k = 0;
+    for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] < 750) k++;
+    return k;
+  }, [x, y, w, h]);
+  const liveClean = () => p.evaluate(() => { const d = __draw.board.lctx.getImageData(1000, 0, 1000, 800).data; for (let i = 3; i < d.length; i += 4) if (d[i]) return false; return true; });
+  const hist = () => p.evaluate(() => __draw.painter.history.size);
+  for (const b of ["watercolor", "spray", "neon", "sparkle", "pencil"]) {
+    await p.evaluate(() => __draw.painter.clearAll());
+    const h1 = await hist();
+    await stroke([[1130, 500], [1300, 520], [1500, 480]], { ...pen, brush: b, clip: true });   // 起筆貼著長方形左邊框
+    const inside = await inkIn(1110, 400, 450, 200), outside = await inkIn(1040, 380, 48, 240);
+    check(`${b}：畫得出來、不出線、即時層清乾淨、記一步復原`, inside > 200 && outside === 0 && await liveClean() && await hist() === h1 + 1, `inside=${inside} outside=${outside}`);
+  }
+  // 重畫範圍（REACH）夠不夠：暫存畫布有筆跡、即時層卻沒有 = 被切掉了
+  const cut = await p.evaluate(() => {
+    const { board: b, painter: P } = __draw, out = [];
+    for (const br of ["crayon", "watercolor", "spray", "neon", "sparkle", "pencil"]) for (const size of [10, 22, 40]) for (let t = 0; t < 3; t++) {
+      P.strokeStart(400, 400, { brush: br, size, mat: { kind: "solid" }, color: "#e53935", clip: false });
+      for (let i = 1; i <= 6; i++) P.strokeMove(400 + i * 40 * (i % 2 ? 1 : -0.5), 400 + i * 13);
+      const L = b.lctx.getImageData(200, 200, 600, 400).data, sc = P.scratch.getContext("2d").getImageData(200, 200, 600, 400).data;
+      let k = 0; for (let i = 3; i < sc.length; i += 4) if (sc[i] > 8 && L[i] <= 2) k++;
+      if (k) out.push(`${br}${size}:${k}`);
+      P.strokeCancel();
+    }
+    return out;
+  });
+  check("每種筆、每種粗細：即時層的筆跡沒有被切掉", cut.length === 0, cut.join(" "));
+  const sum = s => s.split(",").reduce((a, v) => a + +v, 0);
+  await p.evaluate(() => { const P = __draw.painter; P.clearAll(); P.fill(P.regionAt(1450, 500), { kind: "solid" }, "#1e88e5").done(); });
+  await stroke([[1300, 500], [1600, 500]], { ...pen, color: "#fdd835", brush: "watercolor", clip: true });
+  const wc = await px(1450, 500);
+  check("水彩是半透明：黃色疊在藍色上變成混色", wc !== "30,136,229" && wc !== "253,216,53" && wc.split(",")[1] > 150, wc);
+  await p.evaluate(() => __draw.painter.clearAll());
+  await stroke([[1000, 100], [1500, 100]], { ...pen, brush: "neon", clip: false });
+  const nc = await px(1250, 100), ne = await px(1250, 124);
+  check("霓虹：中間是淺色亮芯、外圈有同色光暈", ne !== "255,255,255" && sum(nc) > sum(ne), `${nc} / ${ne}`);
+  await p.evaluate(() => __draw.painter.clearAll());
+  await stroke([[1000, 100], [1500, 100]], { ...pen, brush: "pencil", clip: false });
+  check("鉛筆是細線：中心有畫到、離中心 12 像素就沒有", await px(1250, 100) !== "255,255,255" && await inkIn(1000, 112, 500, 20) === 0, await px(1250, 100));
+  await p.evaluate(() => __draw.painter.clearAll());
+  await stroke([[1000, 100], [1500, 100]], { ...pen, brush: "spray", clip: false });
+  const sp = await inkIn(1200, 70, 100, 61);
+  check("噴漆是點點：一條帶子裡有畫到也有空隙", sp > 300 && sp < 6100 * 0.95, `${sp}/6100`);
+  await p.evaluate(() => __draw.painter.clearAll());
+  await stroke([[1000, 100], [1500, 100]], { ...pen, brush: "sparkle", clip: false });
+  check("星星筆：沿路有好幾種深淺", await colorsIn(1000, 60, 500, 80) >= 3, `${await colorsIn(1000, 60, 500, 80)} 色`);
+  await p.evaluate(() => __draw.painter.clearAll());
+
+  // 筆刷選單：8 種筆，每種都有用目前顏色畫的預覽
+  await p.tap('[data-tool="brush"]');
+  if (!(await on("#pop"))) await p.tap('[data-tool="brush"]');
+  const pv = await p.evaluate(() => [...document.querySelectorAll("#pop .opt.wide")].map(b => {
+    const c = b.querySelector("canvas"), d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data; let k = 0;
+    for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] < 720) k++;
+    return b.getAttribute("aria-label") + ":" + k;
+  }));
+  check("筆刷選單 8 種筆、每張預覽都畫得出東西", pv.length === 8 && pv.every(s => +s.split(":")[1] > 150), pv.join(" "));
+  const pb = await p.locator("#pop").boundingBox();
+  check("筆刷選單整個在畫面內", pb.x >= 0 && pb.y + pb.height <= 820, JSON.stringify(pb));
+  await p.screenshot({ path: path.join(OUT, "07-brush-pop.png") });
+  await p.tap('#pop .opt[aria-label="sparkle"]');
+  await p.waitForTimeout(500);
+  check("選了星星筆 → 筆刷鈕換成星星筆、選單自己收起來", await p.evaluate(() => document.querySelector('[data-tool="brush"]').dataset.brush) === "sparkle" && !(await on("#pop")));
+
+  // 全螢幕
+  const fsState = () => p.evaluate(() => ({ full: document.querySelector("#paint").classList.contains("full"), bar: getComputedStyle(document.querySelector("#bar")).display,
+    mini: getComputedStyle(document.querySelector("#mini")).display, w: Math.round(document.querySelector("#stage").getBoundingClientRect().width), base: __draw.board.base }));
+  const fs0 = await fsState();
+  await p.tap("#bFull"); await p.waitForTimeout(400);
+  const fs1 = await fsState();
+  check("全螢幕：工具列收起、右邊窄條出現小按鈕、畫布變大", fs1.full && fs1.bar === "none" && fs1.mini === "flex" && fs1.w >= 1090 && fs1.base > fs0.base, JSON.stringify([fs0, fs1]));
+  await p.evaluate(() => { __draw.painter.clearAll(); Object.assign(__draw.S, { brush: "marker", clip: false, color: "#1e88e5", mat: { kind: "solid" } }); });
+  const F1 = await toClient(1000, 100), F2 = await toClient(1500, 100);
+  await touch("touchStart", [[F1.x, F1.y, 1]]); await touch("touchMove", [[(F1.x + F2.x) / 2, F1.y, 1]]); await touch("touchMove", [[F2.x, F2.y, 1]]); await touch("touchEnd", []);
+  check("全螢幕：手指畫得出來（座標對得上）", await px(1250, 100) === "30,136,229", await px(1250, 100));
+  await p.tap("#mColor");
+  const popB = await p.locator("#pop").boundingBox(), miniB = await p.locator("#mini").boundingBox();
+  check("全螢幕：顏色選單打得開、沒蓋住右上角按鈕", await on("#pop") && await p.locator("#pop .sw").count() === 30 && popB.x + popB.width <= miniB.x, JSON.stringify([popB, miniB]));
+  await p.tap("#pop .sw:nth-child(25)");   // 第一個膚色
+  const dots = await p.evaluate(() => [...document.querySelectorAll("#bColor .dot, #mColor .dot")].map(d => d.style.background));
+  check("選了膚色 → 兩顆顏色鈕都跟著變", await p.evaluate(() => __draw.S.color) === "#ffe0bd" && dots.length === 2 && dots.every(d => d === dots[0] && d.includes("255, 224, 189")), dots.join(" / "));
+  await p.screenshot({ path: path.join(OUT, "08-fullscreen.png") });
+  await p.tap("#mUndo");
+  check("全螢幕：復原鈕可以用", await px(1250, 100) === "255,255,255");
+  await p.tap("#mFull"); await p.waitForTimeout(400);
+  const fs2 = await fsState();
+  check("離開全螢幕：工具列回來、小按鈕藏起來、畫布回原本大小", !fs2.full && fs2.bar === "flex" && fs2.mini === "none" && Math.abs(fs2.base - fs0.base) < 1e-9 && await p.evaluate(() => !document.fullscreenElement), JSON.stringify(fs2));
+  await p.tap("#bFull"); await p.waitForTimeout(400);
+  if (await p.evaluate(() => !!document.fullscreenElement)) {
+    await p.evaluate(() => document.exitFullscreen()); await p.waitForTimeout(400);
+    check("用瀏覽器自己的方式離開全螢幕 → 版面也跟著回來", !(await fsState()).full);
+  } else {
+    check("瀏覽器不給全螢幕時照樣換成滿版版面", (await fsState()).full);
+    await p.tap("#mFull");
+  }
+  await p.evaluate(() => __draw.setFull(true)); await p.evaluate(() => __draw.show("home"));
+  check("全螢幕時離開畫畫頁 → 自動退出全螢幕", !(await fsState()).full);
+  await p.evaluate(() => __draw.show("paint"));
+
+  // 自動存檔
+  await p.evaluate(() => __draw.G.wipe());
+  const openTest = async () => {
+    await p.evaluate(() => __draw.startArt({ id: "test-shapes", url: "IMAGE/draw/lineart/test-shapes.svg", parts: [] }));
+    await p.waitForFunction(() => !__draw.S.busy && __draw.board.labels && __draw.painter.history.size === 0, null, { timeout: 8000 });
+  };
+  const dim = () => p.evaluate(() => document.querySelector("#bUndo").classList.contains("dim"));
+  await openTest();
+  check("剛開圖：復原鈕變淡（沒有可以退的）", await dim());
+  await p.evaluate(() => { __draw.AUTO.ms = 400; const P = __draw.painter; P.fill(P.regionAt(1450, 500), { kind: "solid" }, "#e53935").done(); });
+  check("畫了一筆 → 復原鈕亮起來", !(await dim()));
+  await p.waitForTimeout(1500);
+  const a1 = await p.evaluate(async () => { const l = await __draw.G.list(); return { n: l.length, done: l[0]?.done, same: l[0]?.id === __draw.S.workId, toast: document.querySelector("#toast").classList.contains("on") }; });
+  check("自動存檔：停手一下就悄悄存成未完成、沒跳提示", a1.n === 1 && a1.done === false && a1.same && !a1.toast, JSON.stringify(a1));
+  await p.evaluate(() => { const P = __draw.painter; P.fill(P.regionAt(300, 500), { kind: "solid" }, "#43a047").done(); });
+  await p.waitForTimeout(1500);
+  const a2 = await p.evaluate(async () => {
+    const l = await __draw.G.list(), bmp = await createImageBitmap(l[0].color), c = new OffscreenCanvas(bmp.width, bmp.height), x = c.getContext("2d");
+    x.drawImage(bmp, 0, 0);
+    return { n: l.length, px: [...x.getImageData(300, 500, 1, 1).data].slice(0, 3).join(",") };
+  });
+  check("再畫再自動存：還是同一件、內容是最新的", a2.n === 1 && a2.px === "67,160,71", JSON.stringify(a2));
+  await p.tap("#bHome");
+  check("自動存好了再按 🏠 → 回首頁、不會多存一件", await waitOn("#home") && await p.evaluate(() => __draw.G.count()) === 1);
+  await p.evaluate(() => { __draw.AUTO.ms = 1e9; });
+  await openTest();
+  await p.evaluate(() => { const P = __draw.painter; P.fill(P.regionAt(1450, 500), { kind: "solid" }, "#fb8c00").done(); });
+  await p.evaluate(() => {   // 假裝切到別的 App
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await p.waitForTimeout(1200);
+  await p.evaluate(() => { delete document.visibilityState; });
+  check("切到別的 App → 馬上自動存", await p.evaluate(() => __draw.G.count()) === 2 && !(await p.evaluate(() => __draw.isDirty())));
+  await p.evaluate(() => __draw.G.wipe());
 
   // ── 後續 task 的測試插在這一行上面 ──
   check("沒有頁面錯誤", errs.length === 0, errs.join(" | "));
