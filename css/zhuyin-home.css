@@ -1,0 +1,102 @@
+/* 注音小島 v8 我的家（js/zhuyin-home.js；docs/zhuyin-v8-plan.md §3）：房子卡片、花園小舖、信件、錢包膠囊、結算的磚頭進度條 */
+
+/* 3D 小島上「我的家」的浮標：跟遊戲浮標同一種樣子，底色暖一點 */
+.hub-tag.home { background: #fff3df; } .hub-tag.home::after { border-top-color: #fff3df; }
+.hub-tag.home.mail .ht-ico::after { content: "✉️"; position: absolute; right: -1.6vmin; top: -1.8vmin; font-size: 3.4vmin; background: #e2453c; border-radius: 50%; padding: 0.3vmin; line-height: 1; animation: hgHold 1s ease-in-out infinite; }   /* 有新信：🏠 浮標上一個紅底 ✉️ */
+.hub-tag.home .ht-ico { position: relative; }
+.hub-tag.home.intro { animation: hmIntro 0.5s ease-in-out 6; }   /* 第一天：浮標閃 3 秒 */
+@keyframes hmIntro { 50% { scale: 1.25; box-shadow: 0 0 0 1vmin rgba(255,213,74,0.7); } }
+
+/* 選單的「⭐ N」錢包（陀螺、花園小舖共用）；錢包出現時星星罐不寫⭐數字（畫面上只有錢包是⭐＋數字） */
+.pill.wallet b { min-width: 4vmin; text-align: center; }
+.pill.wallet.pop { animation: hmPop 0.6s cubic-bezier(.2,1.6,.4,1); }
+@keyframes hmPop { 30% { scale: 1.25; } 100% { scale: 1; } }
+.jarBtn.no-star .jarStar { display: none; }
+
+/* 磚頭進度條（不寫數字） */
+.hm-bricks { display: inline-flex; gap: 0.5vmin; vertical-align: middle; }
+.hm-bricks i { width: 3.2vmin; height: 2.2vmin; border-radius: 0.5vmin; background: linear-gradient(90deg, #d4774f calc(var(--f, 0) * 100%), #e9e3d9 0); box-shadow: inset 0 -0.35vmin 0 rgba(0,0,0,0.08); transition: background 0.4s; }   /* --f＝這一塊蓋了幾成（最後一塊畫一部分） */
+.hm-next { font-style: normal; font-size: 3.4vmin; line-height: 1; filter: grayscale(1); opacity: 0.45; margin-left: 0.6vmin; }   /* 下一級房子的灰色剪影 */
+.hm-bricks.grow i.on:last-of-type, .hm-bricks.grow i:not(.on) { animation: hmBrick 0.45s cubic-bezier(.2,1.6,.4,1); }
+@keyframes hmBrick { 0% { translate: 0 -1.6vmin; } 100% { translate: 0 0; } }
+.hm-bricks i.on { background: #d4774f; box-shadow: inset 0 -0.35vmin 0 rgba(0,0,0,0.18); }
+.rw-strip > .rw-home { display: inline-flex; align-items: center; gap: 1vmin; }
+.rw-strip > .rw-home b { color: #b4531f; }
+
+/* 房子卡片：跟遊戲介紹卡同一個位置、同一種長相 */
+.hm-card { position: absolute; z-index: 30; left: 50%; bottom: max(2.4vmin, env(safe-area-inset-bottom, 0px)); translate: -50% 0; width: min(96vw, 130vmin);
+  display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "ico body go"; align-items: center; column-gap: 3vmin; row-gap: 2.2vmin;
+  background: #fff; border-radius: 5vmin; padding: 2.6vmin 3.4vmin; box-shadow: 0 1vmin 0 rgba(36,81,92,0.18), 0 2vmin 5vmin rgba(20,50,80,0.35);
+  animation: pickIn 0.3s cubic-bezier(.2,1.4,.4,1) both; }
+.hm-c-ico { grid-area: ico; width: 17vmin; height: 17vmin; border-radius: 50%; background: #fff3df; border: 0.7vmin solid #f2a65a; display: grid; place-items: center; font-size: 10vmin; line-height: 1; }
+.hm-c-body { grid-area: body; min-width: 0; display: flex; flex-direction: column; gap: 1.4vmin; }
+.hm-c-name { font-size: 6vmin; font-weight: 900; color: #24515c; line-height: 1.3; }
+.hm-c-row { display: flex; align-items: center; gap: 2vmin; flex-wrap: wrap; }
+.hm-c-msg { font-size: 4.6vmin; font-weight: bold; color: #3d4a57; }
+.hm-c-row .hm-bricks i { width: 4.4vmin; height: 3vmin; }
+.hm-c-btns { grid-area: go; display: flex; flex-direction: column; gap: 1.6vmin; }
+.hm-c-mail { font-size: 4.8vmin; padding: 1vmin 3vmin; min-height: 44px; border-radius: 5vmin; white-space: nowrap; }
+.hm-c-go { min-height: max(72px, 13vmin); font-size: 5.6vmin; padding: 1.4vmin 3.6vmin; border-radius: 5vmin; white-space: nowrap; }
+.hm-c-go.off { background: #e3e8ee; color: #6b7785; box-shadow: 0 5px 0 #c3ccd6; }
+@media (orientation: portrait) {
+  .hm-card { grid-template-columns: auto 1fr; grid-template-areas: "ico body" "go go"; }
+  .hm-c-btns { flex-direction: row; } .hm-c-btns > * { flex: 1; }
+}
+
+/* 花園小舖：下面一塊貨架，鏡頭把我的家放在它上面那塊空間的中間（hub3d homeArea） */
+body.garden-on #hudL, body.garden-on #hudR, body.garden-on .menu-bottom, body.garden-on #guide, body.garden-on #pick, body.garden-on .hm-card, body.garden-on .hub-tags { visibility: hidden; }   /* 布置花園：遊戲浮標、路牌也藏起來（不擋前院、也點不到別棟） */
+.hm-garden { position: absolute; z-index: 31; left: 0; right: 0; bottom: 0; padding: 2vmin max(2.4vmin, env(safe-area-inset-right, 0px)) max(2vmin, env(safe-area-inset-bottom, 0px)) max(2.4vmin, env(safe-area-inset-left, 0px));
+  background: #fffaf0; border-radius: 5vmin 5vmin 0 0; box-shadow: 0 -1vmin 4vmin rgba(20,50,80,0.3); display: flex; flex-direction: column; gap: 1.4vmin;
+  animation: hgIn 0.32s cubic-bezier(.2,1.3,.4,1) both; }
+@keyframes hgIn { from { transform: translateY(100%); } to { transform: none; } }
+.hg-head { display: flex; align-items: center; gap: 2.4vmin; }
+.hg-title { font-size: 5.4vmin; font-weight: 900; color: #24515c; }
+.hg-wallet { margin-left: auto; font-size: 4.6vmin; font-weight: 900; color: #24515c; background: #fff; border: 0.5vmin solid var(--yellow); border-radius: 4vmin; padding: 0.6vmin 2.2vmin; }
+.hg-wallet b { color: #b4531f; }
+.hg-done { font-size: 5vmin; padding: 1.2vmin 3.6vmin; min-height: 44px; }
+.hg-hint { display: flex; align-items: center; gap: 1.6vmin; min-height: 7vmin; font-size: 4.2vmin; font-weight: bold; color: #3d4a57; }
+.hg-held { display: none; font-size: 6vmin; line-height: 1; animation: hgHold 0.8s ease-in-out infinite; }
+.hg-held .hg-ico { width: 9vmin; height: 9vmin; font-size: 6vmin; }
+.hg-cancel { font-size: 3.8vmin; font-weight: 800; color: #24515c; background: #f1f4f7; border: 0.4vmin solid #c9d6e2; border-radius: 4vmin; padding: 0.6vmin 2vmin; min-height: 44px; }
+.hg-held.on { display: inline-block; }
+@keyframes hgHold { 50% { transform: translateY(-0.8vmin) rotate(-6deg); } }
+.hg-store, .hg-refund { font-size: 4vmin; font-weight: 800; color: #24515c; background: #fff; border: 0.5vmin solid #c9d6e2; border-radius: 4vmin; padding: 0.8vmin 2.4vmin; min-height: 44px; }
+.hg-store { margin-left: auto; }
+.hg-shelf { display: flex; gap: 2vmin; overflow-x: auto; overscroll-behavior-x: contain; padding: 1vmin 0.4vmin 1.6vmin; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
+.hg-item { flex: 0 0 auto; width: max(20vmin, 88px); scroll-snap-align: start; display: flex; flex-direction: column; align-items: center; gap: 0.6vmin; background: #fff; border: 0.5vmin solid #e3dccf; border-radius: 3.4vmin; padding: 1.2vmin 1vmin 1.4vmin; color: #24515c; position: relative; }
+.hg-item:active { scale: 0.94; }
+.hg-ico { width: 12vmin; height: 12vmin; display: grid; place-items: center; font-size: 8vmin; line-height: 1; }
+.hg-ico img { width: 100%; height: 100%; object-fit: contain; }
+.hg-name { font-size: 3.4vmin; font-weight: 800; line-height: 1.4; text-align: center; white-space: nowrap; }
+.hg-price { font-size: 3.4vmin; font-weight: 900; color: #b4531f; white-space: nowrap; }
+.hg-item.have { border-color: #7fd77a; } .hg-item.have .hg-price { color: #2f8a3a; }
+.hg-item.poor { opacity: 0.55; } .hg-item.poor .hg-price { color: #6b7785; font-size: 3vmin; }
+.hg-item.hg-sel, .hg-item.held { border-color: var(--yellow); box-shadow: 0 0 0 0.6vmin rgba(255,213,74,0.55); transform: translateY(-1vmin); }
+.hg-item.gift::before { content: "🎁"; position: absolute; top: -1.6vmin; right: -1vmin; font-size: 5vmin; animation: hgHold 0.9s ease-in-out infinite; }
+.hg-item.shake { animation: hgShake 0.4s ease-in-out; }
+@keyframes hgShake { 25% { translate: -1vmin 0; } 75% { translate: 1vmin 0; } }
+/* 買嗎？：在提示那一列（買的時候提示字藏起來）；「✔ 買」在最右邊（跟貨架上點的那一格不同位置），第一下點貨架、第二下點這顆才算買 */
+.hg-hint.buying > :not(.hg-buy) { display: none; }
+.hg-buy { flex: 1; display: flex; align-items: center; gap: 2vmin; flex-wrap: wrap; background: #fff; border: 0.6vmin solid var(--yellow); border-radius: 4vmin; padding: 0.8vmin 1vmin 0.8vmin 2.6vmin; animation: pickIn 0.25s cubic-bezier(.2,1.4,.4,1) both; }
+.hg-buy.hidden { display: none; }
+.hg-buy-t { font-size: 4.6vmin; font-weight: 900; color: #24515c; white-space: nowrap; }
+.hg-buy-s { font-size: 4vmin; font-weight: bold; color: #3d4a57; display: flex; align-items: center; gap: 1vmin; white-space: nowrap; }
+.hg-top { filter: grayscale(1); opacity: 0.5; font-size: 4vmin; }
+.hg-buy-x { margin-left: auto; width: max(8vmin, 44px); height: max(8vmin, 44px); border-radius: 50%; background: #f1f4f7; color: #24515c; font-size: 4vmin; font-weight: 900; }
+.hg-buy-go { font-size: 5.4vmin; padding: 1vmin 4.4vmin; min-height: max(56px, 9vmin); }
+/* 橫式（平板橫拿、手機橫拿）：貨架矮一點，上面看得到的前院大一點 */
+@media (orientation: landscape) {
+  .hm-garden { gap: 0.8vmin; padding-top: 1.4vmin; }
+  .hg-title { font-size: 4.6vmin; } .hg-wallet { font-size: 4vmin; } .hg-done { font-size: 4.4vmin; padding: 0.8vmin 3vmin; }
+  .hg-hint { min-height: 6vmin; font-size: 3.8vmin; }
+  .hg-item { width: max(17vmin, 88px); padding: 0.8vmin 0.8vmin 1vmin; gap: 0.2vmin; }
+  .hg-ico { width: 9vmin; height: 9vmin; font-size: 6vmin; }
+  .hg-name, .hg-price { font-size: 3vmin; }
+}
+
+/* 貓頭鷹的信 */
+.hm-letter .hm-l-paper { position: relative; background: #fffaf0; border: 0.8vmin solid #f2d39b; max-width: min(86vw, 110vmin); padding: 5vmin 6vmin 4vmin; }
+.hm-l-env { position: absolute; top: -6vmin; left: 50%; translate: -50% 0; font-size: 10vmin; animation: hgHold 1.2s ease-in-out infinite; }
+.hm-l-owl { width: 18vmin; height: auto; }
+.hm-l-text { font-size: 6vmin; font-weight: 900; color: #24515c; line-height: 1.6; text-align: center; text-wrap: balance; }
+@media (prefers-reduced-motion: reduce) { .hg-held, .hm-l-env, .hg-item.gift::before { animation: none; } .hm-garden { animation: none; } }

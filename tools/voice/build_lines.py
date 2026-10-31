@@ -428,6 +428,24 @@ for k, nm in enumerate(PET_NAMES):
     add(f"evo_super_{k + 1}", "閃耀" + nm + "！", "guide", "zhuyin-evolve.js 亮相橫幅（zhuyin.js startEvolve revealText）")
     add(f"evo_ready_{k + 1}", nm + "好像要進化了！", "guide", "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）")
 
+# ---- v8（10-31）我的家：房子升級、花園小舖、信箱（docs/zhuyin-v8-plan.md §3；台詞在 js/zhuyin-home.js 的 LINES、LETTERS、upLine）----
+# 全部用 talk()（說明語音開關管得到）。Gemini 預付額度 10-31 用完 → 加值後跑 update.py 才會錄；沒錄之前 say() 自動退回系統語音。
+HMSRC = (ROOT / "js" / "zhuyin-home.js").read_text(encoding="utf-8")
+HM_LINES = re.findall(r'(\w+): "([^"]+)"', HMSRC.split("export const LINES = {")[1].split("\n};")[0])   # 一行可能有好幾句
+assert len(HM_LINES) == 13, f"我的家台詞解析失敗：{len(HM_LINES)}"
+for key, t in HM_LINES:
+    add(f"hm_{key}", t, "guide", f"zhuyin-home.js LINES.{key}（v8 我的家）")
+HM_LETTERS = re.findall(r'"([^"]+)"', HMSRC.split("export const LETTERS = [")[1].split("];")[0])
+assert len(HM_LETTERS) == 14, f"我的家信件解析失敗：{len(HM_LETTERS)}"
+for k, t in enumerate(HM_LETTERS):
+    add(f"hm_letter_{k + 1}", t, "guide", "zhuyin-home.js LETTERS（信箱每天一封）")
+HM_NAMES = re.findall(r'"([^"]*)"', HMSRC.split("export const HOME_NAME = [")[1].split("];")[0])
+assert HM_NAMES[1:] == ["帳篷", "小木屋", "磚頭房子", "兩層樓", "城堡", "金色城堡"], f"房子名字改了：{HM_NAMES}"
+if "export const upLine = lv => `你的家變成${HOME_NAME[lv]}了！`;" not in HMSRC:
+    sys.exit("js/zhuyin-home.js 的 upLine 改了，請更新 build_lines.py")
+for lv in range(2, 7):
+    add(f"hm_up_{lv}", f"你的家變成{HM_NAMES[lv]}了！", "guide", "zhuyin.js homeMenu 升級演出（HM.upLine）")
+
 # ---- 5. 動態句：全部展開成完整句子 ----
 DYNAMIC = []
 must("再收集 ${MODES[m].need - stickerCount()} 張貼紙就可以玩囉！")

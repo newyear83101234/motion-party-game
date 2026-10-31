@@ -81,7 +81,7 @@ const LAYOUT = {   // [box x0,x1,y0,y1,z0,z1]、[anchor x,y,z]、[body x,y,z]（
 };
 // 景點（沒有浮標、點了沒反應）
 const SPOTS = [
-  { id: "garden", bx: 1, bz: 0, door: [0, 1] }, { id: "lighthouse", bx: 3, bz: 0, door: [-1, 0] }, { id: "playground", bx: 0, bz: 1, door: [1, 0] },
+  { id: "home", bx: 1, bz: 0, door: [0, 1] }, { id: "lighthouse", bx: 3, bz: 0, door: [-1, 0] }, { id: "playground", bx: 0, bz: 1, door: [1, 0] },   // home：v8（10-31）原本的「花園」景點 → 小孩自己的家（buildHome）
   { id: "statue", bx: 2, bz: 1, door: [-1, 0] }, { id: "park", bx: 1, bz: 2, door: [0, 1] }, { id: "carousel", bx: 3, bz: 2, door: [-1, 0] },
 ].map(s => ({ ...s, x: BC(s.bx), z: BC(s.bz) }));
 // 寵物：models.json 有列的自製模型優先；沒有就用 Kenney Cube Pets 原檔（依檔名猜）
@@ -1189,19 +1189,13 @@ function slot(x, z, ry = Math.PI / 4) { decorSlots.push({ x, z, ry }); }
 function spotGroup(s) { const g = new THREE.Group(); g.position.set(s.x, 0, s.z); scene.add(g); statics.push(g); s.g = g; return g; }
 function ex(s, x0, x1, z0, z1) { exRects.push([s.x + x0, s.x + x1, s.z + z0, s.z + z1]); }
 const SPOT_BUILD = {
-  // 花園台地：花圃、矮樹籬、拱門
-  garden(s, g) {
-    terrace(s.x, s.z, 1.25, 1.25, 0.32);
-    const Y = 0.32;
-    for (const z of [-0.4, 0.35]) {
-      vm(box(1.8, 0.12, 0.42), "#8a5a3c", { y: Y + 0.06, z, parent: g, shadow: false });
-      for (let k = 0; k < 7; k++) vm(new THREE.IcosahedronGeometry(0.09, 0), ["#ff8fb1", "#ffd75e", "#c9a2ff", "#ff6f7d", "#ffffff"][(k + (z > 0 ? 2 : 0)) % 5], { x: -0.75 + k * 0.25, y: Y + 0.2, z: z + ((k % 2) - 0.5) * 0.12, parent: g, shadow: false });
-    }
-    for (const z of [-0.98, 0.98]) vm(rbox(1.7, 0.3, 0.24, 0.08), "#4f9a3e", { y: Y + 0.15, z, parent: g });
-    const arch = new THREE.TorusGeometry(0.4, 0.05, 6, 16, Math.PI); vm(arch, "#ffffff", { x: 1.0, y: Y + 0.7, ry: Math.PI / 2, parent: g });
-    for (const z of [-0.4, 0.4]) vm(cyl(0.05, 0.05, 0.7, 6), "#ffffff", { x: 1.0, y: Y + 0.35, z, parent: g });
-    for (let k = 0; k < 6; k++) vm(new THREE.IcosahedronGeometry(0.07, 0), "#ff6f86", { x: 1.0, y: Y + 0.7 + Math.sin(k / 5 * Math.PI) * 0.4, z: Math.cos(k / 5 * Math.PI) * 0.4, parent: g, shadow: false });
-    ex(s, -1.35, 1.35, -1.35, 1.35); slot(s.x - 1.0, s.z + 1.08); slot(s.x + 1.0, s.z + 1.08); slot(s.x - 1.0, s.z - 1.08);
+  // v8 我的家（10-31，原本的花園台地）：台地＋門口石頭小路＋後面矮樹籬；房子、前院、信箱會變，另外放在 home.g（buildHome）
+  home(s, g) {
+    terrace(s.x, s.z, 1.25, 1.25, HOME_Y);
+    for (let k = 0; k < 4; k++) vm(cyl(0.13, 0.14, 0.03, 10), "#e6e0d6", { x: HOME_HOUSE.x + (k % 2 ? 0.04 : -0.04), y: HOME_Y + 0.015, z: 0.25 + k * 0.27, parent: g, shadow: false });
+    vm(rbox(2.3, 0.26, 0.2, 0.07), "#4f9a3e", { y: HOME_Y + 0.13, z: -1.12, parent: g });
+    ex(s, -1.35, 1.35, -1.35, 1.35);
+    home.s = s; buildHome(s);
   },
   // 燈塔岬：石頭台地＋紅白燈塔＋守塔人小屋
   lighthouse(s, g) {
@@ -1288,6 +1282,348 @@ const SPOT_BUILD = {
     ex(s, -1.5, 2.1, -1.4, 1.4); slot(s.x + 1.65, s.z + 0.75); slot(s.x - 1.0, s.z + 1.05); slot(s.x - 1.05, s.z - 1.05);
   },
 };
+// =========================================================
+// v8 我的家（docs/zhuyin-v8-plan.md §3；10-31）：主島後排原本的「花園」景點 → 小孩自己的家
+// 房子 6 個樣子（1 帳篷 → 2 小木屋 → 3 磚頭房子 → 4 兩層樓 → 5 城堡 → 6 金色城堡）、兩級之間的工地零件（每 10 點多一樣）、
+// 前院 10 格裝飾、信箱（有新信＝紅旗子立起來）、燈塔小旗、夥伴寵物在門口晃。全部程式生成（跟景點同一套 vm／box）；
+// 狀態由主程式 setHome() 給（{ lv, part, yard:[每格裝飾 id 或 null], cap 開了幾格, mail, flag, pet:{ id, glb } }），這裡只管畫和點
+// 點擊：房子／浮標＝opts.onHome()、信箱＝opts.onMail()、有裝飾的格子＝那件動一下＋opts.onHomeItem(id)；布置花園（homeEdit(true)）時點格子＝opts.onYard(i)
+// =========================================================
+const HOME_Y = 0.32;                                   // 台地頂
+const HOME_HOUSE = { x: -0.35, z: -0.45 };            // 房子中心（台地區域座標；門朝 +z＝朝路，門口小路在 x＝-0.35）
+const YARD = [[0.35, 0.5], [0.85, 0.5], [0.45, 1.0], [0.95, 1.0], [-0.95, 0.5], [0.9, -0.05], [-0.95, 1.0], [0.9, -0.6], [0.9, -1.05], [0.4, -1.05]];   // 前院格子（房子 1–2 級開前 6 格、3–4 級 8 格、5 級起 10 格）
+const HOUSE_H = [0, 0.75, 0.95, 1.1, 1.55, 1.75, 1.85];  // 各級房子多高（浮標、點擊盒用）
+const home = { s: null, g: null, house: null, lv: 0, parts: null, part: -1, items: new Map(), slots: [], hits: [], marks: [], want: null, edit: false, placing: false, mail: null, flagG: null, pet: null, petKey: "", tag: null, def: null };
+// 三角柱屋頂：span＝跨度、h＝高、len＝長；ridgeZ＝屋脊沿 z（三角形那面朝前後），預設沿 x（三角形那面朝左右）
+function roofGeo(span, h, len, ridgeZ = false) {
+  const t = new THREE.Shape(); t.moveTo(-span / 2, 0); t.lineTo(span / 2, 0); t.lineTo(0, h); t.closePath();
+  const g = new THREE.ExtrudeGeometry(t, { depth: len, bevelEnabled: false }); g.translate(0, 0, -len / 2); if (!ridgeZ) g.rotateY(Math.PI / 2); return g;
+}
+function win(p, x, y, z, w = 0.16, h = 0.16, frame = "#ffffff", glass = "#bfe3f3", glow = false) {   // 窗戶（白框＋玻璃），貼在 +z 面
+  vm(box(w + 0.05, h + 0.05, 0.02), frame, { x, y, z, parent: p, shadow: false });
+  vm(box(w, h, 0.02), glass, { x, y, z: z + 0.012, parent: p, shadow: false, glow });
+}
+// 房子各級的樣子（原點＝房子底部中心；門朝 +z）
+const HOUSE = {
+  1(p) {                                               // 帳篷
+    vm(roofGeo(0.95, 0.72, 0.9, true), "#f2a65a", { parent: p });
+    vm(roofGeo(0.38, 0.4, 0.02, true), "#7a4a2a", { z: 0.452, parent: p, shadow: false });
+    vm(cyl(0.015, 0.015, 0.4, 5), "#8a5a3c", { y: 0.9, parent: p, shadow: false });
+    vm(box(0.18, 0.11, 0.01), "#ff6f86", { x: 0.09, y: 1.04, parent: p, shadow: false });
+  },
+  2(p) {                                               // 小木屋：煙囪會冒煙
+    vm(box(0.9, 0.55, 0.75), "#c98a55", { y: 0.275, parent: p });
+    for (let k = 0; k < 4; k++) vm(box(0.92, 0.015, 0.77), "#a8673f", { y: 0.1 + k * 0.13, parent: p, shadow: false });
+    vm(roofGeo(0.95, 0.38, 1.04), "#8a5a3c", { y: 0.55, parent: p });
+    vm(box(0.2, 0.32, 0.02), "#6b4226", { y: 0.16, z: 0.385, parent: p, shadow: false });
+    win(p, -0.27, 0.33, 0.385);
+    vm(box(0.12, 0.32, 0.12), "#7d4a2e", { x: 0.26, y: 0.8, z: -0.12, parent: p });
+    home.smoke = { x: 0.26, y: 1.0, z: -0.12 };
+  },
+  3(p) {                                               // 磚頭房子：門口有燈
+    vm(box(1.0, 0.66, 0.82), "#c9744f", { y: 0.33, parent: p });
+    for (let k = 0; k < 5; k++) vm(box(1.02, 0.012, 0.84), "#e3a585", { y: 0.11 + k * 0.12, parent: p, shadow: false });
+    vm(box(1.04, 0.06, 0.86), "#f0e7d3", { y: 0.03, parent: p, shadow: false });
+    vm(roofGeo(0.98, 0.42, 1.12), "#9b3d33", { y: 0.66, parent: p });
+    vm(box(0.26, 0.4, 0.03), "#f0e7d3", { y: 0.2, z: 0.41, parent: p, shadow: false }); vm(box(0.2, 0.36, 0.02), "#5a3a22", { y: 0.18, z: 0.428, parent: p, shadow: false });
+    win(p, -0.3, 0.4, 0.415); win(p, 0.3, 0.4, 0.415);
+    vm(new THREE.SphereGeometry(0.035, 8, 6), "#fff3a0", { x: 0.18, y: 0.44, z: 0.45, parent: p, shadow: false, glow: true });
+    vm(box(0.12, 0.3, 0.12), "#8a3a2e", { x: -0.3, y: 0.95, z: -0.15, parent: p });
+    home.smoke = { x: -0.3, y: 1.12, z: -0.15 };
+  },
+  4(p) {                                               // 兩層樓：二樓陽台、屋頂旗子
+    vm(box(1.05, 1.05, 0.88), "#f0e7d3", { y: 0.525, parent: p });
+    vm(box(1.08, 0.08, 0.91), "#d8cdb6", { y: 0.52, parent: p, shadow: false });
+    vm(roofGeo(1.02, 0.45, 1.18), "#2f6b50", { y: 1.05, parent: p });
+    vm(box(0.2, 0.36, 0.02), "#5a3a22", { x: -0.2, y: 0.18, z: 0.45, parent: p, shadow: false });
+    win(p, 0.25, 0.28, 0.445); win(p, -0.3, 0.8, 0.445); win(p, 0.0, 0.8, 0.445); win(p, 0.3, 0.8, 0.445);
+    vm(box(0.55, 0.04, 0.2), "#c98a55", { x: 0.15, y: 0.62, z: 0.54, parent: p });
+    for (let k = 0; k < 6; k++) vm(box(0.02, 0.14, 0.02), "#ffffff", { x: -0.1 + k * 0.1, y: 0.7, z: 0.63, parent: p, shadow: false });
+    vm(box(0.55, 0.02, 0.02), "#ffffff", { x: 0.15, y: 0.77, z: 0.63, parent: p, shadow: false });
+    vm(cyl(0.015, 0.015, 0.45, 5), "#8a5a3c", { x: 0.3, y: 1.55, parent: p, shadow: false });
+    vm(box(0.2, 0.12, 0.01), "#ffd166", { x: 0.4, y: 1.7, parent: p, shadow: false });
+  },
+  5(p) { castle(p, false); },
+  6(p) { castle(p, true); },                           // 金色城堡：屋頂變金色、頂上金星會轉
+};
+function castle(p, gold) {
+  const wall = "#ddd8cf", wallDk = "#c9c1b6", roof = gold ? "#f2c14e" : "#8b70cc";
+  vm(box(0.86, 0.9, 0.72), wall, { y: 0.45, parent: p });
+  for (let k = 0; k < 4; k++) for (const z of [-0.33, 0.33]) vm(box(0.12, 0.12, 0.08), wallDk, { x: -0.33 + k * 0.22, y: 0.96, z, parent: p, shadow: false });
+  vm(box(0.3, 0.42, 0.03), "#5a3a22", { y: 0.21, z: 0.37, parent: p, shadow: false });
+  vm(new THREE.CylinderGeometry(0.15, 0.15, 0.03, 12, 1, false, 0, Math.PI), "#5a3a22", { y: 0.42, z: 0.37, rx: Math.PI / 2, parent: p, shadow: false });
+  win(p, 0, 0.7, 0.365, 0.12, 0.16, "#f0e7d3", "#ffe08a", true);
+  for (const x of [-0.5, 0.5]) {
+    vm(cyl(0.19, 0.21, 1.3, 12), wallDk, { x, y: 0.65, z: 0.3, parent: p });
+    vm(new THREE.ConeGeometry(0.26, 0.45, 12), roof, { x, y: 1.52, z: 0.3, parent: p });
+    win(p, x, 0.95, 0.5, 0.08, 0.12, "#f0e7d3", "#ffe08a", true);
+    vm(cyl(0.012, 0.012, 0.25, 5), "#8a5a3c", { x, y: 1.85, z: 0.3, parent: p, shadow: false });
+    vm(box(0.14, 0.09, 0.01), gold ? "#ff6f86" : "#ffd166", { x: x + 0.07, y: 1.93, z: 0.3, parent: p, shadow: false });
+  }
+  vm(new THREE.ConeGeometry(0.34, 0.5, 4), roof, { y: 1.27, ry: Math.PI / 4, parent: p });
+  if (gold) {                                          // 頂上一顆金星慢慢轉
+    const sh = new THREE.Shape(); for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2 - Math.PI / 2, r = i % 2 ? 0.05 : 0.12; i ? sh.lineTo(Math.cos(a) * r, Math.sin(a) * r) : sh.moveTo(Math.cos(a) * r, Math.sin(a) * r); }
+    const sg = new THREE.ExtrudeGeometry(sh, { depth: 0.03, bevelEnabled: false }); sg.center();
+    const star = vm(sg, "#ffe066", { y: 1.65, parent: p, shadow: false, glow: true }); star.userData.dyn = true; home.spin = star;
+  }
+}
+// 工地零件（升級前一直在蓋）：part＝從這一級開始又拿了幾個「10 點」→ 鷹架、磚頭（一次一塊）、推車、三角錐、梯子
+function buildParts(p, part) {
+  if (part >= 1) {                                     // 鷹架：靠在房子左邊
+    for (const z of [-0.75, -0.15]) vm(cyl(0.018, 0.018, 0.9, 5), "#c9c1b6", { x: -0.98, y: 0.45, z, parent: p, shadow: false });
+    for (const y of [0.35, 0.75]) vm(box(0.16, 0.025, 0.72), "#c98a55", { x: -0.98, y, z: -0.45, parent: p, shadow: false });
+  }
+  const n = Math.min(12, part);                        // 磚頭：每 10 點一塊，一層 4 塊
+  if (n) vm(box(0.34, 0.04, 0.26), "#a8673f", { x: -1.05, y: 0.02, z: 0.08, parent: p, shadow: false });
+  for (let i = 0; i < n; i++) vm(box(0.15, 0.06, 0.1), "#c9744f", { x: -1.13 + (i % 2) * 0.16, y: 0.07 + Math.floor(i / 4) * 0.065, z: 0.02 + (Math.floor(i / 2) % 2) * 0.12, parent: p, shadow: false });
+  if (part >= 3) {                                     // 推車
+    vm(box(0.22, 0.1, 0.16), "#5fb4ff", { x: -0.72, y: 0.12, z: 0.35, ry: 0.4, parent: p, shadow: false });
+    vm(cyl(0.05, 0.05, 0.03, 10), "#3d4652", { x: -0.62, y: 0.05, z: 0.4, rz: Math.PI / 2, ry: 0.4, parent: p, shadow: false });
+  }
+  if (part >= 5) { vm(new THREE.ConeGeometry(0.06, 0.16, 8), "#ff8a3d", { x: -0.62, y: 0.08, z: 0.12, parent: p, shadow: false }); vm(box(0.11, 0.015, 0.11), "#ff8a3d", { x: -0.62, y: 0.008, z: 0.12, parent: p, shadow: false }); }
+  if (part >= 7) { const l = new THREE.Group(); l.position.set(-0.8, 0, -0.95); l.rotation.x = -0.25; p.add(l); for (const x of [-0.07, 0.07]) vm(box(0.02, 0.85, 0.02), "#c98a55", { x, y: 0.42, parent: l, shadow: false }); for (let k = 0; k < 5; k++) vm(box(0.14, 0.015, 0.02), "#c98a55", { y: 0.12 + k * 0.16, parent: l, shadow: false }); }
+}
+// 前院裝飾（花園小舖賣的；id 跟 js/zhuyin-home.js 的 GARDEN 一樣）：回傳 { obj, tick(t)?, tap()? }（原點＝地面）
+const BLOOM = ["#ff8fb1", "#ffd75e", "#c9a2ff", "#ff6f7d", "#ffffff"];
+function flowerBed(g, colors) {
+  vm(box(0.4, 0.08, 0.26), "#8a5a3c", { y: 0.04, parent: g, shadow: false });
+  const fl = [];
+  for (let k = 0; k < 5; k++) fl.push(vm(new THREE.IcosahedronGeometry(0.055, 0), colors[k % colors.length], { x: -0.14 + k * 0.07, y: 0.14, z: (k % 2 - 0.5) * 0.08, parent: g, shadow: false }));
+  return { tap() { for (const f of fl) f.userData.pop = performance.now(); } , tick(t) { const now = performance.now(); for (const f of fl) { const u = f.userData.pop ? (now - f.userData.pop) / 500 : 1; f.scale.setScalar(u < 1 ? 1 + Math.sin(u * Math.PI) * 0.6 : 1); } } };
+}
+const GARDEN3D = {
+  fl_red(g) { return flowerBed(g, ["#ff6f7d", "#ff8fb1", "#ffffff"]); },
+  fl_yellow(g) { return flowerBed(g, ["#ffd75e", "#ffb84d", "#ffffff"]); },
+  mushroom(g) {
+    vm(cyl(0.05, 0.06, 0.14, 8), "#f6efe2", { y: 0.07, parent: g }); const cap = vm(new THREE.SphereGeometry(0.14, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), "#e2453c", { y: 0.13, parent: g });
+    for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; vm(new THREE.SphereGeometry(0.025, 6, 4), "#ffffff", { x: Math.cos(a) * 0.09, y: 0.2, z: Math.sin(a) * 0.09, parent: g, shadow: false }); }
+    return { tap() { cap.userData.pop = performance.now(); }, tick() { const u = cap.userData.pop ? (performance.now() - cap.userData.pop) / 450 : 1; g.scale.y = u < 1 ? 1 - Math.sin(u * Math.PI) * 0.3 : 1; } };
+  },
+  stones(g) { for (const [x, z, r] of [[-0.12, -0.12, 0.09], [0.1, 0.0, 0.08], [-0.05, 0.14, 0.07]]) vm(cyl(r, r + 0.01, 0.03, 8), "#cfc8bd", { x, y: 0.015, z, parent: g, shadow: false }); return {}; },
+  sunflower(g) {
+    vm(cyl(0.015, 0.02, 0.42, 5), "#4f9a3e", { y: 0.21, parent: g, shadow: false }); const head = new THREE.Group(); head.position.y = 0.45; head.rotation.y = Math.PI / 4; g.add(head);
+    vm(cyl(0.11, 0.11, 0.03, 12), "#ffcf33", { rx: Math.PI / 2, parent: head, shadow: false }); vm(cyl(0.06, 0.06, 0.04, 10), "#7a4a2a", { rx: Math.PI / 2, z: 0.01, parent: head, shadow: false });
+    vm(box(0.12, 0.03, 0.05), "#4f9a3e", { y: 0.2, x: 0.05, rz: 0.4, parent: g, shadow: false });
+    return { tap() { head.userData.pop = performance.now(); }, tick(t) { const u = head.userData.pop ? (performance.now() - head.userData.pop) / 700 : 1; head.rotation.z = Math.sin(t * 1.3) * 0.08 + (u < 1 ? Math.sin(u * Math.PI * 4) * 0.4 * (1 - u) : 0); } };
+  },
+  tulip(g) {
+    const tops = [];
+    for (const [x, z, c] of [[-0.09, 0, "#ff6f86"], [0.03, -0.07, "#ffd166"], [0.09, 0.07, "#c79bff"]]) { vm(cyl(0.012, 0.012, 0.22, 5), "#4f9a3e", { x, y: 0.11, z, parent: g, shadow: false }); tops.push(vm(new THREE.CylinderGeometry(0.05, 0.03, 0.08, 6), c, { x, y: 0.25, z, parent: g, shadow: false })); }
+    return { tap() { for (const o of tops) o.userData.pop = performance.now(); }, tick() { for (const o of tops) { const u = o.userData.pop ? (performance.now() - o.userData.pop) / 500 : 1; o.scale.setScalar(u < 1 ? 1 + Math.sin(u * Math.PI) * 0.5 : 1); } } };
+  },
+  tree(g) {
+    vm(cyl(0.04, 0.06, 0.3, 6), "#8a5a3c", { y: 0.15, parent: g }); const top = new THREE.Group(); top.position.y = 0.38; g.add(top);
+    for (const [x, y, z, r] of [[0, 0, 0, 0.18], [0.08, 0.08, 0.04, 0.12], [-0.07, 0.1, -0.03, 0.12]]) vm(new THREE.IcosahedronGeometry(r, 0), "#5fae45", { x, y, z, parent: top });
+    return { tap() { top.userData.pop = performance.now(); }, tick() { const u = top.userData.pop ? (performance.now() - top.userData.pop) / 600 : 1; top.rotation.z = u < 1 ? Math.sin(u * Math.PI * 5) * 0.12 * (1 - u) : 0; } };
+  },
+  fence(g) { for (let k = 0; k < 5; k++) vm(box(0.05, 0.22, 0.03), "#ffffff", { x: -0.2 + k * 0.1, y: 0.11, parent: g, shadow: false }); for (const y of [0.07, 0.16]) vm(box(0.48, 0.03, 0.02), "#ffffff", { y, z: -0.02, parent: g, shadow: false }); g.rotation.y = Math.PI / 4; return {}; },   // 正面朝鏡頭
+  swing(g) {
+    for (const x of [-0.2, 0.2]) { vm(cyl(0.015, 0.015, 0.55, 5), "#7fd77a", { x, y: 0.27, z: -0.1, rx: 0.2, parent: g, shadow: false }); vm(cyl(0.015, 0.015, 0.55, 5), "#7fd77a", { x, y: 0.27, z: 0.1, rx: -0.2, parent: g, shadow: false }); }
+    vm(cyl(0.013, 0.013, 0.46, 5), "#e2453c", { y: 0.54, rz: Math.PI / 2, parent: g, shadow: false });
+    const seat = new THREE.Group(); seat.position.y = 0.54; g.add(seat);
+    for (const x of [-0.08, 0.08]) vm(box(0.006, 0.36, 0.006), "#555555", { x, y: -0.18, parent: seat, shadow: false });
+    vm(box(0.2, 0.025, 0.1), "#ffd166", { y: -0.37, parent: seat, shadow: false });
+    g.userData.seat = seat;                            // 夥伴寵物會坐在這裡盪（syncHomePet）
+    return { tap() { seat.userData.push = performance.now(); }, tick(t) { const k = seat.userData.push ? Math.max(0, 1 - (performance.now() - seat.userData.push) / 4000) : 0; seat.rotation.x = Math.sin(t * 2.4) * (0.25 + k * 0.45); } };
+  },
+  slide(g) {
+    for (const [x, z] of [[-0.08, -0.12], [0.08, -0.12], [-0.08, 0.0], [0.08, 0.0]]) vm(cyl(0.012, 0.012, 0.36, 5), "#5fb4ff", { x, y: 0.18, z, parent: g, shadow: false });
+    vm(box(0.2, 0.03, 0.18), "#ffd166", { y: 0.36, z: -0.06, parent: g, shadow: false });
+    vm(box(0.16, 0.015, 0.42), "#ff9b54", { y: 0.2, z: 0.2, rx: 0.75, parent: g, shadow: false });
+    for (let k = 0; k < 3; k++) vm(box(0.16, 0.015, 0.02), "#ffffff", { y: 0.08 + k * 0.1, z: -0.16, parent: g, shadow: false });
+    g.rotation.y = Math.PI / 4; const ball = vm(new THREE.SphereGeometry(0.04, 8, 6), "#ff6f86", { y: -1, parent: g, shadow: false });
+    return { tap() { ball.userData.go = performance.now(); }, tick() { const u = ball.userData.go ? (performance.now() - ball.userData.go) / 900 : 2; if (u > 1) { ball.position.y = -1; return; } ball.position.set(0, 0.4 - u * 0.36, -0.02 + u * 0.4); } };   // 點一下：一顆球溜下來
+  },
+  lamp(g) { vm(cyl(0.02, 0.025, 0.5, 6), "#3d4652", { y: 0.25, parent: g, shadow: false }); const b = vm(new THREE.SphereGeometry(0.06, 10, 8), "#fff3a0", { y: 0.53, parent: g, shadow: false, glow: true }); vm(new THREE.ConeGeometry(0.08, 0.06, 8), "#3d4652", { y: 0.6, parent: g, shadow: false });
+    return { tap() { b.userData.pop = performance.now(); }, tick() { const u = b.userData.pop ? (performance.now() - b.userData.pop) / 500 : 1; b.scale.setScalar(u < 1 ? 1 + Math.sin(u * Math.PI) * 0.5 : 1); } }; },
+  scarecrow(g) {
+    vm(cyl(0.015, 0.015, 0.5, 5), "#8a5a3c", { y: 0.25, parent: g, shadow: false }); vm(cyl(0.012, 0.012, 0.34, 5), "#8a5a3c", { y: 0.36, rz: Math.PI / 2, parent: g, shadow: false });
+    vm(box(0.16, 0.16, 0.08), "#5fb4ff", { y: 0.33, parent: g, shadow: false }); vm(new THREE.SphereGeometry(0.06, 10, 8), "#f2d39b", { y: 0.47, parent: g, shadow: false });
+    vm(new THREE.ConeGeometry(0.09, 0.08, 10), "#c98a55", { y: 0.54, parent: g, shadow: false }); vm(cyl(0.11, 0.11, 0.01, 12), "#c98a55", { y: 0.51, parent: g, shadow: false });
+    const crow = new THREE.Group(); g.add(crow); vm(box(0.07, 0.05, 0.1), "#2b2b33", { parent: crow, shadow: false }); vm(new THREE.ConeGeometry(0.015, 0.04, 5), "#ffb84d", { z: 0.06, rx: Math.PI / 2, parent: crow, shadow: false }); crow.visible = false;
+    return { tap() { crow.userData.go = performance.now(); crow.visible = true; }, tick() { const u = crow.userData.go ? (performance.now() - crow.userData.go) / 1600 : 2; if (u > 1) { crow.visible = false; return; }   // 點一下：烏鴉被嚇得飛走
+      crow.position.set(0.15 + u * 0.9, 0.55 + u * 0.8 + Math.sin(u * 20) * 0.03, u * 0.4); } };
+  },
+  pond(g) {
+    vm(cyl(0.22, 0.24, 0.03, 16), "#cfc8bd", { y: 0.015, parent: g, shadow: false }); vm(cyl(0.19, 0.19, 0.035, 16), "#6cc0e8", { y: 0.02, parent: g, shadow: false });
+    const duck = new THREE.Group(); duck.position.y = 0.05; g.add(duck);
+    vm(new THREE.SphereGeometry(0.045, 8, 6), "#ffd75e", { parent: duck, shadow: false }); vm(new THREE.SphereGeometry(0.03, 8, 6), "#ffd75e", { y: 0.04, z: 0.03, parent: duck, shadow: false }); vm(new THREE.ConeGeometry(0.012, 0.03, 5), "#ff8a3d", { y: 0.04, z: 0.065, rx: Math.PI / 2, parent: duck, shadow: false });
+    return { tap() { duck.userData.hop = performance.now(); }, tick(t) { const a = t * 0.6; duck.position.x = Math.cos(a) * 0.1; duck.position.z = Math.sin(a) * 0.1; duck.rotation.y = -a; const u = duck.userData.hop ? (performance.now() - duck.userData.hop) / 400 : 1; duck.position.y = 0.05 + (u < 1 ? Math.sin(u * Math.PI) * 0.08 : 0); } };
+  },
+  fountain(g) {
+    vm(cyl(0.2, 0.22, 0.08, 14), "#ddd8cf", { y: 0.04, parent: g }); vm(cyl(0.17, 0.17, 0.02, 14), "#6cc0e8", { y: 0.08, parent: g, shadow: false });
+    vm(cyl(0.035, 0.04, 0.2, 8), "#ddd8cf", { y: 0.18, parent: g, shadow: false }); vm(cyl(0.09, 0.07, 0.03, 12), "#ddd8cf", { y: 0.28, parent: g, shadow: false });
+    const drops = []; for (let k = 0; k < 8; k++) drops.push(vm(new THREE.SphereGeometry(0.018, 6, 4), "#bfe9ff", { parent: g, shadow: false }));
+    return { tap() { g.userData.burst = performance.now(); }, tick(t) { const big = g.userData.burst && performance.now() - g.userData.burst < 2500 ? 1.8 : 1;   // 點一下：水噴得更高
+      drops.forEach((d, k) => { const u = (t * 0.9 + k / 8) % 1, a = k / 8 * Math.PI * 2; d.position.set(Math.cos(a) * u * 0.12 * big, 0.3 + Math.sin(u * Math.PI) * 0.16 * big, Math.sin(a) * u * 0.12 * big); }); } };
+  },
+  arch(g) {
+    RB_COLORS.forEach((c, i) => { const tg = new THREE.TorusGeometry(0.3 - i * 0.022, 0.012, 5, 18, Math.PI); vm(tg, c, { y: 0.02, ry: Math.PI / 4, parent: g, shadow: i === 3 }); });
+    const sp = []; for (let k = 0; k < 4; k++) { const s = vm(new THREE.OctahedronGeometry(0.025), "#fff6c2", { parent: g, shadow: false, glow: true }); s.visible = false; sp.push(s); }
+    return { tap() { g.userData.spark = performance.now(); }, tick(t) { const u = g.userData.spark ? (performance.now() - g.userData.spark) / 1200 : 2;   // 點一下：亮晶晶
+      sp.forEach((s, k) => { s.visible = u < 1; if (u < 1) { const a = Math.PI * (k + 0.5) / 4; s.position.set(Math.cos(a) * 0.3 * 0.707, 0.05 + Math.sin(a) * 0.3 + u * 0.15, Math.cos(a) * 0.3 * 0.707); s.rotation.y = t * 4; } }); } };
+  },
+};
+function buildHome(s) {
+  const g = home.g = new THREE.Group(); g.position.set(s.x, HOME_Y, s.z); scene.add(g);
+  home.def = { mode: "home", root: g, body: new THREE.Vector3(0.05, 0, 0.35), anchor: new THREE.Vector3(), pivot: { position: { y: 0 } }, th0: 0, tag: home.tag, isle: "main" };   // body＝前院中間的地面（鏡頭對準：前院地面到房子頂的中間）
+  // 房子、信箱各包一層「底座」：bounce／popIn 動的是裡面那層（原點在自己身上），bounce 結束會把位置歸零
+  const hb = new THREE.Group(); hb.position.set(HOME_HOUSE.x, 0, HOME_HOUSE.z); g.add(hb); home.houseBase = hb;
+  // 信箱：藍色箱子＋紅旗（有新信＝立起來）
+  const mbb = new THREE.Group(); mbb.position.set(0.02, 0, 1.1); mbb.rotation.y = -Math.PI / 4; g.add(mbb);
+  const mb = home.mail = new THREE.Group(); mbb.add(mb);
+  vm(cyl(0.02, 0.02, 0.3, 5), "#8a5a3c", { y: 0.15, parent: mb }); vm(rbox(0.16, 0.12, 0.22, 0.04), "#4f8fe0", { y: 0.34, parent: mb });
+  const mf = new THREE.Group(); mf.position.set(0.09, 0.32, -0.02); mb.add(mf); vm(box(0.01, 0.12, 0.012), "#e2453c", { y: 0.06, parent: mf, shadow: false }); vm(box(0.012, 0.05, 0.07), "#e2453c", { y: 0.11, z: 0.03, parent: mf, shadow: false });
+  mb.userData.flag = mf;
+  // 點擊盒：房子、信箱、10 個格子（看不見；布置花園時格子上另外有白圈）
+  const hm = new THREE.MeshBasicMaterial({ visible: false });
+  const hh = new THREE.Mesh(box(1.25, 1.2, 1.15), hm); hh.position.set(HOME_HOUSE.x, 0.6, HOME_HOUSE.z); hh.userData.home = { k: "house" }; g.add(hh); home.hits.push(hh); home.houseHit = hh;
+  const mh = new THREE.Mesh(box(0.34, 0.6, 0.34), hm); mh.position.set(0.02, 0.3, 1.1); mh.userData.home = { k: "mail" }; g.add(mh); home.hits.push(mh);
+  YARD.forEach(([x, z], i) => {
+    const sl = new THREE.Group(); sl.position.set(x, 0, z); g.add(sl); home.slots.push(sl);
+    const h = new THREE.Mesh(cyl(0.25, 0.25, 0.6, 12), hm); h.position.set(x, 0.3, z); h.userData.home = { k: "slot", i }; g.add(h); home.hits.push(h);   // 點擊半徑＝相鄰兩格的中線（最近兩格隔 0.5）
+    const mk = new THREE.Mesh(new THREE.RingGeometry(0.17, 0.235, 28), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, depthWrite: false }));
+    mk.rotation.x = -Math.PI / 2; mk.position.set(x, 0.012, z); mk.visible = false; g.add(mk); home.marks.push(mk);
+  });
+  tickers.push(homeTick);
+}
+// 主程式給的狀態 → 3D（同樣的不重畫）。lv 1..6、part 0..、yard[i]＝裝飾 id 或 null、cap＝開了幾格、mail＝有新信、flag＝燈塔小旗、pet＝{ id, glb }
+function setHome(w) { home.want = w || null; applyHome(); }
+// 拆掉的東西放掉 GPU 記憶體（vm 每次都是新的 geometry；共用材質 vcMat／glowMat 不能放）
+function freeTree(o) { if (!o) return; o.traverse(m => { if (m.geometry) m.geometry.dispose(); if (m.material && m.material !== vcMat && m.material !== glowMat) [].concat(m.material).forEach(x => x.dispose()); }); }
+function applyHome() {
+  const w = home.want, g = home.g; if (!w || !g || dead) return;
+  const lv = Math.min(6, Math.max(1, w.lv | 0)), part = lv >= 6 ? 0 : Math.max(0, w.part | 0);
+  if (lv !== home.lv) { if (home.house) { home.houseBase.remove(home.house); freeTree(home.house); } home.smoke = null; home.spin = null; const p = home.house = new THREE.Group(); HOUSE[lv](p); home.houseBase.add(p); home.lv = lv;
+    home.houseHit.scale.y = HOUSE_H[lv] / 1.2; home.houseHit.position.y = HOUSE_H[lv] / 2; home.parts && (home.part = -1); }
+  if (part !== home.part) { if (home.parts) { g.remove(home.parts); freeTree(home.parts); } const p = home.parts = new THREE.Group(); p.position.set(HOME_HOUSE.x, 0, HOME_HOUSE.z); buildParts(p, part); g.add(p); home.part = part; }
+  const cap = Math.min(YARD.length, Math.max(0, w.cap | 0)), yard = w.yard || [];
+  YARD.forEach((_, i) => {
+    const id = i < cap ? yard[i] || null : null, cur = home.items.get(i);
+    if (cur && cur.id === id) return;
+    if (cur) { if (home.pet && cur.obj.userData.seat && home.pet.parent === cur.obj.userData.seat) home.g.add(home.pet);   // 寵物先從鞦韆下來（不然會被一起放掉）
+      home.slots[i].remove(cur.obj); freeTree(cur.obj); home.items.delete(i); }
+    if (id && GARDEN3D[id]) { const o = new THREE.Group(); o.rotation.y = 0; const it = GARDEN3D[id](o) || {}; home.slots[i].add(o); home.items.set(i, { id, obj: o, ...it }); if (w.pop === i) popIn(o); }
+  });
+  home.cap = cap; home.mail.userData.flag.rotation.z = w.mail ? 0 : -Math.PI / 2;   // 旗子：有新信＝立起來
+  if (home.tag) home.tag.classList.toggle("mail", !!w.mail);   // 有新信：🏠 浮標多一個 ✉️ 紅點（櫻木：信箱太小找不到）
+  if (!!w.flag !== !!home.flagG) {                     // 爬塔打倒過守塔怪：門口插一支紅白燈塔小旗
+    if (home.flagG) { g.remove(home.flagG); freeTree(home.flagG); home.flagG = null; }
+    else { const f = home.flagG = new THREE.Group(); f.position.set(-0.75, 0, 0.28); g.add(f); vm(cyl(0.012, 0.012, 0.55, 5), "#f4f1ea", { y: 0.27, parent: f, shadow: false });
+      for (let k = 0; k < 3; k++) vm(box(0.2, 0.04, 0.01), k % 2 ? "#ffffff" : "#e2453c", { x: 0.1, y: 0.5 - k * 0.04, parent: f, shadow: false }); }
+  }
+  syncHomePet(w.pet); markSync(); home.def.anchor.set(g.position.x + HOME_HOUSE.x, HOME_Y + HOUSE_H[lv] + 0.12, g.position.z + HOME_HOUSE.z); shadowDirty = true;
+}
+// 夥伴寵物：站在門口右邊晃；前院有鞦韆＝坐在鞦韆上盪
+async function syncHomePet(p) {
+  const key = p && p.glb ? p.id + "|" + p.glb : "";
+  if (key !== home.petKey) {
+    home.petKey = key; if (home.pet) { home.pet.parent && home.pet.parent.remove(home.pet); home.pet = null; }   // GLB 的 geometry 跟島上那隻共用（loadGLB 快取），不放掉
+    if (key) {
+      try {
+        let url = await usableGlb(p.glb); const base = p.glb.split("/").pop().replace(/\.glb$/, "");
+        if (!url && PET_KENNEY[base]) url = `${KIT}cube-pets/${PET_KENNEY[base]}.glb`;
+        if (!url || home.petKey !== key || dead) { if (!url && home.petKey === key) home.petKey = ""; return; }
+        const o = await loadAny(url, { h: PET_H * 0.42 }); if (home.petKey !== key || dead) return;
+        const w = new THREE.Group(); w.add(o); home.pet = w;
+      } catch (e) { if (home.petKey === key) home.petKey = ""; return; }   // 抓失敗：下次 setHome 再試
+    }
+  }
+  if (!home.pet) return;
+  const sw = [...home.items.values()].find(it => it.id === "swing"), seat = sw && sw.obj.userData.seat;
+  if (seat) { if (home.pet.parent !== seat) { seat.add(home.pet); home.pet.position.set(0, -0.36, 0); home.pet.rotation.set(0, 0, 0); } home.pet.userData.swing = true; }
+  else { if (home.pet.parent !== home.g) { home.g.add(home.pet); } home.pet.position.set(0.02, 0, 0.32); home.pet.userData.swing = false; }
+  shadowDirty = true;
+}
+function markSync() { home.marks.forEach((m, i) => { m.visible = home.edit && i < home.cap && (home.placing ? !home.items.has(i) : true); }); }
+function homeTick(t) {
+  if (!home.g) return;
+  for (const it of home.items.values()) if (it.tick) it.tick(t);
+  if (home.spin) home.spin.rotation.y = t * 1.2;
+  if (home.pet && !home.pet.userData.swing) { home.pet.rotation.y = Math.PI / 4 + Math.sin(t * 0.7) * 0.5; home.pet.position.y = Math.abs(Math.sin(t * 2.2)) * 0.03; }
+  if (home.smoke) {                                    // 煙囪冒煙：三團白煙輪流往上飄、變大變淡
+    if (!home.puffs) { home.puffs = [0, 1, 2].map(() => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6, depthWrite: false })); home.g.add(m); return m; }); }
+    home.puffs.forEach((m, k) => { const u = (t * 0.35 + k / 3) % 1; m.visible = true; m.position.set(HOME_HOUSE.x + home.smoke.x + u * 0.12, home.smoke.y + u * 0.5, HOME_HOUSE.z + home.smoke.z); m.scale.setScalar(0.6 + u * 1.2); m.material.opacity = 0.55 * (1 - u); });
+  } else if (home.puffs) home.puffs.forEach(m => { m.visible = false; });
+  if (home.edit) { const a = 0.55 + Math.sin(t * 6) * 0.35; for (const m of home.marks) if (m.visible) m.material.opacity = home.placing ? a : 0.5; }
+}
+function tapHome(o) {
+  if (!o || dead || (home.busy && !home.edit)) return;    // 升級演出中：先看完（不開卡片、不拉鏡頭）
+  if (home.edit) { if (o.k === "slot" && o.i < home.cap) { try { opts.onYard(o.i, (home.items.get(o.i) || {}).id || null); } catch (e) {} } return; }   // 布置花園：點格子＝擺／換／收（主程式決定）
+  const now = performance.now(); if (now < tapLockUntil) return; tapLockUntil = now + 450;
+  if (o.k === "slot") { const it = home.items.get(o.i); if (it) { if (it.tap) it.tap(); bounce({ pivot: it.obj, tag: home.tag }); try { opts.onHomeItem(it.id); } catch (e) {} return; } }
+  if (o.k === "mail") { bounce({ pivot: home.mail, tag: home.tag }, true); try { opts.onMail(); } catch (e) {} return; }
+  bounce({ pivot: home.house, tag: home.tag }); try { opts.onHome(); } catch (e) {}
+}
+// 布置花園：鏡頭拉近我的家（家放在花園小舖貨架上面那塊空間的中間）、不能拖曳、格子上有白圈；placing＝手上拿著東西（空格子一閃一閃）
+function homeEdit(on, placing = false) {
+  if (!home.g || dead) return;
+  home.placing = !!placing && !!on;
+  if (!!on !== home.edit) {
+    home.edit = !!on;
+    if (on) { if (town.place !== "main") goPlace("main"); deselect(); sel = home.def; home.tag && home.tag.classList.add("sel"); focus.on = true; town.zoomTgt = innerWidth > innerHeight ? 3.6 : 4.4; }   // 拉近到格子好點（櫻木 10-31：格子要 ≥1 公分；直式島本來就畫得比較小，拉更近）
+    else { if (sel === home.def) { sel = null; focus.on = false; home.tag && home.tag.classList.remove("sel"); } town.zoomTgt = placeZoom(PLACE.main); focus.over = true; }
+  }
+  markSync();
+}
+// 升級演出（約 5 秒；主程式在回小島時叫）：鏡頭飛過去 → 鷹架圍起來、冒煙塵（onHammer 給主程式出敲打聲）→「砰」換成新房子（onPoof）→ 鏡頭回來
+function playHomeUpgrade(from, to, { onHammer, onPoof } = {}) {
+  return new Promise(done => {
+    if (!home.g || dead || home.busy || home.edit) { done(false); return; }   // 同時只播一次；布置花園中不播（里維 10-31）
+    home.busy = true;
+    if (town.place !== "main") goPlace("main");
+    deselect(); sel = home.def; focus.on = true; town.zoomTgt = 1.9;
+    if (home.want) { home.want = { ...home.want, lv: from, part: 0 }; applyHome(); }
+    const wrap = new THREE.Group(); wrap.position.set(HOME_HOUSE.x, 0, HOME_HOUSE.z); home.g.add(wrap); wrap.visible = false;
+    const H = Math.max(HOUSE_H[from], HOUSE_H[to]) + 0.15;
+    for (const [x, z] of [[-0.7, -0.6], [0.7, -0.6], [-0.7, 0.6], [0.7, 0.6]]) vm(cyl(0.02, 0.02, H, 5), "#c9c1b6", { x, y: H / 2, z, parent: wrap, shadow: false });
+    for (let k = 1; k <= 3; k++) for (const z of [-0.6, 0.6]) vm(box(1.45, 0.03, 0.08), "#c98a55", { y: H * k / 3.3, z, parent: wrap, shadow: false });
+    const dust = []; for (let k = 0; k < 10; k++) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), new THREE.MeshBasicMaterial({ color: 0xf3ead8, transparent: true, opacity: 0, depthWrite: false })); m.position.set(Math.cos(k) * 0.65, 0.15 + (k % 3) * 0.2, Math.sin(k) * 0.65); wrap.add(m); dust.push(m); }
+    const t0 = performance.now() + 900;
+    later(() => { wrap.visible = true; popIn(wrap); }, 900);
+    for (const ms of [1300, 1750, 2200, 2650]) later(() => { if (home.house) { home.house.position.y = 0.04; later(() => { if (home.house) home.house.position.y = 0; }, 90); } try { onHammer && onHammer(); } catch (e) {} }, ms);
+    anims.add({ update(now) { const u = (now - t0) / 2600; if (u < 0) return true; dust.forEach((m, k) => { const v = Math.max(0, Math.min(1, u * 1.4 - k * 0.04)); m.material.opacity = 0.75 * Math.sin(v * Math.PI); m.scale.setScalar(0.6 + v * 1.4); }); return u < 1; } });
+    later(() => {                                     // 砰：拆鷹架、換房子
+      home.g.remove(wrap); freeTree(wrap); if (home.want) { home.want = { ...home.want, lv: to, part: 0 }; } home.lv = 0; applyHome(); if (home.house) popIn(home.house);
+      try { onPoof && onPoof(); } catch (e) {}
+    }, 3200);
+    later(() => { home.busy = false; if (!home.edit) { if (sel === home.def) { sel = null; focus.on = false; } town.zoomTgt = placeZoom(PLACE.main); focus.over = true; } done(true); }, 5200);
+  });
+}
+// 第一天（櫻木 10-31：主島十幾個浮標，小孩不知道哪一棟是自己的家）：帳篷跳兩下、🏠 浮標閃 3 秒（家在主島後排，平常的鏡頭本來就看得到；
+// 不拉鏡頭——一開頁就飛來飛去會讓其他浮標被按鈕擋住，小孩也容易暈）
+function homeIntro(ms = 3200) {
+  if (!home.g || dead || home.busy || home.edit || town.place !== "main") return false;
+  if (home.tag) home.tag.classList.add("intro");
+  for (const t of [300, 1300]) later(() => { if (home.house && !home.busy) bounce({ pivot: home.house, tag: home.tag }); }, t);
+  later(() => { if (home.tag) home.tag.classList.remove("intro"); }, ms);
+  return true;
+}
+// 花園小舖貨架的小圖：用同一套 GARDEN3D 模型，用小島的角度畫成透明背景 PNG（dataURL；開一次花園小舖畫一次、主程式快取）
+async function homeIcons(ids, px = 128) {
+  if (dead || !renderer || lost) return {};
+  const out = {}, sc = new THREE.Scene(), cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200);
+  sc.add(new THREE.HemisphereLight(0xf4f9ff, 0xe9dcc6, 1.5)); const dl = new THREE.DirectionalLight(0xfff4e4, 2.2); dl.position.set(-7, 15, 6); sc.add(dl);
+  const rt = new THREE.WebGLRenderTarget(px, px); rt.texture.colorSpace = THREE.SRGBColorSpace;
+  const buf = new Uint8Array(px * px * 4), prev = renderer.getRenderTarget(), cc = renderer.getClearColor(new THREE.Color()), ca = renderer.getClearAlpha();
+  try {
+    renderer.setClearColor(0x000000, 0);
+    for (const id of ids) {
+      if (!GARDEN3D[id]) continue;
+      const g = new THREE.Group(), it = GARDEN3D[id](g) || {}; if (it.tick) it.tick(1.2); sc.add(g); g.updateMatrixWorld(true);
+      const b = new THREE.Box3().setFromObject(g), c = b.getCenter(new THREE.Vector3()), r = Math.max(0.12, b.getSize(new THREE.Vector3()).length() * 0.55);
+      setCamDir(cam, Math.PI / 4); cam.position.add(c); cam.lookAt(c); Object.assign(cam, { left: -r, right: r, top: r, bottom: -r }); cam.updateProjectionMatrix(); cam.updateMatrixWorld();
+      renderer.setRenderTarget(rt); renderer.clear(); renderer.render(sc, cam); renderer.readRenderTargetPixels(rt, 0, 0, px, px, buf);
+      const cv = document.createElement("canvas"); cv.width = cv.height = px; const c2 = cv.getContext("2d"), img = c2.createImageData(px, px);
+      for (let y = 0; y < px; y++) img.data.set(buf.subarray((px - 1 - y) * px * 4, (px - y) * px * 4), y * px * 4);   // WebGL 的列是從下往上
+      let any = false; for (let i = 3; i < buf.length; i += 4) if (buf[i]) { any = true; break; }   // 全透明＝畫失敗（context 被收走）：不給，主程式就不會快取空白圖
+      if (any) { c2.putImageData(img, 0, 0); out[id] = cv.toDataURL("image/png"); }
+      sc.remove(g); g.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+    }
+  } catch (e) { console.warn("[hub3d] homeIcons", e); }
+  finally { renderer.setRenderTarget(prev); renderer.setClearColor(cc, ca); rt.dispose(); }
+  return out;
+}
 async function buildSpotsKenney() {
   const jobs = [];
   const S = id => SPOTS.find(s => s.id === id);
@@ -2555,9 +2891,15 @@ function makeTags() {
     t.addEventListener("click", () => tapBuilding(d));
     tagLayer.appendChild(t); d.tag = t;
   }
+  { // v8 我的家的浮標（主島才顯示，跟遊戲浮標一樣平常只有圓形圖示）
+    const t = home.tag = document.createElement("button"); t.className = "hub-tag home"; t.type = "button"; t.innerHTML = TAG_HTML; t.style.visibility = "hidden";   // 主程式 setHome 之前先藏著
+    t.querySelector(".ht-ico").textContent = "🏠"; t.querySelector(".ht-word").textContent = (opts.labels && opts.labels.home) || "我的家";
+    t.addEventListener("pointerdown", () => pressTag(t)); t.addEventListener("pointerup", () => releaseTag(true)); t.addEventListener("pointercancel", () => releaseTag(false));
+    t.addEventListener("click", () => { if (!home.edit) tapHome({ k: "house" }); }); tagLayer.appendChild(t);
+  }
   // 浮標大小變了 → 下一格重量位置；名字那段（.ht-txt）的自然寬度變了（換字、注音補上、「新」）才重擺鏡頭——
   // 按住／拉近展開名字只是浮標變寬，鏡頭不重擺（不然貓頭鷹收起來之後一按建築，整座島會跳一下）
-  if ("ResizeObserver" in window) { tagRO = new ResizeObserver(es => { tagDirty = true; if (es.some(e => e.target.classList.contains("ht-txt"))) needFit = true; }); DEFS.forEach(d => { tagRO.observe(d.tag); tagRO.observe(d.tag.querySelector(".ht-txt")); }); }
+  if ("ResizeObserver" in window) { tagRO = new ResizeObserver(es => { tagDirty = true; if (es.some(e => e.target.classList.contains("ht-txt"))) needFit = true; }); DEFS.forEach(d => { tagRO.observe(d.tag); tagRO.observe(d.tag.querySelector(".ht-txt")); }); tagRO.observe(home.tag); }
 }
 // ----- 浮標精簡（10-12 阿葉：「關卡變多了，名字一直顯示太雜亂」）-----
 // 平常只有圓形圖示；名字只在這些時候展開：拉近（≥ 1.25 倍）全部、手指按住某棟（那一棟）、介紹卡開著的那一棟（sel）。拉遠（≤ 0.7 倍）圖示縮小一點
@@ -2644,6 +2986,7 @@ function preloadCard(d) { if (d.free) return; try { cardOf(d.mode)?.dispatchEven
 let sel = null;
 const focus = { on: false };                            // 介紹卡開著：每格把鏡頭往「這棟在空間中間」的位置帶（介紹卡大小、飛去別座島的途中都跟得上）
 function selectDef(d) {
+  if (home.edit) return;                                 // 布置花園中不換選取（不然 sel 被換掉、布置模式收不掉）
   if (sel && sel !== d) sel.tag.classList.remove("sel");
   sel = d; d.tag.classList.add("sel"); focus.on = true;
   preloadCard(d); bounce(d);
@@ -2652,7 +2995,12 @@ function selectDef(d) {
 function deselect() {
   focus.on = false;
   if (!sel) return;
-  sel.tag.classList.remove("sel"); sel = null;
+  const wasHome = sel === home.def;
+  if (sel.tag) sel.tag.classList.remove("sel"); sel = null;
+  if (wasHome) {                                         // v8 我的家不是介紹卡：不叫 onPick；布置花園中被收掉（換島、離開選單）＝通知主程式關掉花園小舖
+    if (home.edit) { home.edit = false; home.placing = false; markSync(); town.zoomTgt = placeZoom(PLACE.main); try { opts.onHomeExit(); } catch (e) {} }
+    return;
+  }
   try { opts.onPick(null); } catch (e) {}
 }
 function playDef(d) {                                    // 開始玩（介紹卡的「開始玩」、同一棟點第二次）
@@ -2700,10 +3048,11 @@ function focusTarget(d) {
   if (!k) return null;
   _v.copy(d.body).add(d.root.position).applyMatrix4(inv); const bx = _v.x, by = _v.y;
   _v.copy(d.anchor).applyMatrix4(inv); const ax = _v.x, ay = _v.y;
-  const th = ((d.th0 || 60) + TAIL) / k;                 // 浮標高（相機單位）
+  const hm = d === home.def;                             // v8 我的家（布置花園）：浮標藏著、上面的按鈕也藏著 → 不算浮標高、從畫面最上面算
+  const th = hm ? 0 : ((d.th0 || 60) + TAIL) / k;        // 浮標高（相機單位）
   const cx = (bx + ax) / 2, cy = (by + ay + th) / 2;
-  const a = opts.pickArea ? opts.pickArea() : null;      // 介紹卡現在的頂（px）
-  const y0 = Math.max(0, view.freeTop || 0), y1 = a && a.top > y0 + 40 ? a.top - 8 : H;
+  const a = hm ? (opts.homeArea ? opts.homeArea() : null) : opts.pickArea ? opts.pickArea() : null;      // 介紹卡現在的頂（px）；v8 我的家＝花園小舖貨架的頂
+  const y0 = hm ? 16 : Math.max(0, view.freeTop || 0), y1 = a && a.top > y0 + 40 ? a.top - 8 : H;
   const tx = W / 2, ty = (y0 + y1) / 2;
   // 不夾可拖範圍：那棟就在畫面中間＝一定看得到島（直式介紹卡佔掉下面快一半，島前排的釣魚、青蛙要往上移很多，夾了會被卡片蓋住）
   return { px: cx - view.cx - town.tgt.x - (tx - W / 2) / k, py: cy - view.cy - town.tgt.y + (ty - H / 2) / k };
@@ -2723,7 +3072,7 @@ function stepFocus(dt) {
 }
 // 從清單（🗺️ 全部遊戲）選：人不在那座島就先飛過去，再開那棟的介紹卡。那座島還沒開＝false（主程式自己說）
 function pickMode(m) {
-  const d = DEFS.find(x => x.mode === m); if (!d || dead) return false;
+  const d = DEFS.find(x => x.mode === m); if (!d || dead || home.edit) return false;
   const p = isleOf(d);
   if ((p === "town" && !town.open) || (p === "rainbow" && !rb.open)) return false;
   if (p !== town.place) goPlace(p);
@@ -2742,6 +3091,8 @@ function pick(cx, cy) {
   const r = renderer.domElement.getBoundingClientRect();
   ndc.set((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
   raycaster.setFromCamera(ndc, camera);
+  const homeHit = () => { const hh = home.g ? raycaster.intersectObjects(home.hits, false) : []; return hh.length ? (town.place === "main" ? { home: hh[0].object.userData.home } : { isle: "main" }) : null; };   // v8 我的家
+  if (home.edit) return homeHit();                       // 布置花園：只認我的家（寵物走過去也點得到格子）
   const vis = agents.filter(a => a.hit && a.holder.visible);
   const pm = raycaster.intersectObjects(vis.map(a => a.obj), true).find(h => h.object.isMesh);
   const bm = raycaster.intersectObjects(DEFS.map(d => d.pivot), true).find(h => h.object.isMesh);
@@ -2749,6 +3100,7 @@ function pick(cx, cy) {
   const defHit = d => isleOf(d) === town.place ? { def: d } : { isle: isleOf(d) };   // 別座島上的建築＝點那座島（10-12）
   if (pm && (!bm || pm.distance < bm.distance)) return { pet: agentOf(pm.object) };   // 真的點到寵物身上、而且寵物在建築前面
   if (bm) { let o = bm.object; while (o && !o.userData.def) o = o.parent; if (o) return defHit(o.userData.def); }
+  const hm = homeHit(); if (hm) return hm;
   const ph = raycaster.intersectObjects(vis.filter(a => !a.atDoor).map(a => a.hit), false);   // 寵物身邊一圈（小孩點不準）：停在門口的不算
   if (ph.length) return { pet: ph[0].object.userData.pet };
   const bh = raycaster.intersectObjects(hitBoxes, false);
@@ -2771,7 +3123,7 @@ function bindInput(cv) {
     try { cv.setPointerCapture(e.pointerId); } catch (er) {}
     const p0 = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, t0: performance.now(), moved: 0, multi: ptrs.size > 0 };
     ptrs.set(e.pointerId, p0);
-    if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; a.multi = b.multi = true; pinch = { d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, z0: user.zoom }; releaseTag(false); deselect(); }   // 雙指縮放＝收起介紹卡
+    if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; a.multi = b.multi = true; if (home.edit) return; pinch = { d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, z0: user.zoom }; releaseTag(false); deselect(); }   // 雙指縮放＝收起介紹卡（布置花園時不能縮放）
     else { const hit = p0.hit = pick(e.clientX, e.clientY); if (hit && hit.def) preloadCard(hit.def);   // 10-12：按下那一刻就記住點到誰（按住期間取景可能在動，放開再算會偏到隔壁棟）
       pressTag(hit && hit.def && isleOf(hit.def) === town.place ? hit.def.tag : hit && hit.civic && town.place === "town" ? hit.civic.tag : null); }   // 按住建築：那一棟的名字彈出來
   });
@@ -2783,7 +3135,7 @@ function bindInput(cv) {
       const [a, b] = [...ptrs.values()];
       zoomAt((a.x + b.x) / 2, (a.y + b.y) / 2, Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, pinch.z0 * Math.hypot(a.x - b.x, a.y - b.y) / pinch.d0)));
       panBy(dx / 2, dy / 2);
-    } else if (p.moved >= TAP_MOVE) { panBy(dx, dy); releaseTag(false); deselect(); }   // 超過點擊容許範圍才算拖曳（按住彈出的名字收回、介紹卡收起來）
+    } else if (p.moved >= TAP_MOVE && !home.edit) { panBy(dx, dy); releaseTag(false); deselect(); }   // 超過點擊容許範圍才算拖曳（按住彈出的名字收回、介紹卡收起來）；布置花園時不能拖
   });
   const up = e => {
     const p = ptrs.get(e.pointerId); if (!p) return; ptrs.delete(e.pointerId);
@@ -2791,13 +3143,15 @@ function bindInput(cv) {
     releaseTag(e.type === "pointerup" && !p.multi && p.moved < TAP_MOVE);
     if (e.type === "pointerup" && !p.multi && p.moved < TAP_MOVE && performance.now() - p.t0 < TAP_MS) {
       const hit = p.hit || pick(p.x0, p.y0) || pick(e.clientX, e.clientY);   // 以按下去那一刻點到的為準（小孩常按著不放、或按著滑一下）
+      if (home.edit) { if (hit && hit.home) tapHome(hit.home); return; }   // 布置花園：只點格子
       if (!hit || !hit.def) deselect();                  // 點空白處／寵物／設施／居民／別座島＝收起介紹卡
-      if (hit && hit.pet) tapPet(hit.pet); else if (hit && hit.def) tapBuilding(hit.def); else if (hit && hit.civic) tapCivic(hit.civic);
+      if (!hit) { try { opts.onBlank(); } catch (er) {} }   // v8：點空白處＝我的家卡片也收起來
+      if (hit && hit.pet) tapPet(hit.pet); else if (hit && hit.def) tapBuilding(hit.def); else if (hit && hit.home) tapHome(hit.home); else if (hit && hit.civic) tapCivic(hit.civic);
       else if (hit && hit.folk) tapFolk(hit.folk); else if (hit && hit.rbLock) tapRbLock(); else if (hit && hit.isle) tapIsle(hit.isle);
     }
   };
   cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
-  cv.addEventListener("wheel", e => { e.preventDefault(); deselect(); zoomAt(e.clientX, e.clientY, Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, user.zoom * Math.exp(-e.deltaY * 0.0015)))); }, { passive: false });
+  cv.addEventListener("wheel", e => { e.preventDefault(); if (home.edit) return; deselect(); zoomAt(e.clientX, e.clientY, Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, user.zoom * Math.exp(-e.deltaY * 0.0015)))); }, { passive: false });
 }
 function panBy(dx, dy) { const k = view.k * user.zoom, from = { px: user.px, py: user.py }; user.px -= dx / k; user.py += dy / k; clampPan(from); }
 function zoomAt(sx, sy, nz) {
@@ -3025,6 +3379,14 @@ function placeTags(t) {
     const x = (_v.x + 1) / 2 * W, y = (1 - _v.y) / 2 * H, w = w0 * sc, h = h0 * sc;
     (d.isle ? rbPos : tagPos).push({ d, ax: x, x0: x - w / 2, x1: x + w / 2, y0: y - h - TAIL, y1: y - TAIL, w0, h0, obs: d.tag._open ? fitObsMax : undefined });
   }
+  const hd = home.def;                                 // v8 我的家：主島才擺（布置花園時藏起來，免得擋住前院）
+  if (hd && home.lv && town.place === "main") {
+    home.tag.style.visibility = home.edit ? "hidden" : "";
+    setOpen(home.tag, wantOpen(home.tag));
+    if (tagLive() || hd.tw0 === undefined) { hd.tw0 = home.tag.offsetWidth; hd.th0 = home.tag.offsetHeight; }
+    if (hd.tw0) { _v.copy(hd.anchor).project(camera); const x = (_v.x + 1) / 2 * W, y = (1 - _v.y) / 2 * H, w = hd.tw0 * sc, h = hd.th0 * sc;
+      tagPos.push({ d: hd, ax: x, x0: x - w / 2, x1: x + w / 2, y0: y - h - TAIL, y1: y - TAIL, w0: hd.tw0, h0: hd.th0, obs: home.tag._open ? fitObsMax : undefined }); }
+  }
   const sgPos = []; signRects(sgPos, sc);              // 橋頭路牌（10-12）
   if (tagRO) tagDirty = false;                         // 沒有 ResizeObserver 的舊瀏覽器：每格量
   nudge(tagPos, fitObs); if (rbPos.length) nudge(rbPos, fitObs);
@@ -3212,7 +3574,8 @@ function celeTick(t, dt) {
 // 對外介面
 // =========================================================
 export async function createHub(o) {
-  opts = { friends: () => [], onFriend: () => {}, onFail: () => {}, onGacha: () => {}, onDress: () => {}, onCivic: () => {}, onPlace: () => {}, stickers: () => 0, newbie: () => false, labels: {}, onPick: null, pickArea: null, onIsle: null, ...o };
+  opts = { friends: () => [], onFriend: () => {}, onFail: () => {}, onGacha: () => {}, onDress: () => {}, onCivic: () => {}, onPlace: () => {}, stickers: () => 0, newbie: () => false, labels: {}, onPick: null, pickArea: null, onIsle: null,
+    onHome: () => {}, onMail: () => {}, onYard: () => {}, onHomeItem: () => {}, onHomeExit: () => {}, onBlank: () => {}, homeArea: null, ...o };   // v8 我的家：點房子／信箱／前院格子／裝飾、布置花園被收掉、花園小舖貨架的頂（{ top }）
   // onPick(mode, info)｜onPick(null)：點一下遊戲建築＝開介紹卡／收起來（10-12；沒給＝點一下就開始）；pickArea()：介紹卡現在的 { top }（鏡頭把選到的那棟放在它上面）；
   // onIsle(p)：點遠方的島／路牌要飛過去（主程式出音效再呼叫 goPlace；沒給＝直接 goPlace）
   renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
@@ -3358,7 +3721,8 @@ function use(plugin) {
 // games()＝每個遊戲在哪座島、鎖著沒＋三座島開了沒（清單分組用）
 function games() { return { list: DEFS.map(d => ({ mode: d.mode, isle: isleOf(d), locked: !!d.locked })), open: { main: true, town: !!town.open, rainbow: !!rb.open }, need: { town: DIST_NEED, rainbow: RAINBOW_NEED } }; }
 const api = { show, hide, resume, refresh, dispose, setPets, setDecor, use, goPlace, place: () => town.place, celebrate, whenBuilt: () => builtP,   // celebrate：10-12 同樂廣場慶祝裝飾；whenBuilt：建築全部長好（效能體檢 10-12）
-  start: m => { const d = DEFS.find(x => x.mode === m); if (d && !dead && shown) playDef(d); }, deselect, pick: pickMode, selected: () => sel ? sel.mode : null, games };
+  start: m => { const d = DEFS.find(x => x.mode === m); if (d && !dead && shown) playDef(d); }, deselect, pick: pickMode, selected: () => sel ? sel.mode : null, games,
+  setHome, homeEdit, playHomeUpgrade, homeIntro, homeIcons, homeEditing: () => home.edit, homeBusy: () => !!home.busy };   // v8 我的家
 
 // 測試／除錯用（網址有 ?debug 才掛；tools/zy-test/hub3d.js、tools/render3d/render_bg.js）
 if (DEBUG) window.__hub3d = {
@@ -3398,6 +3762,12 @@ if (DEBUG) window.__hub3d = {
   openOne(m) { const d = DEFS.find(x => x.mode === m), c = CIVIC.find(x => x.id === m); pressTag(d ? d.tag : c ? c.tag : null); },   // 跟手指按住那一棟一樣（null＝放掉）
   focus(m, z = 1.5) { const d = DEFS.find(x => x.mode === m) || SPOTS.find(x => x.id === m); if (!d) { user.zoom = 1; user.px = user.py = 0; return; } user.zoom = z; _v.set(d.x, 1, d.z).applyMatrix4(camera.matrixWorldInverse); user.px = _v.x - view.cx; user.py = _v.y - view.cy; },
   setPets, setDecor, use, goPlace,
+  // v8 我的家：現在幾級、工地零件、每格放什麼、白圈、夥伴；homeScreen(k)＝房子（"house"）／信箱（"mail"）／第 i 格在螢幕上的位置；tapHome(o)＝跟手指點一樣
+  home: () => ({ busy: !!home.busy, lv: home.lv, part: home.part, cap: home.cap, yard: YARD.map((_, i) => (home.items.get(i) || {}).id || null), edit: home.edit, placing: home.placing, marks: home.marks.filter(m => m.visible).length,
+    pet: !!home.pet, petSwing: !!(home.pet && home.pet.userData.swing), mailUp: !!home.mail && Math.abs(home.mail.userData.flag.rotation.z) < 0.01, flag: !!home.flagG, tag: home.tag && home.tag.style.visibility !== "hidden" ? (r => ({ x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width })) (home.tag.getBoundingClientRect()) : null }),
+  homeScreen(k) { if (!home.g) return null; const [x, y, z] = k === "house" ? [HOME_HOUSE.x, HOUSE_H[home.lv] * 0.45, HOME_HOUSE.z] : k === "mail" ? [0.02, 0.3, 1.1] : [YARD[k][0], 0.12, YARD[k][1]];
+    _v.set(x, y, z).add(home.g.position).project(camera); return { x: (_v.x + 1) / 2 * innerWidth, y: (1 - _v.y) / 2 * innerHeight }; },
+  tapHome: o => tapHome(o),
   // 10-12 路牌／點遠方的島：每支路牌（在哪座島、指去哪、3D 位置在螢幕上哪裡、浮標框、貼邊沒、鎖著沒）；isleScreen(p)＝那座島中心在螢幕上的位置；proj(x,y,z)＝世界座標→螢幕
   signs: () => SIGNS.map(s => { _v.set(s.x, s.y - 0.3, s.z).project(camera); const r = s.tag ? s.tag.getBoundingClientRect() : null;
     return { at: s.at, go: s.go, x: +s.x.toFixed(2), z: +s.z.toFixed(2), sx: Math.round((_v.x + 1) / 2 * innerWidth), sy: Math.round((1 - _v.y) / 2 * innerHeight), shown: !!(r && r.width), rect: r && { x0: r.left, x1: r.right, y0: r.top, y1: r.bottom }, edge: !!s.edge, locked: !!(s.tag && s.tag.classList.contains("locked")) }; }),

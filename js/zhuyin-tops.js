@@ -971,7 +971,7 @@ export function createTopsGame(root, api) {
   function starMeter(parent) {                                 // 10-31 陀螺星星（取代 15 格集點卡）：有幾顆、亮 cost 格（夠玩一次＝全亮）、再拿幾顆
     const n = starsN(), c = cost(), lack = Math.max(0, c - n);
     const box = mk("div", "tp-stars" + (lack ? "" : " tp-enough"), parent);
-    const h = mk("div", "tp-stars-h", box); mk("span", "", h, "⭐ 陀螺星星");   // 10-31 櫻木：叫「陀螺星星」，跟星星罐分開（數字不一樣）
+    const h = mk("div", "tp-stars-h", box); mk("span", "", h, "⭐ 我的星星");   // 10-31 v8：陀螺、花園小舖共用一個錢包「我的星星」（docs/zhuyin-v8-plan.md §3.4），跟星星罐分開（數字不一樣）
     mk("b", "", h, n + " 顆");
     const row = mk("div", "tp-stars-row", box); row.style.gridTemplateColumns = `repeat(${c}, 1.5em)`; for (let i = 0; i < c; i++) mk("span", "tp-star" + (i < n ? " tp-lit" : ""), row, "★");
     mk("div", "tp-stars-s", box, lack ? `再拿 ${lack} 顆星星，就能再玩一次！` : `${c} 顆星星玩一次`);

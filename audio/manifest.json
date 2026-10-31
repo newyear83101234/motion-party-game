@@ -936,6 +936,15 @@
    "sourceUrl": "https://freesound.org/people/LilMati/sounds/462095/",
    "license": "CC0 1.0（Freesound 頁面逐檔確認；Kenney CC0；合成部分 numpy 自製 CC0）",
    "v7": true
+  },
+  "hammer": {
+   "file": "audio/sfx/hammer.mp3",
+   "use": "v8 我的家升級：敲敲打打（鷹架）",
+   "duration": 0.78,
+   "peak_dBFS": -3.9,
+   "loop": false,
+   "source": "Kenney Impact Sounds「impactPlank_medium_001.ogg」（-5.5 dB、尾端 0.15 秒淡出、單聲道 128k）",
+   "license": "CC0 1.0（Kenney，免署名）"
   }
  }
 }

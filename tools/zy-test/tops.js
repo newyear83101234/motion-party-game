@@ -366,7 +366,7 @@ async function playToEnd(p, n = 1) {                          // 下場 → 開�
     await d.p.waitForFunction(() => document.querySelector(".tp-rpanel .tp-stars"), null, { timeout: 20000 }); await sleep(200);
     const r1 = await d.p.evaluate(() => ({ h: document.querySelector(".tp-rpanel .tp-stars-h").textContent, lit: document.querySelectorAll(".tp-rpanel .tp-star.tp-lit").length, all: document.querySelectorAll(".tp-rpanel .tp-star").length, enough: !!document.querySelector(".tp-rpanel .tp-stars.tp-enough"), s: document.querySelector(".tp-rpanel .tp-stars-s").textContent, again: !!document.querySelector(".tp-rpanel .tp-again"), c: (document.querySelector(".tp-rpanel .tp-again .tp-btn-c") || {}).textContent }));
     await shot(d.p, "1024x768_result_enough");
-    ok("結算（星星夠 12→7）：「⭐ 陀螺星星 7 顆」、5 格全亮、tp-enough、寫「5 顆星星玩一次」、有「🔁 再玩一次」且角標「⭐−5」", /陀螺星星/.test(r1.h) && /7\s*顆/.test(r1.h) && r1.lit === 5 && r1.all === 5 && r1.enough && /5\s*顆星星玩一次/.test(r1.s) && r1.again && /⭐[−-]5/.test(r1.c || ""), JSON.stringify(r1));
+    ok("結算（星星夠 12→7）：「⭐ 我的星星 7 顆」（v8 錢包改名）、5 格全亮、tp-enough、寫「5 顆星星玩一次」、有「🔁 再玩一次」且角標「⭐−5」", /我的星星/.test(r1.h) && /7\s*顆/.test(r1.h) && r1.lit === 5 && r1.all === 5 && r1.enough && /5\s*顆星星玩一次/.test(r1.s) && r1.again && /⭐[−-]5/.test(r1.c || ""), JSON.stringify(r1));
     ok("結算段：沒有錯誤", d.errs.length === 0, d.errs.join(" | "));
     await d.ctx.close();
     const e = await open(browser, 1024, 768, "fast=6&stars=7");

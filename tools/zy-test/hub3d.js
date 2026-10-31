@@ -63,7 +63,7 @@ const backToMenu = async p => { await p.evaluate(() => { document.getElementById
       return { hub: document.body.classList.contains("hub3d"), canvas: !!document.querySelector("#menu .hub-stage canvas"), cardsW: cards.width, cardsOpacity: getComputedStyle(document.querySelector("#menu > .mode-cards")).opacity, tags: document.querySelectorAll(".hub-tag:not(.civic):not(.rb)").length }; });
     ok("3D 選單有出現（body.hub3d＋canvas）", st.hub && st.canvas, JSON.stringify(st));
     ok("卡片 DOM 還在但看不到", st.cardsW <= 1 && st.cardsOpacity === "0" && (await p.evaluate(() => document.querySelectorAll(".mode-card").length)) === 13);   // 10-12 多了彩虹配送站、詞句小偵探、注音戰鬥陀螺；10-13 挑戰燈塔
-    ok("主島 11 個浮標（9 個遊戲＋挑戰燈塔＋扭蛋機）", st.tags === 11, String(st.tags));
+    ok("主島 12 個浮標（9 個遊戲＋挑戰燈塔＋扭蛋機＋v8 我的家）", st.tags === 12, String(st.tags));
     const g = await p.evaluate(() => window.__hub3d.graph());
     ok("路網全部連通、9 棟建築＋7 個景點＋歸仁區 4 棟設施＋陀螺競技場＋彩虹島 6 棟都接到路", g.components === 1 && g.doors.length === 27, JSON.stringify(g));   // 10-12 彩虹島：配送站、服裝店、偵探社、三戶人家；歸仁區東邊半島：陀螺競技場
     await p.waitForFunction(() => window.__hub3d.pets().length >= 6, null, { timeout: 15000 }).catch(() => {});   // 寵物模型在建築之後才抓

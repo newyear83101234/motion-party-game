@@ -24,7 +24,8 @@ SOURCES = ["zhuyin.html", "js/zhuyin.js", "js/zhuyin-words.js",
            "js/zhuyin-detective.js", "js/zhuyin-detective-bank.js",   # 10-12 詞句小偵探：介面字、台詞、題庫句子（含 enabled:false 的草稿）
            "js/zhuyin-tops.js",      # 10-12 注音戰鬥陀螺：介面字、台詞、加成名稱（小孩打的字／候選字的注音直接用 js/zhuyin-tops-dict.json，不靠這裡）
            "js/zhuyin-plaza.js",     # 10-12 小島同樂廣場：主題名稱與說明、進度句、加油貼紙、台詞
-           "js/zhuyin-tower.js", "js/zhuyin-tower-core.js"]   # 10-13 挑戰燈塔：介面字、台詞、規則、24 個代號名（生肖、星座）
+           "js/zhuyin-tower.js", "js/zhuyin-tower-core.js",   # 10-13 挑戰燈塔：介面字、台詞、規則、24 個代號名（生肖、星座）
+           "js/zhuyin-home.js"]      # 10-31 v8 我的家：房子名、花園小舖裝飾名、信件、台詞
 HAN = re.compile(r"[\u3400-\u9fff]+")
 TONES = "ˊˇˋ˙"
 

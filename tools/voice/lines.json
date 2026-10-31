@@ -1,12 +1,12 @@
 {
  "meta": {
   "generated_by": "tools/voice/build_lines.py",
-  "total_lines": 903,
-  "total_chars": 5589,
+  "total_lines": 935,
+  "total_chars": 5961,
   "by_cat": {
    "intro": 10,
    "praise": 8,
-   "guide": 440,
+   "guide": 472,
    "system": 4,
    "result": 7,
    "word": 163,
@@ -3897,6 +3897,198 @@
    "text": "彩虹小龍好像要進化了！",
    "cat": "guide",
    "src": "zhuyin.js evoMenu／rewardStrip／gachaShow（能量集滿）"
+  },
+  {
+   "id": "hm_welcome",
+   "text": "這是你的家！玩遊戲房子會變大喔！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LINES.welcome（v8 我的家）"
+  },
+  {
+   "id": "hm_building",
+   "text": "還在蓋喔！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LINES.building（v8 我的家）"
+  },
+  {
+   "id": "hm_almost",
+   "text": "快蓋好了！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LINES.almost（v8 我的家）"
+  },
+  {
+   "id": "hm_done",
+   "text": "金色城堡蓋好了！好厲害！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LINES.done（v8 我的家）"
+  },
+  {
+   "id": "hm_gardenOpen",
+   "text": "可以布置花園囉！點一下房子看看！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LINES.gardenOpen（v8 我的家）"
+  },
+  {
+   "id": "hm_gardenLocked",
+   "text": "房子變成小木屋，就能布置花園喔！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LINES.gardenLocked（v8 我的家）"
+  },
+  {
+   "id": "hm_gift",
+   "text": "送你一個紅花圃！點一下花圃，再點一個格子，就放好了！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LINES.gift（v8 我的家）"
+  },
+  {
+   "id": "hm_poor",
+   "text": "再玩一下遊戲，就能買囉！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LINES.poor（v8 我的家）"
+  },
+  {
+   "id": "hm_full",
+   "text": "前院滿了，先放倉庫囉！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LINES.full（v8 我的家）"
+  },
+  {
+   "id": "hm_refund",
+   "text": "退回去了，星星還給你！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LINES.refund（v8 我的家）"
+  },
+  {
+   "id": "hm_mailNew",
+   "text": "信箱有一封信喔！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LINES.mailNew（v8 我的家）"
+  },
+  {
+   "id": "hm_mailRead",
+   "text": "今天的信看過囉，明天再來看看！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LINES.mailRead（v8 我的家）"
+  },
+  {
+   "id": "hm_wallet",
+   "text": "你的星星可以玩陀螺、買花園的東西！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LINES.wallet（v8 我的家）"
+  },
+  {
+   "id": "hm_letter_1",
+   "text": "早安！今天也要開開心心玩遊戲喔！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LETTERS（信箱每天一封）"
+  },
+  {
+   "id": "hm_letter_2",
+   "text": "你的家越來越漂亮了，大家都好羨慕！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LETTERS（信箱每天一封）"
+  },
+  {
+   "id": "hm_letter_3",
+   "text": "貓頭鷹老師說：你今天也很棒！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LETTERS（信箱每天一封）"
+  },
+  {
+   "id": "hm_letter_4",
+   "text": "花園裡的花開了，快去看看吧！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LETTERS（信箱每天一封）"
+  },
+  {
+   "id": "hm_letter_5",
+   "text": "今天天氣很好，帶夥伴出去走走吧！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LETTERS（信箱每天一封）"
+  },
+  {
+   "id": "hm_letter_6",
+   "text": "記得多喝水，休息一下眼睛喔！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LETTERS（信箱每天一封）"
+  },
+  {
+   "id": "hm_letter_7",
+   "text": "小島上的動物朋友都在等你！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LETTERS（信箱每天一封）"
+  },
+  {
+   "id": "hm_letter_8",
+   "text": "你知道嗎？注音符號有三十七個喔！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LETTERS（信箱每天一封）"
+  },
+  {
+   "id": "hm_letter_9",
+   "text": "今天想蓋什麼呢？玩遊戲就能蓋房子喔！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LETTERS（信箱每天一封）"
+  },
+  {
+   "id": "hm_letter_10",
+   "text": "謝謝你每天來小島，我們好開心！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LETTERS（信箱每天一封）"
+  },
+  {
+   "id": "hm_letter_11",
+   "text": "試試看沒玩過的遊戲吧！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LETTERS（信箱每天一封）"
+  },
+  {
+   "id": "hm_letter_12",
+   "text": "晚上記得早點睡覺，明天見！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LETTERS（信箱每天一封）"
+  },
+  {
+   "id": "hm_letter_13",
+   "text": "你的夥伴說：最喜歡你了！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LETTERS（信箱每天一封）"
+  },
+  {
+   "id": "hm_letter_14",
+   "text": "每天練習一點點，就會越來越厲害！",
+   "cat": "guide",
+   "src": "zhuyin-home.js LETTERS（信箱每天一封）"
+  },
+  {
+   "id": "hm_up_2",
+   "text": "你的家變成小木屋了！",
+   "cat": "guide",
+   "src": "zhuyin.js homeMenu 升級演出（HM.upLine）"
+  },
+  {
+   "id": "hm_up_3",
+   "text": "你的家變成磚頭房子了！",
+   "cat": "guide",
+   "src": "zhuyin.js homeMenu 升級演出（HM.upLine）"
+  },
+  {
+   "id": "hm_up_4",
+   "text": "你的家變成兩層樓了！",
+   "cat": "guide",
+   "src": "zhuyin.js homeMenu 升級演出（HM.upLine）"
+  },
+  {
+   "id": "hm_up_5",
+   "text": "你的家變成城堡了！",
+   "cat": "guide",
+   "src": "zhuyin.js homeMenu 升級演出（HM.upLine）"
+  },
+  {
+   "id": "hm_up_6",
+   "text": "你的家變成金色城堡了！",
+   "cat": "guide",
+   "src": "zhuyin.js homeMenu 升級演出（HM.upLine）"
   },
   {
    "id": "unlock_need_1",

@@ -57,6 +57,7 @@
 | star | Freesound「Signal-Ring 1」by Vendarro — https://freesound.org/people/Vendarro/sounds/399315/ — CC0 |
 | sticker | synth (numpy bell sparkle) |
 | tap | Kenney Interface Sounds click_003 |
+| hammer | Kenney Impact Sounds impactPlank_medium_001（v8 我的家升級的敲打聲）— CC0 |
 | truck_drive | Freesound「Motor Loop.wav」by soundjoao — https://freesound.org/people/soundjoao/sounds/325808/ — CC0 |
 | truck_start | Freesound「Car Start」by snakebarney — https://freesound.org/people/snakebarney/sounds/138099/ — CC0 |
 | truck_stop | Freesound「Air Brake Applied」by chungus43A — https://freesound.org/people/chungus43A/sounds/705390/ — CC0 |
