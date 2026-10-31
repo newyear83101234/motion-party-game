@@ -18,7 +18,7 @@ const bareHan = p => p.evaluate(() => { const out = []; const w = document.creat
   const browser = await launch();
   // ===== 打地鼠 =====
   {
-    const { ctx, p, errs } = await openGame(browser, { stickers: 40, query: "debug" });
+    const { ctx, p, errs } = await openGame(browser, { stickers: 40, query: "debug&no3d" });
     await enterMode(p, "whack");
     ok("地鼠：進得去、有 6 個洞", await p.evaluate(() => document.querySelectorAll("#field .wcell").length === 6 && window.__zy.mode === "whack"));
     ok("地鼠：開題唸目標詞（聽力模式）", await p.evaluate(() => window.__spoken.length >= 1 && window.__zy.WORDS.some(w => w.h === window.__spoken[0].text)), JSON.stringify(await p.evaluate(() => window.__spoken.map(s => s.text))));
@@ -62,7 +62,7 @@ const bareHan = p => p.evaluate(() => { const out = []; const w = document.creat
   }
   // ===== 跳跳蛙 =====
   {
-    const { ctx, p, errs } = await openGame(browser, { stickers: 40, query: "debug" });
+    const { ctx, p, errs } = await openGame(browser, { stickers: 40, query: "debug&no3d" });
     await enterMode(p, "frog");
     const f0 = await p.evaluate(() => ({ k: window.__zy.fq.k, pads: window.__zy.fq.cols.length, word: window.__zy.fq.q.word.h }));
     ok("青蛙：第 1 題 2 片荷葉", f0.pads === 2, JSON.stringify(f0));

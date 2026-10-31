@@ -16,7 +16,7 @@ const waitIdle = p => p.waitForFunction(() => { const s = window.__zy.bubble.sta
 (async () => {
   const browser = await launch(); const allErrs = [];
   {
-    const { ctx, p, errs } = await openGame(browser, { stickers: 40, query: "debug" });
+    const { ctx, p, errs } = await openGame(browser, { stickers: 40, query: "debug&no3d" });
     const before = await p.evaluate(() => ({ bubble: localStorage.getItem("zy1_bubble"), stars: localStorage.getItem("zy1_stars"), screen: [...document.querySelectorAll(".screen")].find(s => !s.classList.contains("hidden"))?.id }));
     await sleep(200);
     ok("介面：window.__zyTowerApi.playBubbleBoss 和 window.__zy.playBubbleBoss 都在", await p.evaluate(() => typeof window.__zyTowerApi?.playBubbleBoss === "function" && window.__zy.playBubbleBoss === window.__zyTowerApi.playBubbleBoss));

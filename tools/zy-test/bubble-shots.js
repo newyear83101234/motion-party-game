@@ -28,7 +28,7 @@ const SIZES = [[1024, 768, "land"], [768, 1024, "port"]];
                                       [{ lv: 5, stars: { 0: 3, 1: 3, 2: 2, 3: 3, 4: 3 } }, "locked", 2],
                                       [{ lv: 33, stars: { 29: 3, 30: 3, 31: 2, 32: 3 } }, "z4", null],
                                       [{ lv: 49, stars: { 40: 3, 41: 2, 45: 1 }, all: 1 }, "z5", null]]) {
-      const { ctx, p } = await openGame(browser, { stickers: 40, query: "debug", w, h });
+      const { ctx, p } = await openGame(browser, { stickers: 40, query: "debug&no3d", w, h });
       await p.evaluate(sv => localStorage.setItem("zy1_bubble", JSON.stringify(sv)), save);
       await p.reload(); await p.waitForFunction(() => document.getElementById("loading").classList.contains("hidden"), null, { timeout: 15000 });
       await p.evaluate(() => { const g = document.getElementById("startGate"); if (g && !g.classList.contains("hidden")) document.getElementById("startBtn").click(); }); await sleep(500);

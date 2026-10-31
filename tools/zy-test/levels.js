@@ -23,7 +23,7 @@ async function clearFish(p, n = 8) {
   const browser = await launch();
   // ===== 1. 等級解鎖、星星規則、升級規則、舊存檔、備份碼 =====
   {
-    const { ctx, p, errs } = await openGame(browser, { stickers: 40, stars: 0, query: "debug" });
+    const { ctx, p, errs } = await openGame(browser, { stickers: 40, stars: 0, query: "debug&no3d" });
     ok("新存檔：釣魚 Lv1（max 1）", await p.evaluate(() => { const r = window.__zy.lvRec("fish"); return r.max === 1 && r.cur === 1; }));
     await enterMode(p, "fish", { lv: 1 });
     ok("Lv1＝原本：4 條魚、沒有沙漏", await p.evaluate(() => document.querySelectorAll("#pond .fishBtn").length === 4 && !window.__zy.hg.shown && !window.__zy.hg.on));

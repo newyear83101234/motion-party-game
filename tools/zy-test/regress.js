@@ -21,7 +21,7 @@ const overlaps = (p, sel) => p.evaluate(sel => { const r = [...document.querySel
   const browser = await launch();
   // ===== 1. 語音規則 ＋ 注音覆蓋（橫式）=====
   {
-    const { ctx, p, errs } = await openGame(browser, { stickers: 40, stars: 12, query: "debug" });
+    const { ctx, p, errs } = await openGame(browser, { stickers: 40, stars: 12, query: "debug&no3d" });
     ok("選單：沒有漏注音的國字", (await bareHan(p)).length === 0, (await bareHan(p)).join("、"));
     for (const m of ["order", "hunt"]) {
       await enterMode(p, m); await sleep(1200);
@@ -83,7 +83,7 @@ const overlaps = (p, sel) => p.evaluate(sel => { const r = [...document.querySel
   }
   // ===== 2. 閒置提示（設成 1 秒方便測）=====
   {
-    const { ctx, p, errs } = await openGame(browser, { stickers: 40, query: "debug" });
+    const { ctx, p, errs } = await openGame(browser, { stickers: 40, query: "debug&no3d" });
     await p.evaluate(() => localStorage.setItem("zy_hint_wait", "1")); await p.reload(); await p.waitForFunction(() => document.getElementById("loading").classList.contains("hidden"));
     await enterMode(p, "order"); await clearSpoken(p); await sleep(1600);
     ok("閒置：提示按鈕閃、但不出聲", await p.evaluate(() => document.getElementById("speakBtn").classList.contains("pulse")) && (await spoken(p)).length === 0, (await spoken(p)).join("/"));
@@ -91,7 +91,7 @@ const overlaps = (p, sel) => p.evaluate(sel => { const r = [...document.querySel
   }
   // ===== 3. 存檔位 / 備份 / 清除 =====
   {
-    const { ctx, p, errs } = await openGame(browser, { stickers: 40, stars: 7, query: "debug" });
+    const { ctx, p, errs } = await openGame(browser, { stickers: 40, stars: 7, query: "debug&no3d" });
     const cnt = () => p.evaluate(() => document.getElementById("menuStickers").textContent);
     ok("存檔 1：40 張貼紙", (await cnt()) === "40");
     await p.evaluate(() => document.getElementById("playerBtn").click()); await sleep(200);
@@ -133,7 +133,7 @@ const overlaps = (p, sel) => p.evaluate(sel => { const r = [...document.querySel
   }
   // ===== 4. 排版：翻牌 8/12/16/20/24（v6 等級 Lv1–5）排滿、不超出畫面；魚／氣球標籤不重疊（橫、直、4:3）=====
   for (const [W, H, tag] of [[1180, 820, "橫"], [820, 1180, "直"], [1024, 768, "4:3"]]) {
-    const { ctx, p, errs } = await openGame(browser, { w: W, h: H, stickers: 40, query: "debug" });
+    const { ctx, p, errs } = await openGame(browser, { w: W, h: H, stickers: 40, query: "debug&no3d" });
     for (const n of [8, 12, 16, 20, 24]) {
       await enterMode(p, "match", n); await settle(p);
       const r = await p.evaluate(() => { const cs = [...document.querySelectorAll("#board .card")].map(c => c.getBoundingClientRect()); const rows = new Map(); for (const b of cs) rows.set(Math.round(b.top), (rows.get(Math.round(b.top)) || 0) + 1);

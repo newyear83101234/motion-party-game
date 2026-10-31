@@ -18,7 +18,7 @@ const nextIdx = (p, n, t = 5000) => p.waitForFunction(n => window.__zy.idx === n
 
 (async () => {
   const browser = await launch(); const warns = [];
-  const open = async opt => { const g = await openGame(browser, { stickers: 40, query: "debug", ...opt }); g.p.on("console", m => { if (/\[polish\]/.test(m.text())) warns.push(m.text().slice(0, 160)); }); await spy(g.p); return g; };
+  const open = async opt => { const g = await openGame(browser, { stickers: 40, query: "debug&no3d", ...opt }); g.p.on("console", m => { if (/\[polish\]/.test(m.text())) warns.push(m.text().slice(0, 160)); }); await spy(g.p); return g; };
   // ===== 1. 釣魚：音高、一碰就算、進度點變金、揭曉停留、驚喜題、小生物 =====
   {
     const { ctx, p, errs } = await open();

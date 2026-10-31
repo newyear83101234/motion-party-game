@@ -18,7 +18,7 @@ const visible = (p, id) => p.evaluate(id => !document.getElementById(id).classLi
   const browser = await launch(); const allErrs = [];
   // ===== ① 暫停凍結換題 =====
   {
-    const { ctx, p, errs } = await openGame(browser, { stickers: 20, query: "debug" });
+    const { ctx, p, errs } = await openGame(browser, { stickers: 20, query: "debug&no3d" });
     await enterMode(p, "fish"); await sleep(800);
     const i0 = await idxOf(p);
     await tapOpt(p, "#pond .fishBtn", true); await sleep(300);
@@ -38,7 +38,7 @@ const visible = (p, id) => p.evaluate(id => !document.getElementById(id).classLi
   }
   // ===== ① 翻牌配對完成後馬上離開：不能跳出結算 =====
   {
-    const { ctx, p, errs } = await openGame(browser, { stickers: 20, query: "debug" });
+    const { ctx, p, errs } = await openGame(browser, { stickers: 20, query: "debug&no3d" });
     await enterMode(p, "match", 8); await sleep(500);
     const pairs = await p.evaluate(() => { const cs = [...document.querySelectorAll("#board .card")], m = new Map(); cs.forEach((c, i) => { const k = c._c.w.h; if (!m.has(k)) m.set(k, []); m.get(k).push(i); }); return [...m.values()]; });
     for (const [a, b] of pairs) {
@@ -53,7 +53,7 @@ const visible = (p, id) => p.evaluate(id => !document.getElementById(id).classLi
   }
   // ===== ⑤ 剛剛卡住的再試一次 ＋ ② 稱讚講完才換題 ＋ 容易搞混 =====
   {
-    const { ctx, p, errs } = await openGame(browser, { stickers: 20, query: "debug" });
+    const { ctx, p, errs } = await openGame(browser, { stickers: 20, query: "debug&no3d" });
     await enterMode(p, "fish"); await sleep(800);
     await tapOpt(p, "#pond .fishBtn", false); await sleep(500);
     await tapOpt(p, "#pond .fishBtn", true); await waitIdx(p, 1);
@@ -87,7 +87,7 @@ const visible = (p, id) => p.evaluate(id => !document.getElementById(id).classLi
   }
   // ===== ③ 說明語音關掉＋背景音樂開關 ＋ ⑤ 聲調氣球答錯記「二聲↔三聲」類 =====
   {
-    const { ctx, p, errs } = await openGame(browser, { stickers: 20, query: "debug" });
+    const { ctx, p, errs } = await openGame(browser, { stickers: 20, query: "debug&no3d" });
     await p.evaluate(() => document.getElementById("settingsBtn").click()); await sleep(300);
     await p.evaluate(() => { document.querySelector('#talkOpts [data-v="0"]').click(); document.querySelector('#musicOpts [data-v="0"]').click(); });
     const st = await p.evaluate(() => ({ talk: localStorage.getItem("zy_talk"), music: localStorage.getItem("zy_music"), btnOff: document.getElementById("musicBtn").classList.contains("off"),
@@ -112,7 +112,7 @@ const visible = (p, id) => p.evaluate(id => !document.getElementById(id).classLi
   }
   // ===== ⑥ 積木：第一次遇到一聲的提示 =====
   {
-    const { ctx, p, errs } = await openGame(browser, { stickers: 20, query: "debug" });
+    const { ctx, p, errs } = await openGame(browser, { stickers: 20, query: "debug&no3d" });
     await enterMode(p, "build"); await sleep(600);
     ok("⑥ 聲調積木有 aria-label（空白＝一聲）", await p.evaluate(() => document.querySelector('#toneRow .toneTile[data-v="0"]')?.getAttribute("aria-label")?.includes("一聲")));
     let tip = null, tipSpoken = false;
