@@ -12,7 +12,7 @@ const shell = path.join(base, fs.readdirSync(base).filter(n => n.startsWith("chr
   await p.goto("http://127.0.0.1:8765/draw.html?dev");
   await p.waitForFunction(() => window.__draw && document.querySelector("#arts .card"));
   const r = await p.evaluate(async id => {
-    const a = (await (await fetch("IMAGE/draw/lineart/index.json?v=3")).json()).arts.find(x => x.id === id);
+    const a = (await (await fetch("IMAGE/draw/lineart/index.json?v=4")).json()).arts.find(x => x.id === id);
     let t = performance.now(); await __draw.startArt(a); const load = performance.now() - t;
     const P = __draw.painter, ids = __draw.board.boxes.map((b, i) => [b.area, i]).sort((x, y) => y[0] - x[0]).slice(0, 5).map(x => x[1]);
     t = performance.now(); for (const i of ids) P.fill(i, { kind: "glitter" }, "#1e88e5").done(); const fill = (performance.now() - t) / ids.length;

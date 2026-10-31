@@ -1,6 +1,6 @@
 // 畫畫遊戲特效：填色水波、亮粉閃爍、完成動畫（跳一下＋零件動作＋彩帶）。全部沒有聲音
-import { regionAt, regionMask } from "./draw-core.js?v=3";
-import { makeCanvas as mk } from "./draw-canvas.js?v=3";
+import { regionAt, regionMask } from "./draw-core.js?v=4";
+import { makeCanvas as mk } from "./draw-canvas.js?v=4";
 
 export class Fx {
   constructor(board) { this.b = board; this.pending = null; this.sparkOn = false; this.parts = []; this.cells = []; }
@@ -121,7 +121,9 @@ export class Fx {
     const b = this.b;
     const fromAt = (pt.at || []).map(([x, y]) => regionAt(b.labels, b.W, b.H, x, y));
     const fromBox = pt.box ? b.boxes.map((r, id) => (r.x0 >= pt.box[0] && r.y0 >= pt.box[1] && r.x1 <= pt.box[2] && r.y1 <= pt.box[3] ? id : -1)) : [];
-    const ids = [...new Set([...fromAt, ...fromBox].filter(id => id >= 0))];
+    // 背景（佔整張三成以上的大塊）永遠不能當零件：座標點不小心點到背景，會把整張背景拿去轉
+    const big = b.W * b.H * 0.3;
+    const ids = [...new Set([...fromAt, ...fromBox].filter(id => id >= 0 && b.boxes[id].area < big))];
     if (!ids.length) return null;
     const ms = ids.map(id => regionMask(b.labels, b.W, b.H, id, b.boxes[id], pt.type === "blink" ? 0 : 24));
     const x0 = Math.min(...ms.map(m => m.x)), y0 = Math.min(...ms.map(m => m.y));
@@ -135,11 +137,12 @@ export class Fx {
     const part = mk(w, h), px = part.getContext("2d");
     px.drawImage(shape, 0, 0); px.globalCompositeOperation = "source-in"; px.drawImage(comp, x0, y0, w, h, 0, 0, w, h);
     // 補洞再往外擴 HP 像素，蓋掉黑線外緣的抗鋸齒淡灰（它們不算線，所以不在零件遮罩裡）
-    const HP = 3, hole = mk(w + HP * 2, h + HP * 2), hx = hole.getContext("2d");
+    // 洞裡每個點補「離它最近的、洞外的彩色點」的顏色：旁邊是機頭就補機頭色、是天空就補天空色，比整塊同一色自然
+    const HP = 3, hole = mk(w + HP * 2, h + HP * 2), hx = hole.getContext("2d", { willReadFrequently: true });
     for (let dy = -HP; dy <= HP; dy += HP) for (let dx = -HP; dx <= HP; dx += HP) hx.drawImage(shape, HP + dx, HP + dy);
-    hx.globalCompositeOperation = "source-in"; hx.fillStyle = fill; hx.fillRect(0, 0, hole.width, hole.height);
+    inpaint(comp, hx, x0 - HP, y0 - HP, fill);
     const [cx, cy] = pt.pivot || [x0 + w / 2, y0 + h / 2];
-    return { type: pt.type, deg: pt.deg || 12, x: x0, y: y0, img: part, hole, px: cx, py: cy };
+    return { type: pt.type, deg: pt.deg || 12, speed: pt.speed || 1, x: x0, y: y0, img: part, hole, px: cx, py: cy };
   }
 }
 
@@ -163,13 +166,65 @@ function drawPart(O, q, s) {
     O.restore();
     return;
   }
-  const a = q.type === "spin" ? s * Math.PI * 2 : Math.sin(s * Math.PI * (q.type === "wag" ? 6 : 4)) * q.deg * Math.PI / 180;
+  // spin = 輪子（整圈轉、不補洞）；rotor = 螺旋槳、太陽光芒（整圈轉、要補洞，speed = 每秒幾圈）；wag 快擺、sway 慢擺
+  const a = q.type === "spin" ? s * Math.PI * 2 : q.type === "rotor" ? s * Math.PI * 2 * q.speed
+    : Math.sin(s * Math.PI * (q.type === "wag" ? 6 : 4)) * q.deg * Math.PI / 180;
   O.save();
   // 會轉的零件（輪子）轉來轉去都蓋在原位，不用補洞；補了反而會在邊緣多出一圈底色
   if (q.type !== "spin") O.drawImage(q.hole, q.x - (q.hole.width - q.img.width) / 2, q.y - (q.hole.height - q.img.height) / 2);
   O.translate(q.px, q.py); O.rotate(a); O.translate(-q.px, -q.py);
   O.drawImage(q.img, q.x, q.y);
   O.restore();
+}
+
+// 補洞：hx 畫布上不透明的地方＝洞（左上角在原圖 ox, oy）。洞外一圈 32px 裡的彩色點當顏色來源（太暗的黑線不算），
+// 從洞的邊緣一圈一圈往裡補，每個點取「周圍 8 格已經有顏色的點」的平均（像剝洋蔥），顏色會自然延伸、不會拉出條紋；
+// 整個洞被黑線包住、沒有來源時用 fallback 色
+function inpaint(comp, hx, ox, oy, fallback) {
+  const hw = hx.canvas.width, hh = hx.canvas.height, M = 32;
+  const sx = Math.max(0, ox - M), sy = Math.max(0, oy - M);
+  const ex = Math.min(comp.width, ox + hw + M), ey = Math.min(comp.height, oy + hh + M), cw = ex - sx, ch = ey - sy;
+  const src = comp.getContext("2d").getImageData(sx, sy, cw, ch).data, mask = hx.getImageData(0, 0, hw, hh), md = mask.data;
+  const N = cw * ch, hole = new Uint8Array(N), ok = new Uint8Array(N), R = new Float32Array(N), Gc = new Float32Array(N), B = new Float32Array(N);
+  for (let j = 0; j < hh; j++) for (let i = 0; i < hw; i++) {
+    const X = ox + i - sx, Y = oy + j - sy;
+    if (X >= 0 && Y >= 0 && X < cw && Y < ch && md[(j * hw + i) * 4 + 3] > 0) hole[Y * cw + X] = 1;
+  }
+  for (let k = 0; k < N; k++) {
+    if (hole[k]) continue;
+    const r = src[k * 4], g = src[k * 4 + 1], b = src[k * 4 + 2];
+    if (r * 0.299 + g * 0.587 + b * 0.114 < 90) continue;   // 黑線、深色抗鋸齒不當顏色來源
+    ok[k] = 1; R[k] = r; Gc[k] = g; B[k] = b;
+  }
+  const NB = [-cw - 1, -cw, -cw + 1, -1, 1, cw - 1, cw, cw + 1];
+  let ring = [];
+  const seen = new Uint8Array(N);
+  for (let k = 0; k < N; k++) if (hole[k] && NB.some(d => { const n = k + d; return n >= 0 && n < N && ok[n] && Math.abs((n % cw) - (k % cw)) <= 1; })) { ring.push(k); seen[k] = 1; }
+  while (ring.length) {
+    const vals = ring.map(k => {
+      let r = 0, g = 0, b = 0, c = 0;
+      for (const d of NB) { const n = k + d; if (n < 0 || n >= N || !ok[n] || Math.abs((n % cw) - (k % cw)) > 1) continue; r += R[n]; g += Gc[n]; b += B[n]; c++; }
+      return [r / c, g / c, b / c];
+    });
+    const next = [];
+    ring.forEach((k, t) => { ok[k] = 1; [R[k], Gc[k], B[k]] = vals[t]; });
+    for (const k of ring) for (const d of NB) {
+      const n = k + d;
+      if (n < 0 || n >= N || !hole[n] || ok[n] || seen[n] || Math.abs((n % cw) - (k % cw)) > 1) continue;
+      seen[n] = 1; next.push(n);
+    }
+    ring = next;
+  }
+  const fb = fallback.match(/\d+/g)?.map(Number) || [255, 255, 255];
+  for (let j = 0; j < hh; j++) for (let i = 0; i < hw; i++) {
+    const p = (j * hw + i) * 4;
+    if (!md[p + 3]) continue;
+    const X = ox + i - sx, Y = oy + j - sy, k = X >= 0 && Y >= 0 && X < cw && Y < ch ? Y * cw + X : -1;
+    if (k >= 0 && ok[k]) { md[p] = R[k]; md[p + 1] = Gc[k]; md[p + 2] = B[k]; }
+    else { md[p] = fb[0]; md[p + 1] = fb[1]; md[p + 2] = fb[2]; }
+    md[p + 3] = 255;
+  }
+  hx.putImageData(mask, 0, 0);
 }
 
 // 零件外框外面 12px 繞一圈取 16 個點，略過深色（黑線），回傳出現最多次的顏色；都沒有就白色

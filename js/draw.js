@@ -1,11 +1,11 @@
 // 畫畫遊戲主程式：首頁、畫畫頁（工具列、彈出選單、手勢）、完成、作品牆
-import { Board } from "./draw-canvas.js?v=3";
-import { Painter, previewMat, previewBrush } from "./draw-paint.js?v=3";
-import { Fx } from "./draw-fx.js?v=3";
-import * as G from "./draw-gallery.js?v=3";
-import { STICKERS, stickerImage } from "./draw-stickers.js?v=3";
-import * as A from "./draw-audio.js?v=3";
-import { Particles } from "./draw-particles.js?v=3";
+import { Board } from "./draw-canvas.js?v=4";
+import { Painter, previewMat, previewBrush } from "./draw-paint.js?v=4";
+import { Fx } from "./draw-fx.js?v=4";
+import * as G from "./draw-gallery.js?v=4";
+import { STICKERS, stickerImage } from "./draw-stickers.js?v=4";
+import * as A from "./draw-audio.js?v=4";
+import { Particles } from "./draw-particles.js?v=4";
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -23,7 +23,8 @@ const AUTO = { ms: 10000 };            // 畫了東西多久沒再動就自動�
 const SIZES = [10, 22, 40];            // 筆刷半徑（畫布像素）
 const STICKER_SIZE = [120, 200, 300];  // 貼紙邊長，跟著筆刷粗細
 
-const S = { tool: "fill", brush: "marker", size: 1, color: COLORS[0], mat: MATS[0], sticker: "star", clip: true,
+const S = { tool: "brush", brush: "marker",   // 沒有油漆桶：一開始就是畫筆（阿葉：要小孩多用手畫）
+   size: 1, color: COLORS[0], mat: MATS[0], sticker: "star", clip: true,
   art: null, workId: null, done: false, busy: false, autoOff: false };
 const board = new Board($("#stage"));
 const painter = new Painter(board);
@@ -90,15 +91,15 @@ function renderHome(theme) {
   $("#themes").replaceChildren(...INDEX.themes.map(t => {
     const b = button("theme" + (t.id === theme ? " on" : ""), "", () => { if (t.id !== theme) renderHome(t.id); }, t.name);
     b.style.setProperty("--c", t.color || "#ffc93c");
-    b.append(t.img ? Object.assign(new Image(), { src: ART_DIR.replace("lineart/", "ui/") + t.img + "?v=3", alt: "", className: "ico" }) : el("span", "emo", t.icon),
+    b.append(t.img ? Object.assign(new Image(), { src: ART_DIR.replace("lineart/", "ui/") + t.img + "?v=4", alt: "", className: "ico" }) : el("span", "emo", t.icon),
       el("span", "name", t.name));
     b.dataset.sfx = "pick";
     return b;
   }));
   const arts = INDEX.arts.filter(a => a.theme === theme && (DEV || !a.test));
   $("#arts").replaceChildren(...arts.map((a, i) => {
-    const lit = a.level === 1 ? 1 : 3;   // 難度一律三格：簡單一顆亮、困難三顆亮
-    const c = card(ART_DIR + (a.thumb || a.file) + "?v=3", () => startArt(a), [0, 1, 2].map(i => `<b class="${i < lit ? "lit" : ""}">★</b>`).join(""));
+    const lit = Math.min(3, a.level || 1);   // 難度一律三格：簡單一顆亮、中等兩顆、困難三顆
+    const c = card(ART_DIR + (a.thumb || a.file) + "?v=4", () => startArt(a), [0, 1, 2].map(i => `<b class="${i < lit ? "lit" : ""}">★</b>`).join(""));
     c.dataset.id = a.id; c.dataset.sfx = "open";
     c.style.setProperty("--i", i);   // 一張接一張彈進來
     return c;
@@ -119,7 +120,7 @@ async function startArt(a, work = null) {
   $("#loading").classList.add("on");
   try {
     let ok;
-    try { ok = await board.load(a.url || ART_DIR + a.file + "?v=3"); }
+    try { ok = await board.load(a.url || ART_DIR + a.file + "?v=4"); }
     catch (e) {
       if (my !== loadSeq) return false;   // 已經被更新的請求取代，不要動畫面
       console.warn("線稿載入失敗：" + (e && e.message));   // 不用 console.error：測試把它當頁面錯誤
@@ -343,7 +344,7 @@ $("#bHome").onclick = async () => {
   else if (r === "ok") goHome();
 };
 
-const firstPop = { brush: true, sticker: true };   // 開頁後第一次選到這兩個工具時，自動打開它的選單
+const firstPop = { sticker: true };   // 開頁後第一次選到貼紙時，自動打開它的選單（畫筆一開始就選好了，點第二下才開）
 const HAS_POP = new Set(["brush", "sticker", "eraser"]);   // 這三個工具再點一次有選單（筆／粗細／不出線、貼紙、橡皮擦粗細／不出線）
 $$(".tool").forEach(b => b.onclick = () => {
   const t = b.dataset.tool;
@@ -405,7 +406,7 @@ function refreshDims() {
   const brush = S.tool === "brush";
   for (const b of $$("#bColor, #mColor")) b.classList.toggle("dim", S.tool === "sticker" || S.tool === "eraser" || (brush && S.brush === "rainbow"));
 }
-const usesMat = () => S.tool === "fill" || (S.tool === "brush" && S.brush === "marker");
+const usesMat = () => S.tool === "brush" && S.brush === "marker";   // 材質只有馬克筆用得到
 
 // ── 彈出選單 ──
 let popKind = null, popTimer = 0;
@@ -428,7 +429,7 @@ function renderPop(kind, from = popFrom) {
   };
   const clip = () => {
     const b = button("opt clip" + (S.clip ? " yes" : ""), "", () => { S.clip = !S.clip; again(); }, "不出線");
-    b.append(Object.assign(new Image(), { src: "IMAGE/draw/ui/btn-clip.png?v=3", alt: "", className: "ico" }));
+    b.append(Object.assign(new Image(), { src: "IMAGE/draw/ui/btn-clip.png?v=4", alt: "", className: "ico" }));
     return b;
   };
   if (kind === "color") {   // 上面 30 色（每個顏色一個音，從左到右往上爬），下面一排材質
@@ -512,6 +513,7 @@ const pen = {
     this.cur = null;
     painter.strokeEnd(); A.strokeOff();
     if (c) log({ t: "s", b: c.o.brush, z: c.o.size, c: c.o.color, m: c.o.mat, k: c.o.clip, p: c.p });
+    if (c && c.p.length > 8) hintDone();   // 真的畫了一筆（不是點一下）→ 提示功成身退
   },
   cancel() { this.cur = null; painter.strokeCancel(); A.strokeOff(); },
 };
@@ -578,14 +580,7 @@ stage.addEventListener("pointercancel", up);
 
 async function tapAt(cx, cy) {
   const pt = board.toImage(cx, cy);
-  if (S.tool === "fill") {
-    const id = painter.regionAt(pt.x, pt.y);
-    if (id < 0) return;
-    fx.ripple(painter.fill(id, S.mat, S.color), pt.x, pt.y);
-    hintDone();
-    A.sfx("fill"); parts.splash(cx, cy, S.mat.kind === "rainbowgrad" ? null : S.color);
-    log({ t: "f", x: Math.round(pt.x), y: Math.round(pt.y), m: S.mat, c: S.color });
-  } else if (S.tool === "sticker") {
+  if (S.tool === "sticker") {   // 點一下的工具只剩貼紙（油漆桶拿掉了；舊作品紀錄裡的填色回放時照樣播）
     fx.flush();
     const img = await stickerImage(S.sticker).catch(() => null);
     if (!img) return;   // 貼紙圖壞了就略過這一下
@@ -595,11 +590,11 @@ async function tapAt(cx, cy) {
   }
 }
 
-// ── 第一次玩的提示：在一塊不貼邊的最大區塊上放一隻會點的手（點這裡就會塗顏色）；塗過一次就不再出現 ──
+// ── 第一次玩的提示：在一塊不貼邊的最大區塊上放一隻來回塗的手（用手指在這裡畫）；畫過一筆就不再出現 ──
 function hintSeen() { try { return !!localStorage.getItem("draw-hinted"); } catch { return true; } }
 function showHint() {
   $(".tap-hint")?.remove();
-  if (hintSeen() || S.tool !== "fill" || !board.boxes) return;
+  if (hintSeen() || S.tool !== "brush" || !board.boxes) return;
   const b = board, B = b.boxes.map((r, id) => [r, id]).filter(([r]) => r.x0 > 4 && r.y0 > 4 && r.x1 < b.W - 5 && r.y1 < b.H - 5)
     .sort((p, q) => q[0].area - p[0].area)[0];
   if (!B) return;
@@ -638,7 +633,7 @@ async function renderGallery() {
     urls.push(u);
     return card(u, () => openWork(w), "", w.done ? "" : "✏️");
   }).filter(Boolean);
-  $("#works").replaceChildren(...(cards.length ? cards : [el("div", "empty", '<img src="IMAGE/draw/ui/mascot.png?v=3" alt="" onerror="this.remove()"><img class="ico" src="IMAGE/draw/ui/btn-edit.png?v=3" alt="">')]));   // 還沒有作品：吉祥物拿著畫筆
+  $("#works").replaceChildren(...(cards.length ? cards : [el("div", "empty", '<img src="IMAGE/draw/ui/mascot.png?v=4" alt="" onerror="this.remove()"><img class="ico" src="IMAGE/draw/ui/btn-edit.png?v=4" alt="">')]));   // 還沒有作品：吉祥物拿著畫筆
 }
 function openWork(w) {
   viewing = w;
@@ -683,7 +678,7 @@ hold($("#vDel"), async () => {
 });
 
 // ── 圖示：GPT 生的立體圖示（IMAGE/draw/ui/*.png）載入成功才換掉 emoji，沒有檔案就維持 emoji ──
-const ICONS = [["#bDone, #aDone", "btn-done"], ["#bHome, #gBack, #aHome", "btn-home"], ['[data-tool="fill"]', "tool-fill"], ['[data-tool="eraser"]', "tool-eraser"],
+const ICONS = [["#bDone, #aDone", "btn-done"], ["#bHome, #gBack, #aHome", "btn-home"], ['[data-tool="eraser"]', "tool-eraser"],
   ["#bUndo, #mUndo", "btn-undo"], ["#bClear, #vDel", "btn-clear"], ["#toGallery", "btn-gallery"], ["#aPlay, #vPlay", "btn-play"],
   ["#aAgain, #vEdit", "btn-edit"], ["#vClose", "btn-close"], ["#vSave", "btn-save"], ["#tMusic", "btn-music"], ["#tSound", "btn-sound"]];
 function applyIcons() {
@@ -694,7 +689,7 @@ function applyIcons() {
       const t = [...b.childNodes].find(n => n.nodeType === 3 && n.textContent.trim()) || b.querySelector("span:not(.dot)");
       if (t) t.replaceWith(img);
     };
-    img.src = "IMAGE/draw/ui/" + name + ".png?v=3";
+    img.src = "IMAGE/draw/ui/" + name + ".png?v=4";
   }
 }
 
@@ -706,7 +701,7 @@ window.__draw = { S, board, painter, fx, G, A, show, renderHome, startArt, rende
   G.persist();
   refreshBar(); refreshTools(); refreshUndo(); refreshToggles(); applyIcons();
   try {
-    const res = await fetch(ART_DIR + "index.json?v=3");
+    const res = await fetch(ART_DIR + "index.json?v=4");
     if (!res.ok) throw new Error("HTTP " + res.status);
     INDEX = await res.json();
   } catch (e) {

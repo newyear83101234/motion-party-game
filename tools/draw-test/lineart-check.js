@@ -1,7 +1,7 @@
 // 線稿檢查：數塊數、找碎塊，輸出「每塊隨機上色」預覽圖給人眼找漏縫（兩塊同色連成一片 = 中間的線沒封好）
 // 先開本機伺服器：python -m http.server 8765 --bind 127.0.0.1（在 GAME DIY 根目錄）
 // 用法：node tools/draw-test/lineart-check.js                          → 檢查 index.json 裡全部正式線稿
-//       node tools/draw-test/lineart-check.js <線稿路徑> <1|2> [--fix]   → 只檢查一張（1 簡單、2 困難）；--fix 會改寫原檔
+//       node tools/draw-test/lineart-check.js <線稿路徑> <1|2|3> [--fix]   → 只檢查一張（1 簡單、2 中等、3 困難）；--fix 會改寫原檔
 const path = require("path"), fs = require("fs");
 const G = require("child_process").execSync("npm root -g").toString().trim();
 const { chromium } = require(path.join(G, "@playwright/mcp/node_modules/playwright"));
@@ -13,7 +13,7 @@ function findShell() {
 const ROOT_URL = "http://127.0.0.1:8765/";
 const ROOT = path.join(__dirname, "../..");
 const OUT = path.join(process.env.TEMP, "draw-lineart-check");
-const RANGE = { 1: [8, 40], 2: [30, 300] };  // 2026-10-31 實際 24 張：簡單 9～38 塊（fairy-3 頭髮翅膀細塊多但仍是單純構圖）、困難 71～263 塊（細節多、靠兩指放大）
+const RANGE = { 1: [8, 40], 2: [18, 100], 3: [30, 300] };   // 1 簡單、2 中等（10-31 新增）、3 困難；實測簡單 9～38 塊（fairy-3 構圖單純但頭髮翅膀細塊多）、困難 71～263 塊（靠兩指放大）
 const TINY = 400;                              // 小於 400 像素（約 20×20）的塊，小孩手指點不到
 const SPECK = 50;                              // --fix 會把小於 50 像素的碎塊塗黑
 
