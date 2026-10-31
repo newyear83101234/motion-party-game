@@ -866,6 +866,17 @@ function versionCheck() {
   check("粉圓字型載入成功", fontOk);
   await p.evaluate(() => __draw.show("paint"));
 
+  // 集滿一個主題的 6 張貼紙：皇冠時刻；之後那 6 張變成我的世界的居民
+  await p.evaluate(() => { window.__rewards.reset(); window.__rewards.grantNow(["puppy", "kitten", "bunny", "elephant", "lion", "panda"]); });
+  const crownP = p.evaluate(() => __draw.crownMoment("animal"));
+  await p.waitForTimeout(500);
+  check("集滿主題：皇冠時刻出現（皇冠＋6 張貼紙繞一圈）", await p.locator(".crown-moment .cm-stk").count() === 6 && await p.locator(".crown-moment .cm-crown").count() === 1);
+  await crownP;
+  check("皇冠時刻結束後整個移除", await p.locator(".crown-moment").count() === 0);
+  const stkN = await p.evaluate(async () => (await __draw.worldEntries("animal")).filter(e => e.id.startsWith("stk-")).length);
+  check("集滿的主題：6 張貼紙變成我的世界的居民", stkN === 6, "n=" + stkN);
+  await p.evaluate(() => window.__rewards.reset());
+
   // ── 後續 task 的測試插在這一行上面 ──
   check("沒有頁面錯誤", errs.length === 0, errs.join(" | "));
   await browser.close();

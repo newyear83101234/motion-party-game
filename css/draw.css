@@ -270,6 +270,21 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .cheer span:nth-child(3) { animation-delay: .46s; }
 @keyframes starPop { from { opacity: 0; transform: scale(0) rotate(-120deg); } }
 @keyframes cheerJump { from { opacity: 0; transform: translateY(60px) scale(.5); } }
+/* 皇冠時刻：集滿一個主題的 6 張貼紙，大皇冠跳出來、6 張貼紙繞著它轉 */
+.crown-moment { position: fixed; inset: 0; z-index: 26; display: grid; place-items: center;
+  background: radial-gradient(circle, rgba(255, 236, 150, .92) 0 26%, rgba(255, 244, 224, .75) 60%, rgba(255, 244, 224, .4)); animation: cheerFade .3s ease-out both; }
+.crown-moment.out { animation: cheerOut .35s ease-in forwards; }
+.cm-crown { grid-area: 1 / 1; font-size: 150px; line-height: 1; filter: drop-shadow(0 8px 0 #c98a00) drop-shadow(0 16px 20px rgba(120, 80, 0, .35));
+  animation: crownIn .9s var(--spring) both, crownBob 1.4s ease-in-out .9s infinite; }
+@keyframes crownIn { from { opacity: 0; transform: translateY(-160px) scale(.3) rotate(-30deg); } }
+@keyframes crownBob { 50% { transform: translateY(-10px) rotate(4deg); } }
+.cm-ring { grid-area: 1 / 1; width: 0; height: 0; position: relative; animation: cmSpin 6s linear infinite; }
+.cm-stk { position: absolute; left: -60px; top: -60px; width: 120px; height: 120px; object-fit: contain;
+  transform: rotate(var(--a)) translateY(-210px) rotate(calc(-1 * var(--a))); animation: cmPop .5s var(--spring) backwards; filter: drop-shadow(0 4px 6px rgba(90, 60, 20, .3)); }
+.cm-stk:nth-child(2) { animation-delay: .1s; } .cm-stk:nth-child(3) { animation-delay: .2s; } .cm-stk:nth-child(4) { animation-delay: .3s; }
+.cm-stk:nth-child(5) { animation-delay: .4s; } .cm-stk:nth-child(6) { animation-delay: .5s; }
+@keyframes cmPop { from { opacity: 0; } }
+@keyframes cmSpin { to { rotate: 360deg; } }
 /* 完成的大章：中央吉祥物 220px＋三顆大星星，1.5 秒後淡出（之後右邊慶祝欄接手） */
 .big-cheer { position: absolute; inset: 0; z-index: 9; display: grid; place-content: center; justify-items: center; pointer-events: none;
   background: radial-gradient(circle at 50% 46%, rgba(255, 244, 224, .82) 0 20%, rgba(255, 244, 224, .3) 45%, rgba(255, 244, 224, 0) 70%); animation: cheerFade .25s ease-out both; }

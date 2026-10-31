@@ -398,11 +398,35 @@ async function giveReward() {
   try { seen = JSON.parse(localStorage.getItem(REWARDED)) || []; } catch { /* 壞資料當沒有 */ }
   if (!Array.isArray(seen)) seen = [];
   if (seen.includes(S.workId) || rewards.isDone(S.art.id)) return;   // 這件作品給過、或這張線稿以前畫完拿過蛋
-  const id = S.workId, art = S.art;
+  const id = S.workId, art = S.art, fullBefore = fullThemes();
   const p = (() => { try { return rewards.grant({ count: (art.level || 1) >= 3 ? 2 : 1, theme: art.theme }); } catch (e) { return Promise.reject(e); } })();
   try { localStorage.setItem(REWARDED, JSON.stringify([...seen, id].slice(-300))); } catch { /* 私密瀏覽 */ }   // 貼紙在 grant 一開始就存了，這裡馬上記
   rewards.markDone(art.id);
   try { await p; } catch (e) { console.warn("扭蛋失敗：" + (e && e.message)); }
+  await crownNew(fullBefore);
+}
+// ── 集滿一個主題的 6 張貼紙：皇冠時刻（大皇冠＋6 張貼紙繞一圈）；之後那 6 張貼紙變成「我的世界」裡會走路的居民 ──
+const fullThemes = () => new Set(rewards ? INDEX.themes.map(t => t.id).filter(t => rewards.themeFull(t)) : []);
+async function crownNew(before) {
+  for (const t of fullThemes()) if (!before.has(t)) await crownMoment(t);
+}
+function crownMoment(theme) {
+  const d = el("div", "crown-moment", '<div class="cm-ring"></div><div class="cm-crown">👑</div>'), ring = d.firstChild;
+  rewards.owned().filter(id => rewards.themeOf(id) === theme).slice(0, 6).forEach((id, i) => {
+    const im = new Image();
+    im.className = "cm-stk"; im.alt = ""; im.src = rewards.stickerSrc(id); im.style.setProperty("--a", i * 60 + "deg");
+    ring.append(im);
+  });
+  document.body.append(d);
+  A.sfx("finish");
+  [0, 160, 320, 480].forEach((t, i) => setTimeout(() => A.note(8 + i * 2, { gain: 0.2, dur: 0.8 }), 200 + t));
+  setTimeout(() => parts.splash(innerWidth / 2, innerHeight / 2, null), 300);
+  return new Promise(ok => {
+    let gone = false;
+    const end = () => { if (gone) return; gone = true; d.classList.add("out"); setTimeout(() => { d.remove(); ok(); }, 350); };
+    const t = setTimeout(end, 3200);
+    setTimeout(() => { d.onpointerdown = () => { clearTimeout(t); end(); }; }, 800);   // 至少看 0.8 秒，之後點一下收掉
+  });
 }
 // 完成的大章：畫面中央吉祥物＋三顆大星星依序蹦出來，停 1.5 秒再收到右邊的慶祝欄（最開心的那一刻要夠大）
 function bigCheer() {
@@ -988,20 +1012,29 @@ async function worldEntries(theme) {
   let works = [];
   if (!worksMemo || Date.now() - worksMemo.t > 3000) worksMemo = { t: Date.now(), p: G.list().catch(() => []) };
   works = await worksMemo.p;
-  return works.filter(w => w.cut && themeOfArt(w.art) === theme).map(w => ({ id: w.id, blob: w.cut, w: w.cw, h: w.ch, art: w.art }));
+  const mine = works.filter(w => w.cut && themeOfArt(w.art) === theme).map(w => ({ id: w.id, blob: w.cut, w: w.cw, h: w.ch, art: w.art }));
+  if (!rewards?.themeFull(theme)) return mine;
+  const stk = await Promise.all(rewards.owned().filter(id => rewards.themeOf(id) === theme).map(id =>
+    fetch(rewards.stickerSrc(id)).then(r => (r.ok ? r.blob() : null)).then(blob => blob && { id: "stk-" + id, blob, w: 300, h: 300, art: "sticker" }).catch(() => null)));
+  return [...mine, ...stk.filter(Boolean)];
 }
 function mountModes() {
   const themes = INDEX.themes.map(t => ({ id: t.id, img: "IMAGE/draw/ui/" + t.img + "?v=" + V, color: t.color }));
   rewards = safeMount(() => mountRewards({ ...deps, themes, bookAnchor: () => { const r = $("#toBook").getBoundingClientRect(); return r.width ? r : null; } }), "#toBook, #toDaily");
   world = safeMount(() => mountWorld({ ...deps, themes, getEntries: worldEntries, countEntries: async t => (await worldEntries(t)).length,
-    getStickers: t => (rewards ? rewards.owned().filter(id => rewards.themeOf(id) === t).map(id => rewards.stickerSrc(id)) : []) }), "#toWorld, #aWorld");
+    getStickers: t => (rewards && !rewards.themeFull(t) ? rewards.owned().filter(id => rewards.themeOf(id) === t).map(id => rewards.stickerSrc(id)) : []) }), "#toWorld, #aWorld");   // 集滿的主題貼紙已經變成居民，不再當裝飾
   if (rewards) $("#toBook").classList.remove("off");
   if (world) $("#toWorld").classList.remove("off");
   refreshDaily();
 }
 // 每天第一次打開：扭蛋機鈕出現並搖動，點了開一顆（一天一次）
 function refreshDaily() { $("#toDaily").classList.toggle("off", !rewards?.dailyReady()); }
-$("#toDaily").onclick = async () => { if (!rewards?.dailyReady()) return; await rewards.claimDaily(); refreshDaily(); };
+$("#toDaily").onclick = async () => {
+  if (!rewards?.dailyReady()) return;
+  const before = fullThemes();
+  await rewards.claimDaily(); refreshDaily();
+  await crownNew(before);
+};
 $("#toBook").onclick = () => rewards?.openBook();
 $("#toWorld").onclick = () => world?.open($("#themes .theme.on") ? INDEX.themes[[...$$("#themes .theme")].indexOf($("#themes .theme.on"))]?.id : INDEX.themes[0]?.id);
 
@@ -1026,7 +1059,7 @@ function applyIcons() {
 // ── 開始 ──
 window.addEventListener("resize", () => { if (board.labels && $("#paint").classList.contains("on")) { board.fit(); showHint(); } });
 window.__draw = { S, board, painter, fx, G, A, show, renderHome, startArt, renderGallery, COLORS, AUTO, setFull, autoSave, isDirty: () => dirty, SC, startScratch,
-  replay, stopReplay, rec: () => rec, parts, cutout, canLive, music: () => music, mirror, rewards: () => rewards, world: () => world, refreshDaily, puzzle };
+  replay, stopReplay, rec: () => rec, parts, cutout, canLive, music: () => music, mirror, rewards: () => rewards, world: () => world, refreshDaily, puzzle, crownMoment, worldEntries };
 (async () => {
   G.persist();
   refreshBar(); refreshTools(); refreshUndo(); refreshToggles(); applyIcons();
