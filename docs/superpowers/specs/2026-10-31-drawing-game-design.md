@@ -1,7 +1,7 @@
 # 畫畫遊戲（著色）第一版設計規格
 
 - 日期：2026-10-31
-- 狀態：阿葉已同意設計（原話「可以，照這個設計寫成規格」），等阿葉看過本文件才開始寫程式
+- 狀態：2026-10-31 第一版已上線（`https://newyear83101234.github.io/motion-party-game/draw.html`），等阿葉 iPad 試玩
 - 參考畫面：`給claude看的/畫畫遊戲參考/`（iPad 上一款著色 App 的截圖，只當類型參考，線稿和介面全部自己做）
 - 記憶檔：`project-drawing-game.md`
 
@@ -107,14 +107,17 @@
 draw.html                 頁面本體，modulepreload 和 ?v= 版號都照 blocks.html 的做法
 css/draw.css
 js/draw-core.js           切塊、填色範圍、復原（純邏輯）
-js/draw-tools.js          筆刷、材質、貼紙
+js/draw-canvas.js         四層畫布、縮放平移、座標換算
+js/draw-paint.js          材質、筆刷、橡皮擦、貼紙蓋章、復原紀錄
+js/draw-stickers.js       12 種貼紙（向量圖字串）
 js/draw-fx.js             填色水波、亮粉閃爍、完成動畫
 js/draw-gallery.js        作品牆存取
 js/draw.js                畫面和流程
-IMAGE/draw/lineart/       線稿 PNG 和設定檔 JSON
-IMAGE/draw/stickers/      貼紙
-tools/draw-test/          自動化測試和線稿檢查工具
+IMAGE/draw/lineart/       線稿 PNG、縮圖 thumbs/、設定檔 index.json
+tools/draw-test/          自動化測試、線稿檢查、效能量測
 ```
+
+（實作時把原訂的 `draw-tools.js` 拆成 canvas／paint／stickers 三個檔；貼紙改成程式內建的向量圖，不另外放圖檔。）
 
 commit 一律只加具體檔名。GAME DIY 工作資料夾裡有 212 個檔案在 10-30 被搬去 `party game`，用 `git add -A` 會把那些檔案（包括部署設定）一起刪掉。
 
