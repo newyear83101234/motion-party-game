@@ -104,3 +104,72 @@ export class History {
   get size() { return this.items.length; }
   get bytes() { return this._bytes; }
 }
+
+// 「剪下角色」的遮罩（給「我的世界」）：碰到圖邊的區塊當背景（透明），其他區塊留下；
+// 線只留離角色 pad 像素以內的（角色的外框），背景裡的雜線（地面、草）不要。回傳 { mask, x0, y0, x1, y1 }，沒東西可留回傳 null
+export function cutoutMask(labels, w, h, pad = 12) {
+  const bg = new Set();
+  for (let x = 0; x < w; x++) { bg.add(labels[x]); bg.add(labels[(h - 1) * w + x]); }
+  for (let y = 0; y < h; y++) { bg.add(labels[y * w]); bg.add(labels[y * w + w - 1]); }
+  bg.delete(LINE);
+  const isBg = new Uint8Array(labels.reduce((m, v) => Math.max(m, v), 0) + 1);
+  for (const id of bg) isBg[id] = 1;
+  // 先在粗格子（每 4 像素一格）標出有角色的格子，往外擴 pad 像素；線落在擴大範圍內才留
+  const S = 4, gw = Math.ceil(w / S), gh = Math.ceil(h / S), g = new Uint8Array(gw * gh);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const id = labels[y * w + x]; if (id >= 0 && !isBg[id]) g[((y / S) | 0) * gw + ((x / S) | 0)] = 1; }
+  const near = dilate(g, gw, gh, Math.ceil(pad / S));
+  // 留下來的東西在粗格子上分成幾團，只留「主角那一團」和跟它差不多大的（飄在旁邊的雲、星星、泡泡不要）
+  const keepG = new Uint8Array(gw * gh);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x, id = labels[i], gi = ((y / S) | 0) * gw + ((x / S) | 0);
+    if (id >= 0 ? !isBg[id] : near[gi]) keepG[gi] = 1;
+  }
+  const big = bigBlobs(keepG, gw, gh, 0.3);
+  const mask = new Uint8Array(w * h);
+  let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x, id = labels[i], gi = ((y / S) | 0) * gw + ((x / S) | 0);
+    if ((id >= 0 ? isBg[id] : !near[gi]) || !big[gi]) continue;
+    mask[i] = 1;
+    if (x < x0) x0 = x;
+    if (x > x1) x1 = x;
+    if (y < y0) y0 = y;
+    if (y > y1) y1 = y;
+  }
+  return x1 < 0 ? null : { mask, x0, y0, x1, y1 };
+}
+// 0/1 格子裡的 8 連通團塊：只留面積 ≥ 最大那團 ratio 倍的
+function bigBlobs(g, w, h, ratio) {
+  const lab = new Int32Array(w * h).fill(-1), sizes = [], st = new Int32Array(w * h);
+  for (let s = 0; s < g.length; s++) {
+    if (!g[s] || lab[s] >= 0) continue;
+    const id = sizes.length; let sp = 0, n = 0;
+    st[sp++] = s; lab[s] = id;
+    while (sp) {
+      const i = st[--sp], x = i % w, y = (i - x) / w; n++;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy, j = ny * w + nx;
+        if (nx >= 0 && ny >= 0 && nx < w && ny < h && g[j] && lab[j] < 0) { lab[j] = id; st[sp++] = j; }
+      }
+    }
+    sizes.push(n);
+  }
+  const max = Math.max(0, ...sizes), out = new Uint8Array(w * h);
+  for (let i = 0; i < out.length; i++) if (lab[i] >= 0 && sizes[lab[i]] >= max * ratio) out[i] = 1;
+  return out;
+}
+// 0/1 格子往外擴 r 格（先橫再直，兩次一維最大值）
+function dilate(g, w, h, r) {
+  const t = new Uint8Array(w * h), o = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let v = 0;
+    for (let k = Math.max(0, x - r); k <= Math.min(w - 1, x + r) && !v; k++) v = g[y * w + k];
+    t[y * w + x] = v;
+  }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let v = 0;
+    for (let k = Math.max(0, y - r); k <= Math.min(h - 1, y + r) && !v; k++) v = t[k * w + x];
+    o[y * w + x] = v;
+  }
+  return o;
+}

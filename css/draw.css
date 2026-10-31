@@ -230,6 +230,18 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 #aHome { background: linear-gradient(#ffe07a, #ffc93c); }
 #aPlay { background: linear-gradient(#9fd8ff, #4fb3ff); }
 #aAgain { background: linear-gradient(#b4ec97, #7fd35e); }
+#aMusic { background: linear-gradient(#ffd9a8, #ffb35c); }
+.after.on .big:nth-of-type(4) { animation-delay: .49s; }
+/* 畫變成音樂：發光的光帶掃過去，彈到的格子冒出一圈彩色漣漪；吉祥物跟著跳 */
+.music-bar { position: absolute; z-index: 4; width: 0; pointer-events: none; transition: transform .26s linear; }
+.music-bar::before { content: ""; position: absolute; left: -14px; top: 0; bottom: 0; width: 28px; border-radius: 14px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, .85), rgba(255, 255, 255, 0)); box-shadow: 0 0 24px 8px rgba(255, 240, 160, .7); }
+.music-pop { position: absolute; z-index: 4; pointer-events: none; border: 6px solid #fff; border-radius: 50%; transform: translate(-50%, -50%) scale(.3);
+  animation: musicPop .6s ease-out forwards; }
+@keyframes musicPop { 60% { opacity: 1; } to { transform: translate(-50%, -50%) scale(1.4); opacity: 0; } }
+.after.playing .cheer img { animation: dance .32s ease-in-out infinite alternate; }
+@keyframes dance { from { transform: rotate(-10deg) translateY(0); } to { transform: rotate(10deg) translateY(-14px); } }
+.after.playing .big { pointer-events: none; opacity: .5; }
 /* 慶祝：吉祥物跳出來、三顆星星一顆一顆蹦出來 */
 .cheer { display: flex; flex-direction: column; align-items: center; pointer-events: none; }
 .cheer img { height: 104px; animation: cheerJump .8s var(--spring) backwards, bob 2.6s ease-in-out 1s infinite; filter: drop-shadow(0 6px 6px rgba(60, 30, 0, .25)); }
@@ -241,6 +253,19 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .cheer span:nth-child(3) { animation-delay: .46s; }
 @keyframes starPop { from { opacity: 0; transform: scale(0) rotate(-120deg); } }
 @keyframes cheerJump { from { opacity: 0; transform: translateY(60px) scale(.5); } }
+/* 完成的大章：中央吉祥物 220px＋三顆大星星，1.5 秒後淡出（之後右邊慶祝欄接手） */
+.big-cheer { position: absolute; inset: 0; z-index: 9; display: grid; place-content: center; justify-items: center; pointer-events: none;
+  background: radial-gradient(circle at 50% 46%, rgba(255, 244, 224, .82) 0 20%, rgba(255, 244, 224, .3) 45%, rgba(255, 244, 224, 0) 70%); animation: cheerFade .25s ease-out both; }
+.big-cheer.out { animation: cheerOut .32s ease-in forwards; }
+.big-cheer img { height: 220px; animation: cheerJump .8s var(--spring) backwards; filter: drop-shadow(0 10px 10px rgba(60, 30, 0, .25)); }
+.big-cheer p { margin: -14px 0 0; white-space: nowrap; line-height: 1; }
+.big-cheer span { display: inline-block; font-size: 72px; color: #ffc93c; -webkit-text-stroke: 8px #fff; paint-order: stroke fill;
+  text-shadow: 0 6px 0 rgba(90, 60, 20, .25); animation: starPop .55s var(--spring) backwards; }
+.big-cheer span:nth-child(1) { animation-delay: .35s; rotate: -12deg; }
+.big-cheer span:nth-child(2) { font-size: 96px; animation-delay: .53s; translate: 0 -14px; }
+.big-cheer span:nth-child(3) { animation-delay: .71s; rotate: 12deg; }
+@keyframes cheerFade { from { opacity: 0; } }
+@keyframes cheerOut { to { opacity: 0; transform: scale(.85) translateX(30%); } }
 .finish-ov { position: absolute; inset: 0; width: 100%; height: 100%; background: #fff; z-index: 5; pointer-events: none; }
 
 /* 作品牆：放大看 */

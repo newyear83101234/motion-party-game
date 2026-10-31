@@ -777,6 +777,24 @@ function versionCheck() {
   check("自己畫這張：畫布清回白色、可以照常畫", !sc2.on && !sc2.busy && !sc2.cls && sc2.white === "255,255,255", JSON.stringify(sc2));
   await p.evaluate(() => { __draw.G.wipe(); document.querySelector(".tap-hint")?.remove(); localStorage.setItem("draw-hinted", "1"); });
 
+  // 一顆星的圖畫完：中央大章 → 慶祝欄；作品存了剪下來的角色（我的世界用）；按 🎵 把畫彈成音樂，彈完恢復
+  await p.evaluate(async () => { const a = (await (await fetch("IMAGE/draw/lineart/index.json")).json()).arts.find(x => x.id === "animal-1"); await __draw.startArt(a); });
+  await p.waitForFunction(() => __draw.board.labels && !__draw.S.busy, null, { timeout: 10000 });
+  await p.evaluate(() => { __draw.AUTO.ms = 1e9; const P = __draw.painter, B = __draw.board; for (let i = 0; i < B.boxes.length; i++) P.fill(i, { kind: "solid" }, __draw.COLORS[(i * 7) % 30]).done(); });
+  await p.tap("#bDone");
+  await p.waitForSelector(".big-cheer", { timeout: 15000 }).catch(() => {});
+  check("完成：中央出現大章（吉祥物＋三顆大星星）", await p.locator(".big-cheer img").count() === 1);
+  await waitOn("#after", 8000);
+  check("大章結束後收進右邊慶祝欄、大章移除", await on("#after") && await p.locator(".big-cheer").count() === 0);
+  const cutW = await p.evaluate(async () => { const w = (await __draw.G.list())[0]; return w && w.cut ? { size: w.cut.size, cw: w.cw, ch: w.ch } : null; });
+  check("一顆星的圖畫完：存下剪好的角色（透明 PNG、最長邊 ≤600）", cutW && cutW.size > 2000 && Math.max(cutW.cw, cutW.ch) <= 600, JSON.stringify(cutW));
+  await p.tap("#aMusic");
+  const mus = await p.evaluate(() => { const m = __draw.music(); return m && { cols: m.steps.length, notes: m.steps.reduce((s, c) => s + c.length, 0), busy: __draw.S.busy }; });
+  check("按 🎵：畫分成 16 排彈出來、彈的時候不能畫", mus && mus.cols === 16 && mus.notes > 0 && mus.busy, JSON.stringify(mus));
+  await p.waitForFunction(() => !__draw.music(), null, { timeout: 9000 }).catch(() => {});
+  check("音樂彈完：光帶移除、可以繼續操作", await p.evaluate(() => !__draw.music() && !__draw.S.busy && !document.querySelector(".music-bar")));
+  await p.evaluate(() => { __draw.G.wipe(); });
+
   // 首頁三欄：每個主題 6 張，左欄一顆星、中欄兩顆星、右欄三顆星
   await p.evaluate(() => { __draw.show("home"); __draw.renderHome("animal"); });
   await p.waitForTimeout(700);

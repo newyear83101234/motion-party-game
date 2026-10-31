@@ -93,6 +93,42 @@ export function note(i, { gain = 0.22, dur = 0.5 } = {}) {
 // 叮鈴：高八度隨機五聲音階（星星筆、魔法特效）
 export function chime(gain = 0.12) { note(10 + ((Math.random() * 5) | 0), { gain, dur: 0.6 }); }
 
+// 「畫變成樂器」用的幾種合成樂器：i 一樣是五聲音階第幾個音，at 是幾秒後響（排程，節奏才準）
+// marimba 木琴、glock 鐵琴、pluck 撥弦、flute 笛子、drum 鼓（i 越小越低沉）
+export function inst(kind, i, { gain = 0.2, at = 0 } = {}) {
+  if (!live() || !soundOn) return;
+  const t = ac.currentTime + at, f = PENTA[i % 5] * 2 ** Math.floor(i / 5);
+  const g = ac.createGain(), end = t + (kind === "flute" ? 0.7 : kind === "drum" ? 0.35 : 0.9);
+  g.connect(sfxBus);
+  const osc = (type, freq) => { const o = ac.createOscillator(); o.type = type; o.frequency.value = freq; o.start(t); o.stop(end + 0.05); return o; };
+  if (kind === "drum") {   // 低音：音高往下掉的正弦＋一點點噪音
+    const o = osc("sine", 150 + i * 6);
+    o.frequency.setValueAtTime(150 + i * 6, t); o.frequency.exponentialRampToValueAtTime(48, t + 0.25);
+    g.gain.setValueAtTime(gain * 1.6, t); g.gain.exponentialRampToValueAtTime(0.0008, end);
+    o.connect(g);
+    if (noise) { const n = ac.createBufferSource(), lp = ac.createBiquadFilter(), ng = ac.createGain(); n.buffer = noise; lp.type = "lowpass"; lp.frequency.value = 900;
+      ng.gain.setValueAtTime(gain * 0.5, t); ng.gain.exponentialRampToValueAtTime(0.0008, t + 0.12); n.connect(lp); lp.connect(ng); ng.connect(sfxBus); n.start(t); n.stop(t + 0.15); }
+    return;
+  }
+  if (kind === "flute") {   // 慢慢吹起來、帶一點顫音
+    const o = osc("sine", f * 2), lfo = osc("sine", 5.5), lg = ac.createGain();
+    lg.gain.value = f * 0.012; lfo.connect(lg); lg.connect(o.frequency);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + 0.08); g.gain.setValueAtTime(gain, end - 0.25); g.gain.linearRampToValueAtTime(0, end);
+    o.connect(g); return;
+  }
+  if (kind === "pluck") {   // 鋸齒波＋快速關小的低通＝撥弦
+    const o = osc("sawtooth", f), lp = ac.createBiquadFilter();
+    lp.type = "lowpass"; lp.frequency.setValueAtTime(f * 8, t); lp.frequency.exponentialRampToValueAtTime(f * 1.2, t + 0.4);
+    g.gain.setValueAtTime(gain * 0.7, t); g.gain.exponentialRampToValueAtTime(0.0008, end);
+    o.connect(lp); lp.connect(g); return;
+  }
+  // 木琴／鐵琴：基音＋高泛音，敲下去馬上衰減（鐵琴高八度、泛音更亮、留得更久）
+  const hi = kind === "glock", o1 = osc("sine", hi ? f * 4 : f * 2), o2 = osc("sine", (hi ? f * 4 : f * 2) * (hi ? 2.76 : 3.93)), g2 = ac.createGain();
+  g2.gain.value = hi ? 0.35 : 0.25;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0008, hi ? end : t + 0.5);
+  o1.connect(g); o2.connect(g2); g2.connect(g);
+}
+
 // ── 畫筆沙沙聲：下筆 on、移動時告訴速度（畫布上每毫秒幾像素）、放開 off ──
 export function strokeOn(brush) {
   if (!live() || !soundOn || !noise) return;

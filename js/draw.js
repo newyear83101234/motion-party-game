@@ -1,11 +1,13 @@
 // 畫畫遊戲主程式：首頁、畫畫頁（工具列、彈出選單、手勢）、完成、作品牆
 import { Board } from "./draw-canvas.js?v=6";
+import { cutoutMask } from "./draw-core.js?v=6";
 import { Painter, previewMat, previewBrush } from "./draw-paint.js?v=6";
 import { Fx } from "./draw-fx.js?v=6";
 import * as G from "./draw-gallery.js?v=6";
 import { STICKERS, stickerImage } from "./draw-stickers.js?v=6";
 import * as A from "./draw-audio.js?v=6";
 import { Particles } from "./draw-particles.js?v=6";
+import { play as playMusic } from "./draw-music.js?v=6";
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -216,6 +218,10 @@ async function doSave(quiet) {
     c = board.composite();
     // 四張圖同一刻送去編碼，存下來的才是同一個瞬間的畫面
     [w.thumb, w.image, w.color, w.glit] = await Promise.all([G.thumbOf(c), G.toBlob(c), G.toBlob(board.color), G.toBlob(board.glit)]);
+    if (S.done && canLive(S.art)) {   // 畫完的單角色圖：剪下來，住進「我的世界」
+      const cut = cutout(c);
+      if (cut) { w.cut = await G.toBlob(cut); w.cw = cut.width; w.ch = cut.height; cut.width = cut.height = 0; }
+    }
     await G.save(w);
     if (seq === loadSeq) S.workId = w.id;   // 存檔途中已經換了別張圖，就不要把這個編號套到新的那張
     return "ok";
@@ -230,6 +236,26 @@ async function doSave(quiet) {
     // 存檔期間的 💾 收掉；若期間跳了別的提示（滿了／沒存到），以那個為準
     if (!quiet && toastTimer === mine && $("#toast").textContent === "💾") { clearTimeout(toastTimer); $("#toast").classList.remove("on"); }
   }
+}
+
+// 能住進「我的世界」的圖：一、兩顆星的圖（主角剪得出來；index.json 可用 world: true/false 個別指定）；三顆星是整片場景，剪下來不像角色
+const canLive = a => !!a && !a.test && (a.world ?? (a.level || 1) <= 2);
+// 剪下角色：碰到圖邊的區塊變透明、外框留著，裁到角色的範圍、最長邊縮到 600 像素
+function cutout(c) {
+  const r = cutoutMask(board.labels, board.W, board.H);
+  if (!r) return null;
+  const { mask, x0, y0, x1, y1 } = r, w = x1 - x0 + 1, h = y1 - y0 + 1, W = board.W;
+  const img = c.getContext("2d").getImageData(x0, y0, w, h), d = img.data;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (!mask[(y + y0) * W + x + x0]) d[(y * w + x) * 4 + 3] = 0;
+  const t = document.createElement("canvas");
+  t.width = w; t.height = h; t.getContext("2d").putImageData(img, 0, 0);
+  const k = Math.min(1, 600 / Math.max(w, h));
+  if (k === 1) return t;
+  const o = document.createElement("canvas");
+  o.width = Math.round(w * k); o.height = Math.round(h * k);
+  o.getContext("2d").drawImage(t, 0, 0, o.width, o.height);
+  t.width = t.height = 0;
+  return o;
 }
 
 // ── 自動存檔：畫了東西 10 秒沒再動、或切到別的 App／關掉分頁時，悄悄存一份（作品牆標 ✏️），當掉或被關掉也不會整張不見 ──
@@ -325,7 +351,7 @@ async function replayStroke(RP, a, d, my) {
 }
 function pathLen(p) { let s = 0; for (let i = 2; i < p.length; i += 2) s += Math.hypot(p[i] - p[i - 2], p[i + 1] - p[i - 1]); return s; }
 function stopReplay() { if (replaying) { replaying.stop = true; replaying.wake?.(); } }
-function goHome() { $("#after").classList.remove("on"); show("home"); renderHome(S.art?.theme); }
+function goHome() { music?.stop(); $("#after").classList.remove("on"); show("home"); renderHome(S.art?.theme); }
 // 作品牆滿了：提示一下就進整理模式，讓大人刪幾件；整理完按 🏠 回到原本那張畫
 function galleryFull() {
   toast("🖼️ 滿了", 1200);
@@ -342,9 +368,17 @@ $("#bDone").onclick = async () => {
     setTimeout(() => A.sfx("finish"), 550);   // 跟彩帶噴出來同時
     await fx.finish(S.art.parts || []);
     r = await saving;
+    if (r !== "full") await bigCheer();
   } finally { S.busy = false; fx.sparkleStart(); }
-  if (r === "full") galleryFull(); else showAfter();
+  if (r === "full") galleryFull(); else showAfter(true);
 };
+// 完成的大章：畫面中央吉祥物＋三顆大星星依序蹦出來，停 1.5 秒再收到右邊的慶祝欄（最開心的那一刻要夠大）
+function bigCheer() {
+  const d = el("div", "big-cheer", '<img src="IMAGE/draw/ui/mascot.png?v=6" alt="" onerror="this.remove()"><p><span>★</span><span>★</span><span>★</span></p>');
+  $("#paint").append(d);
+  [0, 180, 360].forEach((t, i) => setTimeout(() => A.note(10 + i * 2, { gain: 0.22, dur: 0.7 }), 350 + t));   // 一顆星一個音
+  return new Promise(ok => setTimeout(() => { d.classList.add("out"); setTimeout(() => { d.remove(); ok(); }, 320); }, 1500));
+}
 $("#aHome").onclick = goHome;
 $("#aAgain").onclick = () => $("#after").classList.remove("on");
 async function danceAgain() {
@@ -354,13 +388,22 @@ async function danceAgain() {
   try { await fx.finish(S.art.parts || []); } finally { S.busy = false; fx.sparkleStart(); }
 }
 // 完成後的按鈕：有紀錄才出現 ▶️ 回放
-function showAfter() {
+function showAfter(quiet = false) {
   $("#aPlay").style.display = canReplay() ? "" : "none";
   $("#after").classList.add("on");
-  [0, 180, 360].forEach((t, i) => setTimeout(() => A.note(10 + i * 2, { gain: 0.2, dur: 0.7 }), 120 + t));   // 三顆星星蹦出來各一個音
+  if (!quiet) [0, 180, 360].forEach((t, i) => setTimeout(() => A.note(10 + i * 2, { gain: 0.2, dur: 0.7 }), 120 + t));   // 三顆星星蹦出來各一個音（剛放完大章就不重複）
 }
 $("#aPlay").onclick = async () => { $("#after").classList.remove("on"); await replay(); showAfter(); };   // 回放不了（例如正在跳舞）也要把按鈕放回來
 $("#rStop").onclick = stopReplay;
+// 把畫彈成音樂：光從左掃到右，掃到的顏色變成樂器（js/draw-music.js）；彈的時候吉祥物跟著跳舞
+let music = null;
+$("#aMusic").onclick = async () => {
+  if (S.busy || music || !board.labels) return;
+  S.busy = true; $("#after").classList.add("playing");
+  const c = board.composite(), host = $("#stage"), o = board.origin(host.getBoundingClientRect());
+  music = playMusic({ canvas: c, host, rect: { x: o.x, y: o.y, w: board.W * o.k, h: board.H * o.k }, A, parts });
+  try { await music.done; } finally { c.width = c.height = 0; music = null; S.busy = false; $("#after").classList.remove("playing"); }
+};
 $("#bHome").onclick = async () => {
   if (S.busy) return;
   S.busy = true; fx.flush(); closePop();
@@ -821,7 +864,7 @@ hold($("#vDel"), async () => {
 // ── 圖示：GPT 生的立體圖示（IMAGE/draw/ui/*.png）載入成功才換掉 emoji，沒有檔案就維持 emoji ──
 const ICONS = [["#bDone, #aDone", "btn-done"], ["#bHome, #gBack, #aHome", "btn-home"], ['[data-tool="eraser"]', "tool-eraser"],
   ["#bUndo, #mUndo", "btn-undo"], ["#bClear, #vDel", "btn-clear"], ["#toGallery", "btn-gallery"], ["#aPlay, #vPlay", "btn-play"],
-  ["#aAgain, #vEdit", "btn-edit"], ["#vClose", "btn-close"], ["#vSave", "btn-save"], ["#tMusic", "btn-music"], ["#tSound", "btn-sound"]];
+  ["#aAgain, #vEdit", "btn-edit"], ["#aMusic", "mode-music"], ["#vClose", "btn-close"], ["#vSave", "btn-save"], ["#tMusic", "btn-music"], ["#tSound", "btn-sound"]];
 function applyIcons() {
   for (const [sel, name] of ICONS) for (const b of $$(sel)) {
     const img = new Image();
@@ -837,7 +880,7 @@ function applyIcons() {
 // ── 開始 ──
 window.addEventListener("resize", () => { if (board.labels && $("#paint").classList.contains("on")) { board.fit(); showHint(); } });
 window.__draw = { S, board, painter, fx, G, A, show, renderHome, startArt, renderGallery, COLORS, AUTO, setFull, autoSave, isDirty: () => dirty, SC, startScratch,
-  replay, stopReplay, rec: () => rec, parts };
+  replay, stopReplay, rec: () => rec, parts, cutout, canLive, music: () => music };
 (async () => {
   G.persist();
   refreshBar(); refreshTools(); refreshUndo(); refreshToggles(); applyIcons();
