@@ -7,6 +7,7 @@
   <meta name="theme-color" content="#fff4e0">
   <title>畫畫樂園</title>
   <link rel="icon" href="data:,">
+  <link rel="preload" href="fonts/huninn-draw.woff2?v=6" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/draw.css?v=6">
   <link rel="modulepreload" href="js/draw-core.js?v=6">
   <link rel="modulepreload" href="js/draw-canvas.js?v=6">
@@ -24,9 +25,11 @@
       <img class="mascot" src="IMAGE/draw/ui/mascot.png?v=6" alt="" onerror="this.remove()">
       <h1 class="logo" aria-label="畫畫樂園"><span>畫</span><span>畫</span><span>樂</span><span>園</span></h1>
       <span class="grow"></span>
+      <div class="setgroup">
       <button class="big tog" id="tSide" aria-label="工具列放左邊或右邊"><svg viewBox="0 0 40 40" width="40" height="40" fill="none" stroke-linejoin="round"><rect x="4" y="7" width="32" height="26" rx="5" fill="#fff" stroke="#3b2a1a" stroke-width="3"/><rect class="sideBar" x="27" y="10" width="6" height="20" rx="2" fill="#ffc93c" stroke="#3b2a1a" stroke-width="2"/><path d="M13 20h9M13 20l3.5-3.5M13 20l3.5 3.5" stroke="#3b2a1a" stroke-width="2.6" stroke-linecap="round"/></svg></button>
       <button class="big tog" id="tMusic" data-sfx="none" aria-label="背景音樂開關">🎵</button>
       <button class="big tog" id="tSound" data-sfx="none" aria-label="音效開關">🔊</button>
+      </div>
       <button class="big gift" id="toScratch" data-sfx="magic" aria-label="刮刮樂驚喜">🎁</button>
       <button class="big" id="toGallery" aria-label="作品牆">🖼️</button>
     </header>
@@ -37,6 +40,7 @@
   <!-- 畫畫頁：左邊畫布、右邊工具列 -->
   <section id="paint" class="screen">
     <div id="stage"><div id="loading" class="loading"><i></i><i></i><i></i></div></div>
+    <button id="bZoom" class="corner zoom" aria-label="縮回原本大小"><svg viewBox="0 0 40 40" width="30" height="30" fill="none" stroke="#3b2a1a" stroke-width="4.5" stroke-linecap="round"><circle cx="17" cy="17" r="11" fill="#fff"/><path d="M11 17h12M26 26l9 9"/></svg></button>
     <button id="bFull" class="corner" aria-label="全螢幕"><svg viewBox="0 0 40 40" width="30" height="30" fill="none" stroke="url(#gFull)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="gFull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6fc0ff"/><stop offset="1" stop-color="#1f7fe0"/></linearGradient></defs><path d="M5 15V5h10M25 5h10v10M35 25v10H25M15 35H5V25"/></svg></button>
     <nav id="bar">
       <button id="bDone" class="btn ok" data-sfx="none" aria-label="完成">✔️</button>
@@ -79,7 +83,7 @@
   <section id="gallery" class="screen">
     <header class="top">
       <button class="big" id="gBack" aria-label="回首頁">🏠</button>
-      <h2 class="wall-title">我的作品</h2>
+      <h2 class="wall-title"><span>我</span><span>的</span><span>作</span><span>品</span></h2>
       <span class="grow"></span>
       <button class="big" id="gTip" aria-label="加到主畫面"><svg viewBox="0 0 40 40" width="28" height="28" fill="none" stroke="#3b2a1a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="4" width="22" height="32" rx="4"/><path d="M20 13v12M14 19h12"/></svg></button>
     </header>

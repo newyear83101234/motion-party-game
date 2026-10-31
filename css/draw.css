@@ -3,10 +3,12 @@
   --lift: 0 4px 0 var(--wood-d), 0 8px 14px rgba(90, 60, 20, .12);   /* 按鈕底下那條「厚度」＋柔和陰影 */
   --press: 0 1px 0 var(--wood-d), 0 2px 4px rgba(90, 60, 20, .12);
   --spring: cubic-bezier(.3, 1.6, .5, 1); }
+/* 字型：jf open 粉圓（OFL），只收畫面用到的字（tools/draw-font.mjs 產生），沒收到的字退回蘋方 */
+@font-face { font-family: "Huninn"; src: url("../fonts/huninn-draw.woff2?v=6") format("woff2"); font-display: swap; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); overflow: hidden; touch-action: none;
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
-  font-family: system-ui, -apple-system, "PingFang TC", "Noto Sans TC", sans-serif; }
+  font-family: "Huninn", system-ui, -apple-system, "PingFang TC", "Noto Sans TC", sans-serif; }
 button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
 .screen { position: fixed; inset: 0; display: none;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
@@ -52,15 +54,26 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .arts, .works { flex: 1; overflow-y: auto; touch-action: pan-y; display: grid; align-content: start; gap: 20px;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); grid-auto-rows: max-content; padding: 12px 20px 24px; }
 /* 三欄（簡單／中等／困難），寬度同時受螢幕寬、高限制：兩排剛好放得下 */
-.arts { grid-template-columns: repeat(3, minmax(0, min(360px, calc((100vw - 110px) / 3), calc((100vh - 262px) / 2 * 1.5)))); justify-content: center; gap: 24px 22px; padding-top: 14px; }
-@supports (height: 100dvh) { .arts { grid-template-columns: repeat(3, minmax(0, min(360px, calc((100vw - 110px) / 3), calc((100dvh - 262px) / 2 * 1.5)))); } }
+.arts { grid-template-columns: repeat(3, minmax(0, min(360px, calc((100vw - 110px) / 3), calc((100vh - 316px) / 2 * 1.333)))); justify-content: center; gap: 18px 22px; padding-top: 6px; }
+@supports (height: 100dvh) { .arts { grid-template-columns: repeat(3, minmax(0, min(360px, calc((100vw - 110px) / 3), calc((100dvh - 316px) / 2 * 1.333)))); } }
+/* 欄頭：這一欄的難度（一次標清楚，卡片上不再各掛星星） */
+.colhead { justify-self: center; display: flex; gap: 2px; padding: 4px 16px; border-radius: 20px; background: rgba(255, 255, 255, .8); font-size: 26px; line-height: 1;
+  box-shadow: 0 3px 0 rgba(226, 196, 143, .8); animation: cardIn .45s var(--spring) backwards; }
+.colhead b { color: #e6d6b4; }
+.colhead b.lit { color: #ffb300; -webkit-text-stroke: 1.5px #b26b00; paint-order: stroke fill; }
+/* 畫過的卡片：小孩自己的作品＋右下角綠色完成章 */
+.card .stamp { position: absolute; right: -8px; bottom: -8px; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center;
+  background: linear-gradient(#5fd06b, #2e9e3e); color: #fff; font-size: 30px; font-weight: 900; box-shadow: 0 0 0 4px #fff, 0 4px 8px rgba(90, 60, 20, .3);
+  rotate: -12deg; animation: stampIn .5s var(--spring) .3s backwards; }
+@keyframes stampIn { from { opacity: 0; transform: scale(2.2); } }
+.card.mine img { border-radius: 16px; }
 .works .empty { grid-column: 1 / -1; justify-self: center; margin-top: 8vh; display: flex; align-items: flex-end; gap: 10px; }
 .works .empty img { height: 220px; animation: bob 2.6s ease-in-out infinite; }
 .works .empty img.ico { width: 110px; height: 110px; animation-delay: .4s; }
 .tidy-tip { display: none; margin: 0 20px; padding: 12px 20px; font-size: 22px; line-height: 1.5; background: #fff; border-radius: 16px; box-shadow: 0 4px 0 var(--wood-d); }
 .tidy-tip.on { display: block; }
-#gTip { position: absolute; right: 20px; bottom: 20px; width: 48px; height: 48px; font-size: 26px; border-radius: 14px; opacity: .7; z-index: 3; }
-.card { position: relative; background: #fff; border-radius: 26px; padding: 10px; box-shadow: var(--lift); aspect-ratio: 3 / 2;
+#gTip { width: 56px; height: 56px; font-size: 26px; border-radius: 16px; background: rgba(255, 255, 255, .6); box-shadow: 0 3px 0 var(--wood-d); }
+.card { position: relative; background: #fff; border-radius: 26px; padding: 10px; box-shadow: var(--lift); aspect-ratio: 4 / 3;
   transition: transform .16s var(--spring), box-shadow .16s; animation: cardIn .45s var(--spring) backwards; animation-delay: calc(var(--i, 0) * 60ms); }
 @keyframes cardIn { from { opacity: 0; transform: translateY(24px) scale(.92); } }
 .card img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; border-radius: 18px; }
@@ -73,7 +86,15 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
   background: #fff; box-shadow: 0 0 0 3px var(--sky), 0 4px 8px rgba(90, 60, 20, .2); }
 /* 作品牆：暖色壁紙＋白邊畫框，一張正一張歪 */
 #gallery { background: #f6ead6 repeating-linear-gradient(90deg, rgba(255, 255, 255, .22) 0 28px, transparent 28px 56px); }
-.wall-title { margin: 0; font-size: 34px; font-weight: 900; color: var(--ink); -webkit-text-stroke: 8px #fff; paint-order: stroke fill; }
+.wall-title { margin: 0; font-size: 44px; font-weight: 900; letter-spacing: 2px; line-height: 1; white-space: nowrap; }
+.wall-title span { display: inline-block; -webkit-text-stroke: 8px #fff; paint-order: stroke fill; text-shadow: 0 5px 0 rgba(90, 60, 20, .18); }
+.wall-title span:nth-child(1) { color: var(--tomato); rotate: -5deg; }
+.wall-title span:nth-child(2) { color: var(--sun); rotate: 4deg; }
+.wall-title span:nth-child(3) { color: var(--mint); rotate: -3deg; }
+.wall-title span:nth-child(4) { color: var(--sky); rotate: 5deg; }
+.works .card.blank { background: rgba(255, 255, 255, .35); box-shadow: none; outline: 4px dashed rgba(168, 116, 63, .45); outline-offset: -4px; border-radius: 6px;
+  aspect-ratio: 3 / 2; display: grid; place-items: center; opacity: .8; }
+.works .card.blank .ico { width: 34%; height: auto; opacity: .55; }
 /* 第一次玩的提示：一隻手在某一塊上面點，外面一圈波紋 */
 .tap-hint { position: absolute; z-index: 4; pointer-events: none; width: 0; height: 0; }
 .tap-hint::before { content: ""; position: absolute; left: -36px; top: -36px; width: 72px; height: 72px; border-radius: 50%; border: 6px solid #fff;
@@ -104,11 +125,14 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .btn.dim > * { opacity: .35; }   /* 復原沒步驟可退、目前工具用不到的設定：只有圖示變淡，按鈕本身不變 */
 .btn svg, .btn canvas { pointer-events: none; }
 .tool[data-tool="brush"] canvas { width: 56px; height: 34px; border-radius: 6px; }
-.btn.ok { background: #8bd96b; }
-#bColor .dot { width: 40px; height: 40px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px var(--ink); }
+.btn.ok { background: linear-gradient(#5fd06b, #2e9e3e); box-shadow: 0 4px 0 #1f7a2c, 0 8px 14px rgba(90, 60, 20, .14); }
+.btn.ok .ico { filter: brightness(0) invert(1) drop-shadow(0 2px 0 rgba(0, 60, 10, .35)); }
+.btn.ok:active { box-shadow: 0 1px 0 #1f7a2c; }
+#bColor .dot { width: 52px; height: 52px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px var(--ink); }
 .btn img { width: 40px; height: 40px; pointer-events: none; }
 /* 筆刷、貼紙：右下角小三角 = 再點一次有選單 */
-.tool[data-tool="brush"]::after, .tool[data-tool="sticker"]::after, .tool[data-tool="eraser"]::after { content: "▾"; position: absolute; right: 6px; bottom: 1px; font-size: 16px; line-height: 1; color: var(--ink); }
+.tool.nudge { animation: nudge .6s var(--spring); }
+@keyframes nudge { 30% { transform: scale(1.18) rotate(-6deg); } 60% { transform: scale(1.06) rotate(4deg); } }
 /* 不出線開關：永遠是一般按鈕外觀，右下角圓形徽章 ✓ 開／✕ 關 */
 .opt.clip::after { content: "✕"; position: absolute; right: -6px; bottom: -6px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
   background: #e53935; color: #fff; font-size: 16px; font-weight: 700; line-height: 1; box-shadow: 0 0 0 2px #fff; }
@@ -132,7 +156,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 
 /* 彈出選單：貼在工具列左邊 */
 .pop { position: absolute; right: calc(var(--bar-w) + 12px); top: 12px; z-index: 6; display: none; flex-wrap: wrap; gap: 10px;
-  max-width: 470px; padding: 14px; background: #fff; border-radius: 22px; box-shadow: 0 8px 30px rgba(0, 0, 0, .25); }
+  max-width: 470px; padding: 14px; background: #fff; border-radius: 22px; box-shadow: 0 10px 30px rgba(90, 60, 20, .28); }
 .pop.on { display: flex; animation: popIn .22s var(--spring) both; transform-origin: right top; }
 .pop::after { content: ""; position: absolute; right: -11px; top: calc(var(--ay, 44px) - 12px); border: 12px solid transparent; border-right: 0; border-left-color: #fff; }
 @keyframes popIn { from { opacity: 0; transform: translateX(14px) scale(.9); } }
@@ -149,18 +173,19 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .pop .row { display: flex; gap: 10px; width: 100%; }
 .pop .size i { display: block; border-radius: 50%; background: var(--ink); }
 /* 筆刷選單：左邊 8 種筆的預覽小圖（4 張一排），右邊 2×2：三種粗細＋不出線 */
-.pop.brush { max-width: none; flex-wrap: nowrap; }
-.pop .brushes { display: grid; grid-template-columns: repeat(4, 128px); gap: 10px; }
-.pop .side { display: grid; grid-template-columns: repeat(2, 64px); grid-auto-rows: 84px; gap: 10px; }
-.pop .side .sizes { display: contents; }
-.pop .side .opt { width: 64px; height: 84px; }
+.pop.brush { max-width: none; flex-direction: column; }
+.pop .brushes { display: grid; grid-template-columns: repeat(5, 128px); gap: 10px; }
+.pop .side { display: flex; gap: 10px; padding-top: 12px; border-top: 3px dashed #eadfca; }
+.pop .side .sizes { display: flex; gap: 10px; padding-right: 10px; border-right: 3px dashed #eadfca; }
+.pop .side .opt { width: 76px; height: 64px; }
 /* 橡皮擦選單：三種粗細＋不出線排一排 */
 .pop.eraser { flex-wrap: nowrap; }
 .pop.eraser .sizes { display: flex; gap: 10px; }
 /* 顏色選單：上面 30 色、下面一排材質（目前的工具用不到材質時變淡） */
-.pop.color { flex-direction: column; max-width: 470px; }
-.pop .swatches { display: flex; flex-wrap: wrap; gap: 10px; }
-.pop .mats { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 12px; border-top: 3px dashed #eadfca; }
+.pop.color { flex-direction: column; max-width: none; }
+.pop .swatches { display: grid; grid-template-columns: repeat(10, 56px); gap: 10px; }
+.pop.color .sw { width: 56px; height: 56px; }
+.pop .mats { display: flex; flex-wrap: nowrap; gap: 8px; padding-top: 12px; border-top: 3px dashed #eadfca; justify-content: space-between; }
 .pop .mats.dim { opacity: .45; }
 .pop .opt.mat { width: 64px; height: 64px; }
 .pop .opt.mat canvas { width: 50px; height: 50px; border-radius: 50%; }
@@ -171,6 +196,10 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .corner { position: absolute; left: calc(22px + env(safe-area-inset-left)); top: calc(22px + env(safe-area-inset-top)); z-index: 5; width: 54px; height: 54px; border-radius: 50%;
   display: grid; place-items: center; background: rgba(255, 255, 255, .85); box-shadow: 0 2px 8px rgba(60, 30, 0, .25); transition: transform .14s var(--spring); }
 .corner:active { transform: scale(.9); }
+.corner.zoom { left: calc(88px + env(safe-area-inset-left)); display: none; animation: popIn .25s var(--spring) both; }
+#paint.zoomed .corner.zoom { display: grid; }
+#paint.full.zoomed .corner.zoom { display: grid; left: calc(22px + env(safe-area-inset-left)); }
+#paint.left .corner.zoom { left: auto; right: calc(88px + env(safe-area-inset-right)); }
 .corner svg { pointer-events: none; filter: drop-shadow(0 2px 1px rgba(0, 40, 90, .25)); }
 #paint.full .corner, #paint.replaying .corner { display: none; }
 /* 全螢幕：工具列收起來、畫布放到最大；右邊留一條窄邊放三顆圓鈕，按鈕不會壓到畫 */
@@ -221,10 +250,10 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .view img { max-width: 90vw; max-height: 72vh; border-radius: 16px; background: #fff; }
 .vbar { display: flex; gap: 28px; }
 .tip { position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); z-index: 9; display: none; padding: 16px 24px;
-  font-size: 22px; line-height: 1.6; background: #fff; border-radius: 20px; box-shadow: 0 8px 30px rgba(0, 0, 0, .25); }
+  font-size: 22px; line-height: 1.6; background: #fff; border-radius: 20px; box-shadow: 0 10px 30px rgba(90, 60, 20, .28); }
 .tip.on { display: block; }
 .toast { position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 20; display: none; padding: 24px 40px;
-  font-size: 56px; background: #fff; border-radius: 28px; box-shadow: 0 8px 30px rgba(0, 0, 0, .3); }
+  font-size: 56px; background: #fff; border-radius: 28px; box-shadow: 0 10px 30px rgba(90, 60, 20, .3); }
 .toast.on { display: block; animation: toastIn .3s var(--spring) both; }
 @keyframes toastIn { from { opacity: 0; transform: translate(-50%, -50%) scale(.7); } }
 
@@ -238,7 +267,9 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 #paint.full.replaying #rStop { left: calc(50% - var(--mini-w) / 2); }
 
 /* 音樂／音效開關：關掉時右下角紅色 ✕ */
-.big.tog { width: 72px; height: 72px; font-size: 38px; }
+.setgroup { display: flex; gap: 6px; padding: 6px; border-radius: 22px; background: rgba(255, 255, 255, .45); }
+.big.tog { width: 56px; height: 56px; font-size: 30px; border-radius: 16px; box-shadow: 0 3px 0 var(--wood-d); }
+.big.tog svg { width: 32px; height: 32px; }
 .big.tog.off { background: #e8e2d6; box-shadow: 0 4px 0 var(--wood-d); }
 .big.tog.off::after { content: "✕"; position: absolute; right: -6px; bottom: -6px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
   background: #e53935; color: #fff; font-size: 17px; font-weight: 700; box-shadow: 0 0 0 2px #fff; }

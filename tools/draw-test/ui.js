@@ -262,9 +262,21 @@ function versionCheck() {
   await touch("touchMove", [[C1.x - 150, C1.y, 1], [C2.x + 150, C2.y, 2]]);
   await touch("touchEnd", []);
   check("兩指張開 → 放大", await view() > 1.5, `s=${await view()}`);
+  check("放大時畫布角落出現「縮回」鈕", await p.evaluate(() => getComputedStyle(document.querySelector("#bZoom")).display !== "none"));
   check("縮放前那一筆被取消", await px(800, 700) === "255,255,255");
   for (let i = 0; i < 2; i++) { await touch("touchStart", [[C1.x, C1.y, 1], [C2.x, C2.y, 2]]); await touch("touchEnd", []); await p.waitForTimeout(120); }
   check("兩指點兩下 → 回到原本大小", await view() === 1);
+  check("回到原本大小：縮回鈕收起來", await p.evaluate(() => getComputedStyle(document.querySelector("#bZoom")).display === "none"));
+  // 只放大一點點（不到 1.15 倍）→ 放開就彈回原大小；放大很多 → 按縮回鈕回原大小
+  await touch("touchStart", [[C1.x, C1.y, 1], [C2.x, C2.y, 2]]);
+  await touch("touchMove", [[C1.x - 4, C1.y, 1], [C2.x + 4, C2.y, 2]]);   // 兩指本來只隔約 100 像素，各張開 4 像素≈1.08 倍
+  await touch("touchEnd", []);
+  check("只放大一點點：放開就彈回原大小", await view() === 1, `s=${await view()}`);
+  await touch("touchStart", [[C1.x, C1.y, 1], [C2.x, C2.y, 2]]);
+  await touch("touchMove", [[C1.x - 150, C1.y, 1], [C2.x + 150, C2.y, 2]]);
+  await touch("touchEnd", []);
+  await p.tap("#bZoom");
+  check("按縮回鈕：回到原本大小", await view() === 1, `s=${await view()}`);
 
   await p.evaluate(() => { const P = __draw.painter; P.fill(P.regionAt(1450, 500), { kind: "solid" }, "#e53935").done(); });
   const cb = await p.locator("#bClear").boundingBox(), cc = [cb.x + cb.width / 2, cb.y + cb.height / 2, 9];
@@ -278,11 +290,17 @@ function versionCheck() {
   await p.tap("#pop .sw:nth-child(17)");
   await p.waitForTimeout(400);
   check("選了顏色、選單自動收起", await p.evaluate(() => __draw.S.color) === "#7e57c2" && !(await on("#pop")));
+  await p.evaluate(() => Object.assign(__draw.S, { tool: "brush", brush: "magic" }));
+  await p.tap("#bColor"); await p.tap("#pop .sw:nth-child(1)"); await p.waitForTimeout(400);
+  check("拿魔法筆時選顏色 → 自動換成馬克筆（選了紅色就畫得出紅色）", await p.evaluate(() => __draw.S.brush === "marker" && __draw.S.color === "#e53935"));
+  await p.tap("#bColor"); await p.tap("#pop .sw:nth-child(17)"); await p.waitForTimeout(400);
+  await p.evaluate(() => Object.assign(__draw.S, { tool: "brush", brush: "crayon" }));
   await p.tap("#bColor");
   check("顏色選單下面有 9 種材質（含兩種漸層）", await p.locator("#pop .opt.mat").count() === 9);
   await p.tap('#pop .opt[aria-label="glitter"]');
   await p.waitForTimeout(400);
   check("選了亮粉、選單收起", await p.evaluate(() => __draw.S.mat.kind) === "glitter" && !(await on("#pop")));
+  check("拿蠟筆時選材質 → 自動換成馬克筆（材質只有馬克筆畫得出來）", await p.evaluate(() => __draw.S.brush === "marker" && __draw.S.tool === "brush"));
   await p.evaluate(() => Object.assign(__draw.S, { tool: "brush", brush: "marker", clip: true }));
   const M1 = await toClient(1450, 1100), M2 = await toClient(1650, 1100);
   await touch("touchStart", [[M1.x, M1.y, 1]]); for (let i = 1; i <= 4; i++) await touch("touchMove", [[M1.x + (M2.x - M1.x) * i / 4, M1.y, 1]]); await touch("touchEnd", []);
@@ -301,9 +319,13 @@ function versionCheck() {
   await p.tap("#bHome");
   await p.waitForFunction(() => document.querySelector("#home").classList.contains("on"), null, { timeout: 8000 }).catch(() => {});
   check("沒畫完回首頁 → 自動存成未完成", await p.evaluate(() => __draw.G.count()) === 2);
+  await p.waitForFunction(() => document.querySelector('#arts .card[data-id="test-shapes"].mine'), null, { timeout: 5000 }).catch(() => {});
+  const mine = await p.evaluate(() => { const c = document.querySelector('#arts .card[data-id="test-shapes"]'); return c && { mine: c.classList.contains("mine"), wip: !!c.querySelector(".wip"), blob: c.querySelector("img").src.startsWith("blob:") }; });
+  check("首頁卡片換成自己畫的那張、沒畫完掛 ✏️", mine && mine.mine && mine.wip && mine.blob, JSON.stringify(mine));
   await p.tap("#toGallery");
-  await p.waitForFunction(() => document.querySelectorAll("#works .card").length === 2, null, { timeout: 8000 }).catch(() => {});
-  check("作品牆兩件，未完成的有 ✏️", await p.locator("#works .card").count() === 2 && await p.locator("#works .wip").count() === 1);
+  await p.waitForFunction(() => document.querySelectorAll("#works .card:not(.blank)").length === 2, null, { timeout: 8000 }).catch(() => {});
+  check("作品牆兩件，未完成的有 ✏️", await p.locator("#works .card:not(.blank)").count() === 2 && await p.locator("#works .wip").count() === 1);
+  check("作品少時補空畫框，總共 6 格", await p.locator("#works .card").count() === 6 && await p.locator("#works .card.blank").count() === 4);
   await p.screenshot({ path: path.join(OUT, "05-gallery.png") });
   await p.tap("#works .card:has(.wip)");
   check("點作品 → 放大看", await on("#view"));
@@ -758,9 +780,12 @@ function versionCheck() {
   // 首頁三欄：每個主題 6 張，左欄一顆星、中欄兩顆星、右欄三顆星
   await p.evaluate(() => { __draw.show("home"); __draw.renderHome("animal"); });
   await p.waitForTimeout(700);
-  const cols = await p.evaluate(() => [...document.querySelectorAll("#arts .card")].filter(c => c.dataset.id !== "test-shapes").map(c => ({ col: c.style.gridColumn, lit: c.querySelectorAll(".lv b.lit").length, x: Math.round(c.getBoundingClientRect().x / 10) * 10 })));
-  const okCols = cols.length === 6 && cols.every(c => String(c.lit) === c.col) && new Set(cols.map(c => c.x)).size === 3;
-  check("首頁三欄：6 張圖、亮星數＝第幾欄、剛好三個欄位", okCols, JSON.stringify(cols));
+  const cols = await p.evaluate(() => [...document.querySelectorAll("#arts .card")].filter(c => c.dataset.id !== "test-shapes").map(c => ({ col: c.style.gridColumn, x: Math.round(c.getBoundingClientRect().x / 10) * 10 })));
+  const heads = await p.evaluate(() => [...document.querySelectorAll("#arts .colhead")].map(h => ({ col: h.style.gridColumn, lit: h.querySelectorAll("b.lit").length })));
+  const okCols = cols.length === 6 && new Set(cols.map(c => c.x)).size === 3 && heads.length === 3 && heads.every(h => String(h.lit) === h.col);
+  check("首頁三欄：6 張圖、剛好三個欄位、欄頭亮星數＝第幾欄", okCols, JSON.stringify({ cols, heads }));
+  const fontOk = await p.evaluate(async () => { await document.fonts.ready; return document.fonts.check('22px "Huninn"', "動物"); });
+  check("粉圓字型載入成功", fontOk);
   await p.evaluate(() => __draw.show("paint"));
 
   // ── 後續 task 的測試插在這一行上面 ──

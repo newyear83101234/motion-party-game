@@ -85,6 +85,7 @@ document.addEventListener("click", e => {
 }, true);
 
 // ── 首頁 ──
+let homeUrls = [], homeSeq = 0;
 function renderHome(theme) {
   theme = theme || INDEX.themes[0]?.id;
   // 主題：圖示＋名字的膠囊鈕，選中的整顆換成那個主題的顏色（圖示沒生出來就用 emoji）
@@ -96,18 +97,42 @@ function renderHome(theme) {
     b.dataset.sfx = "pick";
     return b;
   }));
-  // 三欄：左一顆星、中兩顆星、右三顆星；每張卡固定在自己難度那一欄（第幾排看它是那個難度的第幾張）
+  // 三欄：左一顆星、中兩顆星、右三顆星（欄頭標一次就好，卡片上不再各掛一個）；每張卡固定在自己難度那一欄
   const arts = INDEX.arts.filter(a => a.theme === theme && (DEV || !a.test)), nth = {};
-  $("#arts").replaceChildren(...arts.map((a, i) => {
-    const lit = Math.min(3, a.level || 1);   // 難度一律三格：簡單一顆亮、中等兩顆、困難三顆
-    const c = card(ART_DIR + (a.thumb || a.file) + "?v=6", () => startArt(a), [0, 1, 2].map(i => `<b class="${i < lit ? "lit" : ""}">★</b>`).join(""));
+  const heads = [1, 2, 3].map(lv => {
+    const h = el("div", "colhead", [0, 1, 2].map(i => `<b class="${i < lv ? "lit" : ""}">★</b>`).join(""));
+    h.style.gridColumn = String(lv); h.style.gridRow = "1";
+    return h;
+  });
+  $("#arts").replaceChildren(...heads, ...arts.map((a, i) => {
+    const c = card(ART_DIR + (a.thumb || a.file) + "?v=6", () => startArt(a));
     c.dataset.id = a.id; c.dataset.sfx = "open";
     const lv = Math.min(3, a.level || 1);
     nth[lv] = (nth[lv] || 0) + 1;
-    c.style.gridColumn = String(lv); c.style.gridRow = String(nth[lv]);
+    c.style.gridColumn = String(lv); c.style.gridRow = String(nth[lv] + 1);
     c.style.setProperty("--i", i);   // 一張接一張彈進來
     return c;
   }));
+  markHomeCards(theme);
+}
+// 畫過的卡片換成小孩自己塗的那張（最新的一件）＋右下角完成章；只畫了一半的掛 ✏️。作品牆讀不到就維持線稿
+async function markHomeCards(theme) {
+  const seq = ++homeSeq;
+  let works = [];
+  try { works = await G.list(); } catch { return; }
+  if (seq !== homeSeq) return;   // 讀的時候又換了主題
+  homeUrls.forEach(u => URL.revokeObjectURL(u)); homeUrls = [];
+  const latest = new Map();
+  for (const w of works) if (w.thumb && !latest.has(w.art)) latest.set(w.art, w);   // list() 新的在前
+  for (const c of $$("#arts .card")) {
+    const w = latest.get(c.dataset.id);
+    if (!w) continue;
+    const u = URL.createObjectURL(w.thumb);
+    homeUrls.push(u);
+    c.querySelector("img").src = u;
+    c.classList.add("mine");
+    c.append(el("span", w.done ? "stamp" : "wip", w.done ? "✔" : "✏️"));
+  }
 }
 
 // ── 畫畫頁 ──
@@ -310,6 +335,7 @@ function galleryFull() {
 $("#bDone").onclick = async () => {
   if (S.busy || !board.labels) return;
   S.busy = true; closePop(); fx.sparkleStop(); fx.flush(); board.fit(); S.done = true;
+  $(".tap-hint")?.remove();   // 按完成就不再提示「在這裡畫」（不然會蓋在慶祝畫面的圖上）
   let r = "ok";
   try {
     const saving = saveWork();                 // 邊播動畫邊存
@@ -411,6 +437,14 @@ function refreshDims() {
   for (const b of $$("#bColor, #mColor")) b.classList.toggle("dim", S.tool === "sticker" || S.tool === "eraser" || (brush && (S.brush === "rainbow" || S.brush === "magic")));
 }
 const usesMat = () => S.tool === "brush" && S.brush === "marker";   // 材質只有馬克筆用得到
+function toMarker(needMat) {
+  if (S.tool === "brush" && !(needMat ? S.brush !== "marker" : S.brush === "magic" || S.brush === "rainbow")) return;
+  S.tool = "brush"; S.brush = "marker";
+  const bb = $('[data-tool="brush"]');
+  $$(".tool").forEach(x => x.classList.toggle("on", x === bb));
+  refreshTools();
+  bb.classList.remove("nudge"); void bb.offsetWidth; bb.classList.add("nudge");
+}
 
 // ── 彈出選單 ──
 let popKind = null, popTimer = 0;
@@ -437,19 +471,19 @@ function renderPop(kind, from = popFrom) {
     return b;
   };
   if (kind === "color") {   // 上面 30 色（每個顏色一個音，從左到右往上爬），下面一排材質
-    const sw = el("div", "swatches"), mats = el("div", "mats" + (usesMat() ? "" : " dim"));
+    const sw = el("div", "swatches"), mats = el("div", "mats");   // 材質不再變淡：點了會自動換成馬克筆
     COLORS.forEach((c, i) => {
-      const b = button("sw" + (c === S.color ? " on" : ""), "", () => { S.color = c; A.note(i % 6 + (i / 6 | 0)); refreshBar(); closeSoon(); }, c);
+      const b = button("sw" + (c === S.color ? " on" : ""), "", () => { S.color = c; A.note(i % 10 + (i / 10 | 0) * 2); toMarker(false); refreshBar(); closeSoon(); }, c);
       b.dataset.sfx = "none"; b.style.background = c; sw.append(b);
     });
     for (const m of MATS) {
-      const b = button("opt mat" + (m === S.mat ? " on" : ""), "", () => { S.mat = m; refreshBar(); again(); closeSoon(); }, m.pattern || m.kind);
+      const b = button("opt mat" + (m === S.mat ? " on" : ""), "", () => { S.mat = m; toMarker(true); refreshBar(); again(); closeSoon(); }, m.pattern || m.kind);
       b.append(previewMat(m, S.color, 96)); mats.append(b);
     }
     P.append(sw, mats);
   }
   if (kind === "brush") {   // 左邊 8 種筆（用目前的顏色畫一段給小孩看），右邊粗細＋不出線；選了就收起來
-    const r1 = el("div", "brushes"), side = el("div", "side");
+    const r1 = el("div", "brushes"), side = el("div", "side row");
     for (const id of BRUSHES) {
       const b = button("opt wide" + (id === S.brush ? " on" : ""), "", () => { S.brush = id; refreshTools(); again(); closeSoon(); }, id);
       b.append(previewBrush(id, S.color)); r1.append(b);
@@ -570,6 +604,8 @@ function up(e) {
         if (now - lastTwoTap < 400) { board.fit(); lastTwoTap = 0; } else lastTwoTap = now;
       }
       pinch = null; g1 = null;
+      if (board.view.s < 1.15) board.fit();
+      refreshZoom();
     }
     return;
   }
@@ -675,11 +711,15 @@ $("#sAgain").onclick = startScratch;
 $("#sPaint").onclick = () => endScratch(true);
 $("#sHome").onclick = () => { endScratch(true); goHome(); };
 
+function refreshZoom() { $("#paint").classList.toggle("zoomed", !!board.labels && board.view.s > 1.01); }
+$("#bZoom").onclick = () => { board.fit(); refreshZoom(); };
+{ const fit0 = board.fit.bind(board); board.fit = (...a) => { const r = fit0(...a); refreshZoom(); return r; }; }   // 任何地方縮回原大小，縮回鈕都跟著收
+
 // ── 第一次玩的提示：在一塊不貼邊的最大區塊上放一隻來回塗的手（用手指在這裡畫）；畫過一筆就不再出現 ──
 function hintSeen() { try { return !!localStorage.getItem("draw-hinted"); } catch { return true; } }
 function showHint() {
   $(".tap-hint")?.remove();
-  if (hintSeen() || S.tool !== "brush" || !board.boxes || SC.on) return;   // 刮刮樂時不出提示（開圖後下一格才補放，會蓋在刮刮膜上）
+  if (hintSeen() || S.tool !== "brush" || !board.boxes || SC.on || S.done || $("#after").classList.contains("on")) return;   // 刮刮樂時不出提示（開圖後下一格才補放，會蓋在刮刮膜上）
   const b = board, B = b.boxes.map((r, id) => [r, id]).filter(([r]) => r.x0 > 4 && r.y0 > 4 && r.x1 < b.W - 5 && r.y1 < b.H - 5)
     .sort((p, q) => q[0].area - p[0].area)[0];
   if (!B) return;
@@ -718,7 +758,12 @@ async function renderGallery() {
     urls.push(u);
     return card(u, () => openWork(w), "", w.done ? "" : "✏️");
   }).filter(Boolean);
-  $("#works").replaceChildren(...(cards.length ? cards : [el("div", "empty", '<img src="IMAGE/draw/ui/mascot.png?v=6" alt="" onerror="this.remove()"><img class="ico" src="IMAGE/draw/ui/btn-edit.png?v=6" alt="">')]));   // 還沒有作品：吉祥物拿著畫筆
+  const blanks = Array.from({ length: Math.max(0, 6 - cards.length) }, (_, i) => {   // 作品少的時候補虛線空畫框：等你來畫，點了回首頁
+    const b = button("card blank", '<img class="ico" src="IMAGE/draw/ui/btn-edit.png?v=6" alt="" onerror="this.remove()">', () => { show("home"); renderHome(); }, "去畫畫");
+    b.style.setProperty("--i", cards.length + i);
+    return b;
+  });
+  $("#works").replaceChildren(...cards, ...blanks);
 }
 function openWork(w) {
   viewing = w;
