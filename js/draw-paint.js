@@ -68,9 +68,78 @@ export class Painter {
   }
 }
 
-// 材質顏料：整張畫布大小（Task 4 換成含亮粉與圖樣的完整版）
+// 材質顏料：整張畫布大小。純色直接填；亮粉與圖樣先做一塊小磁磚，再鋪滿整張
 export function makePaint(mat, color, W, H) {
   const c = mk(W, H), x = c.getContext("2d");
-  x.fillStyle = color; x.fillRect(0, 0, W, H);
+  if (mat.kind === "solid") { x.fillStyle = color; x.fillRect(0, 0, W, H); return c; }
+  const tile = mat.kind === "glitter" ? glitterTile(color) : patternTile(mat.pattern, color);
+  x.fillStyle = x.createPattern(tile, "repeat");
+  x.fillRect(0, 0, W, H);
   return c;
+}
+
+function hexRgb(hex) { const n = parseInt(hex.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+function shade(hex, k) {   // k < 0 變暗、k > 0 變亮
+  const [r, g, b] = hexRgb(hex), f = v => Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k);
+  return `rgb(${f(r)},${f(g)},${f(b)})`;
+}
+function lum(hex) { const [r, g, b] = hexRgb(hex); return (r * 0.299 + g * 0.587 + b * 0.114) / 255; }
+
+// 亮粉磁磚 256×256：每個像素亮度隨機 ±35，再撒一些白色亮點
+function glitterTile(color) {
+  const S = 256, c = mk(S, S), x = c.getContext("2d"), img = x.createImageData(S, S), d = img.data;
+  const [r, g, b] = hexRgb(color);
+  for (let i = 0; i < d.length; i += 4) {
+    const k = (Math.random() - 0.5) * 70, spark = Math.random() < 0.006;
+    d[i] = spark ? 255 : Math.max(0, Math.min(255, r + k));
+    d[i + 1] = spark ? 255 : Math.max(0, Math.min(255, g + k));
+    d[i + 2] = spark ? 255 : Math.max(0, Math.min(255, b + k));
+    d[i + 3] = 255;
+  }
+  x.putImageData(img, 0, 0);
+  return c;
+}
+
+// 圖樣磁磚 160×160：底色 + 圖案（淺色底用深一點的同色系，深色底用半透明白）
+function patternTile(kind, color) {
+  const S = 160, c = mk(S, S), x = c.getContext("2d");
+  x.fillStyle = color; x.fillRect(0, 0, S, S);
+  const ink = lum(color) > 0.7 ? shade(color, -0.4) : "rgba(255,255,255,.85)";
+  x.fillStyle = ink; x.strokeStyle = ink; x.lineCap = "round"; x.lineJoin = "round";
+  const at = [[40, 40], [120, 120]];   // 兩個錯開的位置，鋪起來像斜格子
+  if (kind === "star") for (const [cx, cy] of at) { starPath(x, cx, cy, 26, 11); x.fill(); }
+  if (kind === "heart") for (const [cx, cy] of at) { heartPath(x, cx, cy, 24); x.fill(); }
+  if (kind === "dot") for (const [cx, cy] of [...at, [120, 40], [40, 120]]) { x.beginPath(); x.arc(cx, cy, 14, 0, Math.PI * 2); x.fill(); }
+  if (kind === "stripe") {
+    x.lineWidth = 22;
+    for (let k = -S; k <= S; k += 80) { x.beginPath(); x.moveTo(k, S); x.lineTo(k + S, 0); x.stroke(); }
+  }
+  if (kind === "snow") { x.lineWidth = 5; for (const [cx, cy] of at) snowPath(x, cx, cy, 24); }
+  return c;
+}
+function starPath(x, cx, cy, R, r) {
+  x.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + i * Math.PI / 5, d = i % 2 ? r : R;
+    i ? x.lineTo(cx + d * Math.cos(a), cy + d * Math.sin(a)) : x.moveTo(cx + d * Math.cos(a), cy + d * Math.sin(a));
+  }
+  x.closePath();
+}
+function heartPath(x, cx, cy, s) {
+  x.beginPath();
+  x.moveTo(cx, cy + s * 0.9);
+  x.bezierCurveTo(cx - s * 1.3, cy, cx - s * 0.7, cy - s, cx, cy - s * 0.35);
+  x.bezierCurveTo(cx + s * 0.7, cy - s, cx + s * 1.3, cy, cx, cy + s * 0.9);
+  x.closePath();
+}
+function snowPath(x, cx, cy, R) {
+  for (let i = 0; i < 6; i++) {
+    const a = i * Math.PI / 3, ex = cx + R * Math.cos(a), ey = cy + R * Math.sin(a);
+    x.beginPath(); x.moveTo(cx, cy); x.lineTo(ex, ey); x.stroke();
+    const mx = cx + R * 0.6 * Math.cos(a), my = cy + R * 0.6 * Math.sin(a);
+    for (const t of [-0.6, 0.6]) {
+      x.beginPath(); x.moveTo(mx, my);
+      x.lineTo(mx + R * 0.35 * Math.cos(a + t), my + R * 0.35 * Math.sin(a + t)); x.stroke();
+    }
+  }
 }

@@ -47,6 +47,30 @@ function versionCheck() {
   check("復原後回到白色", await px(1450, 500) === "255,255,255");
   await p.screenshot({ path: path.join(OUT, "01-fill.png") });
 
+  // Task 4：材質
+  const fillWith = (x, y, mat, color) => p.evaluate(([x, y, mat, color]) => {
+    const P = __draw.painter, id = P.regionAt(x, y); P.fill(id, mat, color).done(); return id;
+  }, [x, y, mat, color]);
+  const colorsIn = (x, y, w, h) => p.evaluate(([x, y, w, h]) => {
+    const d = __draw.board.ctx.getImageData(x, y, w, h).data, s = new Set();
+    for (let i = 0; i < d.length; i += 4) s.add(d[i] + "," + d[i + 1] + "," + d[i + 2]);
+    return s.size;
+  }, [x, y, w, h]);
+  await fillWith(300, 500, { kind: "glitter" }, "#1e88e5");
+  check("亮粉：同一塊裡有很多深淺不同的點", await colorsIn(280, 480, 40, 40) > 30, `${await colorsIn(280, 480, 40, 40)} 色`);
+  const ga = await p.evaluate(() => __draw.board.gctx.getImageData(300, 500, 1, 1).data[3]);
+  check("亮粉：遮罩記下這一塊", ga > 0, `alpha=${ga}`);
+  for (const pat of ["star", "heart", "dot", "stripe", "snow"]) {
+    await fillWith(1550, 1100, { kind: "pattern", pattern: pat }, "#fdd835");
+    check(`圖樣 ${pat}：有底色也有圖案`, await colorsIn(1420, 970, 260, 260) >= 2);
+  }
+  await fillWith(1550, 1100, { kind: "solid" }, "#43a047");
+  check("改填純色 → 該塊只剩一個顏色", await colorsIn(1440, 990, 220, 220) === 1);
+  await fillWith(300, 500, { kind: "solid" }, "#43a047");
+  const ga2 = await p.evaluate(() => __draw.board.gctx.getImageData(300, 500, 1, 1).data[3]);
+  check("亮粉被純色蓋掉 → 遮罩也清掉", ga2 === 0, `alpha=${ga2}`);
+  await p.screenshot({ path: path.join(OUT, "02-materials.png") });
+
   // ── 後續 task 的測試插在這一行上面 ──
   check("沒有頁面錯誤", errs.length === 0, errs.join(" | "));
   await browser.close();
