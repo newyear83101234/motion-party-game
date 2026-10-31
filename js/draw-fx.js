@@ -88,6 +88,7 @@ export class Fx {
         O.translate(ox + b.W * k / 2, oy + b.H * k * (1 + h.dy));
         O.scale(h.sx * k, h.sy * k);
         O.translate(-b.W / 2, -b.H);
+        O.beginPath(); O.rect(0, 0, b.W, b.H); O.clip();   // 擺動的零件（貼邊的煙、旗子）不要畫到圖片外面
         O.drawImage(comp, 0, 0);
         for (const q of P) drawPart(O, q, s);
         O.restore();
@@ -102,10 +103,13 @@ export class Fx {
     });
   }
 
-  // 依座標點找出零件那幾塊：眨眼只要位置和周圍顏色；會轉、會擺的要切出圖（含外框線）和補洞用的底色
+  // 找出零件那幾塊：`at` 是落在零件裡的座標點；`box: [x0, y0, x1, y1]` 是「整塊都在這個框裡的全部選進來」（有輻條的輪子用）
+  // 眨眼只要位置和周圍顏色；會轉、會擺的要切出圖（含外框線）和補洞用的底色
   cutPart(comp, pt) {
     const b = this.b;
-    const ids = [...new Set(pt.at.map(([x, y]) => regionAt(b.labels, b.W, b.H, x, y)).filter(id => id >= 0))];
+    const fromAt = (pt.at || []).map(([x, y]) => regionAt(b.labels, b.W, b.H, x, y));
+    const fromBox = pt.box ? b.boxes.map((r, id) => (r.x0 >= pt.box[0] && r.y0 >= pt.box[1] && r.x1 <= pt.box[2] && r.y1 <= pt.box[3] ? id : -1)) : [];
+    const ids = [...new Set([...fromAt, ...fromBox].filter(id => id >= 0))];
     if (!ids.length) return null;
     const ms = ids.map(id => regionMask(b.labels, b.W, b.H, id, b.boxes[id], pt.type === "blink" ? 0 : 24));
     const x0 = Math.min(...ms.map(m => m.x)), y0 = Math.min(...ms.map(m => m.y));
@@ -149,7 +153,8 @@ function drawPart(O, q, s) {
   }
   const a = q.type === "spin" ? s * Math.PI * 2 : Math.sin(s * Math.PI * (q.type === "wag" ? 6 : 4)) * q.deg * Math.PI / 180;
   O.save();
-  O.drawImage(q.hole, q.x - (q.hole.width - q.img.width) / 2, q.y - (q.hole.height - q.img.height) / 2);
+  // 會轉的零件（輪子）轉來轉去都蓋在原位，不用補洞；補了反而會在邊緣多出一圈底色
+  if (q.type !== "spin") O.drawImage(q.hole, q.x - (q.hole.width - q.img.width) / 2, q.y - (q.hole.height - q.img.height) / 2);
   O.translate(q.px, q.py); O.rotate(a); O.translate(-q.px, -q.py);
   O.drawImage(q.img, q.x, q.y);
   O.restore();
@@ -161,8 +166,9 @@ function surround(comp, x, y, w, h) {
   let best = null, bn = 0;
   for (let i = 0; i < 16; i++) {
     const a = i / 16 * Math.PI * 2;   // 橢圓繞一圈，外擴 12px
-    const sx = Math.round(x + w / 2 + (w / 2 + 12) * Math.cos(a)), sy = Math.round(y + h / 2 + (h / 2 + 12) * Math.sin(a));
-    if (sx < 0 || sy < 0 || sx >= comp.width || sy >= comp.height) continue;
+    // 取樣點落到圖外時貼著邊緣取（零件貼著畫面邊緣時，不要因為全部跳過而退回白色）
+    const sx = Math.min(comp.width - 1, Math.max(0, Math.round(x + w / 2 + (w / 2 + 12) * Math.cos(a))));
+    const sy = Math.min(comp.height - 1, Math.max(0, Math.round(y + h / 2 + (h / 2 + 12) * Math.sin(a))));
     const d = c.getImageData(sx, sy, 1, 1).data;
     if (d[0] * 0.299 + d[1] * 0.587 + d[2] * 0.114 <= 60) continue;
     const k = `rgb(${d[0]},${d[1]},${d[2]})`, n = (cnt.get(k) || 0) + 1;

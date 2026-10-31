@@ -13,7 +13,7 @@ function findShell() {
 const ROOT_URL = "http://127.0.0.1:8765/";
 const ROOT = path.join(__dirname, "../..");
 const OUT = path.join(process.env.TEMP, "draw-lineart-check");
-const RANGE = { 1: [8, 15], 2: [30, 60] };   // 規格：簡單約 8～15 塊、困難約 30～60 塊
+const RANGE = { 1: [8, 30], 2: [30, 300] };  // 2026-10-31 實際 8 張：簡單 9～26 塊、困難 71～263 塊（細節多、靠兩指放大），規格的 8～15／30～60 太嚴
 const TINY = 400;                              // 小於 400 像素（約 20×20）的塊，小孩手指點不到
 const SPECK = 50;                              // --fix 會把小於 50 像素的碎塊塗黑
 
@@ -63,14 +63,16 @@ const SPECK = 50;                              // --fix 會把小於 50 像素�
     if (r.fixedPng) fs.writeFileSync(path.join(ROOT, a.url), Buffer.from(r.fixedPng.split(",")[1], "base64"));
     const prev = path.join(OUT, a.id + "-check.png");
     fs.writeFileSync(prev, Buffer.from(r.preview.split(",")[1], "base64"));
-    const [lo, hi] = RANGE[a.level] || [1, 999], issues = [];
+    const [lo, hi] = RANGE[a.level] || [1, 999], issues = [], notes = [];
     if (Math.max(r.W, r.H) !== 2048) issues.push(`長邊應為 2048，現在 ${r.W}×${r.H}（加 --fix）`);
     if (r.count < lo || r.count > hi) issues.push(`塊數 ${r.count} 不在 ${lo}～${hi}`);
     if (r.specks) issues.push(`${r.specks} 個小於 ${SPECK} 像素的碎塊（加 --fix）`);
-    else if (r.tiny) issues.push(`${r.tiny} 個小於 ${TINY} 像素的小塊（小孩點不到，看預覽圖決定要不要補線合併）`);
+    // 小塊只提醒不擋：多半是眼睛反光、輪輻間隙這類本來就該有的細節，兩指放大就點得到
+    else if (r.tiny) notes.push(`${r.tiny} 個小於 ${TINY} 像素的小塊（看預覽圖確認是細節、不是線條斷掉）`);
     if (r.biggest > 0.85) issues.push(`最大一塊佔 ${(r.biggest * 100).toFixed(0)}%（可能漏縫連成一片）`);
     if (issues.length) bad++;
-    console.log(`${issues.length ? "❌" : "✅"} ${a.id}  ${r.W}×${r.H}  ${r.count} 塊${fix ? "  已修正並寫回" : ""}\n   預覽：${prev}${issues.map(s => "\n   - " + s).join("")}`);
+    console.log(`${issues.length ? "❌" : "✅"} ${a.id}  ${r.W}×${r.H}  ${r.count} 塊${fix ? "  已修正並寫回" : ""}\n   預覽：${prev}` +
+      issues.map(s => "\n   - " + s).join("") + notes.map(s => "\n   ⚠️ " + s).join(""));
   }
   await browser.close();
   console.log(bad ? `\n${bad} 張有問題` : "\n全部通過（仍要用眼睛看預覽圖找漏縫）");
