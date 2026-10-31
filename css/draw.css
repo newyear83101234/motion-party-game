@@ -232,6 +232,11 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 #aPlay { background: linear-gradient(#9fd8ff, #4fb3ff); }
 #aAgain { background: linear-gradient(#b4ec97, #7fd35e); }
 #aMusic { background: linear-gradient(#ffd9a8, #ffb35c); }
+#aWorld { background: linear-gradient(#bfe8ff, #7cc8ff); }
+.after .big { width: 84px; height: 84px; }   /* 5 顆大鈕在 iPad 較矮的視窗也放得下 */
+.after.on .big:nth-of-type(5) { animation-delay: .57s; }
+/* 貼紙選單：收集到的貼紙越來越多，太多時可以上下捲 */
+.pop.sticker { max-height: calc(100% - 24px); overflow-y: auto; touch-action: pan-y; }
 .after.on .big:nth-of-type(4) { animation-delay: .49s; }
 /* 畫變成音樂：發光的光帶掃過去，彈到的格子冒出一圈彩色漣漪；吉祥物跟著跳 */
 .music-bar { position: absolute; z-index: 4; width: 0; pointer-events: none; transition: transform .26s linear; }
@@ -330,6 +335,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .big.m-world { background: linear-gradient(#bfe8ff, #7cc8ff); box-shadow: 0 4px 0 #4a9ad6, 0 8px 14px rgba(40, 90, 140, .2); }
 .big.m-book { background: linear-gradient(#ffe0ef, #ffb3d6); box-shadow: 0 4px 0 #e07aa9, 0 8px 14px rgba(140, 40, 90, .2); }
 .big.gift { box-shadow: 0 4px 0 #e0609d, 0 8px 14px rgba(140, 40, 90, .2); }
+.big.m-gacha { background: linear-gradient(#fff3b0, #ffd54f); box-shadow: 0 4px 0 #d9a52e, 0 8px 14px rgba(140, 100, 20, .25); animation: gift 1.8s ease-in-out infinite; }
 .modes .big:active { transform: translateY(3px) scale(.96); }
 @keyframes gift { 0%, 80%, 100% { rotate: 0deg; } 85% { rotate: -10deg; } 90% { rotate: 9deg; } 95% { rotate: -5deg; } }
 

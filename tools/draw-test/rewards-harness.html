@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>貼紙本／扭蛋 測試台</title>
+<!-- 模組用相對路徑（css/…、IMAGE/…），把基準指回專案根目錄，跟 draw.html 一樣 -->
+<base href="../../">
+<link rel="stylesheet" href="css/draw.css?v=6">
+<style>
+  .hbar { display: flex; gap: 14px; padding: 16px 20px; align-items: center; }
+  .hbar .grow { flex: 1; }
+  #hBook img { width: 76%; height: 76%; object-fit: contain; pointer-events: none; }
+  #hLog { padding: 0 20px; font-size: 18px; }
+</style>
+</head>
+<body>
+  <!-- 假首頁：右上角一顆貼紙本按鈕（扭蛋貼紙會飛到這裡），幾顆手動測試鈕 -->
+  <section id="home" class="screen on" style="flex-direction: column">
+    <div class="hbar">
+      <button class="big" id="hGrant" aria-label="開一顆">🥚</button>
+      <button class="big" id="hGrant3" aria-label="開三顆">3</button>
+      <button class="big" id="hGold" aria-label="金蛋">🌟</button>
+      <button class="big" id="hDaily" aria-label="每日">📅</button>
+      <span class="grow"></span>
+      <button class="big" id="hBook" aria-label="貼紙本"><img src="IMAGE/draw/ui/btn-book.png" alt=""></button>
+    </div>
+    <p id="hLog">taps: <b id="hTaps">0</b></p>
+  </section>
+  <div id="toast" class="toast"></div>
+<script type="module">
+  import { mountRewards } from "./js/draw-rewards.js";
+  const $ = s => document.querySelector(s);
+  // 假的 deps：聲音全部只記錄呼叫；粒子用簡單假物件；show 自己切 .screen
+  const calls = window.__calls = [];
+  const A = {
+    sfx: (name, o) => calls.push(["sfx", name]),
+    note: (i, o) => calls.push(["note", i]),
+    chime: g => calls.push(["chime", g]),
+    strokeOn() {}, strokeSpeed() {}, strokeOff() {},
+  };
+  class Particles {
+    constructor(host) { this.host = host; calls.push(["particles"]); }
+    trail() {} splash() {} fit() {}
+    stars(x, y, size) { calls.push(["stars", Math.round(x), Math.round(y)]); }
+  }
+  function show(id) {
+    calls.push(["show", id]);
+    document.querySelectorAll(".screen").forEach(s => s.classList.toggle("on", s.id === id));
+  }
+  // 照抄主程式（js/draw.js）的全域按鈕機制：手指放開就觸發 click、播按鈕音效，之後 700ms 內瀏覽器補送的真 click 吞掉。
+  // 沒有這段的話，無頭 Chrome 在滑動之後的第一下點擊會被吃掉（主程式就是為這個才加的）
+  let downBtn = null, downXY = [0, 0], fired = 0;
+  document.addEventListener("pointerdown", e => {
+    const b = e.target.closest?.("button");
+    downBtn = b && !b.classList.contains("hold") && !b.disabled ? b : null;
+    downXY = [e.clientX, e.clientY];
+  }, true);
+  document.addEventListener("pointerup", e => {
+    const b = e.target.closest?.("button");
+    if (!b || b !== downBtn || Math.hypot(e.clientX - downXY[0], e.clientY - downXY[1]) > 20) return;
+    downBtn = null; fired = performance.now();
+    const snd = b.dataset.sfx || "tap";
+    if (snd !== "none") A.sfx(snd);
+    b.click();
+  }, true);
+  document.addEventListener("pointercancel", () => { downBtn = null; }, true);
+  document.addEventListener("click", e => {
+    if (e.isTrusted && performance.now() - fired < 700) { e.stopPropagation(); e.preventDefault(); }
+  }, true);
+  let tt = 0;
+  function toast(text, ms = 2500) {
+    const t = $("#toast"); t.textContent = text; t.classList.add("on");
+    clearTimeout(tt); tt = setTimeout(() => t.classList.remove("on"), ms);
+  }
+  const themes = ["animal", "vehicle", "dino", "fairy", "ocean", "sweets"].map(id => ({ id, img: "IMAGE/draw/ui/theme-" + id + ".png" }));
+  const R = window.__R = mountRewards({
+    v: new URLSearchParams(location.search).get("v") || "7", show, A, Particles, toast, themes,   // ?v= 讓測試避開圖片快取
+    onHome: () => { calls.push(["onHome"]); show("home"); },
+    bookAnchor: () => $("#hBook").getBoundingClientRect(),
+  });
+  let taps = 0;
+  $("#hBook").onclick = () => { $("#hTaps").textContent = ++taps; };
+  $("#hGrant").onclick = () => R.grant();
+  $("#hGrant3").onclick = () => R.grant({ count: 3 });
+  $("#hGold").onclick = () => R.grant({ gold: true });
+  $("#hDaily").onclick = () => R.claimDaily();
+  window.__ready = true;
+</script>
+</body>
+</html>

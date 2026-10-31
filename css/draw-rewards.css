@@ -1,0 +1,251 @@
+/* 變色龍扭蛋＋貼紙本（js/draw-rewards.js）。沿用 draw.css 的變數：--ink --sun --lift --spring */
+
+/* ── 扭蛋：全螢幕半透明遮罩，蓋在任何畫面上；開完整個從 DOM 拿掉 ── */
+.gacha { position: fixed; inset: 0; z-index: 25; overflow: hidden; touch-action: none;
+  --egg: min(32vh, 240px); --stk: min(38vh, 290px); --cy: 44%;
+  background: radial-gradient(circle at 50% 44%, rgba(255, 238, 200, .45), rgba(70, 40, 12, .8) 72%);
+  animation: gIn .3s ease-out both; }
+.gacha.bye { animation: gOut .3s ease-in forwards; pointer-events: none; }
+@keyframes gIn { from { opacity: 0; } }
+@keyframes gOut { to { opacity: 0; } }
+.gacha > * { position: absolute; }
+
+/* 吉祥物變色龍從左下探頭，開蛋時跳一下 */
+.g-mascot { left: 3%; bottom: 0; height: min(52vh, 420px); width: auto; z-index: 2; pointer-events: none; -webkit-user-drag: none;
+  translate: 0 40%; rotate: 8deg; transform-origin: 50% 100%; filter: drop-shadow(0 8px 10px rgba(0, 0, 0, .3));
+  animation: gPeek .8s var(--spring) .05s backwards, gSway 2.8s ease-in-out .9s infinite; }
+@keyframes gPeek { from { translate: 0 105%; } }
+@keyframes gSway { 50% { rotate: 3deg; } }
+.g-mascot.cheer { animation: gCheer .7s var(--spring), gSway 2.8s ease-in-out .7s infinite; }
+@keyframes gCheer { 40% { translate: 0 24%; rotate: -2deg; } }
+
+/* 扭蛋：外層掉下來彈兩下（translate）→ 中層落地後左右搖（rotate）→ 內層落地瞬間壓扁（scale） */
+.g-egg { left: 50%; top: var(--cy); width: var(--egg); height: var(--egg); margin: calc(var(--egg) / -2) 0 0 calc(var(--egg) / -2);
+  z-index: 3; animation: gDrop 1s linear var(--d, .4s) both; will-change: translate; }
+@keyframes gDrop {
+  0% { translate: 0 -110vh; animation-timing-function: cubic-bezier(.5, 0, 1, .6); }
+  42% { translate: 0 0; animation-timing-function: cubic-bezier(0, .4, .5, 1); }
+  60% { translate: 0 -70px; animation-timing-function: cubic-bezier(.5, 0, 1, .6); }
+  76% { translate: 0 0; animation-timing-function: cubic-bezier(0, .4, .5, 1); }
+  87% { translate: 0 -22px; animation-timing-function: cubic-bezier(.5, 0, 1, .6); }
+  96%, 100% { translate: 0 0; } }
+.g-wob, .g-shell { position: absolute; inset: 0; display: block; transform-origin: 50% 100%; }
+.g-shell { animation: gSquash 1s linear var(--d, .4s) both; filter: drop-shadow(0 10px 12px rgba(40, 20, 0, .35)); }
+@keyframes gSquash { 0%, 38% { scale: .95 1.06; } 44% { scale: 1.12 .86; } 52% { scale: .97 1.04; } 74% { scale: 1; }
+  78% { scale: 1.06 .93; } 84%, 100% { scale: 1; } }
+.g-egg.wait .g-wob { animation: gWob 1.6s ease-in-out infinite; }
+@keyframes gWob { 0%, 55%, 100% { rotate: 0deg; } 10% { rotate: -10deg; } 22% { rotate: 9deg; } 34% { rotate: -6deg; } 45% { rotate: 3deg; } }
+/* 等點的時候外面一圈白色波紋：告訴小孩「點我」 */
+.g-egg.wait::after { content: ""; position: absolute; inset: -16px; border-radius: 50%; border: 6px solid #fff; pointer-events: none;
+  animation: gRing 1.6s ease-out infinite; }
+@keyframes gRing { 0% { scale: .85; opacity: 0; } 25% { opacity: .9; } 100% { scale: 1.35; opacity: 0; } }
+
+/* 上半：半透明彩色塑膠蓋（裡面隱約看得到貼紙）；下半：不透明彩色底＋一圈蓋緣 */
+.g-top, .g-bot { position: absolute; left: 0; width: 100%; height: 50%; display: block; }
+.g-top { top: 0; overflow: hidden; border-radius: calc(var(--egg) / 2) calc(var(--egg) / 2) 0 0;
+  background: radial-gradient(circle at 50% 115%, rgba(255, 255, 255, .6), rgba(255, 255, 255, 0) 62%),
+    linear-gradient(170deg, rgba(var(--c1), .42), rgba(var(--c2), .62)); }
+.g-peek { position: absolute; left: 15%; top: 30%; width: 70%; height: 140%; display: grid; place-items: center;
+  filter: blur(3px) saturate(1.3); opacity: .8; }
+.g-peek .stk { width: 100%; height: 100%; object-fit: contain; }
+.g-peek .emo { width: auto; height: auto; font-size: calc(var(--egg) * .5); line-height: 1; }
+.g-gloss { position: absolute; inset: 0; display: block; border-radius: inherit;
+  background: radial-gradient(ellipse 30% 24% at 30% 32%, rgba(255, 255, 255, .95), rgba(255, 255, 255, 0) 70%),
+    radial-gradient(ellipse 10% 8% at 72% 24%, rgba(255, 255, 255, .85), rgba(255, 255, 255, 0));
+  box-shadow: inset 0 0 0 5px rgba(255, 255, 255, .8), inset 0 -8px 16px rgba(255, 255, 255, .35); }
+.g-bot { top: 50%; border-radius: 0 0 calc(var(--egg) / 2) calc(var(--egg) / 2);
+  background: radial-gradient(ellipse 36% 30% at 30% 26%, rgba(255, 255, 255, .55), rgba(255, 255, 255, 0) 70%),
+    linear-gradient(rgb(var(--c1)), rgb(var(--c2)));
+  box-shadow: inset 0 -14px 22px rgba(0, 0, 0, .18), inset 0 0 0 5px rgba(255, 255, 255, .35); }
+.g-bot::before { content: ""; position: absolute; left: -3px; right: -3px; top: -8px; height: 16px; border-radius: 8px;
+  background: linear-gradient(rgba(255, 255, 255, .95), rgb(var(--c2)) 70%); box-shadow: 0 2px 3px rgba(0, 0, 0, .2); }
+/* 金蛋：底部有一道光掃過、旁邊亮晶晶 */
+.g-egg.gold .g-bot::after { content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(110deg, rgba(255, 255, 255, 0) 38%, rgba(255, 255, 255, .75) 50%, rgba(255, 255, 255, 0) 62%) 0 0 / 260% 100%;
+  animation: gShine 1.6s linear infinite; }
+@keyframes gShine { from { background-position: 130% 0; } to { background-position: -130% 0; } }
+.g-egg.gold::before { content: "✨"; position: absolute; right: -34px; top: -26px; font-size: 52px; pointer-events: none; animation: twinkle 1.1s ease-in-out infinite; }
+@keyframes twinkle { 50% { scale: .6; opacity: .5; rotate: 20deg; } }
+
+/* 地上的影子：蛋越高影子越小 */
+.g-floor { left: 50%; top: calc(var(--cy) + var(--egg) / 2 - 14px); width: calc(var(--egg) * .8); height: 28px; margin-left: calc(var(--egg) * -.4);
+  border-radius: 50%; z-index: 2; pointer-events: none; background: radial-gradient(closest-side, rgba(40, 20, 0, .5), rgba(40, 20, 0, 0));
+  animation: gShadow 1s linear var(--d, .4s) both; }
+@keyframes gShadow { 0% { scale: .2; opacity: 0; } 42% { scale: 1; opacity: 1; } 60% { scale: .75; } 76% { scale: 1; } 87% { scale: .92; } 96%, 100% { scale: 1; opacity: 1; } }
+
+/* 開：上下兩半彈開＋白光一閃 */
+.g-egg.open { pointer-events: none; }
+.g-egg.open .g-top { animation: gTopOff .75s cubic-bezier(.2, .8, .4, 1) forwards; }
+.g-egg.open .g-bot { animation: gBotOff .75s cubic-bezier(.2, .8, .4, 1) forwards; }
+.g-egg.open .g-peek { opacity: 0; }
+@keyframes gTopOff { 65% { opacity: 1; } to { translate: -60px -250px; rotate: -40deg; opacity: 0; } }
+@keyframes gBotOff { 65% { opacity: 1; } to { translate: 50px 230px; rotate: 30deg; opacity: 0; } }
+.g-flash { left: 50%; top: var(--cy); width: var(--egg); height: var(--egg); margin: calc(var(--egg) / -2) 0 0 calc(var(--egg) / -2); border-radius: 50%;
+  z-index: 4; pointer-events: none; background: radial-gradient(closest-side, #fff 30%, rgba(255, 255, 255, 0)); animation: gFlash .55s ease-out forwards; }
+@keyframes gFlash { from { scale: .3; opacity: 1; } to { scale: 3; opacity: 0; } }
+
+/* 放射光芒＋光暈（在貼紙背後慢慢轉） */
+.g-rays { left: 50%; top: var(--cy); width: 110vmin; height: 110vmin; margin: -55vmin 0 0 -55vmin; z-index: 1; pointer-events: none;
+  background: repeating-conic-gradient(rgba(255, 246, 200, .55) 0deg 8deg, rgba(255, 246, 200, 0) 8deg 20deg);
+  -webkit-mask-image: radial-gradient(circle closest-side, #000 18%, rgba(0, 0, 0, .5) 55%, transparent 100%);
+  mask-image: radial-gradient(circle closest-side, #000 18%, rgba(0, 0, 0, .5) 55%, transparent 100%);
+  animation: gRaysIn .5s ease-out both, gSpin 16s linear infinite; }
+.g-rays.gold { background: repeating-conic-gradient(rgba(255, 214, 70, .75) 0deg 8deg, rgba(255, 214, 70, 0) 8deg 20deg); }
+@keyframes gRaysIn { from { scale: .2; opacity: 0; } }
+@keyframes gSpin { to { rotate: 360deg; } }
+.g-glow { left: 50%; top: var(--cy); width: calc(var(--stk) * 1.6); height: calc(var(--stk) * 1.6); margin: calc(var(--stk) * -.8) 0 0 calc(var(--stk) * -.8);
+  border-radius: 50%; z-index: 1; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(255, 252, 230, .95) 30%, rgba(255, 232, 150, .5) 62%, rgba(255, 232, 150, 0));
+  animation: gRaysIn .5s ease-out both, gPulse 1.4s ease-in-out .5s infinite; }
+.g-glow.gold { background: radial-gradient(closest-side, rgba(255, 246, 190, .95) 30%, rgba(255, 200, 40, .6) 62%, rgba(255, 200, 40, 0)); }
+@keyframes gPulse { 50% { scale: 1.08; } }
+.g-rays.off, .g-glow.off { animation: none; transition: opacity .3s; opacity: 0; }
+
+/* 彩帶：從蛋的位置往外噴、再往下掉 */
+.g-confs { left: 50%; top: var(--cy); width: 0; height: 0; z-index: 4; pointer-events: none; }
+.g-conf { position: absolute; left: -6px; top: -10px; width: 12px; height: 20px; border-radius: 3px; animation: gConf 1.4s cubic-bezier(.15, .75, .4, 1) both; }
+.g-conf.dot { width: 14px; height: 14px; border-radius: 50%; }
+@keyframes gConf {
+  0% { transform: translate(0, 0) rotate(0deg) scale(.4); opacity: 1; }
+  55% { transform: translate(var(--dx), var(--dy)) rotate(var(--r)) scale(1); opacity: 1; }
+  100% { transform: translate(var(--dx), calc(var(--dy) + 170px)) rotate(calc(var(--r) * 1.6)) scale(1); opacity: 0; } }
+
+/* 貼紙：放大轉一圈出現，白色描邊（金色版是金框＋閃光） */
+.g-stk { left: 50%; top: var(--cy); width: var(--stk); height: var(--stk); margin: calc(var(--stk) / -2) 0 0 calc(var(--stk) / -2);
+  z-index: 5; display: grid; place-items: center; pointer-events: none; animation: gPop .8s var(--spring) both; will-change: transform; }
+@keyframes gPop { from { scale: 0; rotate: -360deg; opacity: 0; } 30% { opacity: 1; } }
+.g-stk .stk { width: 100%; height: 100%; object-fit: contain; }
+.g-stk .emo { width: auto; height: auto; font-size: calc(var(--stk) * .68); line-height: 1; }
+.g-stk .stk { filter: drop-shadow(6px 0 0 #fff) drop-shadow(-6px 0 0 #fff) drop-shadow(0 6px 0 #fff) drop-shadow(0 -6px 0 #fff) drop-shadow(0 10px 12px rgba(40, 20, 0, .4)); }
+.g-stk img.stk { filter: drop-shadow(0 10px 12px rgba(40, 20, 0, .4)); }   /* 貼紙圖本身就有白邊，不再描一次 */
+.g-stk.gold .stk { filter: drop-shadow(6px 0 0 #ffd23f) drop-shadow(-6px 0 0 #ffd23f) drop-shadow(0 6px 0 #ffd23f) drop-shadow(0 -6px 0 #ffd23f) drop-shadow(0 0 16px rgba(255, 190, 0, .95)); }
+.g-stk.gold::before, .g-stk.gold::after { content: "✨"; position: absolute; font-size: 56px; animation: twinkle 1s ease-in-out infinite; }
+.g-stk.gold::before { left: -10px; top: 0; }
+.g-stk.gold::after { right: -14px; bottom: 10px; animation-delay: .5s; }
+
+/* 飛到貼紙本按鈕那裡：遮罩上面浮一本貼紙本（蓋在主程式那顆按鈕的位置），貼紙飛進去時彈一下＋一圈波紋 */
+.g-dest { z-index: 6; pointer-events: none; -webkit-user-drag: none; object-fit: contain; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, .35));
+  animation: gDestIn .35s var(--spring) both; }
+@keyframes gDestIn { from { scale: 0; opacity: 0; } }
+.g-dest.hit { animation: gDestHit .45s var(--spring); }
+@keyframes gDestHit { 35% { scale: 1.3; rotate: -8deg; } }
+.g-ping { width: 0; height: 0; z-index: 6; pointer-events: none; }
+.g-ping::before { content: ""; position: absolute; left: -40px; top: -40px; width: 80px; height: 80px; border-radius: 50%; border: 6px solid #fff;
+  box-shadow: 0 0 0 4px var(--sun, #ffc93c); animation: gPing .5s ease-out forwards; }
+@keyframes gPing { from { scale: .3; opacity: 1; } to { scale: 1.6; opacity: 0; } }
+
+/* ── 貼紙本：木頭桌上攤開一本書，一頁一個主題、每頁 6 格 ── */
+#book { --slot: min(190px, calc((100vh - 316px) / 3), calc((100vw - 220px) / 4)); --gap: 14px; --pad: 14px;
+  --pw: calc(var(--slot) * 2 + var(--gap) + 56px); --ph: calc(var(--slot) * 3 + var(--gap) * 2 + 130px);   /* 130 = 頁首 72＋上下留白（皇冠要有地方戴） */
+  --bkw: calc(var(--pw) * 2 + var(--pad) * 2);
+  background: repeating-linear-gradient(0deg, rgba(150, 100, 40, .05) 0 3px, rgba(150, 100, 40, 0) 3px 26px),
+    radial-gradient(ellipse at 50% 30%, #f8e7c6, #e2bf88 80%) #e9cc9c; }
+@supports (height: 100dvh) { #book { --slot: min(190px, calc((100dvh - 316px) / 3), calc((100vw - 220px) / 4)); } }
+#book.on { flex-direction: column; }
+.bk-top { padding: 14px 20px 4px; gap: 14px; }
+.bk-tabs { flex: 1; display: flex; justify-content: center; gap: 12px; }
+.bk-tab { position: relative; width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto;
+  background: linear-gradient(#fff, #fbf5ea); box-shadow: var(--lift); transition: transform .16s var(--spring), background .2s, box-shadow .16s; }
+.bk-tab img { width: 60px; height: 60px; object-fit: contain; pointer-events: none; -webkit-user-drag: none; }
+.bk-tab .emo { font-size: 40px; }
+.bk-tab.on { background: var(--c); box-shadow: 0 0 0 4px var(--ink), 0 6px 0 rgba(59, 42, 26, .25); transform: translateY(-2px) scale(1.06); }
+.bk-tab:active { transform: translateY(2px) scale(.94); }
+.bk-tab.full::after { content: "👑"; position: absolute; right: -10px; top: -16px; font-size: 28px; filter: drop-shadow(0 2px 0 #c98a00); }
+.bk-count { height: 64px; padding: 0 22px 0 14px; border-radius: 34px; display: flex; align-items: center; gap: 6px; white-space: nowrap; flex: 0 0 auto;
+  background: #fff; box-shadow: 0 0 0 4px var(--sun), 0 6px 0 rgba(90, 60, 20, .2); font-size: 30px; font-weight: 900; color: var(--ink); }
+.bk-count .st { font-size: 34px; }
+.bk-count .of { color: #b49a72; font-size: 24px; }
+
+.bk-desk { flex: 1; min-height: 0; position: relative; display: grid; place-items: center; padding: 4px 16px 16px; }
+.bk { position: relative; z-index: 1; width: var(--bkw); height: calc(var(--ph) + var(--pad) * 2); border-radius: 22px; perspective: 2400px;
+  background: linear-gradient(135deg, #e0744a, #b9492a);
+  box-shadow: inset 0 0 0 4px rgba(255, 255, 255, .12), 0 7px 0 #8e3a20, 0 22px 34px rgba(80, 40, 10, .35); }
+.bk::before { content: ""; position: absolute; inset: 5px; border-radius: 18px; border: 3px dashed rgba(255, 228, 195, .5); pointer-events: none; }
+/* 書頁：米色紙、淡淡的點點；靠書脊那邊比較暗，外側有幾層紙邊 */
+.bk-pg { position: absolute; top: var(--pad); bottom: var(--pad); display: flex; flex-direction: column; align-items: center; padding: 14px 28px 18px;
+  background-color: #fdf6e6; background-image: radial-gradient(rgba(170, 125, 60, .12) 1.6px, transparent 1.9px); background-size: 24px 24px; }
+.bk-pg.l { left: var(--pad); right: 50%; border-radius: 14px 3px 3px 14px;
+  box-shadow: -4px 1px 0 #f1e3c3, -7px 2px 0 #e2cfa6, inset -30px 0 30px -20px rgba(110, 70, 20, .3); }
+.bk-pg.r { left: 50%; right: var(--pad); border-radius: 3px 14px 14px 3px;
+  box-shadow: 4px 1px 0 #f1e3c3, 7px 2px 0 #e2cfa6, inset 30px 0 30px -20px rgba(110, 70, 20, .3); }
+.bk-spine { position: absolute; top: calc(var(--pad) - 2px); bottom: calc(var(--pad) - 2px); left: 50%; width: 10px; margin-left: -5px; z-index: 2;
+  pointer-events: none; border-radius: 5px; background: linear-gradient(90deg, rgba(110, 70, 20, .15), rgba(110, 70, 20, .42), rgba(110, 70, 20, .15)); }
+/* 集滿的那頁：金色內框 */
+.bk-pg.full::after { content: ""; position: absolute; inset: 8px; border-radius: 10px; pointer-events: none;
+  border: 3px solid rgba(255, 196, 40, .6); box-shadow: inset 0 0 26px rgba(255, 200, 50, .35); }
+
+/* 頁首：主題圖示＋6 顆進度點；集滿戴金色皇冠 */
+.bk-head { position: relative; flex: 0 0 auto; height: 72px; margin: 14px 0 12px; display: flex; align-items: center; gap: 14px; }
+.bk-badge { position: relative; width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; background: var(--c);
+  box-shadow: 0 0 0 4px #fff, 0 6px 0 3px rgba(110, 70, 20, .16); }
+.bk-badge img { width: 60px; height: 60px; object-fit: contain; pointer-events: none; -webkit-user-drag: none; }
+.bk-badge .emo { font-size: 40px; }
+.bk-dots { display: flex; gap: 8px; }
+.bk-dots i { width: 18px; height: 18px; border-radius: 50%; background: rgba(160, 120, 60, .16); box-shadow: inset 0 2px 2px rgba(110, 70, 20, .15); }
+.bk-dots i.on { background: var(--c); box-shadow: 0 0 0 3px #fff, 0 2px 3px rgba(110, 70, 20, .25); }
+.bk-dots i.gold { background: linear-gradient(#ffe68f, #ffb300); }
+.bk-head.full .bk-badge { box-shadow: 0 0 0 4px #ffd23f, 0 0 0 8px #fff, 0 0 26px 10px rgba(255, 205, 60, .75); animation: crownGlow 2.2s ease-in-out infinite; }
+@keyframes crownGlow { 50% { box-shadow: 0 0 0 4px #ffd23f, 0 0 0 8px #fff, 0 0 36px 16px rgba(255, 205, 60, .9); } }
+.bk-crown { position: absolute; left: 50%; top: -60px; width: 90px; margin-left: -45px; text-align: center; font-size: 62px; line-height: 1; pointer-events: none;
+  filter: drop-shadow(0 3px 0 #c98a00) drop-shadow(0 0 10px rgba(255, 210, 60, .9));
+  animation: crownIn .7s var(--spring) both, crownBob 2.4s ease-in-out .7s infinite; }
+.bk-crown::before, .bk-crown::after { content: "✨"; position: absolute; font-size: 30px; animation: twinkle 1.2s ease-in-out infinite; }
+.bk-crown::before { left: -14px; top: -6px; }
+.bk-crown::after { right: -14px; top: 14px; animation-delay: .6s; }
+@keyframes crownIn { from { scale: 0; translate: 0 30px; opacity: 0; } }
+@keyframes crownBob { 50% { translate: 0 -5px; rotate: -4deg; } }
+
+/* 貼紙格：沒收集 = 虛線框裡灰色剪影＋淡淡的問號；收集到 = 白邊貼紙、歪一點點 */
+.bk-grid { display: grid; grid-template-columns: repeat(2, var(--slot)); grid-auto-rows: var(--slot); gap: var(--gap); }
+.slot { position: relative; width: var(--slot); height: var(--slot); border-radius: 26px; display: grid; place-items: center; }
+.slot.empty { background: rgba(170, 125, 60, .06); border: 3px dashed rgba(170, 125, 60, .3); }
+.slot .stk { grid-area: 1 / 1; width: 76%; height: 76%; object-fit: contain; pointer-events: none; -webkit-user-drag: none; rotate: var(--r, 0deg); }
+.slot .emo { width: auto; height: auto; font-size: calc(var(--slot) * .56); line-height: 1; }
+img.stk:not(.ok) { opacity: 0; }   /* 圖還沒載到（或 404 正要換成 emoji）先不顯示，免得閃一個破圖 */
+.slot.own .stk { filter: drop-shadow(4px 0 0 #fff) drop-shadow(-4px 0 0 #fff) drop-shadow(0 4px 0 #fff) drop-shadow(0 -4px 0 #fff) drop-shadow(0 5px 6px rgba(90, 60, 20, .35)); }
+.slot.own img.stk { filter: drop-shadow(0 5px 6px rgba(90, 60, 20, .35)); }   /* 貼紙圖本身就有白邊 */
+.slot.own.gold .stk { filter: drop-shadow(4px 0 0 #ffd23f) drop-shadow(-4px 0 0 #ffd23f) drop-shadow(0 4px 0 #ffd23f) drop-shadow(0 -4px 0 #ffd23f) drop-shadow(0 0 10px rgba(255, 190, 0, .9)); }
+.slot.gold::before { content: "✨"; position: absolute; right: 0; top: -4px; z-index: 1; font-size: calc(var(--slot) * .22); pointer-events: none; animation: twinkle 1.4s ease-in-out infinite; }
+.slot.empty .stk { filter: brightness(0) opacity(.12); rotate: 0deg; }
+.slot .q { grid-area: 1 / 1; font-style: normal; font-size: calc(var(--slot) * .34); font-weight: 900; line-height: 1; pointer-events: none;
+  color: rgba(150, 110, 60, .4); text-shadow: 0 2px 0 #fff; }
+/* 點貼紙：彈一下；點空格：搖一下 */
+.slot.boing .stk { animation: boing .55s var(--spring); }
+@keyframes boing { 30% { scale: 1.28; translate: 0 -14px; } 60% { scale: .94; translate: 0 2px; } }
+.slot.nope { animation: nope .4s ease-in-out; }
+@keyframes nope { 20%, 60% { translate: -8px 0; } 40%, 80% { translate: 8px 0; } }
+/* 剛拿到、第一次在貼紙本看到：從上面「啪」一聲貼下來＋一圈光 */
+.slot.new .stk { animation: slap .6s var(--spring) .35s backwards; }
+@keyframes slap { from { scale: 2.2; opacity: 0; } 50% { opacity: 1; } }
+.slot.new::after { content: ""; position: absolute; inset: -6px; border-radius: 30px; border: 5px solid #fff; box-shadow: 0 0 0 4px var(--sun); pointer-events: none;
+  opacity: 0; animation: newRing .8s ease-out .6s; }
+@keyframes newRing { from { scale: .7; opacity: 1; } to { scale: 1.2; opacity: 0; } }
+
+/* 翻頁鈕：書的左右兩側（第一頁沒有上一頁、最後一頁沒有下一頁） */
+.bk-corner { position: absolute; top: 50%; z-index: 3; width: 68px; height: 68px; margin-top: -34px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 28px; color: #fff; text-shadow: 0 2px 0 rgba(150, 90, 0, .4);
+  background: linear-gradient(#ffd66b, #ffb52e); box-shadow: 0 0 0 4px #fff, 0 6px 0 4px rgba(110, 70, 20, .22); transition: transform .14s var(--spring), opacity .2s; }
+.bk-corner.l { left: -96px; }
+.bk-corner.r { right: -96px; }
+.bk-corner span { pointer-events: none; }
+.bk-corner:active { transform: translateY(3px) scale(.94); }
+.bk-corner.off { opacity: 0; pointer-events: none; }
+
+/* 翻頁：一張紙繞著書脊翻過去（正面舊頁、背面新頁） */
+.bk-leaf { position: absolute; top: var(--pad); bottom: var(--pad); z-index: 4; transform-style: preserve-3d; -webkit-transform-style: preserve-3d; pointer-events: none; }
+.bk-leaf.r { left: 50%; right: var(--pad); transform-origin: 0 50%; animation: leafF .6s ease-in-out forwards; }
+.bk-leaf.l { left: var(--pad); right: 50%; transform-origin: 100% 50%; animation: leafB .6s ease-in-out forwards; }
+@keyframes leafF { to { transform: rotateY(-180deg); } }
+@keyframes leafB { to { transform: rotateY(180deg); } }
+.bk-leaf .bk-pg.face { top: 0; bottom: 0; left: 0; right: 0; -webkit-backface-visibility: hidden; backface-visibility: hidden; }
+.bk-leaf .bk-pg.face.back { transform: rotateY(180deg); }
+.bk-leaf .face::before { content: ""; position: absolute; inset: 0; z-index: 2; border-radius: inherit; pointer-events: none; opacity: 0;
+  background: linear-gradient(90deg, rgba(90, 55, 15, .28), rgba(90, 55, 15, 0) 70%); animation: leafShade .6s ease-in-out; }
+.bk-leaf.r .face.back::before, .bk-leaf.l .face:not(.back)::before { background: linear-gradient(270deg, rgba(90, 55, 15, .28), rgba(90, 55, 15, 0) 70%); }
+@keyframes leafShade { 50% { opacity: 1; } }
+
+/* 桌上的變色龍：躲在書的左下角後面探頭 */
+.bk-mascot { position: absolute; z-index: 0; bottom: 4px; left: calc(50% - var(--bkw) / 2 - 140px); height: min(200px, 26vh); width: auto;
+  pointer-events: none; -webkit-user-drag: none; rotate: -8deg; transform-origin: 50% 100%; filter: drop-shadow(0 6px 6px rgba(60, 30, 0, .25));
+  animation: bkBob 2.8s ease-in-out infinite; }
+@keyframes bkBob { 50% { translate: 0 -6px; rotate: -4deg; } }

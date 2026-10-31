@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<!-- 整頁的相對路徑都從專案根目錄算（跟 draw.html 一樣），模組裡的 css/、IMAGE/ 才找得到 -->
+<base href="../../">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>我的世界 測試台</title>
+<link rel="stylesheet" href="css/draw.css?v=7">
+</head>
+<body>
+<section id="home" class="screen on"><div style="padding:40px;font-size:40px">🏠 home</div></section>
+<script type="module">
+// 我的世界測試台：假的 deps（聲音只記錄呼叫、粒子用真的但會計數、show 自己切 class），角色用 canvas 現畫
+import { mountWorld } from "./js/draw-world.js";
+import { Particles as RealParticles } from "./js/draw-particles.js";
+
+const calls = { show: [], sfx: [], note: [], chime: 0, home: [], trail: 0, stars: 0, splash: 0 };
+const A = {
+  sfx: n => calls.sfx.push(n), note: i => calls.note.push(i), chime: () => calls.chime++,
+  strokeOn() { }, strokeSpeed() { }, strokeOff() { }, unlock() { }, startBgm() { },
+};
+class Particles extends RealParticles {
+  trail(...a) { calls.trail++; return super.trail(...a); }
+  stars(...a) { calls.stars++; return super.stars(...a); }
+  splash(...a) { calls.splash++; return super.splash(...a); }
+}
+// 記錄還沒釋放的 object URL（測試檢查有沒有漏 revoke）
+const live = new Set(), oc = URL.createObjectURL.bind(URL), orv = URL.revokeObjectURL.bind(URL);
+URL.createObjectURL = b => { const u = oc(b); live.add(u); return u; };
+URL.revokeObjectURL = u => { live.delete(u); orv(u); };
+
+const THEMES = ["animal", "vehicle", "dino", "fairy", "ocean", "sweets"];
+const PAL = ["#ff8a65", "#ffd54f", "#81c784", "#64b5f6", "#ba68c8", "#f06292", "#4dd0e1", "#ffb74d", "#aed581", "#9575cd"];
+const STK = {
+  animal: ["puppy", "kitten", "bunny", "lion", "panda", "elephant", "rainbow", "strawberry"],
+  vehicle: ["firetruck", "racecar", "schoolbus", "rocket", "hotairballoon", "sailboat"],
+  dino: ["trex", "triceratops", "longneck", "pterodactyl", "dinoegg", "volcano"],
+  fairy: ["castle", "crown", "fairy", "unicorn", "wand", "rainbow"],
+  ocean: ["clownfish", "octopus", "shell", "starfish", "turtle", "whale"],
+  sweets: ["cake", "cupcake", "donut", "icecream", "lollipop", "strawberry"],
+};
+
+// ── 假角色：每個主題用 canvas 畫一種卡通造型（黑色粗線＋亮色，像塗好的線稿），臉朝右 ──
+function cv(w, h) { const c = document.createElement("canvas"); c.width = w; c.height = h; const x = c.getContext("2d"); x.lineWidth = 6; x.lineJoin = "round"; x.lineCap = "round"; x.strokeStyle = "#222"; return [c, x]; }
+function shape(x, fill, f) { x.beginPath(); f(); x.fillStyle = fill; x.fill(); x.stroke(); }
+const ell = (x, cx, cy, rx, ry) => () => x.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+function eye(x, cx, cy, r = 9) { shape(x, "#fff", ell(x, cx, cy, r, r)); x.beginPath(); x.arc(cx + 2, cy + 1, r * .55, 0, 7); x.fillStyle = "#222"; x.fill(); }
+function smile(x, cx, cy, r) { x.beginPath(); x.arc(cx, cy, r, .2, Math.PI - .2); x.stroke(); }
+function draw(theme, i) {
+  const c1 = PAL[i % PAL.length], c2 = PAL[(i * 3 + 4) % PAL.length];
+  if (theme === "animal") {
+    const [c, x] = cv(300, 250);
+    shape(x, c1, ell(x, 200, 60, 16, 30)); shape(x, c1, ell(x, 262, 60, 16, 30));   // 耳朵
+    for (const lx of [90, 130, 170, 205]) shape(x, c1, () => x.rect(lx, 170, 26, 64));
+    shape(x, c1, () => { x.moveTo(60, 140); x.quadraticCurveTo(10, 120, 20, 70); });   // 尾巴
+    shape(x, c1, ell(x, 145, 150, 100, 55));
+    shape(x, c2, ell(x, 145, 160, 50, 28));
+    shape(x, c1, ell(x, 230, 105, 58, 52));
+    eye(x, 248, 95); shape(x, "#333", ell(x, 282, 116, 8, 6)); smile(x, 262, 120, 14);
+    shape(x, "#ff9ab8", ell(x, 225, 128, 9, 6));
+    return c;
+  }
+  if (theme === "vehicle") {
+    const bus = i % 3 === 1, w = bus ? 400 : 340, [c, x] = cv(w, 210);
+    shape(x, c1, () => x.roundRect(14, 60, w - 28, 105, 26));
+    if (!bus) shape(x, c2, () => { x.moveTo(90, 64); x.lineTo(130, 16); x.lineTo(230, 16); x.lineTo(270, 64); x.closePath(); });
+    const wins = bus ? [40, 120, 200, 280] : [130, 200];
+    for (const wx of wins) shape(x, "#bfe9ff", () => x.roundRect(wx, bus ? 76 : 26, 60, 42, 8));
+    shape(x, "#fff59d", ell(x, w - 26, 120, 10, 14));   // 車頭燈（右邊＝車頭）
+    for (const wx of [80, w - 90]) { shape(x, "#333", ell(x, wx, 165, 34, 34)); shape(x, "#ccc", ell(x, wx, 165, 13, 13)); }
+    return c;
+  }
+  if (theme === "dino") {
+    const [c, x] = cv(330, 270);
+    shape(x, c1, () => { x.moveTo(70, 160); x.quadraticCurveTo(10, 150, 8, 100); x.quadraticCurveTo(40, 150, 110, 130); });
+    for (let k = 0; k < 4; k++) shape(x, c2, () => { const sx = 95 + k * 38; x.moveTo(sx, 105 - k * 4); x.lineTo(sx + 19, 70 - k * 6); x.lineTo(sx + 38, 105 - k * 6); });
+    for (const lx of [100, 175]) shape(x, c1, () => x.roundRect(lx, 170, 36, 80, 12));
+    shape(x, c1, ell(x, 160, 150, 95, 58));
+    shape(x, c1, () => { x.moveTo(215, 130); x.quadraticCurveTo(250, 80, 262, 60); x.lineTo(292, 72); x.quadraticCurveTo(268, 120, 245, 150); });
+    shape(x, c1, ell(x, 280, 58, 42, 30));
+    eye(x, 288, 48, 8); smile(x, 296, 62, 12);
+    return c;
+  }
+  if (theme === "fairy") {
+    const [c, x] = cv(240, 310);
+    shape(x, "#e1f5fe", ell(x, 70, 150, 55, 75)); shape(x, "#e1f5fe", ell(x, 170, 150, 55, 75));   // 翅膀
+    shape(x, c1, () => { x.moveTo(120, 120); x.lineTo(50, 270); x.lineTo(190, 270); x.closePath(); });
+    for (const lx of [95, 135]) shape(x, "#ffe0b2", () => x.rect(lx, 268, 12, 28));
+    shape(x, "#ffe0b2", ell(x, 120, 92, 42, 42));
+    shape(x, "#8d6e63", () => { x.arc(120, 86, 46, Math.PI * 1.05, Math.PI * 1.95); x.closePath(); });
+    shape(x, "#ffd54f", () => { x.moveTo(92, 52); x.lineTo(100, 26); x.lineTo(110, 44); x.lineTo(120, 20); x.lineTo(130, 44); x.lineTo(140, 26); x.lineTo(148, 52); x.closePath(); });
+    eye(x, 106, 94, 6); eye(x, 136, 94, 6); smile(x, 121, 106, 10);
+    shape(x, c2, ell(x, 120, 180, 20, 12));
+    return c;
+  }
+  if (theme === "ocean") {
+    const [c, x] = cv(310, 210);
+    shape(x, c2, () => { x.moveTo(80, 105); x.lineTo(16, 45); x.lineTo(30, 105); x.lineTo(16, 165); x.closePath(); });   // 尾巴在左
+    shape(x, c2, () => { x.moveTo(140, 50); x.quadraticCurveTo(170, 8, 210, 40); });
+    shape(x, c1, ell(x, 170, 105, 115, 66));
+    x.save(); x.beginPath(); x.ellipse(170, 105, 112, 63, 0, 0, 7); x.clip();
+    for (const sx of [120, 170]) { x.fillStyle = "#fff"; x.fillRect(sx, 30, 22, 160); x.strokeRect(sx, 30, 22, 160); }
+    x.restore();
+    eye(x, 240, 90, 13); smile(x, 255, 120, 12);
+    return c;
+  }
+  const [c, x] = cv(230, 250);   // 甜點：杯子蛋糕
+  shape(x, c2, () => { x.moveTo(40, 140); x.lineTo(190, 140); x.lineTo(170, 236); x.lineTo(60, 236); x.closePath(); });
+  for (const lx of [80, 115, 150]) { x.beginPath(); x.moveTo(lx, 142); x.lineTo(lx - 3, 232); x.stroke(); }
+  shape(x, c1, ell(x, 115, 120, 92, 42)); shape(x, c1, ell(x, 115, 82, 64, 38));
+  shape(x, "#e53935", ell(x, 115, 38, 18, 18));
+  eye(x, 95, 116, 8); eye(x, 135, 116, 8); smile(x, 115, 126, 14);
+  return c;
+}
+const cache = {};
+async function build(theme) {
+  if (cache[theme]) return cache[theme];
+  const list = [];
+  for (let i = 0; i < 30; i++) {
+    const c = draw(theme, i), id = theme + "-" + i;
+    // 恐龍第 0 隻用 ImageBitmap（主程式可能給 Blob 也可能給 ImageBitmap）
+    const blob = theme === "dino" && i === 0 ? await createImageBitmap(c) : await new Promise(r => c.toBlob(r, "image/png"));
+    list.push({ id, blob, w: c.width, h: c.height, art: theme + "-art" + (i % 6) });
+  }
+  return (cache[theme] = list);
+}
+
+const H = window.H = {
+  calls, live, counts: { animal: 30, vehicle: 8, dino: 6, fairy: 7, ocean: 9, sweets: 10 }, stickers: {}, noBg: false, delay: 0,
+  stickerUrls: t => STK[t].map(n => "IMAGE/draw/stickers/" + n + ".png"),
+};
+const show = id => { calls.show.push(id); document.querySelectorAll(".screen").forEach(s => s.classList.toggle("on", s.id === id)); };
+H.deps = {
+  v: "7", show, A, Particles, toast() { },
+  onHome: t => { calls.home.push(t ?? null); show("home"); },
+  themes: THEMES.map(id => ({ id, img: "IMAGE/draw/ui/theme-" + id + ".png" })),
+  getEntries: async t => { const l = await build(t); if (H.delay) await new Promise(r => setTimeout(r, H.delay)); return l.slice(0, H.counts[t] ?? 0); },
+  getStickers: t => H.stickers[t] || [],
+  bgUrl: t => H.noBg ? "IMAGE/draw/world/__none.jpg" : undefined,   // 沒圖測試：故意給一個不存在的檔
+};
+H.world = mountWorld(H.deps);
+await Promise.all(THEMES.map(build));
+H.ready = true;
+</script>
+</body>
+</html>

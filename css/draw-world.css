@@ -1,0 +1,111 @@
+/* 我的世界：小孩畫的角色住在主題場景裡。全部 id／class 都加 w- 前綴、掛在 #world 底下，不跟主程式撞名 */
+#world { overflow: hidden; background: #bfe6ff; }
+#world.on { display: block; }   /* 自己用絕對定位排版 */
+#world .w-bg, #world .w-img, #world .w-deco, #world .w-field { position: absolute; inset: 0; }
+#world .w-img { background: center / cover no-repeat; opacity: 0; transition: opacity .35s ease; }
+#world .w-img.on { opacity: 1; }
+#world .w-deco { z-index: 1; pointer-events: none; }
+#world .w-field { z-index: 2; overflow: hidden; }
+#world .parts { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; }
+
+/* 背景圖還沒放進來／載入失敗：每個主題一張漸層場景（上面天空、下面空地） */
+#world .w-bg { background: linear-gradient(#8fd3ff 0%, #d8f1ff 40%, #9fdc78 40.3%, #74c454 100%); }
+/* 地平線上一排圓圓的小山丘：一格一個半橢圓，橫向重複 */
+#world[data-theme="animal"] .w-bg { background:
+  radial-gradient(circle at 84% 15%, #fff7b8 0 4%, rgba(255, 238, 140, .55) 5%, transparent 11%),
+  radial-gradient(ellipse 50% 100% at 50% 100%, #8ccd63 97%, transparent 100%) 0 calc(39.5% - 56px) / 300px 58px repeat-x,
+  radial-gradient(ellipse 50% 100% at 50% 100%, #6fbb4d 97%, transparent 100%) 120px calc(39.5% - 34px) / 180px 36px repeat-x,
+  linear-gradient(#5fbaf5 0%, #c9ecff 39%, #a6dd7c 39.3%, #7cc65a 100%); }
+#world[data-theme="vehicle"] .w-bg { background:
+  repeating-linear-gradient(90deg, transparent 0 4%, #fff 4% 11%, transparent 11% 13%) 0 58.4% / 100% 1.1% no-repeat,
+  linear-gradient(#58b6f3 0%, #cdeeff 38%, #9cd873 38.3%, #8ccb63 44%, #dcd6cc 44.3%, #cfc8bd 47%, #a9abb3 47.3%, #9a9ca5 100%); }
+#world[data-theme="dino"] .w-bg { background:
+  radial-gradient(circle at 50% 30%, #fff1a8 0 5%, rgba(255, 200, 110, .5) 6%, transparent 16%),
+  radial-gradient(ellipse 50% 100% at 50% 100%, #2f8f4e 97%, transparent 100%) 0 calc(40.3% - 70px) / 150px 72px repeat-x,
+  radial-gradient(ellipse 50% 100% at 50% 100%, #4aa35a 97%, transparent 100%) 70px calc(40.3% - 44px) / 110px 46px repeat-x,
+  linear-gradient(#ffb47a 0%, #ffd9a0 40%, #e3b86d 40.3%, #d9a456 100%); }
+#world[data-theme="fairy"] .w-bg { background:
+  radial-gradient(circle at 50% 46%, transparent 26%, rgba(255, 140, 190, .45) 27%, rgba(255, 220, 120, .45) 29%, rgba(140, 220, 255, .45) 31%, transparent 32%) 0 0 / 100% 70% no-repeat,
+  linear-gradient(#b9a6ff 0%, #ffd6ef 37%, #a8e37f 37.3%, #82cf5c 100%); }
+#world[data-theme="ocean"] .w-bg { background:
+  linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .16) 38%, transparent 46%, transparent 58%, rgba(255, 255, 255, .12) 64%, transparent 70%),
+  linear-gradient(#57d0f2 0%, #2ba6e0 45%, #f3d38a 48%, #e9bf6c 100%); }
+#world[data-theme="sweets"] .w-bg { background:
+  radial-gradient(circle at 10% 30%, #ff9ccc 0 4%, #fff 4.3% 5%, transparent 5.3%),
+  radial-gradient(circle at 88% 28%, #9fd8ff 0 4%, #fff 4.3% 5%, transparent 5.3%),
+  linear-gradient(#ffc3e1 0%, #ffe4f1 39%, #ffd0e6 40%, #ffb7d8 100%); }
+
+/* 角色：絕對定位，每幀只改 transform；白色描邊像貼紙，在什麼背景上都跳得出來 */
+#world .w-mob { position: absolute; left: 0; top: 0; transform-origin: 50% 100%; will-change: transform; pointer-events: none; transform: scale(0); }
+#world .w-mob > img, #world .w-mob > canvas { display: block; width: 100%; height: 100%; object-fit: contain; -webkit-user-drag: none;
+  filter: drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff) drop-shadow(0 5px 4px rgba(40, 30, 10, .22)); }
+#world .w-new > img, #world .w-new > canvas {   /* 剛畫完飛下來的那隻：發金光幾秒 */
+  filter: drop-shadow(3px 0 0 #fff) drop-shadow(-3px 0 0 #fff) drop-shadow(0 3px 0 #fff) drop-shadow(0 -3px 0 #fff) drop-shadow(0 0 8px #fff6b0) drop-shadow(0 0 14px #ffc93c); }
+#world .w-shadow { position: absolute; left: 0; top: 0; z-index: 0; border-radius: 50%; pointer-events: none; will-change: transform; transform: scale(0);
+  background: radial-gradient(closest-side, rgba(50, 35, 10, .34), rgba(50, 35, 10, .16) 60%, rgba(50, 35, 10, 0)); }
+#world[data-move="swim"] .w-shadow { display: none; }
+
+/* 點心：從點的地方冒出來，被咬一口變小，吃光縮掉 */
+#world .w-snack { position: absolute; left: 0; top: 0; width: 1.3em; height: 1.3em; margin: -1.2em 0 0 -.65em; font-size: max(40px, 6.5vh); line-height: 1.3em;
+  text-align: center; pointer-events: none; transform-origin: 50% 100%; transition: scale .25s var(--spring, ease), opacity .3s;
+  filter: drop-shadow(0 4px 3px rgba(40, 30, 10, .3)); animation: wSnackIn .45s var(--spring, ease) both; }
+#world .w-snack.w-bit { scale: .62; }
+#world .w-snack.w-gone { scale: 0; opacity: 0; transition-duration: .35s; }
+@keyframes wSnackIn { 0% { scale: 0; } 60% { scale: 1.25; } 100% { scale: 1; } }
+#world .w-heart { position: absolute; z-index: 9600; font-size: 34px; line-height: 1; pointer-events: none; animation: wHeart 1.1s ease-out both; }
+@keyframes wHeart { 0% { opacity: 0; transform: translate(0, 10px) scale(.4); } 20% { opacity: 1; transform: translate(calc(var(--dx) * .3), -20px) scale(1.1); }
+  100% { opacity: 0; transform: translate(var(--dx), -110px) scale(.8); } }
+#world .w-bub { position: absolute; z-index: 9500; border-radius: 50%; pointer-events: none; border: 2px solid rgba(255, 255, 255, .9); opacity: 0;
+  background: radial-gradient(circle at 32% 30%, #fff 0 14%, rgba(255, 255, 255, .25) 24%, rgba(255, 255, 255, .06) 70%); animation: wBub 2.8s ease-in both; }
+@keyframes wBub { 0% { opacity: 0; transform: translate(0, 0) scale(.4); } 12% { opacity: 1; } 35% { transform: translate(6px, -60px) scale(.9); }
+  65% { transform: translate(-6px, -130px) scale(1); } 90% { opacity: .9; } 100% { opacity: 0; transform: translate(4px, -200px) scale(1.15); } }
+#world .w-puff { position: absolute; z-index: 9400; border-radius: 50%; pointer-events: none; background: rgba(235, 235, 240, .85); animation: wPuff 1.1s ease-out both; }
+@keyframes wPuff { 0% { opacity: .9; transform: scale(.3); } 100% { opacity: 0; transform: translate(var(--dx), -26px) scale(1.6); } }
+
+/* 收集到的貼紙：當場景裝飾，輕輕呼吸 */
+#world .w-stk { position: absolute; object-fit: contain; transform-origin: 50% 100%; animation: wBreath 2.8s ease-in-out infinite;
+  filter: drop-shadow(0 4px 3px rgba(40, 30, 10, .25)); }
+@keyframes wBreath { 50% { scale: 1.07 .95; } }
+
+/* 第一次來：手指在角色上點 */
+#world .w-hint { position: absolute; left: 0; top: 0; z-index: 9800; width: 0; height: 0; pointer-events: none; }
+#world .w-hint i { position: absolute; left: -38px; top: -38px; width: 76px; height: 76px; border-radius: 50%; border: 6px solid #fff;
+  box-shadow: 0 0 0 4px var(--sun, #ffc93c); animation: wRing 1.1s ease-out infinite; }
+#world .w-hint b { position: absolute; left: -16px; top: 2px; font-size: 64px; font-weight: 400; line-height: 1; animation: wTap 1.1s ease-in-out infinite;
+  filter: drop-shadow(0 4px 4px rgba(0, 0, 0, .3)); }
+@keyframes wRing { 0%, 30% { transform: scale(.4); opacity: 0; } 45% { opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
+@keyframes wTap { 0%, 100% { transform: translate(14px, 26px); } 35% { transform: translate(0, 0) scale(.92); } }
+
+/* 上方：🏠、主題分頁（圖示＋住了幾隻）、右上「再去畫一隻」 */
+#world .w-top { position: absolute; left: 0; right: 0; top: 0; z-index: 6; display: flex; align-items: center; gap: 16px; pointer-events: none;
+  padding: calc(12px + env(safe-area-inset-top)) calc(116px + env(safe-area-inset-right)) 0 calc(16px + env(safe-area-inset-left)); }
+#world .w-top > * { pointer-events: auto; }
+#world .big { width: 80px; height: 80px; font-size: 44px; border-radius: 24px; }
+#wHome { background: linear-gradient(#ffe07a, #ffc93c); box-shadow: 0 0 0 4px #fff, 0 7px 0 rgba(59, 42, 26, .3); }
+#wTabs { margin: 0 auto; display: flex; gap: 10px; padding: 8px 12px; border-radius: 40px; background: rgba(255, 255, 255, .6);
+  box-shadow: 0 4px 0 rgba(90, 60, 20, .14), 0 8px 18px rgba(90, 60, 20, .12); }
+#world .w-tab { position: relative; width: 66px; height: 66px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto;
+  background: linear-gradient(#fff, #fbf5ea); box-shadow: 0 3px 0 var(--wood-d, #e2c48f); transition: transform .16s var(--spring, ease), box-shadow .16s; }
+#world .w-tab .ico { width: 82%; height: 82%; }
+#world .w-tab.on { background: #fff; box-shadow: 0 0 0 4px var(--ink, #3b2a1a), 0 6px 0 rgba(59, 42, 26, .25); transform: translateY(-2px) scale(1.1); }
+#world .w-tab:active { transform: translateY(2px) scale(.94); }
+#world .w-tab.w-zero .ico { opacity: .5; filter: grayscale(.6); }
+#world .w-n { position: absolute; right: -8px; top: -8px; min-width: 30px; height: 30px; padding: 0 7px; border-radius: 15px; display: grid; place-items: center;
+  background: var(--tomato, #ff6b5b); color: #fff; font-size: 18px; font-weight: 900; line-height: 1; box-shadow: 0 0 0 3px #fff, 0 3px 6px rgba(90, 60, 20, .3); }
+#world .w-tab.w-zero .w-n { display: none; }
+#wDraw { position: absolute; z-index: 6; right: calc(16px + env(safe-area-inset-right)); top: calc(12px + env(safe-area-inset-top));
+  background: linear-gradient(#b4ec97, #7fd35e); box-shadow: 0 0 0 4px #fff, 0 7px 0 rgba(31, 122, 44, .45); animation: wNudge 4s ease-in-out 1.5s infinite; }
+@keyframes wNudge { 0%, 84%, 100% { rotate: 0deg; } 88% { rotate: -12deg; } 92% { rotate: 10deg; } 96% { rotate: -5deg; } }
+
+/* 空世界：吉祥物在中間揮手，旁邊一顆會跳的大畫筆鈕 */
+#world .w-empty { position: absolute; inset: 0; z-index: 4; display: none; pointer-events: none; }
+#world.w-isempty .w-empty { display: block; }
+#world .w-mascot { position: absolute; right: calc(50% + 10px); top: 50%; height: min(44vh, 340px); translate: 0 -46%; transform-origin: 50% 92%;
+  animation: wSway 2.2s ease-in-out infinite; filter: drop-shadow(0 10px 10px rgba(60, 30, 0, .25)); }
+#world .w-wave { position: absolute; right: calc(50% + min(30vh, 230px)); top: calc(50% - min(26vh, 200px)); font-size: 76px; line-height: 1;
+  transform-origin: 70% 90%; animation: wWave .7s ease-in-out infinite alternate; filter: drop-shadow(0 4px 4px rgba(0, 0, 0, .2)); }
+@keyframes wSway { 50% { rotate: 4deg; translate: 0 -48%; } }
+@keyframes wWave { from { rotate: -22deg; } to { rotate: 18deg; } }
+#world.w-isempty #wDraw { right: auto; left: calc(50% + 40px); top: calc(50% - 80px); width: 160px; height: 160px; font-size: 92px; border-radius: 44px;
+  box-shadow: 0 0 0 6px #fff, 0 0 0 10px var(--ink, #3b2a1a), 0 12px 0 rgba(59, 42, 26, .3); animation: wBounce 1.1s ease-in-out infinite; }
+@keyframes wBounce { 0%, 100% { translate: 0 0; scale: 1; } 45% { translate: 0 -26px; scale: 1.06 .96; } 60% { translate: 0 -26px; } 85% { translate: 0 0; scale: 1.08 .9; } }

@@ -704,7 +704,7 @@ function versionCheck() {
   check("按停止 → 馬上停、畫面放回原本", Date.now() - t1 < 1500 && await px(1450, 500) === before[0] && !(await p.evaluate(() => document.querySelector("#paint").classList.contains("replaying"))), `${Date.now() - t1}ms`);
   await p.evaluate(() => __draw.G.wipe());
   await p.tap("#bDone");
-  await waitOn("#after");
+  await waitOn("#after", 25000);   // 有畫過的真圖會先開扭蛋（5 秒沒點自己開）
   check("完成後有 ▶️ 回放鈕", await p.evaluate(() => getComputedStyle(document.querySelector("#aPlay")).display !== "none"));
   const lg = await p.evaluate(async () => (await __draw.G.list())[0]?.log?.length);
   check("存進作品牆的作品帶著畫畫紀錄", lg === 4, String(lg));
@@ -786,12 +786,21 @@ function versionCheck() {
   // 一顆星的圖畫完：中央大章 → 慶祝欄；作品存了剪下來的角色（我的世界用）；按 🎵 把畫彈成音樂，彈完恢復
   await p.evaluate(async () => { const a = (await (await fetch("IMAGE/draw/lineart/index.json")).json()).arts.find(x => x.id === "animal-1"); await __draw.startArt(a); });
   await p.waitForFunction(() => __draw.board.labels && !__draw.S.busy, null, { timeout: 10000 });
-  await p.evaluate(() => { __draw.AUTO.ms = 1e9; const P = __draw.painter, B = __draw.board; for (let i = 0; i < B.boxes.length; i++) P.fill(i, { kind: "solid" }, __draw.COLORS[(i * 7) % 30]).done(); });
+  await p.evaluate(() => { __draw.AUTO.ms = 1e9; window.__rewards.reset(); try { localStorage.removeItem("draw-rewarded"); } catch {} const P = __draw.painter, B = __draw.board; for (let i = 0; i < B.boxes.length; i++) P.fill(i, { kind: "solid" }, __draw.COLORS[(i * 7) % 30]).done(); });
+  { const A1 = await toClient(700, 300), A2 = await toClient(900, 380);   // 真的用手指畫一筆（有畫過才開扭蛋）
+    await touch("touchStart", [[A1.x, A1.y, 1]]); for (let i = 1; i <= 5; i++) await touch("touchMove", [[A1.x + (A2.x - A1.x) * i / 5, A1.y + (A2.y - A1.y) * i / 5, 1]]); await touch("touchEnd", []); }
   await p.tap("#bDone");
   await p.waitForSelector(".big-cheer", { timeout: 15000 }).catch(() => {});
   check("完成：中央出現大章（吉祥物＋三顆大星星）", await p.locator(".big-cheer img").count() === 1);
-  await waitOn("#after", 8000);
+  await p.waitForSelector("#gacha", { timeout: 8000 }).catch(() => {});
+  check("大章之後開扭蛋（有畫過的圖）", await p.locator("#gacha").count() === 1);
+  await p.waitForTimeout(1200);
+  const gb = await p.locator("#gacha").boundingBox().catch(() => null);
+  if (gb) await p.mouse.click(gb.x + gb.width / 2, gb.y + gb.height / 2);   // 點扭蛋打開
+  await waitOn("#after", 20000);
+  check("扭蛋開完：貼紙收進貼紙本、遮罩移除、出現慶祝欄", await on("#after") && await p.locator("#gacha").count() === 0 && await p.evaluate(() => __draw.rewards().count()) === 1);
   check("大章結束後收進右邊慶祝欄、大章移除", await on("#after") && await p.locator(".big-cheer").count() === 0);
+  check("剪得出主角的圖：慶祝欄有「放進我的世界」鈕", await p.evaluate(() => getComputedStyle(document.querySelector("#aWorld")).display !== "none"));
   const cutW = await p.evaluate(async () => { const w = (await __draw.G.list())[0]; return w && w.cut ? { size: w.cut.size, cw: w.cw, ch: w.ch } : null; });
   check("一顆星的圖畫完：存下剪好的角色（透明 PNG、最長邊 ≤600）", cutW && cutW.size > 2000 && Math.max(cutW.cw, cutW.ch) <= 600, JSON.stringify(cutW));
   await p.tap("#aMusic");
@@ -799,6 +808,19 @@ function versionCheck() {
   check("按 🎵：畫分成 16 排彈出來、彈的時候不能畫", mus && mus.cols === 16 && mus.notes > 0 && mus.busy, JSON.stringify(mus));
   await p.waitForFunction(() => !__draw.music(), null, { timeout: 9000 }).catch(() => {});
   check("音樂彈完：光帶移除、可以繼續操作", await p.evaluate(() => !__draw.music() && !__draw.S.busy && !document.querySelector(".music-bar")));
+  const wid = await p.evaluate(() => __draw.S.workId);
+  await p.tap("#aWorld");
+  await waitOn("#world", 8000);
+  await p.waitForFunction(id => window.__world && window.__world.entries().some(e => e.id === id), wid, { timeout: 8000 }).catch(() => {});
+  check("放進我的世界：打開動物世界、剛畫好的角色在裡面", await on("#world") && await p.evaluate(id => window.__world.entries().some(e => e.id === id), wid));
+  await p.tap("#wHome");
+  await waitOn("#home", 5000);
+  check("我的世界按 🏠：回首頁", await on("#home") && !(await on("#world")));
+  await p.tap("#toBook");
+  await waitOn("#book", 5000);
+  check("首頁按貼紙本：打開貼紙本、看得到剛拿到的貼紙", await on("#book") && await p.evaluate(() => __draw.rewards().owned().length === 1));
+  await p.tap("#bookHome");
+  await waitOn("#home", 5000);
   await p.evaluate(() => { __draw.G.wipe(); });
 
   // 鏡子魔法畫（真的接起來，不用假 deps）：首頁按 🪞 → 畫一筆 → ✔️ 存進作品牆 → 🏠 回首頁

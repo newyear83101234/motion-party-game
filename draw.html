@@ -19,6 +19,8 @@
   <link rel="modulepreload" href="js/draw-particles.js?v=6">
   <link rel="modulepreload" href="js/draw-music.js?v=6">
   <link rel="modulepreload" href="js/draw-mirror.js?v=6">
+  <link rel="modulepreload" href="js/draw-rewards.js?v=6">
+  <link rel="modulepreload" href="js/draw-world.js?v=6">
 </head>
 <body>
   <!-- 首頁：上排選主題，下面是線稿縮圖 -->
@@ -36,6 +38,7 @@
         <button class="big mode m-mirror" id="toMirror" data-sfx="magic" aria-label="鏡子魔法畫">🪞</button>
         <button class="big mode m-world off" id="toWorld" aria-label="我的世界">🌍</button>
         <button class="big mode m-book off" id="toBook" aria-label="貼紙本">📖</button>
+        <button class="big mode m-gacha off" id="toDaily" data-sfx="magic" aria-label="今天的扭蛋">🎰</button>
         <button class="big gift" id="toScratch" data-sfx="magic" aria-label="刮刮樂驚喜">🎁</button>
         <button class="big" id="toGallery" aria-label="作品牆">🖼️</button>
       </nav>
@@ -81,6 +84,7 @@
     <div id="after" class="after">
       <div class="cheer" aria-hidden="true"><img src="IMAGE/draw/ui/mascot.png?v=6" alt="" onerror="this.remove()"><p><span>★</span><span>★</span><span>★</span></p></div>
       <button class="big" id="aHome" aria-label="回首頁">🏠</button>
+      <button class="big" id="aWorld" data-sfx="magic" aria-label="放進我的世界">🌍</button>
       <button class="big" id="aMusic" data-sfx="none" aria-label="把畫彈成音樂">🎵</button>
       <button class="big" id="aPlay" aria-label="回放畫畫過程">▶️</button>
       <button class="big" id="aAgain" aria-label="繼續畫">🖌️</button>
