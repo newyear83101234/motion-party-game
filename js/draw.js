@@ -691,14 +691,22 @@ async function startScratch() {
   f.width = Math.round(w * dpr); f.height = Math.round(h * dpr);
   const x = f.getContext("2d", { willReadFrequently: true });
   const g = x.createLinearGradient(0, 0, f.width, f.height);
-  ["#c9ced6", "#eef1f5", "#b8bec8", "#e3e7ee", "#c3c9d2"].forEach((c, i) => g.addColorStop(i / 4, c));
+  ["#f2c94c", "#fff3b0", "#e0b13a", "#ffe58a", "#d9a52e"].forEach((c, i) => g.addColorStop(i / 4, c));   // 金色刮刮膜
   x.globalCompositeOperation = "source-over"; x.fillStyle = g; x.fillRect(0, 0, f.width, f.height);
-  x.font = `${Math.round(70 * dpr)}px sans-serif`; x.textAlign = "center"; x.textBaseline = "middle";
-  for (let i = 0; i < 26; i++) {   // 膜上撒一些淡淡的星星和問號，看起來像刮刮卡
-    x.globalAlpha = 0.18 + Math.random() * 0.2; x.fillStyle = i % 2 ? "#fff" : "#8a93a3";
-    x.fillText(i % 3 ? "★" : "?", Math.random() * f.width, Math.random() * f.height);
+  for (let i = 0; i < 30; i++) {   // 膜上撒淡淡的星星和愛心，看起來像刮刮卡
+    x.globalAlpha = 0.25 + Math.random() * 0.25; x.fillStyle = i % 2 ? "#fff8d6" : "#c8962a";
+    const cx = Math.random() * f.width, cy = Math.random() * f.height, r = (18 + Math.random() * 22) * dpr;
+    x.beginPath();
+    if (i % 3) for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * 0.45 : r; x.lineTo(cx + rr * Math.cos(a), cy + rr * Math.sin(a)); }
+    else { x.moveTo(cx, cy + r * 0.8); x.bezierCurveTo(cx - r * 1.3, cy - r * 0.2, cx - r * 0.5, cy - r * 1.1, cx, cy - r * 0.35); x.bezierCurveTo(cx + r * 0.5, cy - r * 1.1, cx + r * 1.3, cy - r * 0.2, cx, cy + r * 0.8); }
+    x.fill();
   }
   x.globalAlpha = 1;
+  // 手指來回擦的提示，第一次刮就消失
+  const hint = el("div", "foil-hint");   // 不能掛 tap-hint：showHint() 會把所有 .tap-hint 清掉
+  Object.assign(hint.style, { left: parseFloat(f.style.left) + w / 2 + "px", top: parseFloat(f.style.top) + h / 2 + "px" });
+  $("#paint").append(hint);
+  $$("#scratchBar .sstar").forEach(s => s.classList.remove("lit"));
   Object.assign(SC, { on: true, ctx: x, last: null, dpr, art: a });
   S.busy = true;
   $("#paint").classList.add("scratching");
@@ -718,7 +726,11 @@ function checkScratch() {   // 每 4 格取一點，刮掉超過 70% → 剩下�
   const f = $("#foil"), d = SC.ctx.getImageData(0, 0, f.width, f.height).data;
   let left = 0, all = 0;
   for (let i = 3; i < d.length; i += 64) { all++; if (d[i] > 30) left++; }
-  if (left / all > 0.3) return;
+  const open = 1 - left / all;
+  $$("#scratchBar .sstar").forEach((s, i) => {
+    if (open >= [0.3, 0.5, 0.7][i] && !s.classList.contains("lit")) { s.classList.add("lit"); A.note(8 + i * 2, { gain: 0.18 }); }
+  });
+  if (open < 0.7) return;
   f.classList.add("gone");
   A.strokeOff(); A.sfx("finish"); A.chime();
   const r = f.getBoundingClientRect();
@@ -728,7 +740,7 @@ function checkScratch() {   // 每 4 格取一點，刮掉超過 70% → 剩下�
 }
 function endScratch(paintIt) {
   if (!SC.on) return;
-  SC.on = false; clearTimeout(SC.timer); A.strokeOff();
+  SC.on = false; clearTimeout(SC.timer); A.strokeOff(); $(".foil-hint")?.remove();
   const f = $("#foil");
   f.classList.remove("on", "gone"); f.width = f.height = 0;
   $("#scratchBar").classList.remove("on");
@@ -741,7 +753,7 @@ function endScratch(paintIt) {
 }
 {
   const f = $("#foil");
-  f.addEventListener("pointerdown", e => { if (!SC.on) return; SC.last = null; A.strokeOn("chalk"); scratchAt(e.clientX, e.clientY); });
+  f.addEventListener("pointerdown", e => { if (!SC.on) return; $(".foil-hint")?.remove(); SC.last = null; A.strokeOn("chalk"); scratchAt(e.clientX, e.clientY); });
   f.addEventListener("pointermove", e => {
     if (!SC.on || !(e.buttons || e.pointerType === "touch")) return;
     for (const ev of e.getCoalescedEvents?.() || [e]) scratchAt(ev.clientX, ev.clientY);

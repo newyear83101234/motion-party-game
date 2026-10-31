@@ -767,11 +767,13 @@ function versionCheck() {
   const sc1 = await p.evaluate(() => ({ on: __draw.SC.on, busy: __draw.S.busy, cls: document.querySelector("#paint").classList.contains("scratching"), foil: getComputedStyle(document.querySelector("#foil")).display, hint: !!document.querySelector(".tap-hint") }));
   check("刮刮樂：開一張圖、蓋上刮刮膜、一般畫畫暫停", sc1.on && sc1.busy && sc1.cls && sc1.foil === "block", JSON.stringify(sc1));
   check("刮刮樂：第一次玩的點擊提示不會蓋在刮刮膜上", !sc1.hint);
+  check("刮刮樂：膜上有來回擦的手指提示、進度星全暗", await p.locator(".foil-hint").count() === 1 && await p.locator("#scratchBar .sstar.lit").count() === 0);
   const fb = await p.locator("#foil").boundingBox();
   await p.evaluate(() => { const x = __draw.SC.ctx; x.globalCompositeOperation = "destination-out"; x.fillRect(0, 0, x.canvas.width, x.canvas.height * 0.8); });
   await touch("touchStart", [[fb.x + 30, fb.y + fb.height - 20, 1]]); await touch("touchMove", [[fb.x + fb.width - 30, fb.y + fb.height - 20, 1]]); await touch("touchEnd", []);
   await waitOn("#scratchBar", 4000);
   check("刮掉大部分：刮刮膜自己掉光、出現按鈕", await on("#scratchBar") && await p.evaluate(() => document.querySelector("#foil").classList.contains("gone")));
+  check("一刮手指提示就消失、三顆進度星全亮", await p.locator(".foil-hint").count() === 0 && await p.locator("#scratchBar .sstar.lit").count() === 3);
   await p.tap("#sPaint");
   const sc2 = await p.evaluate(() => ({ on: __draw.SC.on, busy: __draw.S.busy, cls: document.querySelector("#paint").classList.contains("scratching"), white: [...__draw.board.ctx.getImageData(1000, 600, 1, 1).data].slice(0, 3).join(",") }));
   check("自己畫這張：畫布清回白色、可以照常畫", !sc2.on && !sc2.busy && !sc2.cls && sc2.white === "255,255,255", JSON.stringify(sc2));

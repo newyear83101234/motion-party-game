@@ -96,10 +96,10 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
   aspect-ratio: 3 / 2; display: grid; place-items: center; opacity: .8; }
 .works .card.blank .ico { width: 34%; height: auto; opacity: .55; }
 /* 第一次玩的提示：一隻手在某一塊上面點，外面一圈波紋 */
-.tap-hint { position: absolute; z-index: 4; pointer-events: none; width: 0; height: 0; }
-.tap-hint::before { content: ""; position: absolute; left: -36px; top: -36px; width: 72px; height: 72px; border-radius: 50%; border: 6px solid #fff;
+.tap-hint, .foil-hint { position: absolute; z-index: 4; pointer-events: none; width: 0; height: 0; }
+.tap-hint::before, .foil-hint::before { content: ""; position: absolute; left: -36px; top: -36px; width: 72px; height: 72px; border-radius: 50%; border: 6px solid #fff;
   box-shadow: 0 0 0 4px var(--sun); animation: hintRing 1.4s ease-out infinite; }
-.tap-hint::after { content: "👆"; position: absolute; left: -14px; top: 4px; font-size: 64px; animation: hintSwipe 1.6s ease-in-out infinite; filter: drop-shadow(0 4px 4px rgba(0, 0, 0, .3)); }
+.tap-hint::after, .foil-hint::after { content: "👆"; position: absolute; left: -14px; top: 4px; font-size: 64px; animation: hintSwipe 1.6s ease-in-out infinite; filter: drop-shadow(0 4px 4px rgba(0, 0, 0, .3)); }
 @keyframes hintRing { 0% { transform: scale(.4); opacity: 0; } 30% { opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
 @keyframes hintSwipe { 0%, 100% { transform: translate(-46px, 6px) rotate(-8deg); } 50% { transform: translate(46px, 0) rotate(8deg); } }   /* 手指來回塗 */
 .works { grid-template-columns: repeat(auto-fill, 280px); justify-content: center; gap: 40px 36px; padding-top: 24px; }
@@ -310,6 +310,15 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 #paint.scratching .scratch-bar .big { visibility: hidden; }
 #paint.scratching .scratch-bar.on .big { visibility: visible; }
 #sPaint { background: linear-gradient(#b4ec97, #7fd35e); }
+/* 刮的進度：三顆星，刮開 30／50／70% 各亮一顆；刮的時候吉祥物在側欄中間跟著看 */
+#paint.scratching .scratch-bar { justify-content: center; }
+#paint.scratching .scratch-bar:not(.on) .big { display: none; }
+.sstars { margin: 6px 0 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.sstar { font-size: 44px; color: #eadcbe; -webkit-text-stroke: 4px #fff; paint-order: stroke fill; transition: color .2s; }
+.sstar.lit { color: #ffc93c; animation: starPop .5s var(--spring); }
+.scratch-bar.on .sstars { flex-direction: row; }
+.scratch-bar.on .sstar { font-size: 30px; }
+.foil-hint { z-index: 7; }
 #sAgain { background: linear-gradient(#ffd1e8, #ff9ec9); }
 #sHome { background: linear-gradient(#ffe07a, #ffc93c); }
 .big.gift { background: linear-gradient(#ffd1e8, #ff9ec9); animation: gift 2.4s ease-in-out infinite; }
