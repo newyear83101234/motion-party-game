@@ -44,7 +44,7 @@ export function labelRegions(mask, w, h) {
 
 // 找 (x, y) 屬於哪一塊；點在黑線上時，找半徑 r 內最近的一塊；都沒有回 -1
 export function regionAt(labels, w, h, x, y, r = 6) {
-  x = Math.round(x); y = Math.round(y);
+  x = Math.floor(x); y = Math.floor(y);   // 像素 9 涵蓋 9.0～9.99，用無條件捨去才不會把最右／最下半格判成圖外
   if (x < 0 || y < 0 || x >= w || y >= h) return -1;
   const v = labels[y * w + x];
   if (v >= 0) return v;
