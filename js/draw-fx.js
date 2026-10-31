@@ -96,7 +96,7 @@ export class Fx {
           c.vy += 0.35 * dpr; c.x += c.vx; c.y += c.vy; c.a += c.va;
           O.save(); O.translate(c.x, c.y); O.rotate(c.a); O.fillStyle = c.col; O.fillRect(-c.w / 2, -c.h / 2, c.w, c.h); O.restore();
         }
-        if (s < 2.2) requestAnimationFrame(frame); else { ov.remove(); done(); }
+        if (s < 2.2) requestAnimationFrame(frame); else { ov.remove(); comp.width = comp.height = 0; ov.width = ov.height = 0; done(); }
       };
       requestAnimationFrame(frame);
     });

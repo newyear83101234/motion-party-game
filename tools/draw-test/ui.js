@@ -289,20 +289,19 @@ function versionCheck() {
   await p.tap("#aHome");
   check("回到首頁", await on("#home"));
   await p.tap('#arts .card[data-id="test-shapes"]');
-  await p.waitForFunction(() => document.querySelector("#paint").classList.contains("on") && __draw.painter.history.size === 0, null, { timeout: 8000 });
-  await p.waitForTimeout(600);   // 等線稿載入完（載入時會重設復原紀錄）
+  await p.waitForFunction(() => document.querySelector("#paint").classList.contains("on") && !__draw.S.busy && __draw.painter.history.size === 0, null, { timeout: 8000 });   // 線稿載入完（載入時會重設復原紀錄）
   await p.evaluate(() => { const P = __draw.painter; P.fill(P.regionAt(1450, 500), { kind: "solid" }, "#8e24aa").done(); });
   await p.tap("#bHome");
-  await p.waitForTimeout(500);
+  await p.waitForFunction(() => document.querySelector("#home").classList.contains("on"), null, { timeout: 8000 }).catch(() => {});
   check("沒畫完回首頁 → 自動存成未完成", await p.evaluate(() => __draw.G.count()) === 2);
   await p.tap("#toGallery");
-  await p.waitForTimeout(300);
+  await p.waitForFunction(() => document.querySelectorAll("#works .card").length === 2, null, { timeout: 8000 }).catch(() => {});
   check("作品牆兩件，未完成的有 ✏️", await p.locator("#works .card").count() === 2 && await p.locator("#works .wip").count() === 1);
   await p.screenshot({ path: path.join(OUT, "05-gallery.png") });
   await p.tap("#works .card:has(.wip)");
   check("點作品 → 放大看", await on("#view"));
   await p.tap("#vEdit");
-  await p.waitForTimeout(800);
+  await p.waitForFunction(() => !__draw.S.busy && __draw.S.workId && document.querySelector("#paint").classList.contains("on"), null, { timeout: 8000 }).catch(() => {});
   check("接著畫：畫畫頁還原原本的顏色", await on("#paint") && await px(1450, 500) === "142,36,170");
 
   await p.setViewportSize({ width: 820, height: 1180 });
@@ -318,6 +317,101 @@ function versionCheck() {
   const i404 = errs.findIndex((e, i) => i >= errs0 && /Failed to load resource.*404/.test(e));
   if (i404 >= 0) errs.splice(i404, 1);
   await p.evaluate(() => __draw.startArt({ id: "test-shapes", url: "IMAGE/draw/lineart/test-shapes.svg", parts: [] }));
+
+  // 審查修正 2
+  const TEST_ART = { id: "test-shapes", url: "IMAGE/draw/lineart/test-shapes.svg", parts: [] };
+  const fresh = () => p.evaluate(a => __draw.startArt(a), TEST_ART);
+  const fillRed = () => p.evaluate(() => { const P = __draw.painter; P.fill(P.regionAt(1450, 500), { kind: "solid" }, "#00897b").done(); });
+  const waitOn = (sel, ms = 8000) => p.waitForFunction(s => document.querySelector(s).classList.contains("on"), sel, { timeout: ms }).then(() => true, () => false);
+
+  // 連按兩下 🏠 → 只存一件
+  await p.evaluate(() => __draw.G.wipe());
+  await fresh(); await fillRed();
+  await p.evaluate(() => { const b = document.querySelector("#bHome"); b.click(); b.click(); });
+  await waitOn("#home");
+  await p.waitForTimeout(600);
+  check("連按兩下回首頁 → 作品牆只多 1 件", await p.evaluate(() => __draw.G.count()) === 1, `count=${await p.evaluate(() => __draw.G.count())}`);
+
+  // 存檔失敗不卡死：put 丟 QuotaExceededError，按完成 → 照常出現兩顆按鈕、busy 解除
+  await p.evaluate(() => __draw.G.wipe());
+  await fresh(); await fillRed();
+  await p.evaluate(() => {
+    window.__putOrig = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function () { throw new DOMException("quota", "QuotaExceededError"); };
+  });
+  await p.tap("#bDone");
+  const afterOk = await waitOn("#after");
+  await p.evaluate(() => { IDBObjectStore.prototype.put = window.__putOrig; });
+  check("存檔失敗：8 秒內仍出現完成按鈕", afterOk);
+  check("存檔失敗：busy 解除、跳出沒存到提示", await p.evaluate(() => __draw.S.busy === false && document.querySelector("#toast").textContent.includes("沒存到")));
+  check("存檔失敗：沒有存進作品牆", await p.evaluate(() => __draw.G.count()) === 0);
+  await p.tap("#aAgain");
+
+  // 滿 50 件：完成 → 進作品牆整理模式（不能接著畫）；🏠 回到原本那張畫
+  await p.evaluate(async () => {
+    await __draw.G.wipe();
+    const c = document.createElement("canvas"); c.width = c.height = 8;
+    const blob = await new Promise(r => c.toBlob(r));
+    for (let i = 0; i < 50; i++) await __draw.G.save({ id: "f" + i, art: "test-shapes", done: true, thumb: blob });
+  });
+  await fresh(); await fillRed();
+  await p.tap("#bDone");
+  check("滿 50 件按完成 → 進作品牆", await waitOn("#gallery") && !(await on("#after")));
+  await p.waitForFunction(() => document.querySelectorAll("#works .card").length === 50, null, { timeout: 8000 }).catch(() => {});
+  await p.tap("#works .card");
+  check("整理模式：看大圖時沒有「接著畫」", await p.evaluate(() => getComputedStyle(document.querySelector("#vEdit")).display === "none"));
+  await p.tap("#vClose");
+  await p.tap("#gBack");
+  check("整理完按 🏠 → 回到原本那張畫、顏色還在", await on("#paint") && await px(1450, 500) === "0,137,123", await px(1450, 500));
+  await p.evaluate(() => __draw.G.wipe());
+
+  // 手掌一直放著，第一指放開後再畫第二筆也要畫得出來
+  await p.tap('[data-tool="brush"]');
+  await fresh();
+  await p.evaluate(() => { __draw.S.clip = false; __draw.S.color = "#1e88e5"; __draw.S.mat = { kind: "solid" }; });
+  const P1 = await toClient(400, 200), P2 = await toClient(900, 200), Q1 = await toClient(400, 400), Q2 = await toClient(900, 400), Zp = await toClient(1500, 1300);
+  await touch("touchStart", [[P1.x, P1.y, 1]]);
+  await touch("touchMove", [[(P1.x + P2.x) / 2, P1.y, 1]]);
+  await p.waitForTimeout(300);
+  await touch("touchStart", [[(P1.x + P2.x) / 2, P1.y, 1], [Zp.x, Zp.y, 2]]);   // 手掌放上去，一直不放開
+  await touch("touchMove", [[P2.x, P2.y, 1], [Zp.x, Zp.y, 2]]);
+  await touch("touchEnd", [[P2.x, P2.y, 1]]);                                    // 第一指放開（CDP 的 touchEnd 列出的是「要放開的點」）
+  await touch("touchStart", [[Zp.x, Zp.y, 2], [Q1.x, Q1.y, 3]]);                 // 第二筆
+  await touch("touchMove", [[Zp.x, Zp.y, 2], [(Q1.x + Q2.x) / 2, Q1.y, 3]]);
+  await touch("touchMove", [[Zp.x, Zp.y, 2], [Q2.x, Q2.y, 3]]);
+  await touch("touchEnd", []);
+  await p.waitForTimeout(100);
+  check("手掌一直放著：第一筆畫出來", await px(650, 200) === "30,136,229", await px(650, 200));
+  check("手掌一直放著：第二筆也畫得出來", await px(650, 400) === "30,136,229", await px(650, 400));
+
+  // 放開事件遺失：舊的手指永遠不放開，新的觸控照樣畫得出來
+  await p.evaluate(() => __draw.painter.clearAll());
+  const L0 = await toClient(200, 1300);
+  await p.evaluate(([x, y]) => document.querySelector("#stage").dispatchEvent(new PointerEvent("pointerdown",
+    { pointerId: 99, pointerType: "touch", isPrimary: true, bubbles: true, clientX: x, clientY: y })), [L0.x, L0.y]);
+  await touch("touchStart", [[P1.x, P1.y, 1]]);
+  await touch("touchMove", [[(P1.x + P2.x) / 2, P1.y, 1]]);
+  await touch("touchMove", [[P2.x, P2.y, 1]]);
+  await touch("touchEnd", []);
+  await p.waitForTimeout(100);
+  check("放開事件遺失：新的一筆照樣畫得出來", await px(650, 200) === "30,136,229", await px(650, 200));
+  await p.evaluate(() => __draw.board.fit());
+
+  // 選單開著時點畫布：只關選單，不同時填色
+  await p.evaluate(() => __draw.painter.clearAll());
+  await p.tap('[data-tool="fill"]');
+  await p.tap("#bColor");
+  const popOn = await on("#pop");
+  await tapImg(1450, 500);
+  check("選單開著點畫布 → 選單關了、那塊仍是白色", popOn && !(await on("#pop")) && await px(1450, 500) === "255,255,255", `pop=${popOn} px=${await px(1450, 500)}`);
+
+  // 放大後按完成 → 動畫播完回到原本大小
+  await p.evaluate(() => __draw.board.setView({ s: 2.5, tx: 0, ty: 0 }));
+  const zoomed = await view();
+  await p.tap("#bDone");
+  await waitOn("#after");
+  check("放大後按完成 → 播完回到原本大小", zoomed > 2 && await view() === 1, `before=${zoomed} after=${await view()}`);
+  await p.evaluate(() => __draw.G.wipe());
 
   // ── 後續 task 的測試插在這一行上面 ──
   check("沒有頁面錯誤", errs.length === 0, errs.join(" | "));

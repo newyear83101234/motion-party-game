@@ -24,6 +24,7 @@ export class Board {
       i.src = url;
     });
     if (tok !== this._tok) return false;
+    for (const k of ["color", "glit", "live", "fx", "line"]) if (this[k]) this[k].width = this[k].height = 0;   // 舊畫布馬上釋放
     const W = img.naturalWidth || 2048, H = img.naturalHeight || 1536;
     this.W = W; this.H = H;
     const src = makeCanvas(W, H), sx = src.getContext("2d", { willReadFrequently: true });

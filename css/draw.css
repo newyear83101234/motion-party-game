@@ -18,7 +18,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .big.on, .btn.on { background: var(--on); }
 .big:active, .btn:active, .card:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--wood-d); }
 .arts, .works { flex: 1; overflow-y: auto; touch-action: pan-y; display: grid; align-content: start; gap: 20px;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); padding: 12px 20px 24px; }
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); grid-auto-rows: max-content; padding: 12px 20px 24px; }
 .card { position: relative; background: #fff; border-radius: 20px; box-shadow: 0 4px 0 var(--wood-d); overflow: hidden; aspect-ratio: 4 / 3; }
 .card img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }
 .card .lv { position: absolute; right: 10px; top: 8px; font-size: 26px; }
@@ -77,3 +77,6 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 /* 直向：整頁蓋上「請轉橫」 */
 .rotate { position: fixed; inset: 0; z-index: 30; display: none; place-items: center; font-size: 96px; background: var(--bg); }
 @media (orientation: portrait) { .rotate { display: grid; } }
+
+/* 矮螢幕（iPad 橫放高度不夠）：工具列縮小 */
+@media (max-height: 720px) { #bar { gap: 4px; padding: 6px 0; } #bar hr { margin: 0; } .btn { height: 46px; font-size: 26px; } }

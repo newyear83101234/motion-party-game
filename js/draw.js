@@ -81,12 +81,21 @@ async function startArt(a, work = null) {
     }
     if (!ok) return false;
     painter.reset();
-    S.art = a; S.workId = work ? work.id : null; S.done = work ? !!work.done : false;
+    S.art = a; S.workId = null; S.done = false;
     if (work) {
-      for (const [blob, ctx] of [[work.color, board.ctx], [work.glit, board.gctx]]) {
-        if (!blob) continue;
-        const bmp = await createImageBitmap(blob);
-        ctx.clearRect(0, 0, board.W, board.H); ctx.drawImage(bmp, 0, 0);
+      if (work.w && (work.w !== board.W || work.h !== board.H)) console.warn("作品尺寸跟線稿不同，從空白開始");
+      else try {
+        for (const [blob, ctx] of [[work.color, board.ctx], [work.glit, board.gctx]]) {
+          if (!blob) continue;
+          const bmp = await createImageBitmap(blob);
+          ctx.clearRect(0, 0, board.W, board.H); ctx.drawImage(bmp, 0, 0);
+          bmp.close?.();
+        }
+        S.workId = work.id; S.done = !!work.done;   // 還原成功才沿用舊作品，失敗時不要拿空白蓋掉它
+      } catch (e) {
+        console.warn("作品還原失敗：" + (e && e.message));
+        board.ctx.fillStyle = "#fff"; board.ctx.fillRect(0, 0, board.W, board.H);
+        board.gctx.clearRect(0, 0, board.W, board.H);
       }
     }
     return true;
@@ -95,36 +104,57 @@ async function startArt(a, work = null) {
   }
 }
 
+let toastTimer = 0;
+function toast(text, ms = 2500) {
+  const t = $("#toast");
+  t.textContent = text; t.classList.add("on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("on"), ms);
+}
+// 回傳 "ok" / "full"（作品牆滿了）/ "error"（其他錯誤，已跳提示）；不往外丟錯
 async function saveWork() {
-  const c = board.composite();
-  const w = { id: S.workId || G.newId(), art: S.art.id, done: S.done, thumb: await G.thumbOf(c), image: await G.toBlob(c),
-    color: await G.toBlob(board.color), glit: await G.toBlob(board.glit) };
-  try { await G.save(w); S.workId = w.id; return true; }
-  catch (e) {
-    if (e.code !== "FULL") throw e;
-    $("#full").classList.add("on");
-    setTimeout(() => $("#full").classList.remove("on"), 2500);
-    return false;
-  }
+  let c = null;
+  try {
+    c = board.composite();
+    const w = { id: S.workId || G.newId(), art: S.art.id, done: S.done, w: board.W, h: board.H, thumb: await G.thumbOf(c), image: await G.toBlob(c),
+      color: await G.toBlob(board.color), glit: await G.toBlob(board.glit) };
+    await G.save(w); S.workId = w.id;
+    return "ok";
+  } catch (e) {
+    if (e && e.code === "FULL") return "full";
+    console.warn("存檔失敗：" + (e && e.message));
+    toast("⚠️ 沒存到");
+    return "error";
+  } finally { if (c) c.width = c.height = 0; }
 }
 function goHome() { $("#after").classList.remove("on"); show("home"); renderHome(S.art?.theme); }
+// 作品牆滿了：提示一下就進整理模式，讓大人刪幾件；整理完按 🏠 回到原本那張畫
+function galleryFull() {
+  toast("🖼️ 滿了", 1200);
+  setTimeout(() => { tidy = true; renderGallery(); }, 1200);
+}
 
 $("#bDone").onclick = async () => {
   if (S.busy || !board.labels) return;
-  S.busy = true; closePop(); fx.sparkleStop();
-  await fx.finish(S.art.parts || []);
-  S.done = true;
-  await saveWork();
-  $("#after").classList.add("on");
-  fx.sparkleStart(); S.busy = false;
+  S.busy = true; closePop(); fx.sparkleStop(); fx.flush(); board.fit(); S.done = true;
+  let r = "ok";
+  try {
+    const saving = saveWork();                 // 邊播動畫邊存
+    await fx.finish(S.art.parts || []);
+    r = await saving;
+  } finally { S.busy = false; fx.sparkleStart(); }
+  if (r === "full") galleryFull(); else $("#after").classList.add("on");
 };
 $("#aHome").onclick = goHome;
 $("#aAgain").onclick = () => $("#after").classList.remove("on");
 $("#bHome").onclick = async () => {
   if (S.busy) return;
-  fx.flush(); closePop();
-  if (painter.history.size) await saveWork();   // 有畫東西才存；沒畫完的作品牆會標 ✏️
-  goHome();
+  S.busy = true; fx.flush(); closePop();
+  let r = "ok";
+  try { if (painter.history.size) r = await saveWork(); }   // 有畫東西才存；沒畫完的作品牆會標 ✏️
+  finally { S.busy = false; }
+  if (r === "full") galleryFull();
+  else if (r === "ok") goHome();
 };
 
 $$(".tool").forEach(b => b.onclick = () => {
@@ -136,8 +166,8 @@ $$(".tool").forEach(b => b.onclick = () => {
 $("#bColor").onclick = () => togglePop("color");
 $("#bMat").onclick = () => togglePop("mat");
 $("#bClip").onclick = () => { S.clip = !S.clip; $("#bClip").classList.toggle("on", S.clip); };
-$("#bUndo").onclick = () => { fx.flush(); painter.undo(); };
-hold($("#bClear"), () => { fx.flush(); painter.clearAll(); });
+$("#bUndo").onclick = () => { if (S.busy) return; fx.flush(); painter.undo(); };
+hold($("#bClear"), () => { if (S.busy) return; fx.flush(); painter.clearAll(); });
 
 function refreshBar() {
   $("#bColor .dot").style.background = S.color;
@@ -176,38 +206,48 @@ function renderPop(kind) {
   }
 }
 
-// ── 手勢：只認第一根手指畫畫；150 毫秒內放上第二根 → 取消那一筆改成縮放；之後才放上來的當手掌，不理 ──
-const stage = $("#stage"), touches = new Map();
+// ── 手勢：只認第一根手指畫畫；150 毫秒內放上第二根 → 取消那一筆改成縮放；之後才放上來的當手掌，整段接觸期間都不理 ──
+const stage = $("#stage"), touches = new Map(), palms = new Set();
 let g1 = null, pinch = null, lastTwoTap = 0;
 const strokeOpts = () => ({ brush: S.tool === "eraser" ? "eraser" : S.brush, size: SIZES[S.size], mat: S.mat, color: S.color, clip: S.clip });
 
-function startPinch() {
-  const [a, b] = [...touches.values()], mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-  pinch = { d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, s0: board.view.s, img: board.toImage(mid.x, mid.y), mid0: mid, t: performance.now(), moved: 0 };
+function startPinch(idA, idB) {
+  const a = touches.get(idA), b = touches.get(idB), mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  pinch = { ids: [idA, idB], d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, s0: board.view.s, img: board.toImage(mid.x, mid.y), mid0: mid, t: performance.now(), moved: 0 };
   if (g1) g1.mode = "pinch";
+}
+// 上一輪的放開事件遺失（系統手勢、切 App）時，新的第一根手指一放下就把舊狀態清乾淨
+function resetGestures() {
+  if (g1 && g1.mode === "draw") painter.strokeEnd();
+  touches.clear(); palms.clear(); g1 = null; pinch = null;
 }
 stage.addEventListener("pointerdown", e => {
   if (S.busy || !board.labels) return;
-  closePop();
+  if (popKind) { closePop(); return; }          // 選單開著時，第一下只關選單
+  if (e.isPrimary) resetGestures();
   touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
-  if (touches.size === 1) {
-    g1 = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), moved: 0, mode: "tap" };
+  const now = performance.now();
+  if (!g1 && !pinch) {
+    g1 = { id: e.pointerId, x: e.clientX, y: e.clientY, t: now, moved: 0, mode: "tap" };
     if (S.tool === "brush" || S.tool === "eraser") {
       fx.flush();
       const pt = board.toImage(e.clientX, e.clientY);
       painter.strokeStart(pt.x, pt.y, strokeOpts());
       g1.mode = "draw";
     }
-  } else if (touches.size === 2 && g1 && !pinch) {
-    if (g1.mode === "tap") startPinch();
-    else if (g1.mode === "draw" && performance.now() - g1.t < 150) { painter.strokeCancel(); startPinch(); }
-  }
+  } else if (g1 && !pinch && (g1.mode === "tap" || (g1.mode === "draw" && now - g1.t < 150))) {
+    if (g1.mode === "draw") painter.strokeCancel();
+    startPinch(g1.id, e.pointerId);
+  } else palms.add(e.pointerId);                // 手掌或第三根手指
 });
 stage.addEventListener("pointermove", e => {
-  if (!touches.has(e.pointerId)) return;
+  if (!touches.has(e.pointerId) || palms.has(e.pointerId)) return;
   touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
-  if (pinch && touches.size >= 2) {
-    const [a, b] = [...touches.values()], d = Math.hypot(a.x - b.x, a.y - b.y), mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  if (pinch) {
+    if (!pinch.ids.includes(e.pointerId)) return;
+    const [a, b] = pinch.ids.map(id => touches.get(id));
+    if (!a || !b) return;
+    const d = Math.hypot(a.x - b.x, a.y - b.y), mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     pinch.moved = Math.max(pinch.moved, Math.abs(d - pinch.d0), Math.hypot(mid.x - pinch.mid0.x, mid.y - pinch.mid0.y));
     board.zoomAt(pinch.img.x, pinch.img.y, mid.x, mid.y, pinch.s0 * d / pinch.d0);
     return;
@@ -222,8 +262,9 @@ stage.addEventListener("pointermove", e => {
 function up(e) {
   if (!touches.has(e.pointerId)) return;
   touches.delete(e.pointerId);
+  if (palms.delete(e.pointerId)) return;
   if (pinch) {
-    if (touches.size === 0) {
+    if (pinch.ids.every(id => !touches.has(id))) {
       const now = performance.now();
       if (now - pinch.t < 250 && pinch.moved < 12) {   // 兩指輕點；連點兩下 → 回到原本大小
         if (now - lastTwoTap < 400) { board.fit(); lastTwoTap = 0; } else lastTwoTap = now;
@@ -253,9 +294,14 @@ async function tapAt(cx, cy) {
 }
 
 // ── 作品牆 ──
-let viewing = null, urls = [];
+let viewing = null, urls = [], viewUrl = null, tidy = false;
+function revokeUrls() {
+  urls.forEach(u => URL.revokeObjectURL(u)); urls = [];
+  if (viewUrl) { URL.revokeObjectURL(viewUrl); viewUrl = null; }
+}
 async function renderGallery() {
   show("gallery");
+  $("#view").classList.remove("on");
   urls.forEach(u => URL.revokeObjectURL(u));
   urls = [];
   const works = await G.list();
@@ -267,13 +313,19 @@ async function renderGallery() {
 }
 function openWork(w) {
   viewing = w;
-  const u = URL.createObjectURL(w.image || w.thumb);
-  urls.push(u);
-  $("#vImg").src = u;
+  if (viewUrl) URL.revokeObjectURL(viewUrl);
+  viewUrl = URL.createObjectURL(w.image || w.thumb);
+  $("#vImg").src = viewUrl;
+  $("#vEdit").style.display = tidy ? "none" : "";   // 整理模式只能刪、不能接著畫
   $("#view").classList.add("on");
 }
 $("#toGallery").onclick = renderGallery;
-$("#gBack").onclick = () => { show("home"); renderHome(); };
+$("#gBack").onclick = () => {
+  revokeUrls();
+  $("#view").classList.remove("on");
+  if (tidy) { tidy = false; show("paint"); }   // 整理完回到原本那張畫（畫布沒重載）
+  else { show("home"); renderHome(); }
+};
 $("#gTip").onclick = () => $("#tip").classList.toggle("on");
 $("#vClose").onclick = () => $("#view").classList.remove("on");
 $("#vEdit").onclick = async () => {
