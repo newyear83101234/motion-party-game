@@ -38,7 +38,9 @@ export class Fx {
     this.sparkOn = true; this.lastScan = 0;
     const loop = now => {
       if (!this.sparkOn) return;
+      requestAnimationFrame(loop);              // 先排好下一格：這一格就算出錯，閃爍也不會永遠停掉
       const F = this.b.fctx;
+      if (!F || !this.b.glit) return;           // 線稿還沒載入好（一進畫畫頁就會開始跑）
       if (now - this.lastScan > 1000) { this.scan(); this.lastScan = now; }
       for (const s of this.parts) F.clearRect(s.x - s.r - 2, s.y - s.r - 2, s.r * 2 + 4, s.r * 2 + 4);
       this.parts = this.parts.filter(s => now - s.t0 < 700);
@@ -47,7 +49,6 @@ export class Fx {
         this.parts.push({ x: cx + Math.random() * 16, y: cy + Math.random() * 16, r: 8 + Math.random() * 10, t0: now });
       }
       for (const s of this.parts) { const a = Math.sin((now - s.t0) / 700 * Math.PI); spark(F, s.x, s.y, s.r * (0.6 + a * 0.4), a); }
-      requestAnimationFrame(loop);
     };
     requestAnimationFrame(loop);
   }

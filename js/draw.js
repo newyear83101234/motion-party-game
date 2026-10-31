@@ -62,28 +62,37 @@ function renderHome(theme) {
 
 // ── 畫畫頁 ──
 // 回傳 true = 開好了；false = 載入失敗（退回首頁）或被更新的請求取代（什麼都不動）
+let loadSeq = 0;
 async function startArt(a, work = null) {
   show("paint");
   $("#after").classList.remove("on");
   closePop();
-  let ok;
-  try { ok = await board.load(a.url || ART_DIR + a.file); }
-  catch (e) {
-    console.warn("線稿載入失敗：" + (e && e.message));   // 不用 console.error：測試把它當頁面錯誤
-    show("home"); renderHome(a.theme);
-    return false;
-  }
-  if (!ok) return false;
-  painter.reset();
-  S.art = a; S.workId = work ? work.id : null; S.done = work ? !!work.done : false;
-  if (work) {
-    for (const [blob, ctx] of [[work.color, board.ctx], [work.glit, board.gctx]]) {
-      if (!blob) continue;
-      const bmp = await createImageBitmap(blob);
-      ctx.clearRect(0, 0, board.W, board.H); ctx.drawImage(bmp, 0, 0);
+  // 載入中：先藏起上一張、暫停操作，免得露出舊畫或畫了又被清掉；只有最後一次呼叫負責解除
+  const my = ++loadSeq;
+  S.busy = true;
+  board.wrap.style.visibility = "hidden";
+  try {
+    let ok;
+    try { ok = await board.load(a.url || ART_DIR + a.file); }
+    catch (e) {
+      console.warn("線稿載入失敗：" + (e && e.message));   // 不用 console.error：測試把它當頁面錯誤
+      show("home"); renderHome(a.theme);
+      return false;
     }
+    if (!ok) return false;
+    painter.reset();
+    S.art = a; S.workId = work ? work.id : null; S.done = work ? !!work.done : false;
+    if (work) {
+      for (const [blob, ctx] of [[work.color, board.ctx], [work.glit, board.gctx]]) {
+        if (!blob) continue;
+        const bmp = await createImageBitmap(blob);
+        ctx.clearRect(0, 0, board.W, board.H); ctx.drawImage(bmp, 0, 0);
+      }
+    }
+    return true;
+  } finally {
+    if (my === loadSeq) { board.wrap.style.visibility = ""; S.busy = false; }
   }
-  return true;
 }
 
 async function saveWork() {
