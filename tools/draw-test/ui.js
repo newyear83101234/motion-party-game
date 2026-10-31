@@ -154,6 +154,56 @@ function versionCheck() {
   check("完成動畫 3 秒內播完", await Promise.race([fin, new Promise(r => setTimeout(() => r("timeout"), 3000))]) === "ok");
   check("播完把疊加層拿掉", await p.evaluate(() => !document.querySelector(".finish-ov")));
 
+  // 審查修正
+  // 起筆在長方形左邊框黑線中央：只能塗到其中一邊，不能兩邊都塗
+  await p.evaluate(() => __draw.painter.clearAll());
+  await stroke([[1100, 500], [1300, 500], [900, 500]], { ...pen, brush: "marker", clip: true });
+  const inside = await px(1250, 500) !== "255,255,255", outside = await px(950, 500) !== "255,255,255";
+  check("起筆在線上：只塗到一邊", inside !== outside, `裡面=${inside} 外面=${outside}`);
+  // 不出線開著，起筆處找不到任何一塊 → 這一筆不畫（線稿角落沒有可塗的塊時用極小半徑不可行，改直接驗 st 為 null）
+  const noRegion = await p.evaluate(() => {
+    const P = __draw.painter, W = __draw.board.W;
+    const orig = P.regionAt; P.regionAt = () => -1;
+    P.strokeStart(500, 500, { brush: "marker", size: 20, mat: { kind: "solid" }, color: "#000", clip: true });
+    const st = P.st; P.strokeMove(600, 500); P.strokeEnd(); P.regionAt = orig;
+    return { st, lAlpha: __draw.board.lctx.getImageData(550, 500, 1, 1).data[3], W };
+  });
+  check("不出線但找不到任何一塊 → 不畫", noRegion.st === null && noRegion.lAlpha === 0 && await px(550, 500) === "255,255,255");
+  // 上一筆沒放開就又起筆：舊的那筆先收掉（記一步復原）
+  const hs = await p.evaluate(() => {
+    const P = __draw.painter, o = { brush: "marker", size: 10, mat: { kind: "solid" }, color: "#123456", clip: false }, h0 = P.history.size;
+    P.strokeStart(100, 1400, o); P.strokeMove(200, 1400);
+    P.strokeStart(100, 1450, o); P.strokeMove(200, 1450); P.strokeEnd();
+    return P.history.size - h0;
+  });
+  check("沒放開又起筆 → 前一筆被收掉（共 2 步）", hs === 2, `多了 ${hs} 步`);
+  // done() 連叫兩次只生效一次
+  const dn = await p.evaluate(() => {
+    const P = __draw.painter, h0 = P.history.size, f = P.fill(P.regionAt(1450, 500), { kind: "solid" }, "#00bcd4");
+    f.done(); f.done();
+    return P.history.size - h0;
+  });
+  check("done() 連叫兩次 → 復原只多 1 步", dn === 1, `多了 ${dn} 步`);
+  // 復原記憶體上限：背景連換 35 色
+  const mem = await p.evaluate(() => {
+    const P = __draw.painter;
+    for (let i = 0; i < 35; i++) { const f = P.fill(P.regionAt(50, 50), { kind: "solid" }, "#" + (16 + i * 7).toString(16).padStart(2, "0") + "20a0"); f.done(); }
+    const bytes = P.history.bytes, size = P.history.size, ok = P.undo();
+    return { bytes, size, ok };
+  });
+  check("復原記憶體 ≤ 120MB 且還能復原", mem.bytes <= 120e6 && mem.size < 35 && mem.ok, `bytes=${mem.bytes} size=${mem.size}`);
+  // 載入競態：慢的舊請求不能蓋掉新的
+  const race = await p.evaluate(async () => {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="768" viewBox="0 0 1024 768"><rect width="1024" height="768" fill="#fff"/><rect x="100" y="100" width="300" height="300" fill="none" stroke="#000" stroke-width="12"/></svg>';
+    const B = __draw.board;
+    const a = B.load("IMAGE/draw/lineart/test-shapes.svg"), b = B.load("data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg));
+    const [ra, rb] = await Promise.all([a, b]);
+    return { ra, rb, W: B.W };
+  });
+  check("兩次 load 連續呼叫：以後呼叫的為準", race.W === 1024 && race.ra === false && race.rb === true, JSON.stringify(race));
+  await p.evaluate(async () => { await __draw.board.load("IMAGE/draw/lineart/test-shapes.svg"); __draw.painter.reset(); });
+  check("換回測試線稿", await p.evaluate(() => __draw.board.W) === 2048);
+
   // ── 後續 task 的測試插在這一行上面 ──
   check("沒有頁面錯誤", errs.length === 0, errs.join(" | "));
   await browser.close();

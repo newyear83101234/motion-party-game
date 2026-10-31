@@ -11,20 +11,25 @@ export class Board {
     stage.appendChild(this.wrap);
     this.view = { s: 1, tx: 0, ty: 0 };
     this.base = 1;
+    this._tok = 0;
   }
 
+  // 回傳 true = 載入完成；false = 有更新的請求，這次作廢
   async load(url) {
+    const tok = ++this._tok;
     const img = await new Promise((ok, bad) => {
       const i = new Image();
       i.onload = () => ok(i);
       i.onerror = () => bad(new Error("線稿載入失敗：" + url));
       i.src = url;
     });
+    if (tok !== this._tok) return false;
     const W = img.naturalWidth || 2048, H = img.naturalHeight || 1536;
     this.W = W; this.H = H;
     const src = makeCanvas(W, H), sx = src.getContext("2d", { willReadFrequently: true });
     sx.fillStyle = "#fff"; sx.fillRect(0, 0, W, H); sx.drawImage(img, 0, 0, W, H);
     const rgba = sx.getImageData(0, 0, W, H).data;
+    src.width = src.height = 0;   // 暫存畫布用完就釋放
     this.mask = lineMask(rgba, W, H);
     const R = labelRegions(this.mask, W, H);
     this.labels = R.labels; this.boxes = R.boxes;
@@ -34,7 +39,7 @@ export class Board {
     for (let p = 0; p < o.length; p += 4) o[p + 3] = 255 - (rgba[p] * 0.299 + rgba[p + 1] * 0.587 + rgba[p + 2] * 0.114);
     lx.putImageData(out, 0, 0);
 
-    this.color = makeCanvas(W, H); this.ctx = this.color.getContext("2d", { willReadFrequently: true });
+    this.color = makeCanvas(W, H); this.ctx = this.color.getContext("2d");
     this.ctx.fillStyle = "#fff"; this.ctx.fillRect(0, 0, W, H);
     this.glit = makeCanvas(W, H); this.gctx = this.glit.getContext("2d", { willReadFrequently: true }); // 不放進畫面
     this.live = makeCanvas(W, H); this.lctx = this.live.getContext("2d");
@@ -44,6 +49,7 @@ export class Board {
     this.wrap.replaceChildren(this.color, this.live, line, this.fx);
     this.wrap.style.width = W + "px"; this.wrap.style.height = H + "px";
     this.fit();
+    return true;
   }
 
   fit() {

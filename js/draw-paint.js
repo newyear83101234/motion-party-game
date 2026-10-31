@@ -5,7 +5,7 @@ import { makeCanvas as mk } from "./draw-canvas.js?v=1";
 export class Painter {
   constructor(board) {
     this.b = board;
-    this.history = new History(30);
+    this.history = new History(30, 120e6);   // 約 120MB 的復原記憶體上限
     this.maskCache = new Map();
     this.paintKey = ""; this.paint = null;
   }
@@ -29,19 +29,27 @@ export class Painter {
   // 目前「材質＋顏色」的整張顏料，有快取（換材質或顏色才重做）
   paintFor(mat, color) {
     const key = `${mat.kind}:${mat.pattern || ""}:${color}`;
-    if (key !== this.paintKey) { this.paint = makePaint(mat, color, this.b.W, this.b.H); this.paintKey = key; }
+    if (key !== this.paintKey) { if (this.paint) this.paint.width = 0; this.paint = makePaint(mat, color, this.b.W, this.b.H); this.paintKey = key; }
     return this.paint;
   }
 
   snapshot(rect) {
     const b = this.b;
-    this.history.push({ rect, color: b.ctx.getImageData(rect.x, rect.y, rect.w, rect.h), glit: b.gctx.getImageData(rect.x, rect.y, rect.w, rect.h) });
+    const color = b.ctx.getImageData(rect.x, rect.y, rect.w, rect.h);
+    let glit = b.gctx.getImageData(rect.x, rect.y, rect.w, rect.h);
+    let bytes = color.data.length;
+    const d = glit.data;
+    let any = false;
+    for (let i = 3; i < d.length; i += 4) if (d[i]) { any = true; break; }
+    if (any) bytes += d.length; else glit = null;   // 亮粉遮罩這塊全空就不存，省一半記憶體
+    this.history.push({ rect, color, glit, bytes });
   }
   undo() {
     const e = this.history.pop();
     if (!e) return false;
     this.b.ctx.putImageData(e.color, e.rect.x, e.rect.y);
-    this.b.gctx.putImageData(e.glit, e.rect.x, e.rect.y);
+    if (e.glit) this.b.gctx.putImageData(e.glit, e.rect.x, e.rect.y);
+    else this.b.gctx.clearRect(e.rect.x, e.rect.y, e.rect.w, e.rect.h);
     return true;
   }
 
@@ -64,16 +72,20 @@ export class Painter {
     x.drawImage(p, m.x, m.y, m.w, m.h, 0, 0, m.w, m.h);
     x.globalCompositeOperation = "destination-in";
     x.drawImage(m.canvas, 0, 0);
-    return { x: m.x, y: m.y, canvas: c, glitter: mat.kind === "glitter", done: () => this.commit(c, m.x, m.y, mat.kind === "glitter") };
+    let used = false;   // done 只能生效一次
+    return { x: m.x, y: m.y, canvas: c, glitter: mat.kind === "glitter",
+      done: () => { if (used) return; used = true; this.commit(c, m.x, m.y, mat.kind === "glitter"); } };
   }
 
   // ── 筆畫：開始 → 移動 → 結束才合進顏色層；過程畫在即時層。不出線時裁在起筆那一塊裡 ──
   // o = { brush: "marker" | "crayon" | "rainbow" | "eraser", size: 半徑(畫布像素), mat, color, clip: true/false }
   strokeStart(x, y, o) {
     const b = this.b;
+    if (this.st) this.strokeEnd();   // 上一筆沒收到放開 → 先收掉
     if (!this.scratch || this.scratch.width !== b.W || this.scratch.height !== b.H) { this.scratch = mk(b.W, b.H); this.sctx = this.scratch.getContext("2d"); }   // 換線稿尺寸就重做
     this.sctx.clearRect(0, 0, b.W, b.H);
     const id = o.clip ? this.regionAt(x, y) : -1;
+    if (o.clip && id < 0) { this.st = null; return; }   // 不出線但找不到任何一塊 → 這一筆不畫
     this.st = { o, mask: id >= 0 ? this.maskOf(id) : null, last: { x, y }, rect: null, hue: Math.random() * 360 };
     this.strokeMove(x, y);
   }
@@ -105,8 +117,9 @@ export class Painter {
     }
     st.last = { x, y };
     // 2) 只重畫這一段的範圍到即時層
-    const seg = rectClamp({ x: Math.min(a.x, x) - r - 2, y: Math.min(a.y, y) - r - 2,
-      w: Math.abs(x - a.x) + 2 * r + 4, h: Math.abs(y - a.y) + 2 * r + 4 }, this.b.W, this.b.H);
+    const m = (o.brush === "crayon" ? r * 1.3 : r) + 2;   // 蠟筆的點會散到 1.28 倍半徑外
+    const seg = rectClamp({ x: Math.min(a.x, x) - m, y: Math.min(a.y, y) - m,
+      w: Math.abs(x - a.x) + 2 * m, h: Math.abs(y - a.y) + 2 * m }, this.b.W, this.b.H);
     if (!seg) return;
     st.rect = rectUnion(st.rect, seg);
     const L = this.b.lctx;

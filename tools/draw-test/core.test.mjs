@@ -68,6 +68,33 @@ function makeFrame() {
   check("History 清空後 pop → null", H.pop() === null);
 }
 
+// 審查修正
+{
+  const H = new C.History(30, 100);
+  H.push({ bytes: 60 }); H.push({ bytes: 60 }); H.push({ bytes: 60 });
+  check("History 位元組上限：丟舊的只留 1 筆 60", H.size === 1 && H.bytes === 60, `size=${H.size} bytes=${H.bytes}`);
+  H.pop();
+  check("History pop 後 bytes 歸 0", H.bytes === 0 && H.size === 0);
+  const H2 = new C.History(2, 1000);
+  H2.push({ bytes: 10 }); H2.push({ bytes: 20 }); H2.push({ bytes: 30 });
+  check("History 筆數上限時 bytes 同步扣掉", H2.size === 2 && H2.bytes === 50, `bytes=${H2.bytes}`);
+  H2.push({ bytes: 5000 });
+  check("單筆超過上限仍保留這一筆", H2.size === 1 && H2.bytes === 5000);
+  H2.clear();
+  check("History clear 後 bytes 歸 0", H2.bytes === 0);
+  const H3 = new C.History(30);
+  H3.push(1); H3.push(2);
+  check("沒有 bytes 的項目當 0", H3.bytes === 0 && H3.size === 2);
+
+  // 60×30：中間一條 16px 粗黑線（x=20..35），左塊 x<20、右塊 x>35
+  const w = 60, h = 30, rgba = new Uint8ClampedArray(w * h * 4).fill(255);
+  for (let y = 0; y < h; y++) for (let x = 20; x <= 35; x++) { const p = (y * w + x) * 4; rgba[p] = rgba[p + 1] = rgba[p + 2] = 0; }
+  const R = C.labelRegions(C.lineMask(rgba, w, h), w, h);
+  const left = R.labels[5 * w + 5];
+  check("regionAt 預設半徑：粗線上離左塊 8px 也找得到", C.regionAt(R.labels, w, h, 27, 15) === left, `got ${C.regionAt(R.labels, w, h, 27, 15)}`);
+  check("regionAt 半徑仍有限制（遠處空白 -1）", C.regionAt(new Int32Array(w * h).fill(-1), w, h, 27, 15) === -1);
+}
+
 console.log(results.join("\n"));
 const fail = results.filter(r => r.startsWith("❌")).length;
 console.log(fail ? `\n${fail} 項失敗` : "\n全部通過");

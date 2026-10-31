@@ -1,5 +1,5 @@
 // 畫畫遊戲貼紙：12 種原創向量圖（viewBox 100×100），第一次用到才轉成圖片並快取
-const svg = body => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">${body}</svg>`;
+const svg = body => `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">${body}</svg>`;
 const O = 'stroke="#3b2a1a" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"';
 
 export const STICKERS = [
@@ -24,7 +24,7 @@ export function stickerImage(id) {
     cache.set(id, new Promise((ok, bad) => {
       const img = new Image();
       img.onload = () => ok(img);
-      img.onerror = () => bad(new Error("貼紙載入失敗：" + id));
+      img.onerror = () => { cache.delete(id); bad(new Error("貼紙載入失敗：" + id)); };   // 失敗不留快取，下次才能重試
       img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(s.svg);
     }));
   }

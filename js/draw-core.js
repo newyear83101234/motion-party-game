@@ -43,7 +43,7 @@ export function labelRegions(mask, w, h) {
 }
 
 // 找 (x, y) 屬於哪一塊；點在黑線上時，找半徑 r 內最近的一塊；都沒有回 -1
-export function regionAt(labels, w, h, x, y, r = 6) {
+export function regionAt(labels, w, h, x, y, r = 12) {
   x = Math.floor(x); y = Math.floor(y);   // 像素 9 涵蓋 9.0～9.99，用無條件捨去才不會把最右／最下半格判成圖外
   if (x < 0 || y < 0 || x >= w || y >= h) return -1;
   const v = labels[y * w + x];
@@ -92,11 +92,15 @@ export function rectClamp(r, w, h) {
   return x1 > x && y1 > y ? { x, y, w: x1 - x, h: y1 - y } : null;
 }
 
-// 復原堆疊：超過上限就丟掉最舊的
+// 復原堆疊：超過筆數上限，或總位元組（每筆的 e.bytes）超過 maxBytes 就丟掉最舊的（至少留 1 筆）
 export class History {
-  constructor(limit = 30) { this.limit = limit; this.items = []; }
-  push(e) { this.items.push(e); if (this.items.length > this.limit) this.items.shift(); }
-  pop() { return this.items.pop() ?? null; }
-  clear() { this.items.length = 0; }
+  constructor(limit = 30, maxBytes = Infinity) { this.limit = limit; this.maxBytes = maxBytes; this.items = []; this._bytes = 0; }
+  push(e) {
+    this.items.push(e); this._bytes += e?.bytes || 0;
+    while (this.items.length > this.limit || (this._bytes > this.maxBytes && this.items.length > 1)) this._bytes -= this.items.shift()?.bytes || 0;
+  }
+  pop() { const e = this.items.pop() ?? null; if (e) this._bytes -= e.bytes || 0; return e; }
+  clear() { this.items.length = 0; this._bytes = 0; }
   get size() { return this.items.length; }
+  get bytes() { return this._bytes; }
 }

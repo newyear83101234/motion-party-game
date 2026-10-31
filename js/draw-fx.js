@@ -106,7 +106,7 @@ export class Fx {
     const b = this.b;
     const ids = [...new Set(pt.at.map(([x, y]) => regionAt(b.labels, b.W, b.H, x, y)).filter(id => id >= 0))];
     if (!ids.length) return null;
-    const ms = ids.map(id => regionMask(b.labels, b.W, b.H, id, b.boxes[id], pt.type === "blink" ? 0 : 14));
+    const ms = ids.map(id => regionMask(b.labels, b.W, b.H, id, b.boxes[id], pt.type === "blink" ? 0 : 24));
     const x0 = Math.min(...ms.map(m => m.x)), y0 = Math.min(...ms.map(m => m.y));
     const w = Math.max(...ms.map(m => m.x + m.w)) - x0, h = Math.max(...ms.map(m => m.y + m.h)) - y0;
     const fill = surround(comp, x0, y0, w, h);
@@ -152,15 +152,21 @@ function drawPart(O, q, s) {
   O.restore();
 }
 
-// 零件外面一圈的顏色（避開黑線），用來補零件移開後露出的洞、或當眼皮顏色
+// 零件外框外面 12px 繞一圈取 16 個點，略過深色（黑線），回傳出現最多次的顏色；都沒有就白色
 function surround(comp, x, y, w, h) {
-  const c = comp.getContext("2d");
-  for (const [sx, sy] of [[x - 10, y + h / 2], [x + w + 10, y + h / 2], [x + w / 2, y - 10], [x + w / 2, y + h + 10]]) {
+  const c = comp.getContext("2d"), cnt = new Map();
+  let best = null, bn = 0;
+  for (let i = 0; i < 16; i++) {
+    const a = i / 16 * Math.PI * 2;   // 橢圓繞一圈，外擴 12px
+    const sx = Math.round(x + w / 2 + (w / 2 + 12) * Math.cos(a)), sy = Math.round(y + h / 2 + (h / 2 + 12) * Math.sin(a));
     if (sx < 0 || sy < 0 || sx >= comp.width || sy >= comp.height) continue;
-    const d = c.getImageData(sx | 0, sy | 0, 1, 1).data;
-    if (d[0] * 0.299 + d[1] * 0.587 + d[2] * 0.114 > 60) return `rgb(${d[0]},${d[1]},${d[2]})`;
+    const d = c.getImageData(sx, sy, 1, 1).data;
+    if (d[0] * 0.299 + d[1] * 0.587 + d[2] * 0.114 <= 60) continue;
+    const k = `rgb(${d[0]},${d[1]},${d[2]})`, n = (cnt.get(k) || 0) + 1;
+    cnt.set(k, n);
+    if (n > bn) { bn = n; best = k; }
   }
-  return "#fff";
+  return best || "#fff";
 }
 
 function spark(F, x, y, r, a) {
