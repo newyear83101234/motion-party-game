@@ -157,6 +157,7 @@ export function mountRewards(deps) {
       ov.classList.add("bye");   // 先讓手指穿過去，淡出完再整個拿掉
       await wait(300);
     } finally {
+      if (parts?.c) parts.c.width = parts.c.height = 0;   // 整個螢幕大的粒子畫布馬上釋放（iPad 記憶體）
       ov.remove();   // 不管中間出什麼錯，遮罩一定拿掉，不會擋住主程式
     }
   }
@@ -194,9 +195,11 @@ export function mountRewards(deps) {
     phase = "wait";
     egg.classList.add("wait");
     if (early) tap();
-    timers.push(setTimeout(tap, 5000));   // 5 秒沒點就自己開：不會卡在這裡
+    timers.push(setTimeout(tap, 3500));   // 3.5 秒沒點就自己開：不會卡在這裡（櫻木：5 秒太久）
+    let hint = null;   // 停 1.5 秒沒點：蛋上出現點擊手指（跟其他畫面同一個提示樣子）
+    timers.push(setTimeout(() => { if (phase !== "wait") return; const r = egg.getBoundingClientRect(); hint = el("div", "foil-hint"); Object.assign(hint.style, { position: "fixed", left: r.left + r.width / 2 + "px", top: r.top + r.height / 2 + "px", zIndex: 30 }); ov.append(hint); }, 1500));
     await opened;
-    timers.forEach(clearTimeout);
+    timers.forEach(clearTimeout); hint?.remove();
 
     // 開！上下兩半彈開＋閃光＋彩帶＋星星，貼紙轉一圈放大出現、背後放射光芒
     const ok = await imgReady;

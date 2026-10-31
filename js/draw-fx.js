@@ -1,6 +1,6 @@
 // 畫畫遊戲特效：填色水波、亮粉閃爍、完成動畫（跳一下＋零件動作＋彩帶）。全部沒有聲音
-import { regionAt, regionMask } from "./draw-core.js?v=6";
-import { makeCanvas as mk } from "./draw-canvas.js?v=6";
+import { regionAt, regionMask } from "./draw-core.js?v=7";
+import { makeCanvas as mk } from "./draw-canvas.js?v=7";
 
 export class Fx {
   constructor(board) { this.b = board; this.pending = null; this.sparkOn = false; this.parts = []; this.cells = []; }
@@ -75,8 +75,8 @@ export class Fx {
     const ov = mk(Math.round(r.width * dpr), Math.round(r.height * dpr));
     ov.className = "finish-ov";
     b.stage.appendChild(ov);
-    const O = ov.getContext("2d"), k = Math.min(r.width / b.W, r.height / b.H) * dpr;
-    const ox = (ov.width - b.W * k) / 2, oy = (ov.height - b.H * k) / 2;
+    const o = b.origin(r), O = ov.getContext("2d"), k = o.k * dpr;   // 跟畫布上那張紙同一個位置、大小（四周留邊）
+    const ox = o.x * dpr, oy = o.y * dpr;
     const conf = [];
     let burst = false;
     return new Promise(resolve => {
@@ -84,12 +84,14 @@ export class Fx {
       // 收尾只生效一次：移除疊加層、釋放畫布、結束 Promise（正常播完、出錯、保險計時都走這裡）
       const done = () => {
         if (over) return;
-        over = true;
+        over = true; this.finishing = false; this.skipFinish = () => {};
         ov.remove(); comp.width = comp.height = 0; ov.width = ov.height = 0;
         resolve();
       };
-      setTimeout(() => { if (ov.isConnected) done(); }, 5000);   // 保險：5 秒後疊加層還在 → 強制收掉
+      this.finishing = true;
+      this.skipFinish = () => { if (performance.now() - t0 > 1000) done(); };   // 點畫面快轉：至少跳 1 秒
       const t0 = performance.now();
+      setTimeout(() => { if (ov.isConnected) done(); }, 5000);   // 保險：5 秒後疊加層還在 → 強制收掉
       const frame = now => {
         if (over) return;
         try {

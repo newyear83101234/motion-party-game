@@ -154,7 +154,7 @@
 .bk-count { height: 64px; padding: 0 22px 0 14px; border-radius: 34px; display: flex; align-items: center; gap: 6px; white-space: nowrap; flex: 0 0 auto;
   background: #fff; box-shadow: 0 0 0 4px var(--sun), 0 6px 0 rgba(90, 60, 20, .2); font-size: 30px; font-weight: 900; color: var(--ink); }
 .bk-count .st { font-size: 34px; }
-.bk-count .of { color: #b49a72; font-size: 24px; }
+.bk-count .of { color: #8a6d45; font-size: 24px; }
 
 .bk-desk { flex: 1; min-height: 0; position: relative; display: grid; place-items: center; padding: 4px 16px 16px; }
 .bk { position: relative; z-index: 1; width: var(--bkw); height: calc(var(--ph) + var(--pad) * 2); border-radius: 22px; perspective: 2400px;

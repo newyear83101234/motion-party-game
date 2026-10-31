@@ -4,7 +4,7 @@
   --press: 0 1px 0 var(--wood-d), 0 2px 4px rgba(90, 60, 20, .12);
   --spring: cubic-bezier(.3, 1.6, .5, 1); }
 /* 字型：jf open 粉圓（OFL），只收畫面用到的字（tools/draw-font.mjs 產生），沒收到的字退回蘋方 */
-@font-face { font-family: "Huninn"; src: url("../fonts/huninn-draw.woff2?v=6") format("woff2"); font-display: swap; }
+@font-face { font-family: "Huninn"; src: url("../fonts/huninn-draw.woff2?v=7") format("woff2"); font-display: swap; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); overflow: hidden; touch-action: none;
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
@@ -22,7 +22,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 
 /* 首頁與作品牆 */
 .top { display: flex; align-items: center; gap: 16px; padding: 16px 20px 8px; }
-#home { background: var(--bg) url("../IMAGE/draw/ui/home-bg.jpg?v=6") center / cover; }
+#home { background: var(--bg) url("../IMAGE/draw/ui/home-bg.jpg?v=7") center / cover; }
 .hero { padding: 12px 24px 4px; gap: 14px; }
 .mascot { height: clamp(70px, 8vw, 92px); width: auto; animation: bob 2.6s ease-in-out infinite; filter: drop-shadow(0 6px 6px rgba(60, 30, 0, .2)); }
 @keyframes bob { 50% { transform: translateY(-6px) rotate(-3deg); } }
@@ -48,7 +48,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .theme:active { transform: translateY(2px) scale(.96); }
 .big { width: 88px; height: 88px; border-radius: 26px; background: linear-gradient(#fff, #fbf5ea); font-size: 48px; position: relative;
   box-shadow: var(--lift); flex: 0 0 auto; display: grid; place-items: center; transition: transform .14s var(--spring), box-shadow .14s; }
-.big.on, .btn.on { background: #fff; box-shadow: 0 0 0 5px var(--ink), 0 0 0 10px rgba(255, 201, 60, .55); transform: scale(1.04); }
+.big.on, .btn.on { background: #fff; box-shadow: 0 0 0 5px var(--ink), 0 0 0 7px rgba(255, 201, 60, .55); transform: scale(1.04); }
 .big:active, .btn:active, .card:active { transform: translateY(3px) scale(.97); box-shadow: var(--press); }
 .ico { width: 70%; height: 70%; object-fit: contain; pointer-events: none; -webkit-user-drag: none; filter: drop-shadow(0 2px 2px rgba(60, 30, 0, .18)); }
 .arts, .works { flex: 1; overflow-y: auto; touch-action: pan-y; display: grid; align-content: start; gap: 20px;
@@ -67,12 +67,17 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
   rotate: -12deg; animation: stampIn .5s var(--spring) .3s backwards; }
 @keyframes stampIn { from { opacity: 0; transform: scale(2.2); } }
 .card.mine img { border-radius: 16px; }
+.card .egg { position: absolute; right: -7px; top: -9px; width: 40px; height: 40px; border-radius: 50%; pointer-events: none;
+  background: linear-gradient(#ff9ec9 0 48%, #fff 52%); box-shadow: 0 0 0 3px #fff, 0 3px 6px rgba(90, 60, 20, .3), inset 0 -3px 0 rgba(0, 0, 0, .06);
+  animation: eggWiggle 2.8s ease-in-out infinite; animation-delay: calc(var(--i, 0) * .3s); }
+.card .egg::after { content: ""; position: absolute; left: 9px; top: 7px; width: 9px; height: 6px; border-radius: 50%; background: rgba(255, 255, 255, .8); }
+@keyframes eggWiggle { 0%, 84%, 100% { rotate: 0deg; } 88% { rotate: -14deg; } 94% { rotate: 10deg; } }
 .works .empty { grid-column: 1 / -1; justify-self: center; margin-top: 8vh; display: flex; align-items: flex-end; gap: 10px; }
 .works .empty img { height: 220px; animation: bob 2.6s ease-in-out infinite; }
 .works .empty img.ico { width: 110px; height: 110px; animation-delay: .4s; }
 .tidy-tip { display: none; margin: 0 20px; padding: 12px 20px; font-size: 22px; line-height: 1.5; background: #fff; border-radius: 16px; box-shadow: 0 4px 0 var(--wood-d); }
 .tidy-tip.on { display: block; }
-#gTip { width: 56px; height: 56px; font-size: 26px; border-radius: 16px; background: rgba(255, 255, 255, .6); box-shadow: 0 3px 0 var(--wood-d); }
+#gTip { width: 48px; height: 48px; font-size: 22px; border-radius: 14px; background: rgba(255, 255, 255, .5); box-shadow: none; opacity: .6; }
 .card { position: relative; background: #fff; border-radius: 26px; padding: 10px; box-shadow: var(--lift); aspect-ratio: 4 / 3;
   transition: transform .16s var(--spring), box-shadow .16s; animation: cardIn .45s var(--spring) backwards; animation-delay: calc(var(--i, 0) * 60ms); }
 @keyframes cardIn { from { opacity: 0; transform: translateY(24px) scale(.92); } }
@@ -228,7 +233,9 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .after.on .big:nth-of-type(2) { animation-delay: .33s; }
 .after.on .big:nth-of-type(3) { animation-delay: .41s; }
 @keyframes afterIn { from { opacity: 0; transform: translateX(40px) scale(.6); } }
-#aHome { background: linear-gradient(#ffe07a, #ffc93c); }
+#aHome { background: linear-gradient(#fff, #fbf5ea); }
+.after .big.lead { animation: afterIn .5s var(--spring) .25s backwards, leadHop 1.6s ease-in-out 1.2s infinite; }
+@keyframes leadHop { 0%, 70%, 100% { transform: translateY(0); } 80% { transform: translateY(-8px) scale(1.05); } 90% { transform: translateY(0); } }
 #aPlay { background: linear-gradient(#9fd8ff, #4fb3ff); }
 #aAgain { background: linear-gradient(#b4ec97, #7fd35e); }
 #aMusic { background: linear-gradient(#ffd9a8, #ffb35c); }
@@ -236,6 +243,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 #aPuzzle { background: linear-gradient(#cfe6ff, #8fbfff); }
 .after .big { width: 84px; height: 84px; }   /* 5 顆大鈕在 iPad 較矮的視窗也放得下 */
 .after.on .big:nth-of-type(5) { animation-delay: .57s; }
+.after.on .big:nth-of-type(6) { animation-delay: .65s; }
 /* 貼紙選單：收集到的貼紙越來越多，太多時可以上下捲 */
 .pop.sticker { max-height: calc(100% - 24px); overflow-y: auto; touch-action: pan-y; }
 .after.on .big:nth-of-type(4) { animation-delay: .49s; }
@@ -249,6 +257,8 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .after.playing .cheer img { animation: dance .32s ease-in-out infinite alternate; }
 @keyframes dance { from { transform: rotate(-10deg) translateY(0); } to { transform: rotate(10deg) translateY(-14px); } }
 .after.playing .big { pointer-events: none; opacity: .5; }
+.after.playing #aMusic { opacity: 1; animation: musicRing 1s ease-out infinite; }
+@keyframes musicRing { from { box-shadow: 0 0 0 4px var(--ink), 0 0 0 4px rgba(255, 179, 92, .8); } to { box-shadow: 0 0 0 4px var(--ink), 0 0 0 22px rgba(255, 179, 92, 0); } }
 /* 慶祝：吉祥物跳出來、三顆星星一顆一顆蹦出來 */
 .cheer { display: flex; flex-direction: column; align-items: center; pointer-events: none; }
 .cheer img { height: 104px; animation: cheerJump .8s var(--spring) backwards, bob 2.6s ease-in-out 1s infinite; filter: drop-shadow(0 6px 6px rgba(60, 30, 0, .25)); }
@@ -273,7 +283,8 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .big-cheer span:nth-child(3) { animation-delay: .71s; rotate: 12deg; }
 @keyframes cheerFade { from { opacity: 0; } }
 @keyframes cheerOut { to { opacity: 0; transform: scale(.85) translateX(30%); } }
-.finish-ov { position: absolute; inset: 0; width: 100%; height: 100%; background: #fff; z-index: 5; pointer-events: none; }
+.finish-ov { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none;
+  background: #f1e6d1 radial-gradient(rgba(170, 130, 80, .13) 1.6px, transparent 1.8px) 0 0 / 22px 22px; }
 
 /* 作品牆：放大看 */
 .view { position: fixed; inset: 0; z-index: 8; display: none; flex-direction: column; align-items: center; justify-content: center;
@@ -313,15 +324,14 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 @keyframes foilIn { from { opacity: 0; transform: scale(.9) rotate(-2deg); } }
 #paint.scratching #bar, #paint.scratching .corner { visibility: hidden; }
 #paint.scratching .scratch-bar { display: flex; }
-#paint.scratching .scratch-bar .big { visibility: hidden; }
-#paint.scratching .scratch-bar.on .big { visibility: visible; }
 #sPaint { background: linear-gradient(#b4ec97, #7fd35e); }
 /* 刮的進度：三顆星，刮開 30／50／70% 各亮一顆；刮的時候吉祥物在側欄中間跟著看 */
 #paint.scratching .scratch-bar { justify-content: center; }
-#paint.scratching .scratch-bar:not(.on) .big { display: none; }
+#paint.scratching .scratch-bar:not(.on) .big:not(#sHome) { display: none; }
+#paint.scratching .scratch-bar:not(.on) #sHome { order: -1; width: 72px; height: 72px; font-size: 38px; border-radius: 22px; background: linear-gradient(#fff, #fbf5ea); box-shadow: var(--lift); margin-bottom: 18px; }
 .sstars { margin: 6px 0 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.sstar { font-size: 44px; color: #eadcbe; -webkit-text-stroke: 4px #fff; paint-order: stroke fill; transition: color .2s; }
-.sstar.lit { color: #ffc93c; animation: starPop .5s var(--spring); }
+.sstar { font-size: 44px; color: #fff; -webkit-text-stroke: 3px #b08a4f; paint-order: stroke fill; transition: color .2s; }
+.sstar.lit { color: #ffc93c; -webkit-text-stroke: 3px #fff; animation: starPop .5s var(--spring); }
 .scratch-bar.on .sstars { flex-direction: row; }
 .scratch-bar.on .sstar { font-size: 30px; }
 .foil-hint { z-index: 7; }
@@ -332,7 +342,10 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .modes { display: flex; gap: 12px; }
 .modes .big { width: 80px; height: 80px; border-radius: 24px; font-size: 44px; }
 .modes .big.off { display: none; }
-.big.m-mirror { background: linear-gradient(#3b3f8f, #1c1f55); box-shadow: 0 4px 0 #11133a, 0 8px 14px rgba(30, 20, 80, .3); }
+.big.m-mirror { background: linear-gradient(#8f86ff, #5b4fd6); box-shadow: 0 4px 0 #3f35a8, 0 8px 14px rgba(40, 30, 120, .25); }
+.modes #toGallery { background: linear-gradient(#ffd9a8, #ffb35c); box-shadow: 0 4px 0 #d98a2e, 0 8px 14px rgba(140, 90, 20, .2); }
+.modes:has(#toDaily:not(.off)) #toScratch { animation: none; }
+@media (max-width: 1110px) { .modes .big { width: 68px; height: 68px; font-size: 38px; border-radius: 20px; } .modes { gap: 8px; } .hero { gap: 10px; } }
 .big.m-world { background: linear-gradient(#bfe8ff, #7cc8ff); box-shadow: 0 4px 0 #4a9ad6, 0 8px 14px rgba(40, 90, 140, .2); }
 .big.m-book { background: linear-gradient(#ffe0ef, #ffb3d6); box-shadow: 0 4px 0 #e07aa9, 0 8px 14px rgba(140, 40, 90, .2); }
 .big.gift { box-shadow: 0 4px 0 #e0609d, 0 8px 14px rgba(140, 40, 90, .2); }

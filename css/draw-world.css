@@ -80,18 +80,18 @@
 #world .w-top { position: absolute; left: 0; right: 0; top: 0; z-index: 6; display: flex; align-items: center; gap: 16px; pointer-events: none;
   padding: calc(12px + env(safe-area-inset-top)) calc(116px + env(safe-area-inset-right)) 0 calc(16px + env(safe-area-inset-left)); }
 #world .w-top > * { pointer-events: auto; }
-#world .big { width: 80px; height: 80px; font-size: 44px; border-radius: 24px; }
-#wHome { background: linear-gradient(#ffe07a, #ffc93c); box-shadow: 0 0 0 4px #fff, 0 7px 0 rgba(59, 42, 26, .3); }
+#world .big { width: 88px; height: 88px; font-size: 46px; border-radius: 26px; }
+#wHome { background: linear-gradient(#fff, #fbf5ea); }   /* 跟其他畫面的 🏠 同一個樣子 */
 #wTabs { margin: 0 auto; display: flex; gap: 10px; padding: 8px 12px; border-radius: 40px; background: rgba(255, 255, 255, .6);
   box-shadow: 0 4px 0 rgba(90, 60, 20, .14), 0 8px 18px rgba(90, 60, 20, .12); }
 #world .w-tab { position: relative; width: 66px; height: 66px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto;
   background: linear-gradient(#fff, #fbf5ea); box-shadow: 0 3px 0 var(--wood-d, #e2c48f); transition: transform .16s var(--spring, ease), box-shadow .16s; }
 #world .w-tab .ico { width: 82%; height: 82%; }
-#world .w-tab.on { background: #fff; box-shadow: 0 0 0 4px var(--ink, #3b2a1a), 0 6px 0 rgba(59, 42, 26, .25); transform: translateY(-2px) scale(1.1); }
+#world .w-tab.on { background: var(--c, #fff); box-shadow: 0 0 0 4px var(--ink, #3b2a1a), 0 6px 0 rgba(59, 42, 26, .25); transform: translateY(-2px) scale(1.1); }
 #world .w-tab:active { transform: translateY(2px) scale(.94); }
 #world .w-tab.w-zero .ico { opacity: .5; filter: grayscale(.6); }
 #world .w-n { position: absolute; right: -8px; top: -8px; min-width: 30px; height: 30px; padding: 0 7px; border-radius: 15px; display: grid; place-items: center;
-  background: var(--tomato, #ff6b5b); color: #fff; font-size: 18px; font-weight: 900; line-height: 1; box-shadow: 0 0 0 3px #fff, 0 3px 6px rgba(90, 60, 20, .3); }
+  background: #d32f2f; color: #fff; font-size: 18px; font-weight: 900; line-height: 1; box-shadow: 0 0 0 3px #fff, 0 3px 6px rgba(90, 60, 20, .3); }
 #world .w-tab.w-zero .w-n { display: none; }
 #wDraw { position: absolute; z-index: 6; right: calc(16px + env(safe-area-inset-right)); top: calc(12px + env(safe-area-inset-top));
   background: linear-gradient(#b4ec97, #7fd35e); box-shadow: 0 0 0 4px #fff, 0 7px 0 rgba(31, 122, 44, .45); animation: wNudge 4s ease-in-out 1.5s infinite; }

@@ -1,6 +1,6 @@
 // 畫畫遊戲塗色：先在暫存畫布做好、用區塊遮罩裁切後才合進顏色層；復原只存被改到的長方形範圍
-import { regionMask, regionAt, rectClamp, rectUnion, History } from "./draw-core.js?v=6";
-import { makeCanvas as mk } from "./draw-canvas.js?v=6";
+import { regionMask, regionAt, rectClamp, rectUnion, History } from "./draw-core.js?v=7";
+import { makeCanvas as mk } from "./draw-canvas.js?v=7";
 
 // 每種筆的筆跡最遠會離中心線幾倍半徑（即時層的重畫範圍要涵蓋到）；沒列的是 1 倍
 const REACH = { crayon: 1.3, watercolor: 1.25, spray: 1.75, neon: 1.7, sparkle: 1.75, pencil: 0.5, chalk: 1.2 };
@@ -52,14 +52,21 @@ export class Painter {
     const b = this.b, W = b.W, H = b.H, Lb = b.labels, n = b.boxes.length, rnd = mulberry32(n * 7919 + W * 31 + H);
     let bg = 0;
     for (let i = 1; i < n; i++) if (b.boxes[i].area > b.boxes[bg].area) bg = i;
-    const cols = b.boxes.map(() => hexRgb(MAGIC[(rnd() * MAGIC.length) | 0]));
+    // 有配色表就照真實顏色（臉是膚色、天空是藍的）；太白的塊改成淡奶油色（不然魔法筆塗了看不出來）；沒有的塊隨機挑
+    const cols = b.boxes.map((_, id) => {
+      const c = b.palette?.[id];
+      if (!c) return hexRgb(MAGIC[(rnd() * MAGIC.length) | 0]);
+      const v = hexRgb(c);
+      return v[0] + v[1] + v[2] > 720 ? hexRgb("#fff1d6") : v;
+    });
     const sky = [hexRgb("#bfe6ff"), hexRgb("#fff3d6")];
+    const bgPal = (() => { const c = b.palette?.[bg]; if (!c) return false; const v = hexRgb(c); return v[0] + v[1] + v[2] <= 720; })();   // 配色表說背景有顏色（草地、天空）就照配色表，白紙才用天空漸層
     const c = mk(W, H), x = c.getContext("2d"), img = x.createImageData(W, H), d = img.data;
     for (let y = 0; y < H; y++) for (let i = 0; i < W; i++) {
       const k = y * W + i, id = Lb[k], p = k * 4;
       d[p + 3] = 255;
       if (id < 0) { if (i > 0) { d[p] = d[p - 4]; d[p + 1] = d[p - 3]; d[p + 2] = d[p - 2]; } else d[p] = d[p + 1] = d[p + 2] = 255; continue; }
-      if (id === bg) { const t = y / H; for (let q = 0; q < 3; q++) d[p + q] = sky[0][q] + (sky[1][q] - sky[0][q]) * t; continue; }
+      if (id === bg && !bgPal) { const t = y / H; for (let q = 0; q < 3; q++) d[p + q] = sky[0][q] + (sky[1][q] - sky[0][q]) * t; continue; }
       const bx = b.boxes[id], t = (y - bx.y0) / Math.max(1, bx.y1 - bx.y0), cc = cols[id];
       const f = t < 0.35 ? 0.3 * (1 - t / 0.35) : -0.14 * (t - 0.35) / 0.65;   // 上面亮、下面略暗
       for (let q = 0; q < 3; q++) d[p + q] = f > 0 ? cc[q] + (255 - cc[q]) * f : cc[q] * (1 + f);

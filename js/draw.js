@@ -1,17 +1,17 @@
 // 畫畫遊戲主程式：首頁、畫畫頁（工具列、彈出選單、手勢）、完成、作品牆
-import { Board } from "./draw-canvas.js?v=6";
-import { cutoutMask } from "./draw-core.js?v=6";
-import { Painter, previewMat, previewBrush } from "./draw-paint.js?v=6";
-import { Fx } from "./draw-fx.js?v=6";
-import * as G from "./draw-gallery.js?v=6";
-import { STICKERS, stickerImage } from "./draw-stickers.js?v=6";
-import * as A from "./draw-audio.js?v=6";
-import { Particles } from "./draw-particles.js?v=6";
-import { play as playMusic } from "./draw-music.js?v=6";
-import { mountMirror } from "./draw-mirror.js?v=6";
-import { mountRewards } from "./draw-rewards.js?v=6";
-import { mountWorld } from "./draw-world.js?v=6";
-import { mountPuzzle } from "./draw-puzzle.js?v=6";
+import { Board } from "./draw-canvas.js?v=7";
+import { cutoutMask } from "./draw-core.js?v=7";
+import { Painter, previewMat, previewBrush } from "./draw-paint.js?v=7";
+import { Fx } from "./draw-fx.js?v=7";
+import * as G from "./draw-gallery.js?v=7";
+import { STICKERS, stickerImage } from "./draw-stickers.js?v=7";
+import * as A from "./draw-audio.js?v=7";
+import { Particles } from "./draw-particles.js?v=7";
+import { play as playMusic } from "./draw-music.js?v=7";
+import { mountMirror } from "./draw-mirror.js?v=7";
+import { mountRewards } from "./draw-rewards.js?v=7";
+import { mountWorld } from "./draw-world.js?v=7";
+import { mountPuzzle } from "./draw-puzzle.js?v=7";
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -38,6 +38,8 @@ const fx = new Fx(board);
 const parts = new Particles($("#stage"));
 let INDEX = { themes: [], arts: [] };
 let rewards = null, world = null;   // 扭蛋貼紙本、我的世界：線稿清單載入後才掛上（mountModes）
+// 哪些線稿有魔法筆配色表（palette/list.json，tools/draw-art/palette.js 產生）；先問清單，不存在的不去抓（免得一堆 404）
+const palList = fetch(ART_DIR + "palette/list.json?v=7").then(r => (r.ok ? r.json() : [])).then(l => (Array.isArray(l) ? l : [])).catch(() => []);
 
 function show(id) {
   if (id !== "paint") { setFull(false); $(".tap-hint")?.remove(); }
@@ -99,7 +101,7 @@ function renderHome(theme) {
   $("#themes").replaceChildren(...INDEX.themes.map(t => {
     const b = button("theme" + (t.id === theme ? " on" : ""), "", () => { if (t.id !== theme) renderHome(t.id); }, t.name);
     b.style.setProperty("--c", t.color || "#ffc93c");
-    b.append(t.img ? Object.assign(new Image(), { src: ART_DIR.replace("lineart/", "ui/") + t.img + "?v=6", alt: "", className: "ico" }) : el("span", "emo", t.icon),
+    b.append(t.img ? Object.assign(new Image(), { src: ART_DIR.replace("lineart/", "ui/") + t.img + "?v=7", alt: "", className: "ico" }) : el("span", "emo", t.icon),
       el("span", "name", t.name));
     b.dataset.sfx = "pick";
     return b;
@@ -112,12 +114,13 @@ function renderHome(theme) {
     return h;
   });
   $("#arts").replaceChildren(...heads, ...arts.map((a, i) => {
-    const c = card(ART_DIR + (a.thumb || a.file) + "?v=6", () => startArt(a));
+    const c = card(ART_DIR + (a.thumb || a.file) + "?v=7", () => startArt(a));
     c.dataset.id = a.id; c.dataset.sfx = "open";
     const lv = Math.min(3, a.level || 1);
     nth[lv] = (nth[lv] || 0) + 1;
     c.style.gridColumn = String(lv); c.style.gridRow = String(nth[lv] + 1);
     c.style.setProperty("--i", i);   // 一張接一張彈進來
+    if (rewards && !rewards.isDone(a.id)) c.append(el("span", "egg"));   // 畫完這張可以開一顆扭蛋
     return c;
   }));
   markHomeCards(theme);
@@ -156,7 +159,9 @@ async function startArt(a, work = null) {
   $("#loading").classList.add("on");
   try {
     let ok;
-    try { ok = await board.load(a.url || ART_DIR + a.file + "?v=6"); }
+    // 魔法筆的配色表（有就用：ChatGPT 上色參考圖算出來的每塊顏色；沒有或讀不到就隨機配色）跟線稿一起下載
+    const pal = palList.then(l => (l.includes(a.id) ? fetch(ART_DIR + "palette/" + a.id + ".json?v=7").then(r => (r.ok ? r.json() : null)) : null)).catch(() => null);
+    try { ok = await board.load(a.url || ART_DIR + a.file + "?v=7"); }
     catch (e) {
       if (my !== loadSeq) return false;   // 已經被更新的請求取代，不要動畫面
       console.warn("線稿載入失敗：" + (e && e.message));   // 不用 console.error：測試把它當頁面錯誤
@@ -165,6 +170,8 @@ async function startArt(a, work = null) {
       return false;
     }
     if (!ok) return false;
+    const p = await pal;
+    board.palette = p && Array.isArray(p.c) && p.n === board.boxes.length ? p.c : null;   // 區塊數對不上（線稿換過）就不用
     painter.reset();
     S.art = a; S.workId = null; S.done = false; S.autoOff = false;
     rec = []; recN = 0;
@@ -224,10 +231,13 @@ async function doSave(quiet) {
     // 四張圖同一刻送去編碼，存下來的才是同一個瞬間的畫面
     [w.thumb, w.image, w.color, w.glit] = await Promise.all([G.thumbOf(c), G.toBlob(c), G.toBlob(board.color), G.toBlob(board.glit)]);
     if (S.done && canLive(S.art)) {   // 畫完的單角色圖：剪下來，住進「我的世界」
-      const cut = cutout(c);
-      if (cut) { w.cut = await G.toBlob(cut); w.cw = cut.width; w.ch = cut.height; cut.width = cut.height = 0; }
+      if (cutMemo && cutMemo.id === w.id && cutMemo.n === recN) Object.assign(w, { cut: cutMemo.cut, cw: cutMemo.cw, ch: cutMemo.ch });
+      else {
+        const cut = cutout(c);
+        if (cut) { w.cut = await G.toBlob(cut); w.cw = cut.width; w.ch = cut.height; cut.width = cut.height = 0; cutMemo = { id: w.id, n: recN, cut: w.cut, cw: w.cw, ch: w.ch }; }
+      }
     }
-    await G.save(w);
+    await limit(G.save(w));
     if (seq === loadSeq) S.workId = w.id;   // 存檔途中已經換了別張圖，就不要把這個編號套到新的那張
     return "ok";
   } catch (e) {
@@ -243,6 +253,7 @@ async function doSave(quiet) {
   }
 }
 
+let cutMemo = null;   // 上次剪下的角色（同一件作品、之後沒再畫 → 直接沿用）
 // 能住進「我的世界」的圖：一、兩顆星的圖（主角剪得出來；index.json 可用 world: true/false 個別指定）；三顆星是整片場景，剪下來不像角色
 const canLive = a => !!a && !a.test && (a.world ?? (a.level || 1) <= 2);
 // 剪下角色：碰到圖邊的區塊變透明、外框留著，裁到角色的範圍、最長邊縮到 600 像素
@@ -386,18 +397,25 @@ async function giveReward() {
   let seen = [];
   try { seen = JSON.parse(localStorage.getItem(REWARDED)) || []; } catch { /* 壞資料當沒有 */ }
   if (!Array.isArray(seen)) seen = [];
-  if (seen.includes(S.workId)) return;
-  try { localStorage.setItem(REWARDED, JSON.stringify([...seen, S.workId].slice(-300))); } catch { /* 私密瀏覽 */ }
-  rewards.markDone(S.art.id);
-  try { await rewards.grant({ count: (S.art.level || 1) >= 3 ? 2 : 1, theme: S.art.theme }); } catch (e) { console.warn("扭蛋失敗：" + (e && e.message)); }
+  if (seen.includes(S.workId) || rewards.isDone(S.art.id)) return;   // 這件作品給過、或這張線稿以前畫完拿過蛋
+  const id = S.workId, art = S.art;
+  const p = (() => { try { return rewards.grant({ count: (art.level || 1) >= 3 ? 2 : 1, theme: art.theme }); } catch (e) { return Promise.reject(e); } })();
+  try { localStorage.setItem(REWARDED, JSON.stringify([...seen, id].slice(-300))); } catch { /* 私密瀏覽 */ }   // 貼紙在 grant 一開始就存了，這裡馬上記
+  rewards.markDone(art.id);
+  try { await p; } catch (e) { console.warn("扭蛋失敗：" + (e && e.message)); }
 }
 // 完成的大章：畫面中央吉祥物＋三顆大星星依序蹦出來，停 1.5 秒再收到右邊的慶祝欄（最開心的那一刻要夠大）
 function bigCheer() {
-  const d = el("div", "big-cheer", '<img src="IMAGE/draw/ui/mascot.png?v=6" alt="" onerror="this.remove()"><p><span>★</span><span>★</span><span>★</span></p>');
+  const d = el("div", "big-cheer", '<img src="IMAGE/draw/ui/mascot.png?v=7" alt="" onerror="this.remove()"><p><span>★</span><span>★</span><span>★</span></p>');
   $("#paint").append(d);
   [0, 180, 360].forEach((t, i) => setTimeout(() => A.note(10 + i * 2, { gain: 0.22, dur: 0.7 }), 350 + t));   // 一顆星一個音
-  return new Promise(ok => setTimeout(() => { d.classList.add("out"); setTimeout(() => { d.remove(); ok(); }, 320); }, 1500));
+  return new Promise(ok => {
+    const end = () => { if (!d.isConnected || d.classList.contains("out")) return; cheerSkip = null; d.classList.add("out"); setTimeout(() => { d.remove(); ok(); }, 320); };
+    const t = setTimeout(end, 1500);
+    setTimeout(() => { cheerSkip = () => { clearTimeout(t); end(); }; }, 600);   // 至少看 0.6 秒
+  });
 }
+let cheerSkip = null;
 $("#aHome").onclick = goHome;
 $("#aAgain").onclick = () => $("#after").classList.remove("on");
 async function danceAgain() {
@@ -428,9 +446,14 @@ let music = null;
 $("#aMusic").onclick = async () => {
   if (S.busy || music || !board.labels) return;
   S.busy = true; $("#after").classList.add("playing");
-  const c = board.composite(), host = $("#stage"), o = board.origin(host.getBoundingClientRect());
-  music = playMusic({ canvas: c, host, rect: { x: o.x, y: o.y, w: board.W * o.k, h: board.H * o.k }, A, parts });
-  try { await music.done; } finally { c.width = c.height = 0; music = null; S.busy = false; $("#after").classList.remove("playing"); }
+  let c = null;
+  try {
+    c = board.composite();
+    const host = $("#stage"), o = board.origin(host.getBoundingClientRect());
+    music = playMusic({ canvas: c, host, rect: { x: o.x, y: o.y, w: board.W * o.k, h: board.H * o.k }, A, parts });
+    await music.done;
+  } catch (e) { console.warn("音樂失敗：" + (e && e.message)); }
+  finally { if (c) c.width = c.height = 0; music = null; S.busy = false; $("#after").classList.remove("playing"); }
 };
 $("#bHome").onclick = async () => {
   if (S.busy) return;
@@ -551,7 +574,7 @@ function renderPop(kind, from = popFrom) {
   };
   const clip = () => {
     const b = button("opt clip" + (S.clip ? " yes" : ""), "", () => { S.clip = !S.clip; again(); }, "不出線");
-    b.append(Object.assign(new Image(), { src: "IMAGE/draw/ui/btn-clip.png?v=6", alt: "", className: "ico" }));
+    b.append(Object.assign(new Image(), { src: "IMAGE/draw/ui/btn-clip.png?v=7", alt: "", className: "ico" }));
     return b;
   };
   if (kind === "color") {   // 上面 30 色（每個顏色一個音，從左到右往上爬），下面一排材質
@@ -640,6 +663,8 @@ const pen = {
   cancel() { this.cur = null; painter.strokeCancel(); A.strokeOff(); },
 };
 stage.addEventListener("pointerdown", e => {
+  if (fx.finishing) { fx.skipFinish(); return; }   // 完成的跳舞：點一下快轉（至少播 1 秒）
+  if (cheerSkip) { cheerSkip(); return; }           // 大章：點一下收掉
   if (S.busy || !board.labels) return;
   if (popKind) { closePop(); return; }          // 選單開著時，第一下只關選單
   if ($("#after").classList.contains("on")) { danceAgain(); return; }   // 完成後點畫 → 再跳一次舞
@@ -855,7 +880,7 @@ async function renderGallery() {
     return card(u, () => openWork(w), "", w.done ? "" : "✏️");
   }).filter(Boolean);
   const blanks = Array.from({ length: Math.max(0, 6 - cards.length) }, (_, i) => {   // 作品少的時候補虛線空畫框：等你來畫，點了回首頁
-    const b = button("card blank", '<img class="ico" src="IMAGE/draw/ui/btn-edit.png?v=6" alt="" onerror="this.remove()">', () => { show("home"); renderHome(); }, "去畫畫");
+    const b = button("card blank", '<img class="ico" src="IMAGE/draw/ui/btn-edit.png?v=7" alt="" onerror="this.remove()">', () => { show("home"); renderHome(); }, "去畫畫");
     b.style.setProperty("--i", cards.length + i);
     return b;
   });
@@ -919,12 +944,17 @@ const V = new URL(import.meta.url).searchParams.get("v") || "0";
 const modules = [];
 function homeFrom(theme) { modules.forEach(m => m.close?.()); show("home"); renderHome(typeof theme === "string" ? theme : undefined); }
 const deps = { v: V, show, A, Particles, toast, onHome: homeFrom };
+function safeMount(fn, btns) {
+  try { const m = fn(); if (m) modules.push(m); return m; }
+  catch (e) { console.warn("模組掛載失敗：" + (e && e.message)); for (const b of $$(btns)) b.classList.add("off"); return null; }
+}
+// 存檔類的等待一律有上限：IndexedDB 或圖片編碼偶爾不回應時，8 秒後當失敗，不讓畫面一直鎖著
+const limit = (pr, ms = 8000) => Promise.race([pr, new Promise((_, bad) => setTimeout(() => bad(new Error("逾時")), ms))]);
 // 沒有線稿的作品（鏡子畫）存進作品牆：只存成品圖，不能接著畫、沒有回放
 async function saveCanvasWork(c, art) {
   try {
     const w = { id: G.newId(), art, done: true, w: c.width, h: c.height, log: null };
-    // 深色底的成品用 JPEG（比 PNG 小很多、編碼快）；編碼或寫入卡住超過 8 秒就當失敗，不讓模組的按鈕一直鎖著
-    const limit = pr => Promise.race([pr, new Promise((_, bad) => setTimeout(() => bad(new Error("逾時")), 8000))]);
+    // 深色底的成品用 JPEG（比 PNG 小很多、編碼快）
     [w.thumb, w.image] = await limit(Promise.all([G.thumbOf(c), G.toBlob(c, "image/jpeg", 0.92)]));
     await limit(G.save(w));
     return "ok";
@@ -932,22 +962,20 @@ async function saveCanvasWork(c, art) {
     if (e && e.code === "FULL") return "full";
     console.warn("存檔失敗：" + (e && e.message));
     return "fail";
-  }
+  } finally { c.width = c.height = 0; }   // 模組交過來的成品圖用完就釋放（iPad 記憶體）
 }
-const mirror = mountMirror({ ...deps, saveWork: c => saveCanvasWork(c, "mirror") });
-modules.push(mirror);
-$("#toMirror").onclick = () => mirror.open();
+const mirror = safeMount(() => mountMirror({ ...deps, saveWork: c => saveCanvasWork(c, "mirror") }), "#toMirror");
+$("#toMirror").onclick = () => mirror?.open();
 // 拼圖：自己的畫切成 4～12 塊拼回去（慶祝欄、作品牆放大看都可以開）
-const puzzle = mountPuzzle(deps);
-modules.push(puzzle);
+const puzzle = safeMount(() => mountPuzzle(deps), "#aPuzzle, #vPuzzle");
 $("#aPuzzle").onclick = async () => {
-  if (S.busy || !board.labels) return;
+  if (S.busy || !board.labels || !puzzle) return;
   const c = board.composite();
   $("#after").classList.remove("on");
   try { await puzzle.open(c); } finally { c.width = c.height = 0; }
 };
 $("#vPuzzle").onclick = async () => {
-  if (!viewing) return;
+  if (!viewing || !puzzle) return;
   const u = URL.createObjectURL(viewing.image || viewing.thumb);
   $("#view").classList.remove("on");
   try { await puzzle.open(u); } finally { URL.revokeObjectURL(u); }
@@ -955,18 +983,20 @@ $("#vPuzzle").onclick = async () => {
 
 // 扭蛋貼紙本、我的世界：要主題清單，線稿清單載入後才掛上（之前按鈕藏著）
 const themeOfArt = id => INDEX.arts.find(a => a.id === id)?.theme;
+let worksMemo = null;
 async function worldEntries(theme) {
   let works = [];
-  try { works = await G.list(); } catch { return []; }
+  if (!worksMemo || Date.now() - worksMemo.t > 3000) worksMemo = { t: Date.now(), p: G.list().catch(() => []) };
+  works = await worksMemo.p;
   return works.filter(w => w.cut && themeOfArt(w.art) === theme).map(w => ({ id: w.id, blob: w.cut, w: w.cw, h: w.ch, art: w.art }));
 }
 function mountModes() {
-  const themes = INDEX.themes.map(t => ({ id: t.id, img: "IMAGE/draw/ui/" + t.img + "?v=" + V }));
-  rewards = mountRewards({ ...deps, themes, bookAnchor: () => { const r = $("#toBook").getBoundingClientRect(); return r.width ? r : null; } });
-  world = mountWorld({ ...deps, themes, getEntries: worldEntries, countEntries: async t => (await worldEntries(t)).length,
-    getStickers: t => rewards.owned().filter(id => rewards.themeOf(id) === t).map(id => rewards.stickerSrc(id)) });
-  modules.push(rewards, world);
-  $("#toBook").classList.remove("off"); $("#toWorld").classList.remove("off");
+  const themes = INDEX.themes.map(t => ({ id: t.id, img: "IMAGE/draw/ui/" + t.img + "?v=" + V, color: t.color }));
+  rewards = safeMount(() => mountRewards({ ...deps, themes, bookAnchor: () => { const r = $("#toBook").getBoundingClientRect(); return r.width ? r : null; } }), "#toBook, #toDaily");
+  world = safeMount(() => mountWorld({ ...deps, themes, getEntries: worldEntries, countEntries: async t => (await worldEntries(t)).length,
+    getStickers: t => (rewards ? rewards.owned().filter(id => rewards.themeOf(id) === t).map(id => rewards.stickerSrc(id)) : []) }), "#toWorld, #aWorld");
+  if (rewards) $("#toBook").classList.remove("off");
+  if (world) $("#toWorld").classList.remove("off");
   refreshDaily();
 }
 // 每天第一次打開：扭蛋機鈕出現並搖動，點了開一顆（一天一次）
@@ -989,7 +1019,7 @@ function applyIcons() {
       const t = [...b.childNodes].find(n => n.nodeType === 3 && n.textContent.trim()) || b.querySelector("span:not(.dot)");
       if (t) t.replaceWith(img);
     };
-    img.src = "IMAGE/draw/ui/" + name + ".png?v=6";
+    img.src = "IMAGE/draw/ui/" + name + ".png?v=7";
   }
 }
 
@@ -1001,15 +1031,15 @@ window.__draw = { S, board, painter, fx, G, A, show, renderHome, startArt, rende
   G.persist();
   refreshBar(); refreshTools(); refreshUndo(); refreshToggles(); applyIcons();
   try {
-    const res = await fetch(ART_DIR + "index.json?v=6");
+    const res = await fetch(ART_DIR + "index.json?v=7");
     if (!res.ok) throw new Error("HTTP " + res.status);
     INDEX = await res.json();
-    mountModes();
   } catch (e) {
     console.warn("線稿清單載入失敗：" + (e && e.message));
     toast("⚠️ 載入失敗，請連上網路再開一次", 8000);
     return;
   }
+  mountModes();   // 在線稿清單的 try 外面：模組掛不起來不能被當成「沒網路」
   const art = DEV ? Q.get("art") : null;   // ?art= 只給開發測試用
   if (art) await startArt(INDEX.arts.find(a => ART_DIR + a.file === art) || { id: "dev", url: art, parts: [] });
   else { show("home"); renderHome(); }

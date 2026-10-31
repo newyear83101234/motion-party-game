@@ -62,6 +62,7 @@ export function mountWorld(deps) {
     const b = el("button", "w-tab", `<img class="ico" alt="" draggable="false"><b class="w-n"></b>`);
     b.id = "wTab-" + t.id; b.dataset.theme = t.id; b.setAttribute("aria-label", t.id);
     b.querySelector("img").src = t.img;
+    if (t.color) b.style.setProperty("--c", t.color);   // 選中時填主題色（跟首頁、貼紙本一樣）
     b.onclick = () => { if (t.id !== state.theme) open(t.id); };
     tabs.append(b);
   }
@@ -90,7 +91,7 @@ export function mountWorld(deps) {
   // 角色大小跟著畫面高度；角色多時縮小一點，不然擠成一團
   function size(m) {
     const K = state.K;
-    let bh = L.H * K.size * (state.mobs.length > 14 ? .85 : 1), bw = bh * m.ar;
+    let bh = L.H * K.size * (state.mobs.length > 14 ? .85 : state.mobs.length <= 3 && K.move !== "drive" ? 1.4 : 1), bw = bh * m.ar;   // 只有一兩隻：放大，第一張作品不要看起來很渺小
     const maxW = bh * (K.move === "drive" ? 2.2 : 1.5);
     if (bw > maxW) { bw = maxW; bh = bw / m.ar; }
     m.bw = bw; m.bh = bh;

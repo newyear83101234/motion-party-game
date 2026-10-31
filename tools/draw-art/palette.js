@@ -63,5 +63,9 @@ fs.mkdirSync(OUT, { recursive: true });
     const out = path.join(OUT, a.id + ".json");
     if (ok) fs.writeFileSync(out, JSON.stringify({ v: 1, n: r.n, c: r.pal })); else if (fs.existsSync(out)) fs.unlinkSync(out);
   }
+  // 清單：遊戲先讀它，才知道哪幾張有配色表
+  const list = fs.readdirSync(OUT).filter(f => f.endsWith(".json") && f !== "list.json").map(f => f.slice(0, -5)).sort();
+  fs.writeFileSync(path.join(OUT, "list.json"), JSON.stringify(list));
+  console.log("清單：" + list.length + " 張有配色表");
   await b.close();
 })();
