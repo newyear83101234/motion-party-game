@@ -39,6 +39,10 @@ const RB_COLORS = ["#ff6b6b", "#ffa24c", "#ffd84d", "#7ad66b", "#4fb6f0", "#6f7f
 // 路底就是競技場入口。半島＝圓角方塊，西緣跟新市區東岸疊一點，連成一塊（sdDist 兩塊取聯集）
 const TEX = { x: 13.4, z: -18.9, hx: 3.8, hz: 3.0, r: 1.2 };
 const ARENA = { x: 14.0, z: -18.9 };                    // 競技場中心（圓形擂台＋看台，半徑約 1.8）
+// 11-01 歸仁區西邊、北邊再各一個小半島（docs/zhuyin-endless-plan.md）：地形跟東邊陀螺那塊同一套、一樣跟新市區疊一點連成一塊（sdDist 取聯集）；
+// 西邊＝跑跑運動場（橫路往西延伸到路底，入口朝東）、北邊＝海洋館（直路往北延伸到路底，入口朝南）
+const WEX = { x: -3.8, z: -18.9, hx: 3.8, hz: 3.0, r: 1.2 }, STAD = { x: -4.4, z: -18.9 };
+const NEX = { x: 4.8, z: -27.5, hx: 3.0, hz: 3.8, r: 1.2 }, AQUA = { x: 4.8, z: -28.0 };
 // 遊戲建築（＋扭蛋機）：街區 (bx, bz)，door＝往哪一側的路接過去；鏡頭從 +x+z 看，正面朝 +x 或 +z。
 // ex＝不種樹的範圍；LAYOUT 是模型載完後的實際大小（區域座標，先寫死：模型還在下載時鏡頭就能擺好、浮標就能點，
 // 改了建築要更新——網址加 ?debug 後在主控台跑 __hub3d.measure() 會印出新的值）
@@ -57,7 +61,9 @@ const DEFS = [
   { mode: "deliver", isle: "rainbow", x: -18.4, z: 4.75, door: [0, -1], ex: [-1.6, 1.7, -1.0, 1.8], lockDist: 1.55 },   // 10-12 彩虹配送站（倉庫＋碼頭＋貨船）
   { mode: "dress", isle: "rainbow", x: -20.3, z: -4.5, door: [0, 1], ex: [-1.1, 1.1, -1.2, 1.0], free: true },        // 10-12 寵物服裝店（像扭蛋機：不用貼紙，點了 opts.onDress()）
   { mode: "detective", isle: "rainbow", x: -18.0, z: 0, door: [1, 0], ex: [-0.8, 0.8, -1.05, 1.05], lockDist: 1.0 },   // 10-12 詞句偵探社（環狀路裡面東邊、正對彩虹橋入口；門朝東接環狀路東段；彩虹花田讓出東邊一段）
-  { mode: "tops", isle: "town", x: ARENA.x, z: ARENA.z, door: [-1, 0], ex: [-2.75, 1.95, -1.95, 1.95], lockDist: 2.15 },   // 10-12 陀螺競技場（歸仁區東邊小半島；橫路的路底＝入口，門朝西）
+  { mode: "tops", isle: "town", x: ARENA.x, z: ARENA.z, door: [-1, 0], ex: [-2.75, 1.95, -1.95, 1.95], lockDist: 2.15 },
+  { mode: "run", isle: "town", x: STAD.x, z: STAD.z, door: [1, 0], ex: [-1.95, 2.75, -1.95, 1.95], lockDist: 2.15 },   // 11-01 跑跑運動場（歸仁區西邊小半島；橫路往西的路底＝入口，門朝東）
+  { mode: "grow", isle: "town", x: AQUA.x, z: AQUA.z, door: [0, 1], ex: [-1.75, 1.75, -1.75, 2.5], lockDist: 1.85 },   // 11-01 海洋館（歸仁區北邊小半島；直路往北的路底＝入口，門朝南）   // 10-12 陀螺競技場（歸仁區東邊小半島；橫路的路底＝入口，門朝西）
   { mode: "tower", x: BC(3) + 2.0, z: BC(0) - 2.0, door: [0, 1], ex: [-0.9, 0.9, -0.9, 0.9], lockDist: 0.95, spot: "lighthouse" },   // 10-13 挑戰燈塔＝燈塔岬那座燈塔（景點 SPOTS 的 lighthouse 蓋好後，startDef 把燈塔本體搬進 pivot；門口小路、草地台階、小屋照舊是景點的）
 ].map(d => ({ ...d, x: d.x ?? BC(d.bx), z: d.z ?? BC(d.bz) }));
 const isleOf = d => d.isle || "main";
@@ -77,6 +83,8 @@ const LAYOUT = {   // [box x0,x1,y0,y1,z0,z1]、[anchor x,y,z]、[body x,y,z]（
   dress: [[-0.85, 0.9, 0, 2.57, -0.87, 1.18], [0, 2.7, -0.15], [0, 0.83, -0.15]],
   detective: [[-0.97, 1.24, 0, 1.88, -0.91, 1.16], [0, 2, 0], [0, 0.75, 0]],   // 10-12 measure()
   tops: [[-2.06, 1.81, 0, 1.5, -1.81, 1.94], [-0.13, 1.62, 0.06], [-0.13, 0.6, 0.06]],   // 10-12 measure()
+  run: [[-1.9, 2.1, 0, 1.4, -1.5, 1.5], [0.1, 1.55, 0], [0.1, 0.5, 0]],   // 11-01 measure()
+  grow: [[-1.5, 1.5, 0, 2.4, -1.5, 1.7], [0, 2.6, 0], [0, 0.9, 0]],       // 11-01 measure()
   tower: [[-0.6, 0.6, 0, 3.7, -0.6, 0.6], [0, 3.85, 0], [0, 1.4, 0]],   // 10-13 燈塔（原點＝燈塔底；台地高 0.3、燈罩頂約 3.7）
 };
 // 景點（沒有浮標、點了沒反應）
@@ -1178,7 +1186,78 @@ async function buildArena(d, p) {
   });
   return ar;
 }
-const BUILDERS = { fish: buildFish, order: buildOrder, build: buildBuild, hunt: buildHunt, match: buildMatch, tone: buildTone, whack: buildWhack, frog: buildFrog, bubble: buildBubble, gacha: buildGacha, deliver: buildDepot, dress: buildDress, detective: buildSleuth, tops: buildArena, tower: buildBeacon };
+// ----- 11-01 跑跑運動場（歸仁區西邊小半島；入口朝東＝橫路的路底）：橢圓紅色跑道（白色分道線）＋綠色內場（地上一個 🏃）＋入口終點拱門（🏁）＋三支三角旗；
+//       跑道上一隻小兔一直繞圈跑（上下彈＝跑步），跟遊戲裡夥伴跑的樣子一樣 -----
+async function buildStadium(d, p) {
+  const st = new THREE.Group(); p.add(st);
+  const RX = 1.3;                                       // 橢圓：圓形在 x 方向拉長
+  const flat = (geo, y, hex, glow) => { geo.rotateX(-Math.PI / 2); geo.scale(RX, 1, 1); return vm(geo, hex, { y, parent: st, shadow: false, glow }); };
+  vm(cyl(1.42, 1.46, 0.1, 48).scale(RX, 1, 1), "#ece7df", { y: 0.05, parent: st });                 // 白色外緣（墊高一點）
+  flat(new THREE.RingGeometry(0.84, 1.36, 48), 0.102, "#e8634a");                                  // 紅色跑道
+  for (const r0 of [1.0, 1.17]) flat(new THREE.RingGeometry(r0, r0 + 0.022, 48), 0.106, "#ffffff");   // 分道線
+  flat(new THREE.CircleGeometry(0.84, 40), 0.103, "#7ad66b");                                      // 綠色內場
+  for (const r0 of [0.45, 0.62]) flat(new THREE.RingGeometry(r0, r0 + 0.02, 40), 0.107, "#ffffff"); // 內場白圈
+  const em = mesh(new THREE.CircleGeometry(0.3, 28), signMat("🏃", "#ffd84d"), { y: 0.11, parent: st, shadow: false }); em.rotation.set(-Math.PI / 2, 0, Math.PI / 4);
+  // 終點線（跑道東段、格子）：黑白小方塊
+  for (let k = 0; k < 8; k++) for (let j = 0; j < 2; j++) vm(box(0.06, 0.004, 0.065), (k + j) % 2 ? "#ffffff" : "#24324a", { x: 1.28 + j * 0.06, y: 0.106, z: -0.52 + k * 0.065 + (k > 3 ? 0.52 - 0.26 + 0.26 : 0), parent: st, shadow: false });
+  // 入口拱門（東邊＝路底）：兩根藍色柱子＋白色橫幅（兩面都有 🏁、🏃）
+  for (const s of [-1, 1]) vm(rbox(0.16, 1.0, 0.16, 0.03), "#3d8bff", { x: 1.98, y: 0.5, z: s * 0.55, parent: st });
+  vm(rbox(0.14, 0.34, 1.32, 0.04), "#ffffff", { x: 1.98, y: 1.1, parent: st });
+  sign(st, "🏁", "#3d8bff", 1.98 + 0.08, 1.1, -0.3, Math.PI / 2); sign(st, "🏃", "#ff6b6b", 1.98 + 0.08, 1.1, 0.3, Math.PI / 2);
+  sign(st, "🏁", "#3d8bff", 1.98 - 0.08, 1.1, 0.3, -Math.PI / 2);
+  // 三支三角旗（西北、西南、北邊；東邊是入口）
+  [["#ff6b6b", 2.4], ["#ffd166", -2.4], ["#7ad66b", Math.PI]].forEach(([c, a]) => flag(st, d.x + Math.cos(a) * 2.1, d.z + Math.sin(a) * 1.75, c));
+  // 跑步的小兔：沿跑道中線繞圈、面向前進方向、上下彈
+  const bun = await kenney("cube-pets", "animal-bunny", { parent: null, shadow: false }).catch(() => null);
+  if (bun) {
+    const bg = new THREE.Group(); bg.userData.dyn = true; st.add(bg);
+    let b = new THREE.Box3().setFromObject(bun); bun.scale.multiplyScalar(0.3 / Math.max(b.max.y - b.min.y, 1e-3)); b = new THREE.Box3().setFromObject(bun); bun.position.y -= b.min.y; bg.add(bun);
+    tickers.push(t => {
+      const a = t * 0.7, x = Math.cos(a) * 1.1 * RX, z = Math.sin(a) * 1.1, vx = -Math.sin(a) * RX, vz = Math.cos(a);
+      bg.position.set(x, 0.1 + Math.abs(Math.sin(t * 9)) * 0.07, z); bg.rotation.y = Math.atan2(vx, vz);
+    });
+  }
+  return st;
+}
+// ----- 11-01 海洋館（歸仁區北邊小半島；入口朝南＝直路的路底）：白色台階＋藍色圓牆（白色浪花帶）＋大玻璃圓頂（裡面小魚繞圈游）＋
+//       入口拱門（🐟 招牌）＋門口右邊一隻鯨魚雕像（噴水一跳一跳） -----
+async function buildAquarium(d, p) {
+  const aq = new THREE.Group(); p.add(aq);
+  vm(cyl(1.42, 1.48, 0.12, 40), "#ece7df", { y: 0.06, parent: aq });                               // 白色台階
+  vm(cyl(1.18, 1.22, 0.72, 40), "#4fb6f0", { y: 0.12 + 0.36, parent: aq });                         // 藍色圓牆
+  vm(new THREE.TorusGeometry(1.2, 0.05, 8, 40).rotateX(Math.PI / 2), "#ffffff", { y: 0.84, parent: aq, shadow: false });   // 牆頂白色浪花帶
+  for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2; vm(new THREE.SphereGeometry(0.07, 8, 6), "#ffffff", { x: Math.cos(a) * 1.2, y: 0.36, z: Math.sin(a) * 1.2, parent: aq, shadow: false }); }   // 牆上一圈白色泡泡
+  const water = new THREE.CircleGeometry(1.14, 40); water.rotateX(-Math.PI / 2); vm(water, "#2f8fd0", { y: 0.85, parent: aq, shadow: false });   // 圓頂底的水面
+  const glass = new THREE.MeshLambertMaterial({ color: "#c9efff", transparent: true, opacity: 0.4, depthWrite: false });
+  mesh(new THREE.SphereGeometry(1.15, 32, 14, 0, Math.PI * 2, 0, Math.PI / 2), glass, { y: 0.86, parent: aq, shadow: false });
+  // 圓頂裡的小魚：程式畫（身體＋尾巴）、繞圈游、高度一上一下
+  const fishG = new THREE.Group(); fishG.userData.dyn = true; aq.add(fishG);
+  const FISH = [["#ff8a3d", 0.55, 1.2, 0], ["#ffd84d", 0.8, 1.45, 2.1], ["#ff6b9a", 0.35, 1.05, 4.2], ["#7ad66b", 0.7, 1.7, 1.0]];   // [顏色, 繞圈半徑, 高度, 起點]
+  const fs = FISH.map(([c, r0, y0, a0]) => {
+    const f = new THREE.Group(); fishG.add(f);
+    vm(new THREE.SphereGeometry(0.11, 10, 8).scale(1.4, 1, 0.8), c, { parent: f, shadow: false });
+    const tail = new THREE.ConeGeometry(0.08, 0.12, 4); tail.rotateZ(Math.PI / 2); vm(tail, c, { x: -0.19, parent: f, shadow: false });
+    vm(new THREE.SphereGeometry(0.025, 6, 5), "#24324a", { x: 0.09, y: 0.03, z: 0.06, parent: f, shadow: false });
+    return { f, r0, y0, a0 };
+  });
+  tickers.push(t => fs.forEach((o, i) => { const a = o.a0 + t * (0.5 + i * 0.08), x = Math.cos(a) * o.r0, z = Math.sin(a) * o.r0; o.f.position.set(x, o.y0 + Math.sin(t * 1.3 + i) * 0.08, z); o.f.rotation.y = -a; }));
+  // 入口拱門（南邊＝+z）：深藍門洞＋🐟 招牌（朝鏡頭那面）
+  vm(rbox(0.6, 0.62, 0.3, 0.05), "#1f4f86", { y: 0.43, z: 1.14, parent: aq });
+  vm(rbox(0.78, 0.14, 0.34, 0.05), "#ffffff", { y: 0.8, z: 1.16, parent: aq, shadow: false });
+  sign(aq, "🐟", "#1f8fd0", 0, 0.62, 1.31, 0);
+  // 鯨魚雕像（門口右前方、朝鏡頭）：models.json 有 whale 才放；頭上噴水（白色水柱一跳一跳）
+  const wu = await usableGlb(MODELS + "whale.glb"), wh = wu ? await loadAny(wu, { h: 0.6 }) : null;
+  if (wh) {
+    const wg = new THREE.Group(); wg.position.set(1.2, 0, 1.25); p.add(wg);
+    vm(cyl(0.34, 0.38, 0.14, 20), "#6fc3f0", { y: 0.07, parent: wg });                            // 小水池
+    wh.rotation.y = CAM_YAW; wh.position.y = 0.12; wg.add(wh);
+    const spout = new THREE.Group(); spout.userData.dyn = true; wg.add(spout);
+    for (let k = 0; k < 3; k++) vm(new THREE.SphereGeometry(0.05 - k * 0.01, 8, 6), "#e8f8ff", { y: 0.8 + k * 0.08, parent: spout, shadow: false });
+    tickers.push(t => { const u = (t * 0.6) % 1; spout.scale.setScalar(u < 0.5 ? 0.6 + Math.sin(u / 0.5 * Math.PI) * 0.6 : 0.6); });
+  }
+  return aq;
+}
+const BUILDERS = { fish: buildFish, order: buildOrder, build: buildBuild, hunt: buildHunt, match: buildMatch, tone: buildTone, whack: buildWhack, frog: buildFrog, bubble: buildBubble, gacha: buildGacha, deliver: buildDepot, dress: buildDress, detective: buildSleuth, tops: buildArena, tower: buildBeacon, run: buildStadium, grow: buildAquarium };
 // 10-13 挑戰燈塔：燈塔本體是景點 lighthouse 蓋的（startDef 已經搬進 pivot），這裡只回傳 pivot（量大小、合併用）
 async function buildBeacon(d, p) { return p; }
 
@@ -1658,7 +1737,8 @@ const CIVIC = [
   { id: "school", need: 55, lx: 2.6, lz: -2.6, ico: "🏫", word: "學校", name: "學校" },
 ].map(c => ({ ...c, x: DIST.x + c.lx, z: DIST.z + c.lz }));
 const DIST_NEED = CIVIC[0].need;
-const sdDist = (x, z) => Math.min(sdRoundBox(x - DIST.x, z - DIST.z, DIST.h, DIST.h, DIST.r), sdRoundBox(x - TEX.x, z - TEX.z, TEX.hx, TEX.hz, TEX.r));   // 新市區＋東邊小半島（10-12 陀螺競技場）
+const sdDist = (x, z) => Math.min(sdRoundBox(x - DIST.x, z - DIST.z, DIST.h, DIST.h, DIST.r), sdRoundBox(x - TEX.x, z - TEX.z, TEX.hx, TEX.hz, TEX.r),
+  sdRoundBox(x - WEX.x, z - WEX.z, WEX.hx, WEX.hz, WEX.r), sdRoundBox(x - NEX.x, z - NEX.z, NEX.hx, NEX.hz, NEX.r));   // 11-01 西邊（跑跑運動場）、北邊（海洋館）小半島   // 新市區＋東邊小半島（10-12 陀螺競技場）
 const town = { agent: {}, sickTags: [], open: undefined, bridge: null, gap: null, barrier: null, nav: null, place: "main", off: { x: 0, y: 0 }, tgt: { x: 0, y: 0 }, zoomTgt: 0, fires: [], cars: {}, parked: {}, nextEvent: 0, siren: 0 };
 const CAR_YAW = 0;                                     // Kenney 車模型的車頭方向修正（車頭朝 +z＝0）
 const civHits = [];
@@ -1761,6 +1841,42 @@ function buildTown() {
       if (treeXZ.some(([a, b]) => Math.hypot(a - x, b - z) < 0.8)) continue;
       treeXZ.push([x, z]); mesh(TREE_GEOS[k % 3 === 0 ? 2 : k % 2], vcMat, { x, y: 0, z, ry: rt() * 6, parent: tg }).scale.setScalar(0.75 + rt() * 0.3); blob(x, z, 0.9, 0);
     }
+  }
+  // ----- 11-01 西邊小半島（跑跑運動場）、北邊小半島（海洋館）：地形跟上面那塊一樣四層板；路從新市區的路底延伸過去、路底一塊圓形廣場接入口、邊上種樹 -----
+  const pen = ({ x: ex, z: ez, hx, hz, r: er }) => {
+    g.add(slab({ hx, hz, r: er, top: 0, depth: 0.1, color: P.grass, bevelT: 0.04, bevelS: 0.04, x: ex, z: ez }));
+    const w2 = slab({ hx: hx - 0.03, hz: hz - 0.03, r: er - 0.03, top: -0.08, depth: 0.5, color: P.dirt, x: ex, z: ez }); w2.castShadow = true; g.add(w2);
+    g.add(slab({ hx: hx - 0.06, hz: hz - 0.06, r: er - 0.06, top: -0.56, depth: 0.2, color: P.dirtDk, x: ex, z: ez }));
+    g.add(slab({ hx: hx + 0.7, hz: hz + 0.7, r: er + 0.7, top: SAND_Y, depth: 0.4, color: P.sand, bevelT: 0.25, bevelS: 0.55, inset: false, x: ex, z: ez }));
+  };
+  const penTrees = (Q, seed, skip) => {                 // skip(x, z)＝這裡不種（路、建築一圈）
+    const rt = rng(seed);
+    for (let k = 0; k < 60; k++) {
+      const x = Q.x + (rt() - 0.5) * 2 * (Q.hx - 0.4), z = Q.z + (rt() - 0.5) * 2 * (Q.hz - 0.4);
+      if (sdRoundBox(x - cx, z - cz, h, h, r) < 0.3 || sdDist(x, z) > -0.45 || skip(x, z)) continue;   // 新市區那塊已經種過
+      if (treeXZ.some(([a, b]) => Math.hypot(a - x, b - z) < 0.8)) continue;
+      treeXZ.push([x, z]); mesh(TREE_GEOS[k % 3 === 0 ? 2 : k % 2], vcMat, { x, y: 0, z, ry: rt() * 6, parent: tg }).scale.setScalar(0.75 + rt() * 0.3); blob(x, z, 0.9, 0);
+    }
+  };
+  {                                                    // 西：跑跑運動場（入口朝東＝路底）
+    pen(WEX); const sd = DEFS.find(d => d.mode === "run"), xL = sd.x + 2.75;
+    segH(xL, xW, 0, RW, 0.045, laneM);
+    for (const s2 of [-1, 1]) segH(xL, xW, s2 * sw, SW, 0.075, walkM);
+    for (let u = xL + 0.3; u < xW - 0.3; u += 0.62) mesh(box(0.3, 0.01, 0.07), dashM, { x: u + 0.15, y: 0.05, z: cz, shadow: false, parent: g });
+    mesh(cyl(0.95, 0.95, 0.06, 28), walkM, { x: xL - 0.45, y: 0.03, z: cz, shadow: false, parent: g });   // 入口前的圓形廣場
+    const nL = node(xL, cz), door = node(xL - 0.62, cz); door.door = sd; sd.doorNode = door;
+    T(edge(nW, nL)); T(edge(nL, door, null, true));
+    penTrees(WEX, 71, (x, z) => { const dx = x - sd.x, dz = z - sd.z; return Math.hypot(dx * 0.8, dz) < (dx + dz > -0.5 ? 2.6 : 2.0) || (Math.abs(z - cz) < RW / 2 + SW + 0.35 && x > xL - 1.5); });
+  }
+  {                                                    // 北：海洋館（入口朝南＝路底）
+    pen(NEX); const aq = DEFS.find(d => d.mode === "grow"), zT = aq.z + 2.45;
+    segV(zT, zN, 0, RW, 0.045, laneM);
+    for (const s2 of [-1, 1]) segV(zT, zN, s2 * sw, SW, 0.075, walkM);
+    for (let u = zT + 0.3; u < zN - 0.3; u += 0.62) mesh(box(0.07, 0.01, 0.3), dashM, { x: cx, y: 0.05, z: u + 0.15, shadow: false, parent: g });
+    mesh(cyl(0.95, 0.95, 0.06, 28), walkM, { x: cx, y: 0.03, z: zT - 0.45, shadow: false, parent: g });   // 入口前的圓形廣場
+    const nT = node(cx, zT), door = node(cx, zT - 0.62); door.door = aq; aq.doorNode = door;
+    T(edge(nN, nT)); T(edge(nT, door, null, true));
+    penTrees(NEX, 83, (x, z) => Math.hypot(x - aq.x, z - aq.z) < (z > aq.z ? 2.6 : 2.1) || (Math.abs(x - cx) < RW / 2 + SW + 0.35 && z > zT - 1.5));
   }
 }
 // 工地：灰色地基＋鷹架＋黃色吊車＋沙堆＋三角錐（未解鎖時看到這個）
@@ -3227,7 +3343,7 @@ function fit() {
     let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
     const add = (x, z) => { _v.set(x, 0, z).applyMatrix4(inv); x0 = Math.min(x0, _v.x); x1 = Math.max(x1, _v.x); y0 = Math.min(y0, _v.y); y1 = Math.max(y1, _v.y); };
     for (const v of islPoly) add(v.x, v.y);
-    for (const [a, b] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { add(DIST.x + a * DIST.h, DIST.z + b * DIST.h); add(RB.x + a * RB.hx, RB.z + b * RB.hz); add(TEX.x + a * TEX.hx, TEX.z + b * TEX.hz); }   // TEX：歸仁區東邊小半島（10-12）
+    for (const [a, b] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { add(DIST.x + a * DIST.h, DIST.z + b * DIST.h); add(RB.x + a * RB.hx, RB.z + b * RB.hz); add(TEX.x + a * TEX.hx, TEX.z + b * TEX.hz); add(WEX.x + a * WEX.hx, WEX.z + b * WEX.hz); add(NEX.x + a * NEX.hx, NEX.z + b * NEX.hz); }   // TEX：歸仁區東邊小半島（10-12）
     view.isles = { x: (x0 + x1) / 2, y: (y0 + y1) / 2 };
   }
   const items = MAIN_DEFS.map((d, i) => {
@@ -3630,7 +3746,7 @@ let builtOk = null; const builtP = new Promise(r => { builtOk = r; });
 async function loadRest() {
   if (dead) { builtOk(); return; }
   try {
-    const order = ["fish", "order", "build", "gacha", "hunt", "match", "tone", "whack", "frog", "bubble", "deliver", "dress", "detective", "tops", "tower"];
+    const order = ["fish", "order", "build", "gacha", "hunt", "match", "tone", "whack", "frog", "bubble", "deliver", "dress", "detective", "tops", "tower", "run", "grow"];
     await Promise.all([
       ...order.map((m, i) => buildDef(DEFS.find(d => d.mode === m), BUILDERS[m], i * 90).catch(e => console.warn("[hub3d] 建築載入失敗", m, e))),
       buildSpotsKenney().catch(e => console.warn("[hub3d] 景點載入失敗", e)),
@@ -3713,7 +3829,8 @@ function use(plugin) {
     stage, tagLayer, markShadow: () => { shadowDirty = true; }, running: () => running, later,
     lamps: graph.lamps.map(([x, z]) => ({ x, z, y: groundY(x, z) + 0.075 })), town: { x: DIST.x, z: DIST.z, h: DIST.h },   // 路燈（夜晚發光用，含彩虹島）、新市區範圍（舊外掛用）
     isles: [{ id: "town", x: DIST.x, z: DIST.z, h: DIST.h, hx: DIST.h, hz: DIST.h }, { id: "rainbow", x: RB.x, z: RB.z, h: Math.max(RB.hx, RB.hz), hx: RB.hx + 0.6, hz: RB.hz + 0.6 },
-      { id: "townE", x: TEX.x, z: TEX.z, h: Math.max(TEX.hx, TEX.hz), hx: TEX.hx, hz: TEX.hz }] };   // 10-12：主島以外的每座島（海洋外掛的魚群／量陸地、天氣外掛用）；townE＝歸仁區東邊小半島（陀螺競技場）
+      { id: "townE", x: TEX.x, z: TEX.z, h: Math.max(TEX.hx, TEX.hz), hx: TEX.hx, hz: TEX.hz },
+      { id: "townW", x: WEX.x, z: WEX.z, h: Math.max(WEX.hx, WEX.hz), hx: WEX.hx, hz: WEX.hz }, { id: "townN", x: NEX.x, z: NEX.z, h: Math.max(NEX.hx, NEX.hz), hx: NEX.hx, hz: NEX.hz }] };   // 11-01 西／北小半島   // 10-12：主島以外的每座島（海洋外掛的魚群／量陸地、天氣外掛用）；townE＝歸仁區東邊小半島（陀螺競技場）
   let p = null; try { p = plugin(ctx) || {}; } catch (e) { console.warn("[hub3d] 外掛載入失敗", e); return null; }
   plugins.push(p); return p;
 }

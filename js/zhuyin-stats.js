@@ -8,6 +8,7 @@ export const MODE_INFO = {
   fish: ["🎣", "釣魚"], order: ["🍔", "點餐"], build: ["🧩", "積木"], hunt: ["🔍", "尋寶"], match: ["🃏", "翻牌"], tone: ["🎈", "氣球"],
   whack: ["🔨", "地鼠"], frog: ["🐸", "青蛙"], bubble: ["🐧", "泡泡"], deliver: ["🚚", "彩虹配送站"], detective: ["🕵️", "偵探"], tops: ["🌀", "陀螺"],
   tower: ["🗼", "燈塔"],   // 10-13 挑戰燈塔
+  run: ["🏃", "跑跑"], grow: ["🐟", "小魚"],   // 11-01 無限玩的兩款
 };
 export const MODE_IDS = Object.keys(MODE_INFO);
 

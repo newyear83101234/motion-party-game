@@ -1036,6 +1036,12 @@ body.night .owl-peek img { filter: drop-shadow(0 0 0.8vmin rgba(255,255,255,0.8)
 .pk-meta:empty, .pk-lock:empty, .pk-row:has(.pk-meta:empty):has(.pk-lock:empty) { display: none; }
 .pk-stars { display: inline-flex; gap: 0.4vmin; } .pk-stars i { font-style: normal; font-size: 4.6vmin; line-height: 1; } .pk-stars i:not(.on) { filter: grayscale(1); opacity: 0.28; }
 .pk-txt { font-size: 4.6vmin; font-weight: bold; color: #24515c; white-space: nowrap; }
+.pk-endless { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 1vmin 2vmin; white-space: normal; }   /* 11-01 跑跑／小魚：最高紀錄＋🚩 從第幾區開始 */
+.pk-from { font: inherit; font-size: 4vmin; font-weight: bold; color: #24515c; background: #fff; border: 0.5vmin solid #f1c54b; border-radius: 3vmin; padding: 0.6vmin 2vmin; min-height: 44px; white-space: nowrap; }
+.pk-from.on { background: #ffe58a; border-color: #e0a91f; }
+.gl-card .pk-from { display: none; }   /* 🗺️ 清單卡片太小：只在介紹卡選 */
+.pk-endless .pk-short { display: none; }   /* 跑跑／小魚的紀錄：介紹卡寫長句、🗺️ 清單卡片只寫短的（長句會把卡片撐高、清單要捲） */
+.gl-card .pk-endless { white-space: nowrap; } .gl-card .pk-endless .pk-long { display: none; } .gl-card .pk-endless .pk-short { display: inline; }
 .pk-lock { font-size: 4.6vmin; font-weight: bold; color: #fff; background: #4a5568; border-radius: 3vmin; padding: 0.8vmin 2.2vmin; white-space: nowrap; }
 .pk-go { grid-area: go; min-height: max(72px, 13vmin); font-size: 5.6vmin; padding: 1.4vmin 3.6vmin; border-radius: 5vmin; white-space: nowrap; animation: pkPulse 1.8s ease-in-out 0.8s infinite; }
 @keyframes pkPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
@@ -1167,7 +1173,7 @@ body:not(.on-menu) #mapBtn, body:not(.hub3d) #mapBtn { display: none; }
 .gl-card.locked .gl-ico { filter: grayscale(1); opacity: 0.5; }
 .gl-card:active:not(.locked) { scale: 0.95; }
 .gl-card.shake { animation: bbZoneShake 0.4s; }
-@media (orientation: landscape) { .gl-list { grid-template-columns: 2fr 3fr; } .gl-group[data-isle=town] .gl-grid { grid-template-columns: repeat(2, 1fr); } }   /* 橫式：歸仁區（2fr：標題「歸仁區 🔒 30」要一行放得下）、彩虹島（3 個）並排 */
+@media (orientation: landscape) { .gl-list { grid-template-columns: 1fr 1fr; } .gl-group[data-isle=town] .gl-grid { grid-template-columns: repeat(3, 1fr); } }   /* 橫式：歸仁區（11-01 起 3 個：陀螺、跑跑、小魚）、彩虹島（3 個）各半邊並排 */
 @media (orientation: landscape) { .gl-group[data-isle=main] .gl-grid { grid-template-columns: repeat(6, 1fr); } .gl-group[data-isle=main] .gl-card .gl-name { font-size: 3.9vmin; } }   /* 橫式比較寬：主島一排 6 個（10-13 加挑戰燈塔＝11 張，兩排放完，iPad 4:3 不用捲；6 欄時 3 個字加注音要 3.9vmin 才放得下） */
 
 /* ===================== v7 寵物進化（docs/zhuyin-v7-plan.md §2；js/zhuyin-evolve.js、zhuyin.js「寵物進化」段、zhuyin-hub3d.js evoTagSync）===================== */

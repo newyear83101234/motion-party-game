@@ -1,0 +1,109 @@
+/* ===================== 小魚長大記（js/zhuyin-grow.js） =====================
+   全部 class 都是 grow- 開頭（不會撞到主程式）。魚、泡泡、背景都畫在畫布上；這裡只管上面那層字和按鈕。
+   置中的元素用 transform 置中，動畫一律用獨立的 scale／translate 屬性（不會把置中蓋掉）。
+   左上角 🏠🎵 是主程式的（約 28vmin 寬）：任務牌放正中間、橫拿時離左邊夠遠；直拿時往下移一排。 */
+.grow-root { position: absolute; inset: 0; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; background: #1f9fcc; }
+.grow-wrap { position: absolute; inset: 0; }
+.grow-cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.grow-off { display: none !important; }
+
+/* ---- 上方任務牌：🔊 吃 3 隻 [圖] ●●● ---- */
+.grow-task { position: absolute; z-index: 5; top: 2vmin; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 1.6vmin;
+  min-height: 13vmin; padding: 1vmin 2.6vmin 1vmin 2vmin; border-radius: 7vmin; background: rgba(255, 255, 255, 0.96); border: 0.6vmin solid #ffd54a;
+  box-shadow: 0 0.8vmin 0 rgba(20, 70, 130, 0.28), 0 1.4vmin 3vmin rgba(0, 0, 0, 0.22); color: #1b2659; font-size: 5.6vmin; font-weight: 900; line-height: 1; white-space: nowrap; transition: opacity 0.3s; }
+.grow-task:active { scale: 0.96; }
+.grow-task-ic { font-size: 6.6vmin; line-height: 1; }
+.grow-task.grow-listen .grow-task-ic { font-size: 8.4vmin; }
+.grow-task-tx { display: flex; align-items: center; gap: 0.9vmin; }
+.grow-task-n { font-size: 6.8vmin; color: #ff6a3d; }
+.grow-task-pic { font-size: 9.5vmin; line-height: 1; filter: drop-shadow(0 0.4vmin 0.4vmin rgba(0, 0, 0, 0.2)); }
+.grow-dots { display: flex; gap: 1vmin; margin-left: 0.6vmin; }
+.grow-dot { display: block; width: 3.8vmin; height: 3.8vmin; border-radius: 50%; background: #dde6f3; box-shadow: inset 0 0.35vmin 0 rgba(0, 0, 0, 0.15); }
+.grow-dot.grow-on { background: radial-gradient(circle at 35% 35%, #fff7b8, #ffc400 60%, #f0a000); box-shadow: 0 0 1.2vmin rgba(255, 200, 0, 0.8); }
+.grow-dot.grow-dot-pop { animation: growPop 0.45s cubic-bezier(0.2, 1.8, 0.4, 1); }
+.grow-dot.grow-lose { animation: growShake 0.5s; }
+.grow-dots.grow-done .grow-dot { animation: growPop 0.5s cubic-bezier(0.2, 1.8, 0.4, 1); }
+.grow-task.grow-speak .grow-task-ic { animation: growPulse 0.45s ease-in-out 3; }
+.grow-task.grow-new { animation: growCardIn 0.5s cubic-bezier(0.2, 1.5, 0.4, 1); }
+.grow-task.grow-dim { opacity: 0.35; }
+
+/* ---- 右上：心（只有第 2 圈）、金幣、星星罐、連吃 ---- */
+.grow-side { position: absolute; z-index: 5; top: 2vmin; right: 2vmin; display: flex; flex-direction: column; align-items: flex-end; gap: 1.2vmin; pointer-events: none; }
+.grow-hearts { display: flex; gap: 0.6vmin; font-size: 6vmin; line-height: 1; filter: drop-shadow(0 0.4vmin 0.3vmin rgba(0, 0, 0, 0.25)); }
+.grow-heart { display: inline-block; }
+.grow-heart.grow-empty { filter: grayscale(1) brightness(1.6); opacity: 0.45; }
+.grow-heart.grow-lose { animation: growShake 0.6s; }
+.grow-heart.grow-gain { animation: growPop 0.6s cubic-bezier(0.2, 1.8, 0.4, 1); }
+.grow-coins { display: flex; align-items: center; gap: 1vmin; padding: 0.6vmin 2vmin 0.6vmin 1.2vmin; border-radius: 4vmin; background: rgba(255, 255, 255, 0.93);
+  box-shadow: 0 0.5vmin 1.2vmin rgba(0, 0, 0, 0.2); font-size: 4.6vmin; font-weight: 900; color: #8a5a00; line-height: 1; }
+.grow-coins.grow-bump { animation: growPop 0.35s; }
+.grow-coins.grow-drop { animation: growShake 0.45s; }
+.grow-jar { position: relative; width: 9.5vmin; height: 11.5vmin; margin-right: 0.6vmin; }
+.grow-jar-glass { position: absolute; left: 0; right: 0; bottom: 0; height: 9.5vmin; border-radius: 2vmin 2vmin 3vmin 3vmin; background: rgba(255, 255, 255, 0.32);
+  border: 0.5vmin solid rgba(255, 255, 255, 0.95); box-shadow: inset 0 -0.6vmin 1vmin rgba(255, 255, 255, 0.4), 0 0.5vmin 1.2vmin rgba(0, 0, 0, 0.22); overflow: hidden; }
+.grow-jar-glass::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--fill, 0) * 100%); background: linear-gradient(#ffe46b, #ffb300); transition: height 0.5s; }
+.grow-jar-lid { position: absolute; left: 1.2vmin; right: 1.2vmin; top: 0; height: 2.6vmin; border-radius: 1vmin; background: #c9853a; box-shadow: inset 0 -0.4vmin 0 rgba(0, 0, 0, 0.2); }
+.grow-jar-n { position: absolute; left: 0; right: 0; bottom: 2.4vmin; text-align: center; font-size: 4.2vmin; font-weight: 900; color: #fff; text-shadow: 0 0.3vmin 0.5vmin rgba(0, 0, 0, 0.6); line-height: 1; }
+.grow-jar-n::before { content: "⭐"; font-size: 2.8vmin; vertical-align: 0.4vmin; }
+.grow-jar.grow-bump { animation: growPop 0.5s cubic-bezier(0.2, 1.8, 0.4, 1); }
+.grow-streak { display: flex; align-items: center; gap: 0.6vmin; padding: 0.5vmin 1.8vmin 0.5vmin 1.2vmin; border-radius: 4vmin; background: linear-gradient(#ffa64d, #ff6a1a);
+  box-shadow: 0 0.5vmin 1.2vmin rgba(0, 0, 0, 0.2); font-size: 4.4vmin; font-weight: 900; color: #fff; line-height: 1; }
+.grow-streak.grow-bump { animation: growPop 0.35s; }
+
+/* ---- 中間的大字（grow-cheer）：「一口就對！」、進化「🐠 熱帶魚！」 ---- */
+.grow-cheer { position: absolute; z-index: 6; left: 50%; top: 19vmin; transform: translateX(-50%); font-size: 7.5vmin; font-weight: 900; color: #fff; white-space: nowrap;
+  background: linear-gradient(#ffd84a, #ff9f1a); padding: 1.2vmin 4vmin; border-radius: 6vmin; box-shadow: 0 0.8vmin 0 #c96f00, 0 1.4vmin 3vmin rgba(0, 0, 0, 0.25); pointer-events: none; }
+.grow-cheer.grow-in { animation: growPopIn 1.3s ease-out forwards; }
+.grow-banner { position: absolute; z-index: 7; left: 50%; top: 38%; transform: translate(-50%, -50%); display: flex; flex-wrap: wrap; justify-content: center; align-items: center; column-gap: 2vmin; row-gap: 0.6vmin; max-width: 92vw;
+  padding: 2.6vmin 6vmin; border-radius: 6vmin; background: rgba(255, 255, 255, 0.96); box-shadow: 0 1vmin 0 rgba(20, 70, 130, 0.25), 0 2vmin 5vmin rgba(0, 0, 0, 0.3); pointer-events: none; text-align: center; white-space: nowrap; }
+.grow-banner-ic { font-size: 11vmin; line-height: 1; }
+.grow-banner-tx { font-size: 9.5vmin; font-weight: 900; color: #1b2659; line-height: 1.2; }
+.grow-banner-sub { flex-basis: 100%; font-size: 5vmin; font-weight: 900; color: #2a7bd6; }
+.grow-banner-sub:empty { display: none; }
+.grow-banner.grow-in { animation: growBanner 0.6s cubic-bezier(0.2, 1.6, 0.4, 1); }
+
+/* ---- 休息一下（進化完 3 秒） ---- */
+.grow-rest { position: absolute; z-index: 8; left: 50%; bottom: 4vmin; transform: translateX(-50%); display: flex; align-items: center; gap: 1.6vmin; overflow: hidden;
+  padding: 2vmin 5vmin 2.6vmin 3.4vmin; border-radius: 8vmin; background: linear-gradient(#c4f3ff, #74d2f6); box-shadow: 0 0.9vmin 0 #2c8fc0, 0 1.4vmin 3vmin rgba(0, 0, 0, 0.25);
+  font-size: 6vmin; font-weight: 900; color: #10456a; white-space: nowrap; }
+.grow-rest:active { scale: 0.95; }
+.grow-rest-ic { font-size: 7vmin; line-height: 1; }
+.grow-rest-ring { position: absolute; left: 12%; right: 12%; bottom: 0.9vmin; height: 0.8vmin; border-radius: 1vmin; background: rgba(255, 255, 255, 0.95); transform-origin: left center; animation: growShrink 3.2s linear forwards; }
+.grow-rest.grow-in { animation: growCardIn 0.45s cubic-bezier(0.2, 1.5, 0.4, 1); }
+
+/* ---- 收尾的 8 區小地圖 ---- */
+.grow-map { position: absolute; inset: 0; z-index: 9; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.grow-map-card { display: flex; flex-direction: column; align-items: center; gap: 2.2vmin; max-width: 94vw; padding: 3.4vmin 4vmin; border-radius: 5vmin; background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 1vmin 0 rgba(20, 70, 130, 0.25), 0 2vmin 5vmin rgba(0, 0, 0, 0.3); }
+.grow-map.grow-low { align-items: flex-end; padding-bottom: 5vmin; }
+.grow-map.grow-in .grow-map-card { animation: growCardIn 0.5s cubic-bezier(0.2, 1.5, 0.4, 1); }
+.grow-map-tx { font-size: 8vmin; font-weight: 900; color: #1b2659; white-space: nowrap; }
+.grow-map-row { display: flex; align-items: center; }
+.grow-map-stop { flex: none; display: flex; align-items: center; justify-content: center; width: 9vmin; height: 9vmin; border-radius: 50%; background: #e7eef8; font-size: 5.6vmin; line-height: 1; box-shadow: inset 0 0.4vmin 0 rgba(0, 0, 0, 0.08); }
+.grow-map-stop.grow-todo { opacity: 0.35; filter: grayscale(1); }
+.grow-map-stop.grow-done { background: #c9f0ff; }
+.grow-map-stop.grow-now { width: 11vmin; height: 11vmin; font-size: 7vmin; background: #ffe066; box-shadow: 0 0 0 0.6vmin #ffb300, 0 0 2vmin rgba(255, 180, 0, 0.8); animation: growPulse 0.8s ease-in-out infinite; }
+.grow-map-path { flex: none; display: block; width: 2.4vmin; height: 0.8vmin; border-radius: 0.4vmin; background: #cfd8e6; }
+.grow-map-path.grow-done { background: #4fb3ff; }
+.grow-map-loop, .grow-map-rec { font-size: 5.2vmin; font-weight: 900; color: #ff7a00; }
+
+/* ---- 第一次玩：示範手指；進化時飛進罐子的星星 ---- */
+.grow-finger { position: absolute; left: 0; top: 0; z-index: 6; margin: -1.2vmin 0 0 -4.6vmin; font-size: 11vmin; line-height: 1; pointer-events: none; filter: drop-shadow(0 0.6vmin 0.6vmin rgba(0, 0, 0, 0.35)); transition: scale 0.15s; }
+.grow-finger.grow-press { scale: 0.86; }
+.grow-flystar { position: absolute; left: 0; top: 0; z-index: 8; margin: -3vmin 0 0 -3vmin; font-size: 6vmin; line-height: 1; pointer-events: none; filter: drop-shadow(0 0 1vmin rgba(255, 220, 80, 0.9)); }
+
+@media (orientation: portrait) {
+  .grow-task { top: 16vmin; }
+  .grow-cheer { top: 33vmin; }
+  .grow-map-stop { width: 8.2vmin; height: 8.2vmin; font-size: 5vmin; }
+  .grow-map-stop.grow-now { width: 10vmin; height: 10vmin; font-size: 6.4vmin; }
+  .grow-map-path { width: 1.4vmin; }
+}
+
+@keyframes growPop { 0% { scale: 1; } 40% { scale: 1.35; } 100% { scale: 1; } }
+@keyframes growShake { 0%, 100% { translate: 0 0; } 20% { translate: -1vmin 0; } 40% { translate: 1vmin 0; } 60% { translate: -0.7vmin 0; } 80% { translate: 0.7vmin 0; } }
+@keyframes growPulse { 0%, 100% { scale: 1; } 50% { scale: 1.15; } }
+@keyframes growCardIn { from { scale: 0.6; opacity: 0; } to { scale: 1; opacity: 1; } }
+@keyframes growBanner { 0% { scale: 0.3; opacity: 0; } 60% { scale: 1.08; opacity: 1; } 100% { scale: 1; } }
+@keyframes growPopIn { 0% { scale: 0.4; opacity: 0; } 14% { scale: 1.15; opacity: 1; } 24% { scale: 1; } 78% { opacity: 1; translate: 0 0; } 100% { opacity: 0; translate: 0 -3vmin; } }
+@keyframes growShrink { from { scale: 1 1; } to { scale: 0 1; } }

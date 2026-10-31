@@ -38,8 +38,9 @@ const waitPhase = (p, ph, ms = 15000) => p.waitForFunction(ph => { const o = doc
     await p.waitForFunction(() => window.__hub3d && window.__hub3d.evo("elephant") && window.__hub3d.evo("elephant").tag, null, { timeout: 25000 }).catch(() => {});
     const btn = await p.evaluate(() => { const b = document.getElementById("evoBtn"); return { shown: !b.classList.contains("hidden"), pet: b.dataset.pet, img: b.querySelector("img").getAttribute("src") }; });
     ok("能量滿：選單出現「✨ 進化！」膠囊（小象）", btn.shown && btn.pet === "elephant" && /elephant\.webp$/.test(btn.img), JSON.stringify(btn));
-    await p.waitForFunction(() => /小象好像要進化了/.test(document.getElementById("guideText").textContent), null, { timeout: 4000 }).catch(() => {});
-    ok("貓頭鷹提醒「小象好像要進化了！」（字＋語音）", await p.evaluate(() => /小象好像要進化了/.test(document.getElementById("guideText").textContent) && window.__spoken.some(s => s.text === "小象好像要進化了！")), await p.evaluate(() => document.getElementById("guideText").textContent));
+    // 字先出來（guideSay），語音排隊等前一句念完才念（queueTalk 每 0.2 秒看一次）→ 等兩個都到（11-01：只等字就馬上查語音，偶爾早 0.2 秒查＝假失敗）
+    await p.waitForFunction(() => /小象好像要進化了/.test(document.getElementById("guideText").textContent) && window.__spoken.some(s => s.text === "小象好像要進化了！"), null, { timeout: 8000 }).catch(() => {});
+    ok("貓頭鷹提醒「小象好像要進化了！」（字＋語音）", await p.evaluate(() => /小象好像要進化了/.test(document.getElementById("guideText").textContent) && window.__spoken.some(s => s.text === "小象好像要進化了！")), await p.evaluate(() => JSON.stringify(window.__spoken.map(s => s.text))) + " " + await p.evaluate(() => document.getElementById("guideText").textContent));
     const h0 = await p.evaluate(() => window.__hub3d.evo("elephant"));
     ok("3D 小島：小象 ready、在路上走、頭上有 ✨、還不是進化型（超級 1.15）", h0 && h0.ready && h0.walking && h0.visible && !!h0.tag && !h0.evo && Math.abs(h0.scale - 1.15) < 0.01 && !h0.fx, JSON.stringify(h0));
     ok("3D 小島：其他（沒滿的）沒有 ✨", await p.evaluate(() => { const c = window.__hub3d.evo("cat"); return c && !c.ready && !c.tag; }));

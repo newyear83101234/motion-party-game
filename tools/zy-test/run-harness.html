@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>跑跑大冒險 試玩</title>
+<!-- 獨立試玩頁（不經過主程式）：python -m http.server 8765（專案根目錄）→ http://127.0.0.1:8765/tools/zy-test/run-harness.html
+     參數：?zone=5 從第 5 區開始（1 起算；9＝第 2 圈第 1 區＝挑戰模式，有愛心）｜?intro=1 第一次玩的教學｜?speed=6 遊戲時間快 6 倍（測試用）
+           ｜?auto=0.8 自動駕駛（80% 跑對）｜?think=1.2,2.6 自動駕駛幾秒後點卡｜?seed=1 固定亂數｜?pet=dog 換夥伴（pet=nope＝測載不到退回小貓）
+           ｜?best=500 假裝最高紀錄 500 公尺｜?clean=1 收起試玩工具列（截圖用）｜?mute=1 不出音效
+     假的 api：say／talk 印在左下角＋console；later 用 setTimeout（暫停時凍結剩下的時間，跟主程式 gLater 一樣、不會自己加速）；best 讀 localStorage -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "../../IMAGE/zy3d/vendor/three/build/three.module.min.js",
+    "../../IMAGE/zy3d/vendor/three/build/three.core.js": "../../IMAGE/zy3d/vendor/three/build/three.core.min.js",
+    "three/addons/": "../../IMAGE/zy3d/vendor/three/examples/jsm/"
+  }
+}
+</script>
+<link rel="stylesheet" href="../../css/zhuyin.css">
+<link rel="stylesheet" href="../../css/zhuyin-run.css">
+<style>
+  /* 試玩工具列：貼在左邊中間（不擋跑道、注音卡、題目列；滑動測試點在畫面中間） */
+  #lab { position: fixed; z-index: 80; left: 4px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 3px; align-items: stretch;
+    padding: 4px; border-radius: 10px; background: rgba(20, 30, 50, .55); color: #fff; font: 12px/1.3 system-ui, sans-serif; opacity: .35; transition: opacity .2s; }
+  #lab:hover { opacity: 1; }
+  #lab button { font: 12px system-ui, sans-serif; padding: 3px 7px; border-radius: 6px; background: #fff; color: #123; }
+  #lab button.on { background: #ffd54a; }
+  #labLog { position: fixed; z-index: 80; left: 1vmin; bottom: 1vmin; max-width: 26vw; color: #fff; font: 11px/1.35 ui-monospace, Consolas, monospace; text-shadow: 0 1px 2px #000; pointer-events: none; white-space: pre-wrap; }
+  #labResult { position: fixed; z-index: 90; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.35); }
+  #labResult div { background: #fff; border-radius: 3vmin; padding: 3vmin 5vmin; font: bold 3.2vmin system-ui, sans-serif; color: #1b4fa0; text-align: center; white-space: pre-line; }
+  .clean #lab, .clean #labLog { display: none; }
+</style>
+</head>
+<body>
+<section id="run" class="screen"><div class="topbar"></div><div id="runRoot"></div></section>
+<!-- 假的主程式按鈕（看會不會跟遊戲擋到）：遊戲裡左上只有 🏠🎵。🏠＝暫停／繼續 -->
+<div class="hud hud-l"><button class="round-btn" id="homeBtn" aria-label="暫停">🏠</button><button class="round-btn" id="musicBtn" aria-label="音樂">🎵</button></div>
+<div id="lab" class="noann"></div>
+<div id="labLog" class="noann"></div>
+<div id="labResult" class="hidden noann"><div></div></div>
+<script type="module">
+  import * as mod from "../../js/zhuyin-run.js";
+  const Q = new URLSearchParams(location.search);
+  const speed = Math.max(0.25, +Q.get("speed") || 1);
+  if (Q.get("clean") === "1") document.body.classList.add("clean");
+  const lines = [], calls = { say: [], talk: [], play: [], answer: [], zone: [], end: [], stopVoice: 0 };
+  const log = (k, t) => { lines.push(`${k}: ${t}`); while (lines.length > 7) lines.shift(); document.getElementById("labLog").textContent = lines.join("\n"); console.log("[run-lab]", k, t); };
+  // 假的 gLater：跟主程式一樣，暫停時凍結剩下的時間；不加速（模組自己會照 speed 縮短）
+  let paused = false; const timers = new Set();
+  const arm = t => { t.id = setTimeout(() => { timers.delete(t); t.fn(); }, Math.max(0, t.left)); t.at = performance.now(); };
+  function later(fn, ms) { const t = { fn, left: ms }; timers.add(t); if (!paused) arm(t); return t; }
+  function setPaused(v) {
+    v = !!v; if (v === paused) return; paused = v;
+    for (const t of timers) { if (paused) { clearTimeout(t.id); t.left -= performance.now() - t.at; } else arm(t); }
+    document.getElementById("homeBtn").classList.toggle("on", paused);
+  }
+  const BEST = "zy_run_lab_best";
+  if (Q.has("best")) localStorage.setItem(BEST, JSON.stringify({ zone: 0, score: +Q.get("best") }));
+  const readBest = () => { try { return JSON.parse(localStorage.getItem(BEST)) || { zone: 0, score: 0 }; } catch (e) { return { zone: 0, score: 0 }; } };
+  const pet = Q.get("pet");
+  const api = {
+    say: (t, alt, cb) => { calls.say.push(t); log("say", t + (alt && alt !== t ? `（${alt}）` : "")); if (cb) setTimeout(cb, 900 / speed); },
+    talk: (t, cb) => { calls.talk.push(t); log("talk", t); if (cb) setTimeout(cb, 1400 / speed); },
+    play: n => { calls.play.push(n); if (Q.get("mute") === "1" || speed > 1) return; try { new Audio(`../../audio/sfx/${n}.mp3`).play().catch(() => {}); } catch (e) {} },
+    later, paused: () => paused, stopVoice: () => { calls.stopVoice++; },
+    speed,
+    petGlb: () => (pet ? `IMAGE/zy3d/models/${pet}.glb` : null),   // 跟主程式一樣給「相對專案根目錄」的網址
+    best: () => readBest(),
+    onAnswer: a => { calls.answer.push({ ok: a.ok, got: a.got, answer: a.q.answer, tier: a.q.tier }); log("onAnswer", `${a.ok ? "✓" : "✗"} ${a.q.answer}（選 ${a.got}）`); },
+    onZone: z => { calls.zone.push(z); log("onZone", JSON.stringify(z)); },
+    onEnd: r => { calls.end.push(r); log("onEnd", JSON.stringify(r)); const b = readBest(); if (r.score > b.score) localStorage.setItem(BEST, JSON.stringify({ zone: Math.max(b.zone, r.zone), score: r.score }));
+      if (Q.get("clean") === "1" || Q.has("auto")) return; const el = document.getElementById("labResult"); el.firstElementChild.textContent = `${r.finished ? "跑完全部了！" : r.rest ? "休息一下" : "收尾"}\n${r.score} 公尺　🪙 ${r.coins}　過了 ${r.zonesCleared} 區\n對 ${r.right}　錯 ${r.wrong}　${Math.round(r.ms / 1000)} 秒${r.record ? "　🎉 新紀錄" : ""}`; el.classList.remove("hidden"); },
+  };
+  if (Q.has("seed")) api.seed = +Q.get("seed");
+  const game = mod.createRunGame(document.getElementById("runRoot"), api);
+  const zone0 = Math.max(1, +Q.get("zone") || 1) - 1;
+  window.__lab = { mod, game, api, calls, later, setPaused, timers, start: o => game.start(o) };
+
+  const bar = document.getElementById("lab");
+  const btn = (t, f) => { const b = document.createElement("button"); b.textContent = t; b.onclick = f; bar.appendChild(b); return b; };
+  btn("重來", () => { document.getElementById("labResult").classList.add("hidden"); game.start({ zone: zone0, intro: Q.get("intro") === "1" }); });
+  btn("教學", () => game.start({ zone: 0, intro: true }));
+  mod.ZONES.forEach((z, i) => btn(z.ico, () => window.__zyRun.setZone(i)));
+  btn("第2圈", () => game.start({ zone: 8 }));
+  btn("⏸", () => setPaused(!paused));
+  btn("答對", () => window.__zyRun.answer(true)); btn("答錯", () => window.__zyRun.answer(false)); btn("受傷", () => window.__zyRun.hurt());
+  btn("自動80%", () => window.__zyRun.auto(0.8)); btn("休息", () => window.__zyRun.rest());
+  document.getElementById("homeBtn").onclick = () => setPaused(!paused);
+  document.getElementById("labResult").onclick = () => document.getElementById("labResult").classList.add("hidden");
+  addEventListener("resize", () => game.relayout());
+  await game.start({ zone: zone0, intro: Q.get("intro") === "1" });
+  if (Q.has("auto")) { const th = (Q.get("think") || "1.2,2.6").split(",").map(Number); window.__zyRun.auto(+Q.get("auto"), th); }
+  window.__lab.ready = true;
+</script>
+</body>
+</html>

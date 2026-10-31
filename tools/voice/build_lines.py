@@ -84,7 +84,7 @@ def must(snippet):
 
 # ---- 1. 開場語（第一次進模式唸）----
 for m, need, intro in MODES:
-    if m in ("detective", "tops", "tower"):   # 10-12：這兩個的開場語＝模組自己的教學句（下面 dt_intro／tp_intro 已登記同一句），不重複錄；10-13 挑戰燈塔同（tw_intro）
+    if m in ("detective", "tops", "tower", "run", "grow"):   # 11-01 跑跑／小魚：模組自己唸教學（LINES.intro，下面 rn_／gw_ 登記）   # 10-12：這兩個的開場語＝模組自己的教學句（下面 dt_intro／tp_intro 已登記同一句），不重複錄；10-13 挑戰燈塔同（tw_intro）
         continue
     add(f"intro_{m}", intro, "intro", "MODES.intro（zhuyin.js:12-19）")
 
@@ -355,6 +355,37 @@ for key, t in TP_BONUS:
 #       星星不夠時貓頭鷹唸「再拿 N 顆星星就能玩陀螺喔！」（N＝1..TOPS_STARS，在下面「5. 動態句」展開）。
 for i, t in [("dt_fail", "偵探社現在打不開，等一下再試試看！"), ("tp_fail", "陀螺競技場現在打不開，等一下再試試看！"), ("tp_stars_ok", "星星夠了，可以去玩陀螺囉！")]:
     must(t); add(i, t, "guide", "zhuyin.js 詞句小偵探／陀螺接線（10-12）")
+# 11-01 跑跑／小魚接線：打不開、結算唸的話（模組自己的台詞在下面「跑跑／小魚」段）
+for i, t in [("rn_fail", "運動場現在打不開，等一下再試試看！"), ("gw_fail", "海洋館現在打不開，等一下再試試看！"), ("en_record", "破紀錄了，好厲害！"),
+             ("rn_win", "跑得好遠，好厲害！"), ("gw_win", "長得好大，好厲害！"), ("rn_done", "全部的路都跑完了，好厲害！"), ("gw_done", "長成魚王了，好厲害！")]:
+    must(t); add(i, t, "result" if i not in ("rn_fail", "gw_fail") else "guide", "zhuyin.js 跑跑／小魚接線（11-01）")
+# 11-01 跑跑大冒險：js/zhuyin-run.js 的 LINES（talk）；zone／reach 是「區名」帶進去的句子 → 8 區各錄一句
+RNSRC = (ROOT / "js" / "zhuyin-run.js").read_text(encoding="utf-8")
+RN_ZONES = ["沙灘", "森林", "花田", "雪山", "糖果城", "火山", "夜空", "彩虹橋"]
+for snip in ['intro: "聽一聽，點下面的注音卡，帶夥伴跑進對的門！"', 'pick: "點一張注音卡，跑進門裡喔！"', 'zone: n => `來到${n}了！`', 'tunnel: "金幣隧道！"',
+             'easy: "沒關係，慢慢來。"', 'reach: n => `你跑到${n}了！`', 'rest: "休息一下，下次接著跑！"', 'finish: "跑完全部八區了，好厲害！"']:
+    if snip not in RNSRC:
+        sys.exit(f"zhuyin-run.js 找不到：{snip}（台詞改過了，請更新 build_lines.py）")
+for k, z in enumerate(RN_ZONES):
+    if f'name: "{z}"' not in RNSRC:
+        sys.exit(f"zhuyin-run.js 的 ZONES 找不到 {z}")
+for i, t in [("rn_intro", "聽一聽，點下面的注音卡，帶夥伴跑進對的門！"), ("rn_pick", "點一張注音卡，跑進門裡喔！"), ("rn_tunnel", "金幣隧道！"),
+             ("rn_easy", "沒關係，慢慢來。"), ("rn_rest", "休息一下，下次接著跑！"), ("rn_finish", "跑完全部八區了，好厲害！")]:
+    add(i, t, "guide", "zhuyin-run.js LINES（11-01 跑跑大冒險，talk）")
+for k, z in enumerate(RN_ZONES):
+    add(f"rn_zone_{k + 1}", f"來到{z}了！", "guide", "zhuyin-run.js LINES.zone（過區，talk）")
+    add(f"rn_reach_{k + 1}", f"你跑到{z}了！", "result", "zhuyin-run.js LINES.reach（挑戰模式收尾，talk）")
+# 11-01 小魚長大記：js/zhuyin-grow.js 的 LINES（全部 talk）
+GWSRC = (ROOT / "js" / "zhuyin-grow.js").read_text(encoding="utf-8")
+GW = [("intro", "用手指帶著小魚游！吃掉身上有對的注音的小魚，就會長大喔！"), ("oneBite", "一口就對！"), ("crown", "你變大了！戴皇冠的金色大魚，可以吃掉喔！"),
+      ("bite", "小心！看到驚嘆號，就是大魚要來了！"), ("zone1", "變成熱帶魚了！游到珊瑚礁囉！"), ("zone2", "變成河豚了！大魚碰到你，你會鼓起來嚇跑牠！"),
+      ("zone3", "變成海龜了！硬硬的殼可以擋一次大魚！"), ("zone4", "變成海豚了！你游得好快喔！"), ("zone5", "變成鯊魚了！這裡是冰冰的海！"),
+      ("zone6", "變成鯨魚了！一大口可以吃兩隻喔！"), ("zone7", "變成魚王了！歡迎來到寶藏宮殿！"), ("loop", "好厲害！再游一圈，大魚會更快喔！"),
+      ("finale", "你長成魚王了！好厲害！"), ("home", "游回家休息囉！"), ("record", "破紀錄了！")]
+for k, t in GW:
+    if f'{k}: "{t}"' not in GWSRC:
+        sys.exit(f"zhuyin-grow.js 找不到：{k}: \"{t}\"（台詞改過了，請更新 build_lines.py）")
+    add(f"gw_{k}", t, "praise" if k in ("oneBite", "record") else "guide", "zhuyin-grow.js LINES（11-01 小魚長大記，talk）")
 for t in ["仔細聽，選出你聽到的那一句！", "用注音拼出五個字，變成戰鬥陀螺！"]:
     must(f'intro: "{t}"')   # MODES 的開場語要跟模組的教學句一樣（上面才不用另外錄）
 
@@ -363,7 +394,7 @@ for t in ["仔細聽，選出你聽到的那一句！", "用注音拼出五個�
 must('talk(g.name + "！")')
 GI_BLOCK = SRC.split("const GAME_INFO = {")[1].split("\n};")[0]
 GAME_INFO = re.findall(r'^\s+(\w+): \{ name: "([^"]+)"', GI_BLOCK, re.M)
-assert len(GAME_INFO) == 15, f"GAME_INFO 解析失敗：{len(GAME_INFO)}"   # 12 個遊戲＋扭蛋機＋寵物服裝店＋10-13 挑戰燈塔
+assert len(GAME_INFO) == 17, f"GAME_INFO 解析失敗：{len(GAME_INFO)}"   # 12 個遊戲＋扭蛋機＋寵物服裝店＋10-13 挑戰燈塔＋11-01 跑跑大冒險、小魚長大記
 for m, nm in GAME_INFO:
     add(f"pick_{m}", nm + "！", "guide", "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）")
 

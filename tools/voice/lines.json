@@ -1,14 +1,14 @@
 {
  "meta": {
   "generated_by": "tools/voice/build_lines.py",
-  "total_lines": 935,
-  "total_chars": 5961,
+  "total_lines": 981,
+  "total_chars": 6379,
   "by_cat": {
    "intro": 10,
-   "praise": 8,
-   "guide": 472,
+   "praise": 10,
+   "guide": 503,
    "system": 4,
-   "result": 7,
+   "result": 20,
    "word": 163,
    "hatch": 28,
    "friend": 19,
@@ -2715,6 +2715,270 @@
    "src": "zhuyin.js 詞句小偵探／陀螺接線（10-12）"
   },
   {
+   "id": "rn_fail",
+   "text": "運動場現在打不開，等一下再試試看！",
+   "cat": "guide",
+   "src": "zhuyin.js 跑跑／小魚接線（11-01）"
+  },
+  {
+   "id": "gw_fail",
+   "text": "海洋館現在打不開，等一下再試試看！",
+   "cat": "guide",
+   "src": "zhuyin.js 跑跑／小魚接線（11-01）"
+  },
+  {
+   "id": "en_record",
+   "text": "破紀錄了，好厲害！",
+   "cat": "result",
+   "src": "zhuyin.js 跑跑／小魚接線（11-01）"
+  },
+  {
+   "id": "rn_win",
+   "text": "跑得好遠，好厲害！",
+   "cat": "result",
+   "src": "zhuyin.js 跑跑／小魚接線（11-01）"
+  },
+  {
+   "id": "gw_win",
+   "text": "長得好大，好厲害！",
+   "cat": "result",
+   "src": "zhuyin.js 跑跑／小魚接線（11-01）"
+  },
+  {
+   "id": "rn_done",
+   "text": "全部的路都跑完了，好厲害！",
+   "cat": "result",
+   "src": "zhuyin.js 跑跑／小魚接線（11-01）"
+  },
+  {
+   "id": "gw_done",
+   "text": "長成魚王了，好厲害！",
+   "cat": "result",
+   "src": "zhuyin.js 跑跑／小魚接線（11-01）"
+  },
+  {
+   "id": "rn_intro",
+   "text": "聽一聽，點下面的注音卡，帶夥伴跑進對的門！",
+   "cat": "guide",
+   "src": "zhuyin-run.js LINES（11-01 跑跑大冒險，talk）"
+  },
+  {
+   "id": "rn_pick",
+   "text": "點一張注音卡，跑進門裡喔！",
+   "cat": "guide",
+   "src": "zhuyin-run.js LINES（11-01 跑跑大冒險，talk）"
+  },
+  {
+   "id": "rn_tunnel",
+   "text": "金幣隧道！",
+   "cat": "guide",
+   "src": "zhuyin-run.js LINES（11-01 跑跑大冒險，talk）"
+  },
+  {
+   "id": "rn_easy",
+   "text": "沒關係，慢慢來。",
+   "cat": "guide",
+   "src": "zhuyin-run.js LINES（11-01 跑跑大冒險，talk）"
+  },
+  {
+   "id": "rn_rest",
+   "text": "休息一下，下次接著跑！",
+   "cat": "guide",
+   "src": "zhuyin-run.js LINES（11-01 跑跑大冒險，talk）"
+  },
+  {
+   "id": "rn_finish",
+   "text": "跑完全部八區了，好厲害！",
+   "cat": "guide",
+   "src": "zhuyin-run.js LINES（11-01 跑跑大冒險，talk）"
+  },
+  {
+   "id": "rn_zone_1",
+   "text": "來到沙灘了！",
+   "cat": "guide",
+   "src": "zhuyin-run.js LINES.zone（過區，talk）"
+  },
+  {
+   "id": "rn_reach_1",
+   "text": "你跑到沙灘了！",
+   "cat": "result",
+   "src": "zhuyin-run.js LINES.reach（挑戰模式收尾，talk）"
+  },
+  {
+   "id": "rn_zone_2",
+   "text": "來到森林了！",
+   "cat": "guide",
+   "src": "zhuyin-run.js LINES.zone（過區，talk）"
+  },
+  {
+   "id": "rn_reach_2",
+   "text": "你跑到森林了！",
+   "cat": "result",
+   "src": "zhuyin-run.js LINES.reach（挑戰模式收尾，talk）"
+  },
+  {
+   "id": "rn_zone_3",
+   "text": "來到花田了！",
+   "cat": "guide",
+   "src": "zhuyin-run.js LINES.zone（過區，talk）"
+  },
+  {
+   "id": "rn_reach_3",
+   "text": "你跑到花田了！",
+   "cat": "result",
+   "src": "zhuyin-run.js LINES.reach（挑戰模式收尾，talk）"
+  },
+  {
+   "id": "rn_zone_4",
+   "text": "來到雪山了！",
+   "cat": "guide",
+   "src": "zhuyin-run.js LINES.zone（過區，talk）"
+  },
+  {
+   "id": "rn_reach_4",
+   "text": "你跑到雪山了！",
+   "cat": "result",
+   "src": "zhuyin-run.js LINES.reach（挑戰模式收尾，talk）"
+  },
+  {
+   "id": "rn_zone_5",
+   "text": "來到糖果城了！",
+   "cat": "guide",
+   "src": "zhuyin-run.js LINES.zone（過區，talk）"
+  },
+  {
+   "id": "rn_reach_5",
+   "text": "你跑到糖果城了！",
+   "cat": "result",
+   "src": "zhuyin-run.js LINES.reach（挑戰模式收尾，talk）"
+  },
+  {
+   "id": "rn_zone_6",
+   "text": "來到火山了！",
+   "cat": "guide",
+   "src": "zhuyin-run.js LINES.zone（過區，talk）"
+  },
+  {
+   "id": "rn_reach_6",
+   "text": "你跑到火山了！",
+   "cat": "result",
+   "src": "zhuyin-run.js LINES.reach（挑戰模式收尾，talk）"
+  },
+  {
+   "id": "rn_zone_7",
+   "text": "來到夜空了！",
+   "cat": "guide",
+   "src": "zhuyin-run.js LINES.zone（過區，talk）"
+  },
+  {
+   "id": "rn_reach_7",
+   "text": "你跑到夜空了！",
+   "cat": "result",
+   "src": "zhuyin-run.js LINES.reach（挑戰模式收尾，talk）"
+  },
+  {
+   "id": "rn_zone_8",
+   "text": "來到彩虹橋了！",
+   "cat": "guide",
+   "src": "zhuyin-run.js LINES.zone（過區，talk）"
+  },
+  {
+   "id": "rn_reach_8",
+   "text": "你跑到彩虹橋了！",
+   "cat": "result",
+   "src": "zhuyin-run.js LINES.reach（挑戰模式收尾，talk）"
+  },
+  {
+   "id": "gw_intro",
+   "text": "用手指帶著小魚游！吃掉身上有對的注音的小魚，就會長大喔！",
+   "cat": "guide",
+   "src": "zhuyin-grow.js LINES（11-01 小魚長大記，talk）"
+  },
+  {
+   "id": "gw_oneBite",
+   "text": "一口就對！",
+   "cat": "praise",
+   "src": "zhuyin-grow.js LINES（11-01 小魚長大記，talk）"
+  },
+  {
+   "id": "gw_crown",
+   "text": "你變大了！戴皇冠的金色大魚，可以吃掉喔！",
+   "cat": "guide",
+   "src": "zhuyin-grow.js LINES（11-01 小魚長大記，talk）"
+  },
+  {
+   "id": "gw_bite",
+   "text": "小心！看到驚嘆號，就是大魚要來了！",
+   "cat": "guide",
+   "src": "zhuyin-grow.js LINES（11-01 小魚長大記，talk）"
+  },
+  {
+   "id": "gw_zone1",
+   "text": "變成熱帶魚了！游到珊瑚礁囉！",
+   "cat": "guide",
+   "src": "zhuyin-grow.js LINES（11-01 小魚長大記，talk）"
+  },
+  {
+   "id": "gw_zone2",
+   "text": "變成河豚了！大魚碰到你，你會鼓起來嚇跑牠！",
+   "cat": "guide",
+   "src": "zhuyin-grow.js LINES（11-01 小魚長大記，talk）"
+  },
+  {
+   "id": "gw_zone3",
+   "text": "變成海龜了！硬硬的殼可以擋一次大魚！",
+   "cat": "guide",
+   "src": "zhuyin-grow.js LINES（11-01 小魚長大記，talk）"
+  },
+  {
+   "id": "gw_zone4",
+   "text": "變成海豚了！你游得好快喔！",
+   "cat": "guide",
+   "src": "zhuyin-grow.js LINES（11-01 小魚長大記，talk）"
+  },
+  {
+   "id": "gw_zone5",
+   "text": "變成鯊魚了！這裡是冰冰的海！",
+   "cat": "guide",
+   "src": "zhuyin-grow.js LINES（11-01 小魚長大記，talk）"
+  },
+  {
+   "id": "gw_zone6",
+   "text": "變成鯨魚了！一大口可以吃兩隻喔！",
+   "cat": "guide",
+   "src": "zhuyin-grow.js LINES（11-01 小魚長大記，talk）"
+  },
+  {
+   "id": "gw_zone7",
+   "text": "變成魚王了！歡迎來到寶藏宮殿！",
+   "cat": "guide",
+   "src": "zhuyin-grow.js LINES（11-01 小魚長大記，talk）"
+  },
+  {
+   "id": "gw_loop",
+   "text": "好厲害！再游一圈，大魚會更快喔！",
+   "cat": "guide",
+   "src": "zhuyin-grow.js LINES（11-01 小魚長大記，talk）"
+  },
+  {
+   "id": "gw_finale",
+   "text": "你長成魚王了！好厲害！",
+   "cat": "guide",
+   "src": "zhuyin-grow.js LINES（11-01 小魚長大記，talk）"
+  },
+  {
+   "id": "gw_home",
+   "text": "游回家休息囉！",
+   "cat": "guide",
+   "src": "zhuyin-grow.js LINES（11-01 小魚長大記，talk）"
+  },
+  {
+   "id": "gw_record",
+   "text": "破紀錄了！",
+   "cat": "praise",
+   "src": "zhuyin-grow.js LINES（11-01 小魚長大記，talk）"
+  },
+  {
    "id": "pick_fish",
    "text": "釣魚！",
    "cat": "guide",
@@ -2790,6 +3054,18 @@
   {
    "id": "pick_tower",
    "text": "挑戰燈塔！",
+   "cat": "guide",
+   "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
+  },
+  {
+   "id": "pick_run",
+   "text": "跑跑大冒險！",
+   "cat": "guide",
+   "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
+  },
+  {
+   "id": "pick_grow",
+   "text": "小魚長大記！",
    "cat": "guide",
    "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
   },
