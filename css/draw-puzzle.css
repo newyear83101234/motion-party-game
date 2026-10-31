@@ -1,0 +1,102 @@
+/* 拼圖：溫暖的木頭桌面，中間淡淡的底板，拼圖塊散在四周 */
+#puzzle { --lift: 0 4px 0 #b9824a, 0 8px 14px rgba(70, 35, 5, .28); --press: 0 1px 0 #b9824a, 0 2px 4px rgba(70, 35, 5, .28);
+  touch-action: none; overflow: hidden; background-color: #d9a466;
+  background-image:
+    radial-gradient(ellipse 72% 68% at 50% 46%, rgba(255, 238, 205, .42), rgba(255, 238, 205, 0) 72%),   /* 桌燈光暈 */
+    radial-gradient(ellipse 120% 105% at 50% 50%, rgba(80, 40, 8, 0) 58%, rgba(80, 40, 8, .3)),            /* 四周暗角 */
+    /* 四片木板的接縫：一條深線＋一條亮線 */
+    repeating-linear-gradient(180deg, transparent 0 calc(25% - 3px), rgba(105, 58, 18, .34) calc(25% - 3px) calc(25% - 1px), rgba(255, 230, 190, .3) calc(25% - 1px) 25%),
+    /* 每片木板顏色略深略淺 */
+    linear-gradient(180deg, rgba(255, 240, 210, .07) 0 25%, rgba(90, 45, 10, .06) 25% 50%, rgba(255, 240, 210, .04) 50% 75%, rgba(90, 45, 10, .08) 75% 100%),
+    /* 木紋：幾層角度、間距不同的細線疊起來，看起來是彎彎的紋路 */
+    repeating-linear-gradient(179.3deg, rgba(125, 70, 25, .08) 0 2px, transparent 2px 9px, rgba(255, 235, 200, .07) 9px 10px, transparent 10px 23px),
+    repeating-linear-gradient(180.9deg, rgba(120, 66, 22, .07) 0 1px, transparent 1px 13px),
+    repeating-linear-gradient(180deg, rgba(150, 90, 40, .07) 0 18px, transparent 18px 61px, rgba(255, 230, 190, .07) 61px 70px, transparent 70px 97px),
+    linear-gradient(180deg, #e3b57a, #d7a163 55%, #cb9356); }
+.pz-table { position: absolute; inset: 0; touch-action: none; }
+
+/* 底板：奶油色淺盤、整張圖 12% 當提示、外面一圈白色虛線 */
+.pz-board { position: absolute; z-index: 1; border-radius: 6px; background: #fff9ee;
+  box-shadow: inset 0 2px 10px rgba(110, 60, 15, .3), 0 0 0 8px rgba(255, 244, 222, .25); }
+.pz-board::after { content: ""; position: absolute; inset: -11px; border-radius: 14px; border: 4px dashed rgba(255, 250, 238, .9); pointer-events: none; transition: opacity .6s; }
+.pz-hint { position: absolute; inset: 0; width: 100%; height: 100%; display: block; border-radius: 6px; opacity: .12; transition: opacity .8s; }
+#puzzle.won .pz-hint, #puzzle.won .pz-board::after { opacity: 0; }
+
+/* 拼圖塊：形狀外的陰影用 drop-shadow（跟著凸起凹槽走）；拿起來放大 1.06、陰影變大 */
+.pz-pieces { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.pz-pc { position: absolute; left: 0; top: 0; display: block; pointer-events: none; will-change: transform;
+  filter: drop-shadow(0 5px 3px rgba(70, 35, 5, .38)); transition: scale .18s var(--spring), filter .18s ease; }
+.pz-pc.up { scale: 1.06; filter: drop-shadow(0 20px 14px rgba(70, 35, 5, .34)); }
+.pz-pc.glide { transition: transform .22s ease-out, scale .18s var(--spring), filter .3s ease; }
+.pz-pc.ok { filter: drop-shadow(0 1px 1px rgba(70, 35, 5, .3)); }
+.pz-pc.fly { transition: transform .62s cubic-bezier(.25, 1.18, .45, 1), scale .18s var(--spring), filter .3s ease; }   /* 回彈小一點：靠邊的塊不會甩出畫面 */
+#puzzle.won .pz-pc { opacity: 0; transition: opacity .3s ease .45s; }
+
+/* 拼完：完整的圖蓋上來（接縫不見）、閃一下、一道光掃過去 */
+.pz-over { position: absolute; z-index: 2; pointer-events: none; }
+.pz-full { position: absolute; inset: 0; width: 100%; height: 100%; display: block; border-radius: 6px; opacity: 0; }
+#puzzle.won .pz-full { opacity: 1; transition: opacity .3s ease .2s; box-shadow: 0 0 0 6px #fff, 0 12px 26px rgba(70, 35, 5, .35); }
+#puzzle.won .pz-over { animation: pzPop .7s var(--spring) .15s; }
+@keyframes pzPop { 40% { transform: scale(1.045); } }
+.pz-flash { position: absolute; inset: -8px; border-radius: 12px; background: #fff; opacity: 0; }
+#puzzle.won .pz-flash { animation: pzFlash .9s ease-out .1s; }
+@keyframes pzFlash { 25% { opacity: .9; } 100% { opacity: 0; } }
+.pz-shine { position: absolute; inset: 0; overflow: hidden; border-radius: 6px; }
+.pz-shine::before { content: ""; position: absolute; top: -20%; bottom: -20%; left: -45%; width: 32%; opacity: 0; transform: skewX(-14deg);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, .85), rgba(255, 255, 255, 0)); }
+#puzzle.won .pz-shine::before { animation: pzShine 1.1s ease-in-out .6s; }
+@keyframes pzShine { from { left: -45%; opacity: 1; } to { left: 115%; opacity: 1; } }
+
+/* 吉祥物：平常藏在畫面下面，拼完跳上來 */
+.pz-mascot { position: absolute; bottom: -10px; z-index: 5; width: auto; pointer-events: none; -webkit-user-drag: none; opacity: 0;
+  transform: translateY(110%); filter: drop-shadow(0 8px 8px rgba(60, 30, 0, .3)); }
+#puzzle.won .pz-mascot { opacity: 1; transform: none; animation: pzJump .9s var(--spring) .35s backwards, pzBob 2.6s ease-in-out 1.4s infinite; }
+@keyframes pzJump { from { opacity: 1; transform: translateY(110%); } }
+@keyframes pzBob { 50% { transform: translateY(-8px) rotate(-3deg); } }
+
+/* 彩帶：一條條彩色紙片往下飄、邊轉邊翻 */
+.pz-confetti { position: absolute; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
+.pz-confetti i { position: absolute; left: var(--x); top: -40px; width: var(--w); height: calc(var(--w) * 2.2); border-radius: 3px; background: var(--c);
+  animation: pzFall var(--t) cubic-bezier(.3, .1, .6, 1) var(--d) both; }
+@keyframes pzFall { from { transform: translate(0, 0) rotate(0) rotateY(0); } to { transform: translate(var(--sx), calc(100vh + 80px)) rotate(var(--r)) rotateY(900deg); } }
+
+/* 示範的手：指尖在 (0,0)，先按一下（外圈波紋），再跟著那一塊走 */
+.pz-hand { position: absolute; left: 0; top: 0; z-index: 4; width: 0; height: 0; pointer-events: none; opacity: 0; transition: opacity .25s; }
+.pz-hand.on { opacity: 1; }
+.pz-hand::before { content: ""; position: absolute; left: -38px; top: -38px; width: 76px; height: 76px; border-radius: 50%; border: 6px solid #fff;
+  box-shadow: 0 0 0 4px var(--sun); opacity: 0; }
+.pz-hand.press::before { animation: pzRing 1s ease-out; }
+@keyframes pzRing { 0% { transform: scale(.4); opacity: 0; } 30% { opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
+.pz-hand::after { content: "👆"; position: absolute; left: -27px; top: -4px; font-size: 64px; line-height: 1; filter: drop-shadow(0 4px 4px rgba(0, 0, 0, .3)); }
+.pz-hand.press::after { animation: pzPress .8s ease-in-out; }
+@keyframes pzPress { 50% { transform: translateY(8px) scale(.86); } }
+
+/* 上方：左邊回首頁、右邊塊數（用格子圖示表示，不用數字） */
+#pzHome { position: absolute; z-index: 6; left: calc(16px + env(safe-area-inset-left)); top: calc(14px + env(safe-area-inset-top)); }
+.pz-count { position: absolute; z-index: 6; right: calc(16px + env(safe-area-inset-right)); top: calc(14px + env(safe-area-inset-top));
+  display: flex; gap: 10px; padding: 8px; border-radius: 48px; background: rgba(255, 246, 228, .5); box-shadow: inset 0 2px 6px rgba(90, 50, 10, .22); }
+.pz-n { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(#fff, #fbf5ea); box-shadow: var(--lift);
+  display: grid; place-items: center; transition: transform .14s var(--spring), box-shadow .14s; }
+.pz-n svg { width: 46px; height: 46px; pointer-events: none; }
+.pz-n rect { stroke: rgba(59, 42, 26, .35); stroke-width: .7; }
+.pz-n.on { background: #fff6d6; box-shadow: 0 0 0 4px var(--ink), 0 0 0 9px rgba(255, 201, 60, .75); transform: scale(1.06); }
+.pz-n:active { transform: translateY(3px) scale(.95); box-shadow: var(--press); }
+.pz-n.nudge { animation: pzNudge .5s var(--spring); }
+@keyframes pzNudge { 30% { transform: scale(1.16) rotate(-8deg); } 60% { transform: scale(1.04) rotate(5deg); } }
+
+/* 拼完的兩顆大按鈕：再拼一次（右下角小圖示＝下一次的塊數）、回首頁 */
+.pz-done { position: absolute; z-index: 7; display: none; gap: 30px; transform: translate(-50%, -50%); }
+.pz-done.on { display: flex; }
+.pz-done.col { flex-direction: column; }
+.pz-done .big { width: 120px; height: 120px; border-radius: 34px; font-size: 62px;
+  box-shadow: 0 0 0 5px var(--ink), 0 8px 0 rgba(59, 42, 26, .4), 0 14px 24px rgba(60, 30, 0, .3); }
+.pz-done.on .big { animation: pzBtnIn .55s var(--spring) backwards; }
+.pz-done.on .big + .big { animation-delay: .12s; }
+@keyframes pzBtnIn { from { opacity: 0; transform: translateY(40px) scale(.5); } }
+#pzAgain { background: linear-gradient(#b4ec97, #7fd35e); }
+#pzAgain .ico { width: 74%; height: 74%; }
+#pzHome2 { background: linear-gradient(#ffe07a, #ffc93c); }
+.pz-next { position: absolute; right: -12px; bottom: -12px; width: 54px; height: 54px; border-radius: 50%; background: #fff; display: grid; place-items: center;
+  box-shadow: 0 0 0 4px var(--ink); }
+.pz-next svg { width: 34px; height: 34px; }
+.pz-next rect { stroke: rgba(59, 42, 26, .35); stroke-width: .7; }

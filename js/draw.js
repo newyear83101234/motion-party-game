@@ -11,6 +11,7 @@ import { play as playMusic } from "./draw-music.js?v=6";
 import { mountMirror } from "./draw-mirror.js?v=6";
 import { mountRewards } from "./draw-rewards.js?v=6";
 import { mountWorld } from "./draw-world.js?v=6";
+import { mountPuzzle } from "./draw-puzzle.js?v=6";
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -408,7 +409,9 @@ async function danceAgain() {
 // 完成後的按鈕：有紀錄才出現 ▶️ 回放
 function showAfter(quiet = false) {
   $("#aPlay").style.display = canReplay() ? "" : "none";
-  $("#aWorld").style.display = world && S.done && canLive(S.art) && S.workId ? "" : "none";   // 剪得出主角的圖才能住進世界
+  const live = world && S.done && canLive(S.art) && S.workId;
+  $("#aWorld").style.display = live ? "" : "none";    // 剪得出主角的圖才能住進世界
+  $("#aPuzzle").style.display = live ? "none" : "";   // 三顆星的整片場景：改成拼圖（慶祝欄放不下第六顆鈕）
   $("#after").classList.add("on");
   if (!quiet) [0, 180, 360].forEach((t, i) => setTimeout(() => A.note(10 + i * 2, { gain: 0.2, dur: 0.7 }), 120 + t));   // 三顆星星蹦出來各一個音（剛放完大章就不重複）
 }
@@ -934,6 +937,21 @@ async function saveCanvasWork(c, art) {
 const mirror = mountMirror({ ...deps, saveWork: c => saveCanvasWork(c, "mirror") });
 modules.push(mirror);
 $("#toMirror").onclick = () => mirror.open();
+// 拼圖：自己的畫切成 4～12 塊拼回去（慶祝欄、作品牆放大看都可以開）
+const puzzle = mountPuzzle(deps);
+modules.push(puzzle);
+$("#aPuzzle").onclick = async () => {
+  if (S.busy || !board.labels) return;
+  const c = board.composite();
+  $("#after").classList.remove("on");
+  try { await puzzle.open(c); } finally { c.width = c.height = 0; }
+};
+$("#vPuzzle").onclick = async () => {
+  if (!viewing) return;
+  const u = URL.createObjectURL(viewing.image || viewing.thumb);
+  $("#view").classList.remove("on");
+  try { await puzzle.open(u); } finally { URL.revokeObjectURL(u); }
+};
 
 // 扭蛋貼紙本、我的世界：要主題清單，線稿清單載入後才掛上（之前按鈕藏著）
 const themeOfArt = id => INDEX.arts.find(a => a.id === id)?.theme;
@@ -962,7 +980,7 @@ const ICONS = [["#bDone, #aDone", "btn-done"], ["#bHome, #gBack, #aHome", "btn-h
   ["#bUndo, #mUndo", "btn-undo"], ["#bClear, #vDel", "btn-clear"], ["#toGallery", "btn-gallery"], ["#aPlay, #vPlay", "btn-play"],
   ["#aAgain, #vEdit", "btn-edit"], ["#aMusic", "mode-music"], ["#vClose", "btn-close"], ["#vSave", "btn-save"], ["#tMusic", "btn-music"], ["#tSound", "btn-sound"],
   ["#xSave", "btn-done"], ["#xHome", "btn-home"], ["#xUndo", "btn-undo"], ["#xClear", "btn-clear"],
-  ["#toMirror", "mode-mirror"], ["#aWorld", "mode-world"], ["#toDaily", "btn-gacha"], ["#toWorld", "mode-world"], ["#toBook", "btn-book"], ["#toScratch, #sAgain", "btn-gift"]];
+  ["#toMirror", "mode-mirror"], ["#aPuzzle, #vPuzzle", "mode-puzzle"], ["#aWorld", "mode-world"], ["#toDaily", "btn-gacha"], ["#toWorld", "mode-world"], ["#toBook", "btn-book"], ["#toScratch, #sAgain", "btn-gift"]];
 function applyIcons() {
   for (const [sel, name] of ICONS) for (const b of $$(sel)) {
     const img = new Image();
@@ -978,7 +996,7 @@ function applyIcons() {
 // ── 開始 ──
 window.addEventListener("resize", () => { if (board.labels && $("#paint").classList.contains("on")) { board.fit(); showHint(); } });
 window.__draw = { S, board, painter, fx, G, A, show, renderHome, startArt, renderGallery, COLORS, AUTO, setFull, autoSave, isDirty: () => dirty, SC, startScratch,
-  replay, stopReplay, rec: () => rec, parts, cutout, canLive, music: () => music, mirror, rewards: () => rewards, world: () => world, refreshDaily };
+  replay, stopReplay, rec: () => rec, parts, cutout, canLive, music: () => music, mirror, rewards: () => rewards, world: () => world, refreshDaily, puzzle };
 (async () => {
   G.persist();
   refreshBar(); refreshTools(); refreshUndo(); refreshToggles(); applyIcons();

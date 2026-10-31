@@ -233,6 +233,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 #aAgain { background: linear-gradient(#b4ec97, #7fd35e); }
 #aMusic { background: linear-gradient(#ffd9a8, #ffb35c); }
 #aWorld { background: linear-gradient(#bfe8ff, #7cc8ff); }
+#aPuzzle { background: linear-gradient(#cfe6ff, #8fbfff); }
 .after .big { width: 84px; height: 84px; }   /* 5 顆大鈕在 iPad 較矮的視窗也放得下 */
 .after.on .big:nth-of-type(5) { animation-delay: .57s; }
 /* 貼紙選單：收集到的貼紙越來越多，太多時可以上下捲 */

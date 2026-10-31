@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <!-- 模組用相對路徑插 css/draw-puzzle.css、吉祥物圖：把基準位置拉回專案根目錄，跟 draw.html 一樣 -->
+  <base href="../../">
+  <title>拼圖 測試</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/draw.css">
+</head>
+<body>
+  <!-- 假首頁：一顆按鈕用 canvas 開拼圖、一顆用 blob 網址開 -->
+  <section id="home" class="screen on" style="align-items:center;justify-content:center;gap:30px">
+    <button class="big" id="goPuzzle" aria-label="拼圖">🧩</button>
+    <button class="big" id="goBlob" aria-label="拼圖（blob）">🖼️</button>
+  </section>
+  <div id="toast" class="toast"></div>
+  <script type="module">
+    import { mountPuzzle } from "./js/draw-puzzle.js";
+    // 假的 deps：聲音、粒子只記錄呼叫；show 自己切 class
+    const log = window.__calls = [];
+    const rec = (name, fn = () => {}) => (...a) => { log.push([name, ...a]); return fn(...a); };
+    const A = { sfx: rec("sfx"), note: rec("note"), chime: rec("chime"), strokeOn: rec("strokeOn"), strokeSpeed: rec("strokeSpeed"), strokeOff: rec("strokeOff") };
+    class Particles {
+      constructor(host) { this.host = host; log.push(["Particles", host.className]); }
+      trail(...a) { log.push(["trail", ...a]); }
+      splash(...a) { log.push(["splash", ...a]); }
+      stars(...a) { log.push(["stars", ...a]); }
+      fit() { log.push(["fit"]); }
+    }
+    const show = id => document.querySelectorAll(".screen").forEach(s => s.classList.toggle("on", s.id === id));
+    let tt = 0;
+    const toast = rec("toast", (text, ms = 2500) => {
+      const t = document.getElementById("toast");
+      t.textContent = text; t.classList.add("on");
+      clearTimeout(tt); tt = setTimeout(() => t.classList.remove("on"), ms);
+    });
+    const onHome = rec("onHome", () => show("home"));
+
+    // 假的小孩作品（1200×800，跟作品牆一樣 3:2）：塗好顏色的著色畫，粗黑線框
+    function scene() {
+      const c = document.createElement("canvas"); c.width = 1200; c.height = 800;
+      const x = c.getContext("2d");
+      const sky = x.createLinearGradient(0, 0, 0, 560); sky.addColorStop(0, "#7cc8ff"); sky.addColorStop(1, "#d8f0ff");
+      x.fillStyle = sky; x.fillRect(0, 0, 1200, 800);
+      x.lineWidth = 10; x.lineJoin = x.lineCap = "round"; x.strokeStyle = "#2b2118";
+      const shape = (fill, f) => { x.beginPath(); f(); x.fillStyle = fill; x.fill(); x.stroke(); };
+      // 彩虹
+      ["#ff5a5a", "#ffa53b", "#ffe14d", "#6ad36a", "#4f9dff", "#a77bff"].forEach((col, i) => {
+        x.beginPath(); x.arc(330, 520, 300 - i * 30, Math.PI, 0); x.lineWidth = 30; x.strokeStyle = col; x.stroke();
+      });
+      x.lineWidth = 10; x.strokeStyle = "#2b2118";
+      // 太陽（有笑臉）
+      for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; x.beginPath(); x.moveTo(1010 + Math.cos(a) * 105, 150 + Math.sin(a) * 105); x.lineTo(1010 + Math.cos(a) * 145, 150 + Math.sin(a) * 145); x.lineWidth = 12; x.strokeStyle = "#ffb300"; x.stroke(); }
+      x.lineWidth = 10; x.strokeStyle = "#2b2118";
+      shape("#ffd93b", () => x.arc(1010, 150, 88, 0, Math.PI * 2));
+      x.fillStyle = "#2b2118"; x.beginPath(); x.arc(980, 135, 10, 0, 7); x.arc(1040, 135, 10, 0, 7); x.fill();
+      x.beginPath(); x.arc(1010, 160, 40, 0.2, Math.PI - 0.2); x.stroke();
+      // 雲
+      shape("#fff", () => { x.arc(640, 130, 50, Math.PI * 0.5, Math.PI * 1.5); x.arc(700, 90, 60, Math.PI, 0); x.arc(770, 130, 50, Math.PI * 1.5, Math.PI * 0.5); x.closePath(); });
+      // 草地
+      shape("#7fd35e", () => { x.moveTo(-20, 560); x.quadraticCurveTo(300, 470, 620, 560); x.quadraticCurveTo(920, 640, 1220, 540); x.lineTo(1220, 820); x.lineTo(-20, 820); x.closePath(); });
+      // 房子
+      shape("#ff8a65", () => x.rect(700, 400, 300, 240));
+      shape("#d84315", () => { x.moveTo(670, 410); x.lineTo(850, 270); x.lineTo(1030, 410); x.closePath(); });
+      shape("#8d5a3b", () => x.rect(810, 520, 80, 120));
+      shape("#9be7ff", () => x.rect(730, 450, 60, 60));
+      shape("#9be7ff", () => x.rect(910, 450, 60, 60));
+      // 樹
+      shape("#8d5a3b", () => x.rect(140, 470, 50, 190));
+      shape("#43a047", () => { x.arc(165, 430, 90, 0, Math.PI * 2); });
+      x.fillStyle = "#ff5252"; [[130, 400], [200, 420], [160, 470], [110, 450]].forEach(([a, b]) => { x.beginPath(); x.arc(a, b, 13, 0, 7); x.fill(); x.stroke(); });
+      // 花
+      [[330, 700, "#ff7eb6"], [480, 660, "#ffd93b"], [600, 720, "#a77bff"], [1100, 690, "#ff7eb6"]].forEach(([a, b, col]) => {
+        x.beginPath(); x.moveTo(a, b); x.lineTo(a, b + 80); x.lineWidth = 8; x.strokeStyle = "#2e7d32"; x.stroke(); x.lineWidth = 6; x.strokeStyle = "#2b2118";
+        for (let i = 0; i < 5; i++) { const t = i / 5 * Math.PI * 2; shape(col, () => x.arc(a + Math.cos(t) * 24, b + Math.sin(t) * 24, 18, 0, Math.PI * 2)); }
+        shape("#ffe14d", () => x.arc(a, b, 14, 0, Math.PI * 2));
+      });
+      return c;
+    }
+    // 測切法用的漸層圖：紅 = 橫向位置、綠 = 直向位置 → 每塊中心的顏色就說得出它切到圖的哪裡
+    function gradient(w = 1200, h = 800) {
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      const x = c.getContext("2d"), d = x.createImageData(w, h);
+      for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) { const k = (j * w + i) * 4; d.data[k] = i / w * 255; d.data[k + 1] = j / h * 255; d.data[k + 2] = 140; d.data[k + 3] = 255; }
+      x.putImageData(d, 0, 0);
+      return c;
+    }
+    window.__scene = scene();
+    window.__grad = gradient();
+    window.__gradient = gradient;
+    window.__blobUrl = async c => URL.createObjectURL(await new Promise(r => c.toBlob(r, "image/png")));
+    const puzzle = mountPuzzle({ v: "7", show, A, Particles, toast, onHome });
+    window.__mod = puzzle;
+    document.getElementById("goPuzzle").onclick = () => puzzle.open(window.__scene);
+    document.getElementById("goBlob").onclick = async () => puzzle.open(await window.__blobUrl(window.__scene));
+    window.__ready = true;
+  </script>
+</body>
+</html>

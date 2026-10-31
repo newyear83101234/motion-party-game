@@ -841,7 +841,18 @@ function versionCheck() {
   await p.waitForSelector("#works .card:not(.blank)", { timeout: 5000 }).catch(() => {});
   if (await p.locator("#works .card:not(.blank)").count()) await p.tap("#works .card:not(.blank)");
   check("作品牆打開鏡子畫作品：沒有「接著畫」（沒有線稿）", await p.evaluate(() => getComputedStyle(document.querySelector("#vEdit")).display === "none"));
-  await p.tap("#vClose");
+  // 拼圖（真的接起來）：作品牆放大看按 🧩 → 拼完 → 出現再拼一次／回首頁
+  await p.tap("#vPuzzle");
+  await waitOn("#puzzle", 8000);
+  check("作品牆按 🧩：用這件作品開拼圖", await on("#puzzle") && !(await on("#gallery")));
+  await p.waitForFunction(() => window.__puzzle && window.__puzzle.pieces().length >= 4, null, { timeout: 8000 }).catch(() => {});
+  await p.waitForTimeout(1600);   // 開場先拼好再散開
+  await p.evaluate(() => window.__puzzle.solve(window.__puzzle.pieces().length));
+  await p.waitForFunction(() => { const b = document.querySelector("#pzAgain"); return b && getComputedStyle(b).display !== "none" && b.getBoundingClientRect().width > 0; }, null, { timeout: 8000 }).catch(() => {});
+  check("拼完：出現「再拼一次」", await p.evaluate(() => { const b = document.querySelector("#pzAgain"); return !!b && b.getBoundingClientRect().width > 0; }));
+  await p.tap("#pzHome2");
+  await waitOn("#home", 5000);
+  check("拼圖按 🏠：回首頁", await on("#home") && !(await on("#puzzle")));
   await p.evaluate(() => { __draw.G.wipe(); });
 
   // 首頁三欄：每個主題 6 張，左欄一顆星、中欄兩顆星、右欄三顆星
