@@ -1,22 +1,16 @@
 """統一升 ?v= 版號（每個替換都要剛好命中預期次數，不然整批不寫）。
-10-31 陀螺不用券、5 顆星星玩一次：zhuyin.js → v33、zhuyin-tops.js → v3、zhuyin-tops.css → v3；新字串進注音字典 → ui v12 → ann v12（zhuyin.js／detective.js 的 import 也要跟著）→ detective v6。"""
+10-31 第二次：陀螺標題列放不下自動藏標題、手機橫式結算星星條縮小 → zhuyin-tops.js v4（zhuyin.js import 跟著）→ zhuyin.js v34、zhuyin-tops.css v4。"""
 from pathlib import Path
 
-ROOT = Path(r"D:\Claude\Projects\GAME DIY")
+ROOT = Path(r"D:/Claude/Projects/GAME DIY")
 PLAN = {
     "zhuyin.html": [
-        ("js/zhuyin.js?v=32", "js/zhuyin.js?v=33", 2),
-        ("js/zhuyin-ann.js?v=11", "js/zhuyin-ann.js?v=12", 1),
-        ("js/zhuyin-ui.js?v=11", "js/zhuyin-ui.js?v=12", 1),
-        ("css/zhuyin-tops.css?v=2", "css/zhuyin-tops.css?v=3", 1),
+        ("js/zhuyin.js?v=33", "js/zhuyin.js?v=34", 2),
+        ("css/zhuyin-tops.css?v=3", "css/zhuyin-tops.css?v=4", 1),
     ],
     "js/zhuyin.js": [
-        ("./zhuyin-ann.js?v=11", "./zhuyin-ann.js?v=12", 1),
-        ("./zhuyin-detective.js?v=5", "./zhuyin-detective.js?v=6", 1),
-        ("./zhuyin-tops.js?v=2", "./zhuyin-tops.js?v=3", 1),
+        ("./zhuyin-tops.js?v=3", "./zhuyin-tops.js?v=4", 1),
     ],
-    "js/zhuyin-ann.js": [("./zhuyin-ui.js?v=11", "./zhuyin-ui.js?v=12", 1)],
-    "js/zhuyin-detective.js": [("./zhuyin-ann.js?v=11", "./zhuyin-ann.js?v=12", 1)],
 }
 new = {}
 for f, reps in PLAN.items():

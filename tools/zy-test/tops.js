@@ -3,10 +3,10 @@
 // 驗：①語法、加成名稱兩邊一致、隨機靈感拼得出來、GAS 版公式跟前端一樣、戰力上限與分佈
 //     ②用真的按鍵拼出四句例句、破音字候選、不合法音節搖一下、輕聲退回、拼了沒按聲調按確定＝一聲
 //     ③同一句兩次載入戰力一樣（Node／兩個分頁）④對戰確定性（同兩句 3 次、A 打 B＝B 打 A、介面實打兩次 onWin 一樣）
-//     ⑤券：沒券擋住、打字中離開不扣券、下場扣 1 張、第一次免費 ⑥stop() 後沒有 rAF／later／語音殘留、開關 5 次沒有 WebGL 洩漏
+//     ⑤陀螺星星（10-31 拿掉券）：星星不夠＝「星星不夠了」卡片、打字中離開不扣、下場 pay 扣 5 顆、第一次免費、結算星星條與「再玩一次」只在夠時出現 ⑥stop() 後沒有 rAF/later/語音殘留、開關 5 次沒有 WebGL 洩漏
 //     ⑦送出：可能進前 5 的才送、黑名單不送、太弱不送 ⑧暫停：遊戲時鐘凍結 ⑨三種尺寸×四個畫面截圖＋按鍵 ≥56px＋國字都有注音 ⑩0 個 console error
 //     10-12 櫻木／里維改善：A1 候選點一下就確定、選字中按注音＝先確定 A2 灰鍵 A3 候選排序（三聲變調、兒童常用字、emoji）A4 🎲 填空引導
-//     A5 沒券存成陀螺蛋＋集點卡、有券先問孵蛋 B6 第一次免費挑會贏的、輸了換對手、避開打過的 B7 只有第 1 回合倒數、4-5 回合 2 倍速、點畫面加油
+//     A5 星星不夠卡片、星星夠又有蛋先問孵蛋 B6 第一次免費挑會贏的、輸了換對手、避開打過的 B7 只有第 1 回合倒數、4-5 回合 2 倍速、點畫面加油
 //     B8 戰力長條＋等級 B9 加成發光＋對戰強化（確定性）C10 變身出錯 onFail C11 火花顏色 C12 字典逾時 C13 gauge 快取 C14 import 版號 C15 結算降像素比
 //     v2（10-13）：合體能力公式、三戰兩勝確定性＋平衡、段位名字與倍率、tp_ 音效鍵在 manifest；合體轉場（五顆→一顆、卡片收成一張、第二次可跳過）、
 //     每回合 3-2-1、兩隊顏色、碎片＋停格、得分點＝比分、段位升段、減少動態（ZY_BASE 指定伺服器，例：http://127.0.0.1:8781）
@@ -244,7 +244,7 @@ async function playToEnd(p, n = 1) {                          // 下場 → 開�
 
   // ===== A4：🎲 填空引導 =====
   {
-    const { ctx, p, errs } = await open(browser, 1024, 768, "fast=4&tickets=3");
+    const { ctx, p, errs } = await open(browser, 1024, 768, "fast=4&stars=99");
     await p.evaluate(() => { window.__tp.game.debug.resetInspire(); window.__tp.calls.talk.length = 0; });
     await p.click(".tp-inspire"); await sleep(150);
     const d1 = await S(p);
@@ -310,63 +310,78 @@ async function playToEnd(p, n = 1) {                          // 下場 → 開�
     await ctx.close();
   }
 
-  // ===== ⑤ 券 =====
+  // ===== ⑤ 陀螺星星（10-31 拿掉券：玩一次扣 5 顆、第一次免費） =====
   {
-    // A5（10-12 櫻木）沒券、不是第一次 → 照樣進打字畫面；「下場！」變「存成蛋！」→ 存成陀螺蛋（最多 3 顆）、顯示 15 格集點卡；不扣券
-    const a = await open(browser, 1024, 768, "fast=4&tickets=0&stars=8&eggs=clear");
-    const s0 = await S(a.p), goT = await a.p.evaluate(() => document.querySelector(".tp-go-t").textContent);
-    ok("A5 沒券：照樣進打字畫面（陀螺蛋模式），下場鈕寫「存成蛋！」、說明打好的句子會變成陀螺蛋", s0.phase === "type" && s0.eggMode && goT === "存成蛋！" && s0.spoken.some(t => t.includes("陀螺蛋")), JSON.stringify({ ph: s0.phase, egg: s0.eggMode, goT }));
-    const eggPh = ["宇宙強爸爸", "超級賽亞人", "努力小紅帽", "紅色翹翹板"], eggSaved = [];
-    for (const ph of eggPh) {
-      if ((await S(a.p)).phase !== "type") { await a.p.click(".tp-msg-card .tp-again"); await waitPhase(a.p, "type"); }
-      await a.p.evaluate(ph => window.__tp.game.debug.setPhrase(ph), ph); await a.p.click(".tp-go"); await sleep(150);
-      eggSaved.push(await a.p.evaluate(() => ({ s: window.__tp.game.state(), lit: document.querySelectorAll(".tp-msg-card .tp-star.tp-lit").length, all: document.querySelectorAll(".tp-msg-card .tp-star").length })));
-      if (eggSaved.length === 1) await shot(a.p, "1024x768_egg_saved");
-    }
-    const e1 = eggSaved[0], eN = eggSaved[eggSaved.length - 1];
-    ok("A5 存成陀螺蛋：畫面「陀螺蛋存好了！拿到陀螺券就能孵出來」＋15 格集點卡亮 8 格；不扣券", e1.s.phase === "egg" && e1.s.eggs.length === 1 && e1.s.eggs[0].p === "宇宙強爸爸" && e1.lit === 8 && e1.all === 15 && (await a.p.evaluate(() => window.__tp.calls.useTicket)) === 0 && e1.s.spoken.some(t => t.includes("陀螺蛋存好了")), JSON.stringify({ eggs: e1.s.eggs, lit: e1.lit }));
-    ok("A5 陀螺蛋最多 3 顆（存第 4 顆擠掉最舊的）、每顆帶注音", eN.s.eggs.length === 3 && eN.s.eggs.map(e => e.p).join() === eggPh.slice(1).join() && eN.s.eggs.every(e => e.z.length === 5), JSON.stringify(eN.s.eggs.map(e => e.p)));
+    // A5 星星不夠（不是第一次、3 顆 < 5）→ 「星星不夠了」卡片：星星條亮 3 格、只有 🏝️ 回小島、onExit nostars、唸 noTicket；不進打字、不 pay
+    const a = await open(browser, 1024, 768, "fast=4&stars=3&eggs=clear");
+    const s0 = await S(a.p);
+    const ns = await a.p.evaluate(() => ({ card: !!document.querySelector(".tp-msg-card.tp-nostars"), lit: document.querySelectorAll(".tp-msg-card .tp-star.tp-lit").length, all: document.querySelectorAll(".tp-msg-card .tp-star").length,
+      btns: [...document.querySelectorAll(".tp-msg-card .tp-msg-btns .tp-btn")].map(b => b.className), go: !!document.querySelector(".tp-go"), s: (document.querySelector(".tp-msg-card .tp-stars-s") || {}).textContent, h: (document.querySelector(".tp-msg-card .tp-stars-h") || {}).textContent }));
+    await shot(a.p, "1024x768_nostars");
+    ok("A5 星星不夠：進來是「星星不夠了」卡片（phase nostars）、星星條 5 格亮 3 格、寫還差 2 顆、只有 🏝️ 回小島一顆鈕、沒有打字畫面", s0.phase === "nostars" && ns.card && ns.lit === 3 && ns.all === 5 && ns.btns.length === 1 && ns.btns[0].includes("tp-home") && /再拿\s*2\s*顆星星/.test(ns.s || "") && /3\s*顆/.test(ns.h || ""), JSON.stringify({ ph: s0.phase, ns }));
+    ok("A5 星星不夠：唸「再收集一些星星，就能玩陀螺囉！」、沒有 pay", s0.spoken.some(t => t.includes("再收集一些星星")) && (await a.p.evaluate(() => window.__tp.calls.pay)) === 0, JSON.stringify(s0.spoken));
     await a.p.click(".tp-msg-card .tp-home"); await sleep(100);
-    ok("A5 蛋畫面按 🏝️ → 回小島（onExit noticket）", (await a.p.evaluate(() => window.__tp.calls.exit)).some(e => e.why === "noticket"));
-    // 有券又有蛋：開局先問要不要孵蛋 → 點蛋＝直接下場（扣 1 張）；打完那顆蛋用掉
-    await a.p.evaluate(() => { window.__tp.setTickets(1); window.__tp.game.start(); });
+    ok("A5 星星不夠：按 🏝️ → 回小島（onExit nostars）", (await a.p.evaluate(() => window.__tp.calls.exit)).some(e => e.why === "nostars"));
+    // 星星夠又有以前存的陀螺蛋：開局先問要不要孵蛋 → 點蛋＝直接下場（pay 1 次、星星少 5）；打完那顆蛋用掉
+    await a.p.evaluate(ph => { window.__tp.setStars(7); window.__tp.setEggs(ph.slice(1).map(x => ({ p: x[0], z: x[1].split(" ") }))); window.__tp.game.start(); }, PHRASES);
     await waitPhase(a.p, "eggs");
-    const ep = await a.p.evaluate(() => ({ n: document.querySelectorAll(".tp-egg-btn").length, first: document.querySelector(".tp-egg-btn").dataset.p, spoken: window.__tp.game.state().spoken }));
+    const ep = await a.p.evaluate(() => ({ n: document.querySelectorAll(".tp-egg-btn").length, first: document.querySelector(".tp-egg-btn").dataset.p, spoken: window.__tp.game.state().spoken, sub: (document.querySelector(".tp-msg-card .tp-msg-s") || {}).textContent }));
     await shot(a.p, "1024x768_egg_pick");
     await a.p.click(`.tp-egg-btn[data-p="${ep.first}"]`);
     await waitPhase(a.p, "morph");
-    const hatch = await S(a.p);
-    ok("A5 有券又有蛋：開局先問「要孵出來對戰嗎」（列出 3 顆、最新的在最上面）→ 點蛋直接下場、扣 1 張券", ep.n === 3 && ep.first === "紅色翹翹板" && ep.spoken.some(t => t.includes("孵出來對戰")) && hatch.phrase === "紅色翹翹板" && (await a.p.evaluate(() => window.__tp.calls.useTicket)) === 1, JSON.stringify({ ep, ph: hatch.phrase }));
+    const hatch = await S(a.p), st7 = await a.p.evaluate(() => ({ pay: window.__tp.calls.pay, stars: window.__tp.api.stars() }));
+    ok("A5 星星夠又有蛋：開局先問「要孵出來對戰嗎」（3 顆、最新在最上面、寫「孵一顆用 5 顆星星（你有 7 顆）」）→ 點蛋直接下場、pay 1 次、星星 7→2", ep.n === 3 && ep.first === "紅色翹翹板" && ep.spoken.some(t => t.includes("孵出來對戰")) && /孵一顆用\s*5\s*顆星星.*7\s*顆/.test(ep.sub || "") && hatch.phrase === "紅色翹翹板" && st7.pay === 1 && st7.stars === 2, JSON.stringify({ ep, ph: hatch.phrase, st7 }));
     await a.p.waitForFunction(() => !document.querySelector(".tp-fight").disabled, null, { timeout: 30000 }); await a.p.click(".tp-fight");
     await a.p.evaluate(() => window.__tp.game.debug.fast(true)); await waitWin(a.p, 1);
     const afterH = await S(a.p);
     ok("A5 孵出來打完：那顆蛋用掉（剩 2 顆）", afterH.eggs.length === 2 && !afterH.eggs.some(e => e.p === "紅色翹翹板"), JSON.stringify(afterH.eggs.map(e => e.p)));
     ok("A5 段：沒有錯誤", a.errs.length === 0, a.errs.join(" | "));
     await a.ctx.close();
-    // 有券：打字打一半離開 → 不扣券；下場 → 扣 1 張
-    const b = await open(browser, 1024, 768, "fast=6&tickets=2");
+    // 星星夠：打字打一半離開 → 不扣；下場 → 扣 5 顆；打字畫面右上顯示「⭐ 12」、下場鈕角標「⭐−5」
+    const b = await open(browser, 1024, 768, "fast=6&stars=12");
     await typeChar(b.p, "宇", "ㄩˇ"); await typeChar(b.p, "宙", "ㄓㄡˋ");
+    const ui = await b.p.evaluate(() => ({ w: (document.querySelector(".tp-wallet") || {}).textContent, c: (document.querySelector(".tp-go-c") || {}).textContent }));
     await b.p.evaluate(() => window.__tp.game.stop());
-    const u1 = await b.p.evaluate(() => ({ use: window.__tp.calls.useTicket, t: window.__tp.api.tickets() }));
+    const u1 = await b.p.evaluate(() => ({ use: window.__tp.calls.pay, t: window.__tp.api.stars() }));
     await b.p.evaluate(() => window.__tp.game.start()); await waitPhase(b.p, "type");
-    await b.p.click(".tp-inspire"); await b.p.click(".tp-go");
+    await b.p.click(".tp-inspire");
+    const rd = await b.p.evaluate(() => ({ ready: document.querySelector(".tp-go").classList.contains("tp-ready"), hint: document.body.textContent.includes("好了！按") }));
+    await b.p.click(".tp-go");
     await waitPhase(b.p, "morph");
-    const u2 = await b.p.evaluate(() => ({ use: window.__tp.calls.useTicket, t: window.__tp.api.tickets() }));
-    ok("券：打字階段離開不扣券；按「下場！」才扣 1 張", u1.use === 0 && u1.t === 2 && u2.use === 1 && u2.t === 1, JSON.stringify({ u1, u2 }));
+    const u2 = await b.p.evaluate(() => ({ use: window.__tp.calls.pay, t: window.__tp.api.stars() }));
+    ok("星星：打字階段離開不扣；按「下場！」才 pay、扣 5 顆（12→7）", u1.use === 0 && u1.t === 12 && u2.use === 1 && u2.t === 7, JSON.stringify({ u1, u2 }));
+    ok("星星：打字畫面右上顯示「⭐ 12」、下場鈕角標「⭐−5」、五個字好了＝tp-ready＋提示「好了！按「⚔️ 下場！」」", /⭐\s*12/.test(ui.w || "") && /⭐[−-]5/.test(ui.c || "") && rd.ready && rd.hint, JSON.stringify({ ui, rd }));
     await b.ctx.close();
-    // 第一次免費：沒券也能玩，下場時 useTicket（主程式記 freeUsed）
-    const c = await open(browser, 1024, 768, "fast=6&tickets=0&first=1");
+    // 第一次免費：星星 0 也能玩，下場時 pay（主程式記 freeUsed）；顯示「🎁 免費」「免費」
+    const c = await open(browser, 1024, 768, "fast=6&stars=0&first=1");
     const s1 = await S(c.p);
+    const fu = await c.p.evaluate(() => ({ w: (document.querySelector(".tp-wallet") || {}).textContent, c: (document.querySelector(".tp-go-c") || {}).textContent }));
     await c.p.click(".tp-inspire"); await c.p.click(".tp-go"); await waitPhase(c.p, "morph");
-    const u3 = await c.p.evaluate(() => ({ use: window.__tp.calls.useTicket, first: window.__tp.api.firstFree() }));
-    ok("券：第一次免費（沒券也能進來、下場時通知主程式用掉免費那次）", s1.phase === "type" && u3.use === 1 && u3.first === false, JSON.stringify(u3));
+    const u3 = await c.p.evaluate(() => ({ use: window.__tp.calls.pay, first: window.__tp.api.firstFree(), stars: window.__tp.api.stars() }));
+    ok("星星：第一次免費（0 顆也能進打字、顯示「🎁 免費」「免費」、下場時 pay 一次通知主程式用掉免費那次、星星不變）", s1.phase === "type" && /免費/.test(fu.w || "") && /免費/.test(fu.c || "") && u3.use === 1 && u3.first === false && u3.stars === 0, JSON.stringify({ fu, u3 }));
     await c.ctx.close();
+    // 結算：星星條「我的星星 N 顆」＋5 格；夠（≥5）才有「🔁 再玩一次（⭐5）」，不夠沒有
+    const d = await open(browser, 1024, 768, "fast=6&stars=12");
+    await d.p.click(".tp-inspire"); await playToEnd(d.p, 1);
+    await d.p.waitForFunction(() => document.querySelector(".tp-rpanel .tp-stars"), null, { timeout: 20000 }); await sleep(200);
+    const r1 = await d.p.evaluate(() => ({ h: document.querySelector(".tp-rpanel .tp-stars-h").textContent, lit: document.querySelectorAll(".tp-rpanel .tp-star.tp-lit").length, all: document.querySelectorAll(".tp-rpanel .tp-star").length, enough: !!document.querySelector(".tp-rpanel .tp-stars.tp-enough"), s: document.querySelector(".tp-rpanel .tp-stars-s").textContent, again: !!document.querySelector(".tp-rpanel .tp-again"), c: (document.querySelector(".tp-rpanel .tp-again .tp-btn-c") || {}).textContent }));
+    await shot(d.p, "1024x768_result_enough");
+    ok("結算（星星夠 12→7）：「⭐ 陀螺星星 7 顆」、5 格全亮、tp-enough、寫「5 顆星星玩一次」、有「🔁 再玩一次」且角標「⭐−5」", /陀螺星星/.test(r1.h) && /7\s*顆/.test(r1.h) && r1.lit === 5 && r1.all === 5 && r1.enough && /5\s*顆星星玩一次/.test(r1.s) && r1.again && /⭐[−-]5/.test(r1.c || ""), JSON.stringify(r1));
+    ok("結算段：沒有錯誤", d.errs.length === 0, d.errs.join(" | "));
+    await d.ctx.close();
+    const e = await open(browser, 1024, 768, "fast=6&stars=7");
+    await e.p.click(".tp-inspire"); await playToEnd(e.p, 1);
+    await e.p.waitForFunction(() => document.querySelector(".tp-rpanel .tp-stars"), null, { timeout: 20000 }); await sleep(200);
+    const r2 = await e.p.evaluate(() => ({ h: document.querySelector(".tp-rpanel .tp-stars-h").textContent, lit: document.querySelectorAll(".tp-rpanel .tp-star.tp-lit").length, enough: !!document.querySelector(".tp-rpanel .tp-stars.tp-enough"), s: document.querySelector(".tp-rpanel .tp-stars-s").textContent, again: !!document.querySelector(".tp-rpanel .tp-again"), home: !!document.querySelector(".tp-rpanel .tp-home") }));
+    await shot(e.p, "1024x768_result_short");
+    ok("結算（星星不夠 7→2）：星星條 2 格亮、不是 tp-enough、寫「再拿 3 顆星星，就能再玩一次！」、沒有「再玩一次」鈕、有回小島", /2\s*顆/.test(r2.h) && r2.lit === 2 && !r2.enough && /再拿\s*3\s*顆星星/.test(r2.s) && !r2.again && r2.home, JSON.stringify(r2));
+    await e.ctx.close();
   }
 
   // ===== ⑥ stop() 收乾淨＋開關 5 次沒有 WebGL 洩漏 =====
   {
     const rafWrap = () => { const orig = window.requestAnimationFrame.bind(window); window.__rafRuns = 0; window.requestAnimationFrame = cb => orig(t => { window.__rafRuns++; cb(t); }); };
-    const { ctx, p, errs } = await open(browser, 1024, 768, "fast=4&tickets=99", { initScript: rafWrap });
+    const { ctx, p, errs } = await open(browser, 1024, 768, "fast=4&stars=99", { initScript: rafWrap });
     const ctx0 = await p.evaluate(() => window.__tp.mod.CTX.made);
     for (let k = 0; k < 5; k++) {
       await p.evaluate(() => window.__tp.game.start()); await waitPhase(p, "type");
@@ -391,7 +406,7 @@ async function playToEnd(p, n = 1) {                          // 下場 → 開�
 
   // ===== ⑦ 送出全島榜 =====
   {
-    const { ctx, p, errs } = await open(browser, 1024, 768, "fast=6&tickets=99");
+    const { ctx, p, errs } = await open(browser, 1024, 768, "fast=6&stars=99");
     const cases = [];
     const hi = INSP.map(x => x[0]).concat(["鯨魚霸王龍", "龍龍超級鬥"]).map(ph => [ph, P.powerOf(ph, D).total]).filter(([ph]) => !P.phraseIssue(ph, D)).sort((a, b) => b[1] - a[1])[0][0];
     // 自由打的句子（不在任何清單）：強的會送、黑名單不送、太弱不送
@@ -424,7 +439,7 @@ async function playToEnd(p, n = 1) {                          // 下場 → 開�
 
   // ===== ⑧ 暫停 =====
   {
-    const { ctx, p, errs } = await open(browser, 1024, 768, "fast=2&tickets=9");
+    const { ctx, p, errs } = await open(browser, 1024, 768, "fast=2&stars=99");
     await p.click(".tp-inspire"); await p.click(".tp-go"); await waitPhase(p, "morph");
     await p.waitForFunction(() => !document.querySelector(".tp-fight").disabled, null, { timeout: 20000 }); await p.click(".tp-fight");
     await p.waitForFunction(() => { const s = window.__tp.game.state(); return s.round && s.round.stage === "fight"; }, null, { timeout: 20000 });
@@ -464,7 +479,7 @@ async function playToEnd(p, n = 1) {                          // 下場 → 開�
     ok("A3 兒童常用字：KID_EXTRA 有收配送站商品、禮物、寵物名的每個字", !miss.length && need.length > 40, miss.join(""));
   }
   {
-    const { ctx, p, errs } = await open(browser, 1024, 768, "fast=6&tickets=9&first=1");
+    const { ctx, p, errs } = await open(browser, 1024, 768, "fast=6&stars=99&first=1");
     // B6a 第一次免費那場：挑小孩會贏的對手（弱句子也贏）
     await p.evaluate(() => window.__tp.game.debug.setPhrase("力了人八十"));
     await p.click(".tp-go"); await waitPhase(p, "morph");
@@ -475,10 +490,10 @@ async function playToEnd(p, n = 1) {                          // 下場 → 開�
     await p.click(".tp-fight"); await p.evaluate(() => window.__tp.game.debug.fast(true)); await waitWin(p, 1);
     const w1 = await p.evaluate(() => window.__tp.calls.win[0]), s1 = await S(p);
     ok("B6a 第一次免費那場：先把候選對手都模擬一遍、挑會贏的（力了人八十 2035 也贏）", s1.isFree && s1.oppWhy === "free" && w1.win === true, JSON.stringify({ opp: w1.opponent, score: w1.score, why: s1.oppWhy }));
-    // B6b 輸了：換個對手再打（不扣券、不用重打字、每張券限一次）；B6c 同一句再下場避開打過的
+    // B6b 輸了：換個對手再打（不扣星星、不用重打字、每付一次限一次）；B6c 同一句再下場避開打過的
     await p.evaluate(() => window.__tp.game.start({ opponent: { p: "愛睡覺的貓" } })); await waitPhase(p, "type");
     await p.evaluate(() => window.__tp.game.debug.setPhrase("力了人八十"));
-    const u0 = await p.evaluate(() => window.__tp.calls.useTicket);
+    const u0 = await p.evaluate(() => window.__tp.calls.pay);
     await playToEnd(p, 2);
     await p.waitForFunction(() => document.querySelector(".tp-rpanel"), null, { timeout: 20000 }); await sleep(300);
     const l1 = await p.evaluate(() => ({ s: window.__tp.game.state(), btn: !!document.querySelector(".tp-rematch"), w: window.__tp.calls.win[1] }));
@@ -488,9 +503,9 @@ async function playToEnd(p, n = 1) {                          // 下場 → 開�
     const r1 = await S(p);
     await p.click(".tp-fight"); await p.evaluate(() => window.__tp.game.debug.fast(true)); await waitWin(p, 3);
     await p.waitForFunction(() => document.querySelector(".tp-rpanel"), null, { timeout: 20000 }); await sleep(200);
-    const r2 = await p.evaluate(() => ({ s: window.__tp.game.state(), btn: !!document.querySelector(".tp-rematch"), use: window.__tp.calls.useTicket, w: window.__tp.calls.win[2] }));
-    ok("B6b 輸了 → 有「換個對手再打」→ 不扣券、不用重打字（同一句）、換一個沒打過的對手", !l1.w.win && l1.btn && l1.s.canRematch && r1.phase === "morph" && r1.phrase === "力了人八十" && r1.opp.p !== "愛睡覺的貓" && r2.use === u0 + 1 && r2.w.phrase === "力了人八十", JSON.stringify({ lost: l1.w.score, opp2: r1.opp, use: [u0, r2.use], why: r1.oppWhy }));
-    ok("B6b 換對手那場也挑會贏的（安慰）；同一張券用過一次就不再出現「換個對手再打」", r1.oppWhy === "rematch" && (r2.w.win || !r2.btn) && !r2.s.canRematch && r2.s.rematchUsed, JSON.stringify({ win2: r2.w.win, btn: r2.btn }));
+    const r2 = await p.evaluate(() => ({ s: window.__tp.game.state(), btn: !!document.querySelector(".tp-rematch"), use: window.__tp.calls.pay, w: window.__tp.calls.win[2] }));
+    ok("B6b 輸了 → 有「換個對手再打」→ 不扣星星、不用重打字（同一句）、換一個沒打過的對手", !l1.w.win && l1.btn && l1.s.canRematch && r1.phase === "morph" && r1.phrase === "力了人八十" && r1.opp.p !== "愛睡覺的貓" && r2.use === u0 + 1 && r2.w.phrase === "力了人八十", JSON.stringify({ lost: l1.w.score, opp2: r1.opp, use: [u0, r2.use], why: r1.oppWhy }));
+    ok("B6b 換對手那場也挑會贏的（安慰）；同一次付費用過一次就不再出現「換個對手再打」", r1.oppWhy === "rematch" && (r2.w.win || !r2.btn) && !r2.s.canRematch && r2.s.rematchUsed, JSON.stringify({ win2: r2.w.win, btn: r2.btn }));
     // B6c 同一句再下場（不指定對手）：避開打過的（這次開頁打過的＋存檔最近紀錄）
     const before = await p.evaluate(() => window.__tp.game.debug.fought().filter(e => e.p === "力了人八十").map(e => e.o));
     await p.evaluate(() => window.__tp.game.start()); await waitPhase(p, "type");
@@ -499,7 +514,7 @@ async function playToEnd(p, n = 1) {                          // 下場 → 開�
     const c1 = await S(p);
     ok("B6c 同一句再下場：對手避開打過的（" + before.join("、") + "）", before.length >= 3 && !before.includes(c1.opp.p), JSON.stringify({ before, now: c1.opp.p }));
     // 存檔的最近紀錄（leaderboard().recent）：重新開頁（記憶體清空）也避得開
-    await p.goto(LAB + "?mute=1&clean=1&fast=6&tickets=9");
+    await p.goto(LAB + "?mute=1&clean=1&fast=6&stars=99");
     await p.waitForFunction(() => window.__tp && window.__tp.ready, null, { timeout: 20000 });
     await p.evaluate(() => window.__tp.game.debug.setPhrase("力了人八十")); await p.click(".tp-go"); await waitPhase(p, "morph");
     await p.waitForFunction(() => window.__tp.game.state().opp, null, { timeout: 30000 });
@@ -515,7 +530,7 @@ async function playToEnd(p, n = 1) {                          // 下場 → 開�
     p.on("pageerror", e => { errs.push("PAGEERR " + e.message); allErrs.push("[B7] PAGEERR " + e.message); });
     p.on("console", m => { if (m.type() === "error" && !/favicon/.test(m.text())) { errs.push("CONSOLE " + m.text().slice(0, 200)); allErrs.push("[B7] CONSOLE " + m.text().slice(0, 200)); } });
     const runMatch = async (cheers, label) => {
-      await p.goto(LAB + "?mute=1&clean=1&home=clear&fast=3&tickets=9&opp=" + encodeURIComponent("熊貓愛跳舞"));
+      await p.goto(LAB + "?mute=1&clean=1&home=clear&fast=3&stars=99&opp=" + encodeURIComponent("熊貓愛跳舞"));
       await p.waitForFunction(() => window.__tp && window.__tp.ready, null, { timeout: 20000 });
       await p.evaluate(() => { window.__bn = []; window.__speeds = new Set(); new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => n.classList && n.classList.contains("tp-bn") && window.__bn.push(n.textContent)))).observe(document.querySelector(".tp-banner"), { childList: true });
         setInterval(() => { const s = window.__tp.game.state(); if (s && s.round && s.round.stage === "fight") window.__speeds.add(s.round.i + ":" + s.round.speed); }, 20); });
@@ -569,19 +584,19 @@ async function playToEnd(p, n = 1) {                          // 下場 → 開�
     ok("B9 對戰中：有加成的陀螺（兩隊都算）帶金色光圈", (A.sp.gold || []).length >= 1, JSON.stringify(A.sp.gold));
     ok("C15 結算期間 3D 像素比降到 1（對戰中是 2）", A.pr1 === 2 && A.end.pr === 1, JSON.stringify({ battle: A.pr1, result: A.end.pr }));
     // C10 enterMorph 出錯 → onFail({why:"morph"})
-    await p.goto(LAB + "?mute=1&clean=1&home=clear&fast=3&tickets=9");
+    await p.goto(LAB + "?mute=1&clean=1&home=clear&fast=3&stars=99");
     await p.waitForFunction(() => window.__tp && window.__tp.ready, null, { timeout: 20000 });
     await p.evaluate(() => { window.__tp.game.debug.breakMorph(); window.__tp.game.debug.setPhrase("宇宙強爸爸"); });
     await p.evaluate(() => { window.__warns = []; const w = console.warn; console.warn = (...a) => { window.__warns.push(a.join(" ")); w.apply(console, a); }; });
     await p.click(".tp-go"); await sleep(400);
     const mf = await p.evaluate(() => ({ fail: window.__tp.calls.fail.slice(), warns: window.__warns.filter(x => x.includes("[tops]")) }));
-    ok("C10 變身流程出錯（enterMorph reject）＝catch 住、console.warn、onFail({why:\"morph\"})（主程式會回小島並退券）", mf.fail.some(f => f.why === "morph") && mf.warns.length >= 1, JSON.stringify(mf));
+    ok("C10 變身流程出錯（enterMorph reject）＝catch 住、console.warn、onFail({why:\"morph\"})（主程式會回小島並退星星）", mf.fail.some(f => f.why === "morph") && mf.warns.length >= 1, JSON.stringify(mf));
     ok("B7–C15 段：沒有錯誤", errs.length === 0, errs.join(" | "));
     await ctx.close();
   }
   {
     // v2：合體第二次起點一下跳過、段位升段（試玩頁沒給 api.rank＝模組自己記）、對手照段位挑、減少動態
-    const { ctx, p, errs } = await open(browser, 1024, 768, "fast=6&tickets=99");
+    const { ctx, p, errs } = await open(browser, 1024, 768, "fast=6&stars=99");
     const one = async (ph, skipTap) => {
       await p.evaluate(() => window.__tp.game.start()); await waitPhase(p, "type");
       await p.evaluate(ph => window.__tp.game.debug.setPhrase(ph), ph);
@@ -620,7 +635,7 @@ async function playToEnd(p, n = 1) {                          // 下場 → 開�
     const rmc = await browser.newContext({ viewport: { width: 1024, height: 768 }, reducedMotion: "reduce" });
     const rp = await rmc.newPage(); const rerr = [];
     rp.on("pageerror", e => { rerr.push(e.message); allErrs.push("[rm] PAGEERR " + e.message); });
-    await rp.goto(LAB + "?mute=1&clean=1&home=clear&fast=4&tickets=9");
+    await rp.goto(LAB + "?mute=1&clean=1&home=clear&fast=4&stars=99");
     await rp.waitForFunction(() => window.__tp && window.__tp.ready, null, { timeout: 20000 });
     await rp.evaluate(() => window.__tp.game.debug.setPhrase("紅色翹翹板")); await rp.click(".tp-go");
     await rp.waitForFunction(() => { const s = window.__tp.game.state(); return s.fuse && s.fuse.burst; }, null, { timeout: 30000, polling: 30 });
@@ -643,7 +658,7 @@ async function playToEnd(p, n = 1) {                          // 下場 → 開�
   // ===== ⑨ 三種尺寸 × 四個畫面截圖＋版面 =====
   const missingAll = new Set();
   for (const [w, h] of [[1024, 768], [768, 1024], [844, 390]]) {
-    const { ctx, p, errs } = await open(browser, w, h, "fast=3&tickets=9&ann=1");
+    const { ctx, p, errs } = await open(browser, w, h, "fast=3&stars=99&ann=1");
     await p.waitForFunction(() => window.__tp.ann, null, { timeout: 8000 }).catch(() => {});
     const tag = `${w}x${h}`;
     await typeSyl(p, "ㄩˇ"); await sleep(400);

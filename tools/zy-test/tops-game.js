@@ -2,11 +2,11 @@
 // 需要：專案根目錄開著 python -m http.server 8765。截圖存到 TOPS_GAME_SHOTS（預設 %TEMP%\zy-tops-game）。
 // 後端一律用 page.route 攔截 Apps Script 網址回假資料（不碰正式後端；沒帶 ?plaza=on 的頁面本來就不連線）。驗：
 //   ①歸仁區東邊小半島有陀螺競技場（🌀、剛開放＝展開「新 陀螺競技場」、蓋好、門口接到路網）→ 點 3D 建築進遊戲（「再聽」藏起來、road 音樂、教學只唸一次）
-//   ②第一次免費：下場不扣券、freeUsed＝1；打完一場 → 存檔 best／home／history；結算是模組自己的畫面，🏝️ 回小島
-//   ③券不足：點競技場／卡片＝貓頭鷹說「再拿 N 顆星星就能玩陀螺喔！」、不進遊戲
-//   ④星星換券：結算拿到星星存進 starsBank，滿 15 換 1 張（獎勵膠囊「陀螺券 +1」＋語音）；券滿 3 張不再換、starsBank 最多存 15
-//   ⑤有券：打字中離開不扣券；下場了還沒打完就離開＝券退回；離開後沒有殘留 rAF／WebGL／計時／語音
-//   ⑤b 下場扣了券就重新整理頁面（iPad 分頁被回收）＝重開時券退回（一般券、免費那次都是；10-12 里維必修 2）
+//   ②第一次免費：下場不扣星星、freeUsed＝1；打完一場 → 存檔 best／home／history；結算是模組自己的畫面，🏝️ 回小島
+//   ③星星不夠（10-31 拿掉券）：介紹卡上鎖＋寫還差 5 顆；同一棟再點／卡片選單點＝貓頭鷹說「再拿 5 顆星星就能玩陀螺喔！」、不進遊戲
+//   ④星星累積：結算拿到的星星另存一份到 save.tops.stars（不扣星星罐）；從 <5 變 ≥5＝膠囊「🌀 5 顆⭐夠玩陀螺了！」＋語音；之後不再出現
+//   ⑤有 5 顆：打字中離開不扣；下場扣 5 顆（待退）、對戰中離開＝退回；離開後沒有殘留 rAF／WebGL／計時／語音
+//   ⑤b 下場扣了星星就重新整理頁面（iPad 分頁被回收）＝重開時退回（一般、免費那次都是；10-12 里維必修 2）；舊存檔（tickets／starsBank）自動換算成 stars
 //   ⑥送榜（攔截假後端）：全島榜＝後端公開前 5（不足用島上傳說補）；POST 只送 {k:"top", p}（text/plain）；pending／public（名次）／失敗安靜；家長關掉同樂廣場＝不送也不讀
 //   ⑦存檔重開仍在、備份碼還原仍在 ⑧新字都有注音、0 個 console error
 const { launch, URL } = require("./lib");
@@ -122,7 +122,7 @@ function mock(PZ) {
   const PZ = await import(pathToFileURL(path.resolve(__dirname, "../../js/zhuyin-plaza.js")).href);
   const browser = await launch(); const allErrs = [];
 
-  // ===== A. 沒有後端（本機預設不連）：第一次免費、券、換券、退券、存檔 =====
+  // ===== A. 沒有後端（本機預設不連）：第一次免費、星星不夠擋在門口、累積星星、扣星星、退星星、存檔 =====
   {
     const { ctx, p, errs, net } = await openT(browser, { stickers: 40 });
     await hubReady(p);
@@ -159,8 +159,8 @@ function mock(PZ) {
     const au1 = await p.evaluate(() => ({ bgm: window.__bgmLog.slice(), sfx: [...new Set(window.__sfxLog)], want: window.__zyAudio.debug().want, lab: window.__zy.topsRankLabel() }));
     ok("v7 合體起換對戰音樂 battle（manifest 有這首）；對戰播 tp_ 音效（合體、倒數、發射、撞擊、回合）", au1.bgm.includes("battle") && au1.want === "battle" && ["tp_fuse", "tp_count", "tp_launch", "tp_round"].every(n => au1.sfx.includes(n)) && au1.sfx.some(n => /^tp_clash[123]$/.test(n)), J(au1));
     ok("v7 段位：一開始「🔰 新手」→ 第一場贏了升一段（存檔 rank 1、介紹卡用的 topsRankLabel()＝「🥉 銅牌」）、onWin 帶 rank", lab0 === "🔰 新手" && s0.rank === 0 && s1.rank === 1 && au1.lab === "🥉 銅牌" && st1.win && st1.win.rank && st1.win.rank.from === 0 && st1.win.rank.to === 1, J({ lab0, r0: s0.rank, r1: s1.rank, lab: au1.lab, rank: st1.win && st1.win.rank }));
-    ok("② 第一次免費：下場不扣券（tickets 0）、freeUsed＝1", s0.tickets === 0 && !s0.freeUsed && s1.tickets === 0 && s1.freeUsed === 1, J({ s0, s1: { t: s1.tickets, f: s1.freeUsed } }));
-    ok("② 打完一場：存檔 best／home／history、沒有待退的券", m1.ok && s1.best && s1.best.p === "宇宙強爸爸" && s1.best.power === st1.power && s1.home.some(e => e.p === "宇宙強爸爸") && s1.history.length === 1 && s1.history[0].p === "宇宙強爸爸" && pend === null, J({ m1, best: s1.best, home: s1.home, hist: s1.history, pend }));
+    ok("② 第一次免費：下場不扣星星（stars 0）、freeUsed＝1", s0.stars === 0 && !s0.freeUsed && s1.stars === 0 && s1.freeUsed === 1, J({ s0, s1: { t: s1.stars, f: s1.freeUsed } }));
+    ok("② 打完一場：存檔 best／home／history、沒有待退的星星", m1.ok && s1.best && s1.best.p === "宇宙強爸爸" && s1.best.power === st1.power && s1.home.some(e => e.p === "宇宙強爸爸") && s1.history.length === 1 && s1.history[0].p === "宇宙強爸爸" && pend === null, J({ m1, best: s1.best, home: s1.home, hist: s1.history, pend }));
     ok("B6a 第一次免費那場：挑會贏的對手（贏了）；history 記下對手（同一句再下場時避開）", st1.win && st1.win.win === true && st1.oppWhy === "free" && s1.history[0].o === st1.opp.p, J({ win: st1.win && st1.win.score, opp: st1.opp, o: s1.history[0].o }));
     const isl = await p.evaluate(() => [...document.querySelectorAll(".tp-isl .tp-row")].map(r => r.querySelector(".tp-row-ph") ? r.querySelector(".tp-row-ph").textContent.replace(/[ㄅ-ㄩˊˇˋ˙\s]/g, "") : ""));
     ok("② 沒連線：全島榜＝5 個島上傳說、沒有送出（也沒有任何連線）", isl.length === 5 && st1.submit && !st1.submit.res && net.length === 0, J({ isl, submit: st1.submit, net }));
@@ -176,68 +176,61 @@ function mock(PZ) {
     ok("② 按住競技場：浮標展開名字", (await p.evaluate(() => window.__hub3d.lod())).open.includes("tops"));
     await shot(p, "tops-town-press");
     await p.evaluate(() => window.__hub3d.openOne(null)); await sleep(300);
-    // ③ 券不足（10-12 櫻木：沒券也能打字）：點卡片／3D 競技場照樣進打字畫面，「下場！」變「存成蛋！」→ 存檔 save.tops.eggs；按 🏝️ 回小島＝貓頭鷹說還差幾顆星星
-    await p.evaluate(() => { window.__spoken = []; document.querySelector(".mode-card[data-mode=tops]").click(); });
-    const in3 = await inTops(p), st3 = await TP(p);
-    ok("③ 沒券：點卡片照樣進打字畫面（陀螺蛋模式）", in3 && st3.eggMode, J({ in3, egg: st3 && st3.eggMode }));
-    await p.evaluate(() => window.__zy.tops.debug.setPhrase("超人在刷牙")); await sleep(200);
-    await p.evaluate(() => window.__zy.tops.debug.go()); await phase(p, "egg", 8000);
-    const eg3 = await TS(p), lit3 = await p.evaluate(() => document.querySelectorAll(".tp-msg-card .tp-star.tp-lit").length);
-    ok("③ 沒券按「存成蛋！」：存成陀螺蛋（存檔 eggs 有這句、帶注音）、不扣券、集點卡亮 starsBank 格", eg3.eggs.length === 1 && eg3.eggs[0].p === "超人在刷牙" && eg3.eggs[0].z && eg3.eggs[0].z.length === 5 && eg3.tickets === 0 && !eg3.pending && lit3 === eg3.starsBank, J({ eggs: eg3.eggs, lit3, bank: eg3.starsBank }));
-    await shot(p, "tops-egg-saved");
-    await p.evaluate(() => { window.__spoken = []; document.querySelector(".tp-msg-card .tp-home").click(); }); await sleep(1200);
-    const g3 = await p.evaluate(() => ({ mode: window.__zy.mode, guide: document.getElementById("guideText").textContent.replace(/[ㄅ-ㄩˊˇˋ˙\s]/g, "") }));
-    ok("③ 蛋存好按 🏝️ 回小島：貓頭鷹說「再拿 15 顆星星就能玩陀螺喔！」", g3.mode === null && g3.guide === "再拿15顆星星就能玩陀螺喔！", J(g3));
-    await p.evaluate(() => document.getElementById("townBtn").click()); await sleep(3800);   // 從遊戲回來＝回到主島，再去歸仁區（跟 ② 一樣）
-    const s3 = await tap3d(p, "tops"); const in3b = await inTops(p);
-    ok("③ 沒券：點 3D 競技場也照樣進打字畫面", !!s3 && in3b, J({ s3, in3b }));
-    await p.evaluate(() => document.getElementById("homeBtn").click()); await sleep(300); await p.evaluate(() => document.getElementById("confirmYes").click()); await sleep(700);
-    await p.evaluate(() => { window.__zy.topsSave.eggs = []; });   // 後面的測試不要被「要孵蛋嗎」擋住
-    // ④ 星星換券：starsBank 14 → 玩一回偵探 → 換到 1 張（10-12：不再假設偵探題數；照結算實際拿到幾顆星算）
-    await p.evaluate(() => { window.__zy.topsSave.starsBank = 14; });
+    // ③ 星星不夠（freeUsed 1、stars 0）：3D 第一下開介紹卡＝上鎖（locked、寫還差 5 顆、沒有「開始玩」）；同一棟再點不進遊戲、貓頭鷹說還差幾顆；卡片選單點進去一樣被擋
+    await p.evaluate(() => { window.__spoken = []; });
+    const sp3 = await spot(p, "tops"); await p.mouse.click(sp3.x, sp3.y); const on3 = await pickOn(p, "tops");
+    const pk3 = await p.evaluate(() => { const b = document.getElementById("pick"), go = document.getElementById("pkGo"); return { locked: b.classList.contains("locked"), lock: document.getElementById("pkLock").textContent.replace(/[ㄅ-ㄩˊˇˋ˙\s]/g, ""), meta: document.getElementById("pkMeta").textContent, goShown: !!go && getComputedStyle(go).display !== "none" && getComputedStyle(go).visibility !== "hidden" && go.offsetParent !== null }; });
+    ok("③ 星星不夠：介紹卡上鎖（class locked）、寫「⭐0／5・再拿5顆星星就能玩」、沒有「開始玩」", on3 && pk3.locked && pk3.lock === "⭐0／5・再拿5顆星星就能玩" && !pk3.goShown, J({ on3, pk3 }));
+    await sleep(900); await p.evaluate(() => { window.__spoken = []; });
+    const sp3b = await spot(p, "tops"); if (sp3b) await p.mouse.click(sp3b.x, sp3b.y); await sleep(1200);
+    const g3 = await p.evaluate(() => ({ mode: window.__zy.mode, guide: document.getElementById("guideText").textContent.replace(/[ㄅ-ㄩˊˇˋ˙\s]/g, "") })), say3 = (await spoken(p)).map(strip);
+    ok("③ 星星不夠：同一棟再點不進遊戲（mode 仍 null）、貓頭鷹說「再拿5顆星星就能玩陀螺喔！」（有聲音）", g3.mode === null && g3.guide === "再拿5顆星星就能玩陀螺喔！" && say3.includes("再拿5顆星星就能玩陀螺喔！"), J({ g3, say3 }));
+    await p.evaluate(() => { const x = document.getElementById("pkClose"); if (x) x.click(); }); await sleep(300);
+    await p.evaluate(() => { window.__spoken = []; document.querySelector(".mode-card[data-mode=tops]").click(); }); await sleep(1200);
+    const g3c = await p.evaluate(() => ({ mode: window.__zy.mode, guide: document.getElementById("guideText").textContent.replace(/[ㄅ-ㄩˊˇˋ˙\s]/g, "") }));
+    ok("③ 星星不夠：卡片選單點進去也被擋（mode 仍 null、說還差 5 顆）、存檔沒被扣", g3c.mode === null && g3c.guide === "再拿5顆星星就能玩陀螺喔！" && (await TS(p)).stars === 0, J(g3c));
+    // ④ 星星累積：stars 4 → 玩一回偵探 → 變成 4＋拿到的星數（≥5）→ 膠囊「🌀 5 顆⭐夠玩陀螺了！」＋語音（10-31 拿掉券；以前是 15 顆換 1 張）
+    await p.evaluate(() => { window.__zy.topsSave.stars = 4; });
     await p.evaluate(() => document.getElementById("homeBtn").click()); await sleep(300);
     await p.evaluate(() => { window.__spoken = []; document.querySelector(".mode-card[data-mode=detective]").click(); });
     await p.waitForFunction(() => window.__zy.mode === "detective" && window.__zy.detective && window.__zy.detective.state(), null, { timeout: 20000 });
     await p.evaluate(() => { const b = document.querySelector("#detective .dt-go"); if (b) b.click(); });   // 10-13 偵探先出「選等級」畫面：按「開始」
     await p.waitForFunction(() => window.__zy.detective.state().phase !== "pick", null, { timeout: 5000 });
     const total = (await p.evaluate(() => window.__zy.detective.state().total));
-    for (let k = 0; k < total; k++) {
-      await p.waitForFunction(() => { const s = window.__zy.detective.state(); return s && s.phase === "ask"; }, null, { timeout: 15000, polling: 30 });
-      await p.evaluate(() => { const g = window.__zy.detective; g.debug.tap(g.state().answer); });
-      await p.waitForFunction(() => window.__zy.detective.state().nextShown, null, { timeout: 8000, polling: 30 });
-      await sleep(200); await p.evaluate(() => document.querySelector(".dt-next").click());
-    }
-    await p.waitForFunction(() => !document.getElementById("result").classList.contains("hidden"), null, { timeout: 20000 });
-    await sleep(900); await p.evaluate(() => document.getElementById("result").dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }))); await sleep(2200);
+    const playDet = async () => {
+      for (let k = 0; k < total; k++) {
+        await p.waitForFunction(() => { const s = window.__zy.detective.state(); return s && s.phase === "ask"; }, null, { timeout: 15000, polling: 30 });
+        await p.evaluate(() => { const g = window.__zy.detective; g.debug.tap(g.state().answer); });
+        await p.waitForFunction(() => window.__zy.detective.state().nextShown, null, { timeout: 8000, polling: 30 });
+        await sleep(200); await p.evaluate(() => document.querySelector(".dt-next").click());
+      }
+      await p.waitForFunction(() => !document.getElementById("result").classList.contains("hidden"), null, { timeout: 20000 });
+      await sleep(900); await p.evaluate(() => document.getElementById("result").dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }))); await sleep(2200);
+    };
+    await playDet();
     const s4 = await TS(p), pills = await p.evaluate(() => [...document.querySelectorAll("#result .rw-pill")].map(e => e.textContent.replace(/[ㄅ-ㄩˊˇˋ˙\s]/g, ""))), sp4 = await spoken(p);
     const got4 = await p.evaluate(() => document.querySelectorAll("#result .star.on").length);   // 這一局實際拿到幾顆星（偵探題數、星星規則改了也不影響）
-    ok(`④ 結算 ${got4} 星：starsBank 14＋${got4} → 換 1 張陀螺券、剩 ${14 + got4 - 15} 顆`, got4 >= 1 && got4 <= 3 && s4.tickets === 1 && s4.starsBank === 14 + got4 - 15, J({ got4, t: s4.tickets, b: s4.starsBank }));
-    ok("④ 獎勵膠囊「🎟️ 陀螺券 +1」、語音「拿到一張陀螺券了！」", pills.includes("🎟️陀螺券+1") && sp4.includes("拿到一張陀螺券了！"), J({ pills, sp4: sp4.slice(-3) }));
-    await shot(p, "tops-ticket-result");
-    // 券滿 3 張：不再換、starsBank 最多 15
-    const cap = await p.evaluate(() => { const t = window.__zy.topsSave, o = { tickets: t.tickets, starsBank: t.starsBank }; t.tickets = 3; t.starsBank = 14; return o; });
-    await p.evaluate(() => document.getElementById("againBtn").click());
+    ok(`④ 結算 ${got4} 星：陀螺星星 4＋${got4} ＝ ${4 + got4}（星星罐另算、不扣）`, got4 >= 1 && got4 <= 3 && s4.stars === 4 + got4, J({ got4, stars: s4.stars }));
+    ok("④ 星星從 <5 變 ≥5：獎勵膠囊「🌀 5 顆⭐夠玩陀螺了！」、語音「星星夠了，可以去玩陀螺囉！」", pills.includes("🌀5顆⭐夠玩陀螺了！") && sp4.includes("星星夠了，可以去玩陀螺囉！"), J({ pills, sp4: sp4.slice(-3) }));
+    ok("④ 沒有舊的「陀螺券」膠囊／語音", !pills.some(t => t.includes("陀螺券")) && !sp4.some(t => t.includes("陀螺券")), J({ pills }));
+    await shot(p, "tops-stars-result");
+    // 已經 ≥5 再玩一回：星星繼續累積、不再出現「夠玩陀螺了」
+    await p.evaluate(() => { window.__spoken = []; document.getElementById("againBtn").click(); });
     await p.waitForFunction(() => window.__zy.mode === "detective" && window.__zy.detective.state() && window.__zy.detective.state().phase === "pick", null, { timeout: 20000 });
     await p.evaluate(() => document.querySelector("#detective .dt-go").click());   // 10-13：再玩一次也先出選等級畫面
     await p.waitForFunction(() => window.__zy.mode === "detective" && window.__zy.detective.state() && window.__zy.detective.state().phase === "ask", null, { timeout: 20000 });
-    for (let k = 0; k < total; k++) {
-      await p.waitForFunction(() => { const s = window.__zy.detective.state(); return s && s.phase === "ask"; }, null, { timeout: 15000, polling: 30 });
-      await p.evaluate(() => { const g = window.__zy.detective; g.debug.tap(g.state().answer); });
-      await p.waitForFunction(() => window.__zy.detective.state().nextShown, null, { timeout: 8000, polling: 30 });
-      await sleep(200); await p.evaluate(() => document.querySelector(".dt-next").click());
-    }
-    await p.waitForFunction(() => !document.getElementById("result").classList.contains("hidden"), null, { timeout: 20000 }); await sleep(600);
-    const s4b = await TS(p);
-    ok("④ 券滿 3 張：不再換券、starsBank 停在 15", s4b.tickets === 3 && s4b.starsBank === 15, J({ before: cap, after: { t: s4b.tickets, b: s4b.starsBank } }));
-    await p.evaluate(() => { const t = window.__zy.topsSave; t.tickets = 1; t.starsBank = 1; });
-    // ⑤ 有券：打字中離開不扣券
+    await playDet();
+    const s4b = await TS(p), pills4b = await p.evaluate(() => [...document.querySelectorAll("#result .rw-pill")].map(e => e.textContent.replace(/[ㄅ-ㄩˊˇˋ˙\s]/g, ""))), sp4b = await spoken(p);
+    ok("④ 已經 ≥5 再玩一回：星星繼續累積、不再出現「夠玩陀螺了」膠囊和語音", s4b.stars > s4.stars && !pills4b.some(t => t.includes("夠玩陀螺")) && !sp4b.includes("星星夠了，可以去玩陀螺囉！"), J({ before: s4.stars, after: s4b.stars, pills4b }));
+    await p.evaluate(() => { const t = window.__zy.topsSave; t.stars = 5; });
+    // ⑤ 有 5 顆：打字中離開不扣星星
     await p.evaluate(() => document.getElementById("menuBtn").click()); await sleep(800);
     await p.evaluate(() => document.querySelector(".mode-card[data-mode=tops]").click());
     const in5 = await inTops(p);
     await sleep(600); await goHomeMid(p);
     const s5 = await TS(p);
-    ok("⑤ 有券：打字中按 🏠 回小島＝不扣券", in5 && s5.tickets === 1, J({ in5, t: s5.tickets }));
-    // 下場了還沒打完就離開＝券退回
+    ok("⑤ 有 5 顆：打字中按 🏠 回小島＝不扣星星", in5 && s5.stars === 5, J({ in5, t: s5.stars }));
+    // 下場了還沒打完就離開＝星星退回
     await p.evaluate(() => document.querySelector(".mode-card[data-mode=tops]").click()); await inTops(p);
     await p.evaluate(() => window.__zy.tops.debug.setPhrase("超人在刷牙")); await sleep(200);
     await p.evaluate(() => window.__zy.tops.debug.go()); await phase(p, "morph");
@@ -247,7 +240,7 @@ function mock(PZ) {
     const dbg = await p.evaluate(() => ({ ctx: window.__zy.tops.debug.ctx(), raf: window.__zy.tops.debug.raf() }));
     await goHomeMid(p);
     const s5b = await TS(p);
-    ok("⑤ 下場扣 1 張（待退）→ 對戰中按 🏠 回小島＝券退回", mid.tickets === 0 && pend5 && pend5.free === false && s5b.tickets === 1 && (await p.evaluate(() => window.__zy.topsPending)) === null, J({ mid: mid.tickets, pend5, after: s5b.tickets }));
+    ok("⑤ 下場扣 5 顆（待退）→ 對戰中按 🏠 回小島＝星星退回 5 顆", mid.stars === 0 && mid.pending === 1 && pend5 && pend5.free === false && s5b.stars === 5 && (await p.evaluate(() => window.__zy.topsPending)) === null, J({ mid: mid.stars, pend5, after: s5b.stars }));
     const sp5a = (await spoken(p)).length; await sleep(3000);
     const res5 = await p.evaluate(() => ({ st: window.__zy.tops.state(), raf: window.__zy.tops.debug.raf(), ctx: window.__zy.tops.debug.ctx(), timers: window.__zy.tops.debug.timers(), kids: document.getElementById("topsRoot").children.length, mode: window.__zy.mode, resume: !document.getElementById("resumeBtn").classList.contains("hidden") }));
     const sp5b = (await spoken(p)).slice(sp5a);
@@ -255,16 +248,17 @@ function mock(PZ) {
     // ⑦ 重開、備份碼
     await reopen(p);
     const s7 = await TS(p);
-    ok("⑦ 重開頁面：陀螺存檔還在（券、免費用過、最佳、我家排行、最近）", s7.tickets === 1 && s7.freeUsed === 1 && s7.best && s7.best.p === "宇宙強爸爸" && s7.home.length >= 1 && s7.history.length === 1, J(s7));
+    ok("⑦ 重開頁面：陀螺存檔還在（星星、免費用過、最佳、我家排行、最近）", s7.stars === 5 && s7.freeUsed === 1 && s7.best && s7.best.p === "宇宙強爸爸" && s7.home.length >= 1 && s7.history.length === 1, J(s7));
     const code = await p.evaluate(() => window.__zyB.exportCode());
     await p.evaluate(() => localStorage.removeItem("zy1_tops")); await reopen(p);
     const gone = await TS(p);
     const ir = await p.evaluate(c => window.__zyB.importCode(c), code); await reopen(p);
     const s7b = await TS(p);
-    ok("⑦ 備份碼帶陀螺存檔：刪掉後還原回來", gone.tickets === 0 && !gone.freeUsed && !gone.best && ir === "ok" && J(s7b) === J(s7), J({ gone, ir, s7b }));
-    const bad = await p.evaluate(() => { const code = "ZY2:" + btoa(unescape(encodeURIComponent(JSON.stringify({ v: 2, hw: 20, p: [{ s: ["貓"], st: 3, eg: 0, b: {}, i: [], m: 8, tp: { tickets: 99, starsBank: -5, freeUsed: "yes", best: { p: "太長太長太長了", power: 5 }, home: [{ p: "宇宙強爸爸", power: 1e9 }, { p: "<b>壞</b>", power: 3 }], history: "x", rank: 99 } }, null, null] })))); const d = window.__zyB.readCode(code); return d && d.slots[0] && d.slots[0].tops; });
-    ok("⑦ 備份碼裡亂寫的陀螺資料會被清乾淨（券 ≤3、starsBank ≥0、詞句要剛好 5 個國字、戰力 ≤9999、段位 ≤4）", bad && bad.tickets === 3 && bad.starsBank === 0 && bad.freeUsed === 1 && bad.best === null && J(bad.home) === J([{ p: "宇宙強爸爸", power: 9999 }]) && J(bad.history) === "[]" && bad.rank === 4, J(bad));
-    // ⑤b 下場扣了券就重新整理頁面（iPad 分頁被回收）：重開時券退回（10-12 里維必修 2：以前退券只靠記憶體變數，重新整理就沒了）
+    ok("⑦ 備份碼帶陀螺存檔：刪掉後還原回來", gone.stars === 0 && !gone.freeUsed && !gone.best && ir === "ok" && J(s7b) === J(s7), J({ gone, ir, s7b }));
+    const badOf = st => p.evaluate(st => { const code = "ZY2:" + btoa(unescape(encodeURIComponent(JSON.stringify({ v: 2, hw: 20, p: [{ s: ["貓"], st: 3, eg: 0, b: {}, i: [], m: 8, tp: { stars: st, freeUsed: "yes", best: { p: "太長太長太長了", power: 5 }, home: [{ p: "宇宙強爸爸", power: 1e9 }, { p: "<b>壞</b>", power: 3 }], history: "x", rank: 99 } }, null, null] })))); const d = window.__zyB.readCode(code); return d && d.slots[0] && d.slots[0].tops; }, st);
+    const bad = await badOf(99999), bad0 = await badOf(-5);
+    ok("⑦ 備份碼裡亂寫的陀螺資料會被清乾淨（stars 99999→上限 999、-5→0、詞句要剛好 5 個國字、戰力 ≤9999、段位 ≤4）", bad && bad.stars === 999 && bad0 && bad0.stars === 0 && !("tickets" in bad) && bad.freeUsed === 1 && bad.best === null && J(bad.home) === J([{ p: "宇宙強爸爸", power: 9999 }]) && J(bad.history) === "[]" && bad.rank === 4, J({ bad, bad0 }));
+    // ⑤b 下場扣了星星就重新整理頁面（iPad 分頁被回收）：重開時星星退回（10-12 里維必修 2）
     const lsTops = () => p.evaluate(() => JSON.parse(localStorage.getItem("zy1_tops") || "null"));
     const goMid = async () => {
       await p.evaluate(() => document.querySelector(".mode-card[data-mode=tops]").click());
@@ -277,24 +271,24 @@ function mock(PZ) {
     const mid5b = await TS(p), ls5b = await lsTops();
     await reopen(p);
     const aft5b = await TS(p), lsA = await lsTops();
-    ok("⑤b 一般券：下場扣 1 張（存檔記 pending 1）→ 重新整理 → 券退回 1 張、pending 歸零（存檔也是）", in5b && mid5b.tickets === 0 && ls5b && ls5b.pending === 1 && ls5b.tickets === 0 && aft5b.tickets === 1 && aft5b.pending === 0 && lsA.pending === 0 && lsA.tickets === 1, J({ mid5b, ls5b, aft5b, lsA }));
-    await p.evaluate(() => { const t = window.__zy.topsSave; t.freeUsed = 0; t.tickets = 0; });   // 免費那次也一樣
+    ok("⑤b 一般：下場扣 5 顆（存檔記 pending 1）→ 重新整理 → 星星退回 5 顆、pending 歸零（存檔也是）", in5b && mid5b.stars === 0 && ls5b && ls5b.pending === 1 && ls5b.stars === 0 && aft5b.stars === 5 && aft5b.pending === 0 && lsA.pending === 0 && lsA.stars === 5, J({ mid5b, ls5b, aft5b, lsA }));
+    await p.evaluate(() => { const t = window.__zy.topsSave; t.freeUsed = 0; t.stars = 0; });   // 免費那次也一樣
     const in5c = await goMid();
     const mid5c = await TS(p), ls5c = await lsTops();
     await reopen(p);
     const aft5c = await TS(p), lsC = await lsTops();
-    ok("⑤b 免費那次：下場（freeUsed 1、pending 2）→ 重新整理 → 免費那次還回來（freeUsed 0）、券不會多出來", in5c && ls5c && ls5c.freeUsed === 1 && ls5c.pending === 2 && mid5c.tickets === 0 && aft5c.freeUsed === 0 && aft5c.tickets === 0 && aft5c.pending === 0 && lsC.freeUsed === 0 && lsC.pending === 0, J({ ls5c, aft5c, lsC }));
-    await p.evaluate(() => { const t = window.__zy.topsSave; t.freeUsed = 1; t.tickets = 3; });
-    const in5d = await goMid(); await reopen(p);
+    ok("⑤b 免費那次：下場（freeUsed 1、pending 2）→ 重新整理 → 免費那次還回來（freeUsed 0）、星星不會多出來", in5c && ls5c && ls5c.freeUsed === 1 && ls5c.pending === 2 && mid5c.stars === 0 && aft5c.freeUsed === 0 && aft5c.stars === 0 && aft5c.pending === 0 && lsC.freeUsed === 0 && lsC.pending === 0, J({ ls5c, aft5c, lsC }));
+    await p.evaluate(() => localStorage.setItem("zy1_tops", JSON.stringify({ tickets: 1, starsBank: 7, freeUsed: 1, pending: 1 })));
+    await reopen(p);
     const aft5d = await TS(p);
-    ok("⑤b 券已經 3 張（滿）時下場又重新整理：退回後最多還是 3 張", in5d && aft5d.tickets === 3 && aft5d.pending === 0, J(aft5d));
+    ok("⑤b 舊存檔換算：{tickets 1, starsBank 7, pending 1} → 重開後 stars＝7＋15＋15＝37、pending 0、沒有 tickets／starsBank 欄位", aft5d.stars === 37 && aft5d.pending === 0 && !("tickets" in aft5d) && !("starsBank" in aft5d) && aft5d.freeUsed === 1, J(aft5d));
     // 打完一場（topsWin）＝pending 歸零、不退；重開也不會多一張
-    await p.evaluate(() => { const t = window.__zy.topsSave; t.freeUsed = 1; t.tickets = 1; });
+    await p.evaluate(() => { const t = window.__zy.topsSave; t.freeUsed = 1; t.stars = 5; });
     await p.evaluate(() => document.querySelector(".mode-card[data-mode=tops]").click()); await inTops(p);
     const m5e = await playMatch(p, "超人在刷牙");
     const ls5e = await lsTops(); await reopen(p);
     const aft5e = await TS(p);
-    ok("⑤b 打完一場：存檔 pending 0、重新整理後券不會退回（0 張）", m5e.ok && ls5e.pending === 0 && ls5e.tickets === 0 && aft5e.tickets === 0 && aft5e.pending === 0, J({ m5e, ls5e, aft5e }));
+    ok("⑤b 打完一場：存檔 pending 0、星星不退（5→0）、重新整理後還是 0 顆", m5e.ok && ls5e.pending === 0 && ls5e.stars === 0 && aft5e.stars === 0 && aft5e.pending === 0, J({ m5e, ls5e, aft5e }));
     const miss = await p.evaluate(() => [...window.__zy.zMissing].join(""));
     ok("⑧ 新字都有注音（zMissing 空）", miss === "", miss);
     ok("⑥ 沒帶 ?plaza=on 的頁面：完全沒有連後端", net.length === 0, J(net));
@@ -304,7 +298,7 @@ function mock(PZ) {
   // ===== B. 攔截假後端（?plaza=on）：全島榜、送榜轉換、失敗安靜、家長關掉 =====
   {
     const M = mock(PZ);
-    const { ctx, p, errs } = await openT(browser, { query: Q + "&plaza=on&no3d", ls: { zy1_tops: { tickets: 3, starsBank: 0, freeUsed: 1, home: [], history: [] } }, route: M.route });
+    const { ctx, p, errs } = await openT(browser, { query: Q + "&plaza=on&no3d", ls: { zy1_tops: { stars: 15, freeUsed: 1, home: [], history: [] } }, route: M.route });
     await p.evaluate(() => document.querySelector(".mode-card[data-mode=tops]").click());
     const in6 = await inTops(p);
     const m6 = await playMatch(p, "宇宙大泡泡");   // 不是島上傳說的句子
@@ -334,7 +328,7 @@ function mock(PZ) {
   {
     // 家長關掉同樂廣場：不送也不讀（全島榜只有傳說）
     const M = mock(PZ);
-    const { ctx, p, errs, net } = await openT(browser, { query: Q + "&plaza=on&no3d", ls: { zy_plaza_on: 0, zy1_tops: { tickets: 3, starsBank: 0, freeUsed: 1, home: [], history: [] } }, route: M.route });
+    const { ctx, p, errs, net } = await openT(browser, { query: Q + "&plaza=on&no3d", ls: { zy_plaza_on: 0, zy1_tops: { stars: 15, freeUsed: 1, home: [], history: [] } }, route: M.route });
     await p.evaluate(() => document.querySelector(".mode-card[data-mode=tops]").click());
     await inTops(p);
     const m9 = await playMatch(p, "宇宙強爸爸");

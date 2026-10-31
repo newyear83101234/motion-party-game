@@ -2257,7 +2257,7 @@ function detectiveWin(r) {
 let topsMod = null, topsGame = null, topsPending = null, topsLegends = [], topsIsland = [];   // topsPending：已經扣了星星、還沒打完的那一場 { free }
 function importTops() {
   if (topsMod) return topsMod;
-  const url = "./zhuyin-tops.js?v=3";                   // 要 three（importmap）；舊 iPad 沒有 importmap → 跟 3D 小島一樣走 es-module-shims
+  const url = "./zhuyin-tops.js?v=4";                   // 要 three（importmap）；舊 iPad 沒有 importmap → 跟 3D 小島一樣走 es-module-shims
   const p = window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports("importmap") ? import(url)
     : window.importShim ? window.importShim(new URL(url, import.meta.url).href) : Promise.reject(new Error("no importmap"));
   return (topsMod = p.catch(e => { topsMod = null; throw e; }));

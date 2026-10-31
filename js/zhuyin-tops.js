@@ -889,7 +889,7 @@ export function createTopsGame(root, api) {
     if (!full) st.fullTok = (st.fullTok || 0) + 1; st.wasFull = full;
     // 10-31 陀螺星星：右上角有幾顆、下場鈕右上角寫這次要扣幾顆（第一次＝免費）
     const free = isFirstFree();
-    E.wallet.textContent = ""; zText(E.wallet, free ? "🎁 免費" : "⭐ " + starsN());
+    E.wallet.textContent = ""; zText(E.wallet, free ? "🎁 免費" : "⭐ " + starsN()); fitHead();
     E.goC.textContent = ""; zText(E.goC, free ? "免費" : "⭐−" + cost());   // 「−5」＝要用掉（10-31 櫻木：只寫 5 小孩會以為拿到 5 顆）
     E.go.setAttribute("aria-label", free ? "下場（這次免費）" : `下場（用 ${cost()} 顆星星）`);
     // 候選字
@@ -914,6 +914,8 @@ export function createTopsGame(root, api) {
     const off = keysOff();
     for (const k in E.keys) { E.keys[k].classList.toggle("tp-dim", off.has(k)); E.keys[k].classList.toggle("tp-guide", !!(gd && gd.key === k)); }
   }
+  // 10-31：標題列放不下（1024 寬平板：標題＋⭐ 膠囊＋🎲 隨機靈感＋🏆）＝藏起裝飾用的標題，按鈕不擠出畫面
+  function fitHead() { if (!E) return; E.head.classList.remove("tp-notitle"); if (E.head.scrollWidth > E.head.clientWidth + 1) E.head.classList.add("tp-notitle"); }
   function shake(el) { if (!el) return; el.classList.remove("tp-shake"); void el.offsetWidth; el.classList.add("tp-shake"); later(() => el && el.classList.remove("tp-shake"), 450); }
   function bump(el, cls = "tp-bump") { if (!el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
 
@@ -1506,7 +1508,7 @@ export function createTopsGame(root, api) {
     if (side) {
       S = clamp(Math.min((avail - g) / 2, 84), 52, 84); C = S;
       goW = S * 1.55;
-      const toolsW = 2 * S + g, slotsW = 5 * S + 4 * g;
+      const toolsW = 3.3 * S + 2 * g, slotsW = 5 * S + 4 * g;   // 10-31：⭐ 星星膠囊＋🎲＋🏆
       const x0 = Math.max(resL, (Wd - slotsW - goW - toolsW - 2 * g) / 2);
       E.head.style.cssText = `left:${x0 + slotsW + goW + 2 * g}px;top:${top}px;width:${toolsW}px;height:${S}px`;
       E.slotrow.style.cssText = `left:${x0}px;top:${top}px;width:${slotsW + g + goW}px;height:${S}px`;
@@ -1520,6 +1522,7 @@ export function createTopsGame(root, api) {
       const goH = port ? Math.max(64, S * 0.62) : 0;
       const used = B + S + N + C + (port ? goH + g : 0) + 3 * g, y0 = top + Math.max(0, (avail - used) / 2);
       E.head.style.cssText = `left:${resL}px;top:${top}px;width:${Wd - resL - m}px;height:${B}px`;
+      fitHead();                                                 // 轉向／縮放後重新判斷標題放不放得下
       const slotsW = 5 * S + 4 * g, rowW = slotsW + (land ? g + goW : 0), rowY = Math.max(y0 + B + g, top + B + g);
       E.slotrow.style.cssText = `left:${(Wd - rowW) / 2}px;top:${rowY}px;width:${rowW}px;height:${S + (port ? g + goH : 0)}px`;
       E.note.style.cssText = `left:${m}px;top:${rowY + S + (port ? g + goH : 0) + g}px;width:${Wd - 2 * m}px;height:${N}px`;
