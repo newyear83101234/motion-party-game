@@ -1,5 +1,5 @@
 // 畫畫遊戲塗色：先在暫存畫布做好、用區塊遮罩裁切後才合進顏色層；復原只存被改到的長方形範圍
-import { regionMask, regionAt, rectClamp, History } from "./draw-core.js?v=1";
+import { regionMask, regionAt, rectClamp, rectUnion, History } from "./draw-core.js?v=1";
 import { makeCanvas as mk } from "./draw-canvas.js?v=1";
 
 export class Painter {
@@ -65,6 +65,89 @@ export class Painter {
     x.globalCompositeOperation = "destination-in";
     x.drawImage(m.canvas, 0, 0);
     return { x: m.x, y: m.y, canvas: c, glitter: mat.kind === "glitter", done: () => this.commit(c, m.x, m.y, mat.kind === "glitter") };
+  }
+
+  // ── 筆畫：開始 → 移動 → 結束才合進顏色層；過程畫在即時層。不出線時裁在起筆那一塊裡 ──
+  // o = { brush: "marker" | "crayon" | "rainbow" | "eraser", size: 半徑(畫布像素), mat, color, clip: true/false }
+  strokeStart(x, y, o) {
+    const b = this.b;
+    if (!this.scratch || this.scratch.width !== b.W || this.scratch.height !== b.H) { this.scratch = mk(b.W, b.H); this.sctx = this.scratch.getContext("2d"); }   // 換線稿尺寸就重做
+    this.sctx.clearRect(0, 0, b.W, b.H);
+    const id = o.clip ? this.regionAt(x, y) : -1;
+    this.st = { o, mask: id >= 0 ? this.maskOf(id) : null, last: { x, y }, rect: null, hue: Math.random() * 360 };
+    this.strokeMove(x, y);
+  }
+
+  strokeMove(x, y) {
+    const st = this.st;
+    if (!st) return;
+    const o = st.o, sx = this.sctx, a = st.last, r = o.size;
+    // 1) 這一段先畫進暫存畫布（整筆都留在這裡）
+    if (o.brush === "crayon") {
+      const n = Math.max(1, Math.ceil(Math.hypot(x - a.x, y - a.y) / (r * 0.3)));
+      sx.fillStyle = o.color;
+      for (let i = 1; i <= n; i++) {
+        const cx = a.x + (x - a.x) * i / n, cy = a.y + (y - a.y) * i / n;
+        for (let k = 0; k < 8; k++) {
+          const ang = Math.random() * Math.PI * 2, d = Math.random() * r;
+          sx.globalAlpha = 0.35 + Math.random() * 0.45;
+          sx.beginPath(); sx.arc(cx + d * Math.cos(ang), cy + d * Math.sin(ang), r * 0.28, 0, Math.PI * 2); sx.fill();
+        }
+      }
+      sx.globalAlpha = 1;
+    } else {
+      sx.lineCap = "round"; sx.lineJoin = "round"; sx.lineWidth = r * 2;
+      if (o.brush === "rainbow") {
+        st.hue = (st.hue + Math.hypot(x - a.x, y - a.y) * 0.4) % 360;
+        sx.strokeStyle = `hsl(${st.hue}, 90%, 55%)`;
+      } else sx.strokeStyle = "#000";   // 馬克筆、橡皮擦：暫存畫布只當形狀用
+      sx.beginPath(); sx.moveTo(a.x, a.y); sx.lineTo(x + 0.01, y); sx.stroke();
+    }
+    st.last = { x, y };
+    // 2) 只重畫這一段的範圍到即時層
+    const seg = rectClamp({ x: Math.min(a.x, x) - r - 2, y: Math.min(a.y, y) - r - 2,
+      w: Math.abs(x - a.x) + 2 * r + 4, h: Math.abs(y - a.y) + 2 * r + 4 }, this.b.W, this.b.H);
+    if (!seg) return;
+    st.rect = rectUnion(st.rect, seg);
+    const L = this.b.lctx;
+    L.save();
+    L.beginPath(); L.rect(seg.x, seg.y, seg.w, seg.h); L.clip();
+    L.clearRect(seg.x, seg.y, seg.w, seg.h);
+    if (o.brush === "eraser") {
+      L.fillStyle = "#fff"; L.fillRect(seg.x, seg.y, seg.w, seg.h);
+      L.globalCompositeOperation = "destination-in";
+    } else if (o.brush === "marker") {
+      L.drawImage(this.paintFor(o.mat, o.color), seg.x, seg.y, seg.w, seg.h, seg.x, seg.y, seg.w, seg.h);
+      L.globalCompositeOperation = "destination-in";
+    }
+    L.drawImage(this.scratch, seg.x, seg.y, seg.w, seg.h, seg.x, seg.y, seg.w, seg.h);
+    if (st.mask) { L.globalCompositeOperation = "destination-in"; L.drawImage(st.mask.canvas, st.mask.x, st.mask.y); }
+    L.restore();
+  }
+
+  strokeEnd() {
+    const st = this.st;
+    this.st = null;
+    if (!st || !st.rect) return;
+    const r = st.rect, c = mk(r.w, r.h);
+    c.getContext("2d").drawImage(this.b.live, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h);
+    this.b.lctx.clearRect(r.x, r.y, r.w, r.h);
+    this.commit(c, r.x, r.y, st.o.brush === "marker" && st.o.mat.kind === "glitter");
+  }
+
+  // 第二根手指放上來時取消剛開始的那一筆（不記復原）
+  strokeCancel() {
+    const st = this.st;
+    this.st = null;
+    if (st && st.rect) this.b.lctx.clearRect(st.rect.x, st.rect.y, st.rect.w, st.rect.h);
+  }
+
+  // 清空整張（可以復原）
+  clearAll() {
+    const b = this.b;
+    this.snapshot({ x: 0, y: 0, w: b.W, h: b.H });
+    b.ctx.fillStyle = "#fff"; b.ctx.fillRect(0, 0, b.W, b.H);
+    b.gctx.clearRect(0, 0, b.W, b.H);
   }
 }
 

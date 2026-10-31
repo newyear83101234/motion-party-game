@@ -71,6 +71,38 @@ function versionCheck() {
   check("亮粉被純色蓋掉 → 遮罩也清掉", ga2 === 0, `alpha=${ga2}`);
   await p.screenshot({ path: path.join(OUT, "02-materials.png") });
 
+  // Task 5：筆畫
+  const stroke = (pts, o) => p.evaluate(([pts, o]) => {
+    const P = __draw.painter;
+    P.strokeStart(pts[0][0], pts[0][1], o);
+    for (const [x, y] of pts.slice(1)) P.strokeMove(x, y);
+    P.strokeEnd();
+  }, [pts, o]);
+  const pen = { size: 20, mat: { kind: "solid" }, color: "#8e24aa" };
+  await p.evaluate(() => __draw.painter.clearAll());
+  await stroke([[1450, 500], [1200, 500], [1000, 500]], { ...pen, brush: "marker", clip: true });
+  check("不出線：長方形裡有畫到", await px(1300, 500) === "142,36,170", await px(1300, 500));
+  check("不出線：長方形外的背景沒畫到", await px(1050, 500) === "255,255,255");
+  check("畫完即時層清乾淨", await p.evaluate(() => __draw.board.lctx.getImageData(1300, 500, 1, 1).data[3]) === 0);
+  await stroke([[1450, 650], [1000, 650]], { ...pen, brush: "marker", clip: false });
+  check("關掉不出線：可以畫到背景", await px(1050, 650) === "142,36,170");
+  const h0 = await p.evaluate(() => __draw.painter.history.size);
+  await stroke([[1300, 500], [1310, 500]], { ...pen, size: 30, brush: "eraser", clip: true });
+  check("橡皮擦擦回白色", await px(1305, 500) === "255,255,255");
+  check("一筆記一步復原", await p.evaluate(() => __draw.painter.history.size) === h0 + 1);
+  await p.evaluate(() => __draw.painter.undo());
+  check("復原橡皮擦 → 顏色回來", await px(1305, 500) === "142,36,170");
+  await stroke([[400, 1350], [900, 1350]], { ...pen, brush: "crayon", clip: true });
+  check("蠟筆有顆粒（深淺不一）", await colorsIn(400, 1330, 500, 40) >= 3);
+  await stroke([[100, 100], [500, 100], [1000, 100]], { ...pen, brush: "rainbow", clip: false });
+  const c1 = await px(150, 100), c2 = await px(950, 100);
+  check("彩虹筆頭尾顏色不同", c1 !== c2 && c1 !== "255,255,255" && c2 !== "255,255,255", `${c1} / ${c2}`);
+  await p.evaluate(() => __draw.painter.clearAll());
+  check("清空 → 全白", await px(1050, 650) === "255,255,255" && await px(150, 100) === "255,255,255");
+  await p.evaluate(() => __draw.painter.undo());
+  check("清空也能復原", await px(1050, 650) === "142,36,170");
+  await p.screenshot({ path: path.join(OUT, "03-strokes.png") });
+
   // ── 後續 task 的測試插在這一行上面 ──
   check("沒有頁面錯誤", errs.length === 0, errs.join(" | "));
   await browser.close();
