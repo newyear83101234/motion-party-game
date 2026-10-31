@@ -1,6 +1,6 @@
 // 畫畫遊戲塗色：先在暫存畫布做好、用區塊遮罩裁切後才合進顏色層；復原只存被改到的長方形範圍
-import { regionMask, regionAt, rectClamp, rectUnion, History } from "./draw-core.js?v=2";
-import { makeCanvas as mk } from "./draw-canvas.js?v=2";
+import { regionMask, regionAt, rectClamp, rectUnion, History } from "./draw-core.js?v=3";
+import { makeCanvas as mk } from "./draw-canvas.js?v=3";
 
 // 每種筆的筆跡最遠會離中心線幾倍半徑（即時層的重畫範圍要涵蓋到）；沒列的是 1 倍
 const REACH = { crayon: 1.3, watercolor: 1.25, spray: 1.75, neon: 1.7, sparkle: 1.75, pencil: 0.5 };
@@ -77,9 +77,9 @@ export class Painter {
 
   // 填色：回傳裁好的那一塊顏料（給水波動畫用），呼叫 done() 才真的合進顏色層
   fill(id, mat, color) {
-    const m = this.maskOf(id), p = this.paintFor(mat, color);
-    const c = mk(m.w, m.h), x = c.getContext("2d");
-    x.drawImage(p, m.x, m.y, m.w, m.h, 0, 0, m.w, m.h);
+    const m = this.maskOf(id), c = mk(m.w, m.h), x = c.getContext("2d");
+    if (GRAD.has(mat.kind)) { const g = makePaint(mat, color, m.w, m.h); x.drawImage(g, 0, 0); g.width = g.height = 0; }   // 漸層照這一塊的大小拉；暫存畫布馬上釋放（iPad 回收慢）
+    else x.drawImage(this.paintFor(mat, color), m.x, m.y, m.w, m.h, 0, 0, m.w, m.h);
     x.globalCompositeOperation = "destination-in";
     x.drawImage(m.canvas, 0, 0);
     let used = false;   // done 只能生效一次
@@ -281,9 +281,21 @@ export function previewBrush(brush, color, w = 224, h = 132) {
 }
 
 // 材質顏料：整張畫布大小。純色直接填；亮粉與圖樣先做一塊小磁磚，再鋪滿整張
+// 漸層材質：gradient = 目前顏色由上往下「亮 → 原色 → 暗」（像有光照的立體感）；rainbowgrad = 彩虹由左到右（不看顏色）
+const GRAD = new Set(["gradient", "rainbowgrad"]);
 export function makePaint(mat, color, W, H) {
   const c = mk(W, H), x = c.getContext("2d");
   if (mat.kind === "solid") { x.fillStyle = color; x.fillRect(0, 0, W, H); return c; }
+  if (mat.kind === "gradient") {
+    const g = x.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, shade(color, 0.55)); g.addColorStop(0.45, color); g.addColorStop(1, shade(color, -0.35));
+    x.fillStyle = g; x.fillRect(0, 0, W, H); return c;
+  }
+  if (mat.kind === "rainbowgrad") {
+    const g = x.createLinearGradient(0, 0, W, 0);
+    ["#ff5252", "#ffab40", "#ffee58", "#69f0ae", "#40c4ff", "#7c4dff", "#ff4081"].forEach((k, i) => g.addColorStop(i / 6, k));
+    x.fillStyle = g; x.fillRect(0, 0, W, H); return c;
+  }
   const tile = mat.kind === "glitter" ? glitterTile(color) : patternTile(mat.pattern, color);
   x.fillStyle = x.createPattern(tile, "repeat");
   x.fillRect(0, 0, W, H);
@@ -359,7 +371,7 @@ function snowPath(x, cx, cy, R) {
 // 材質預覽小方塊（工具列和材質選單用）
 export function previewMat(mat, color, size = 64) {
   const c = mk(size, size), x = c.getContext("2d");
-  if (mat.kind === "solid") { x.fillStyle = color; x.fillRect(0, 0, size, size); }
+  if (mat.kind === "solid" || GRAD.has(mat.kind)) x.drawImage(makePaint(mat, color, size, size), 0, 0);
   else x.drawImage(mat.kind === "glitter" ? glitterTile(color) : patternTile(mat.pattern, color), 0, 0, size, size);
   return c;
 }

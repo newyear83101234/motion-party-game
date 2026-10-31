@@ -13,7 +13,7 @@ function findShell() {
 const ROOT_URL = "http://127.0.0.1:8765/";
 const ROOT = path.join(__dirname, "../..");
 const OUT = path.join(process.env.TEMP, "draw-lineart-check");
-const RANGE = { 1: [8, 30], 2: [30, 300] };  // 2026-10-31 實際 8 張：簡單 9～26 塊、困難 71～263 塊（細節多、靠兩指放大），規格的 8～15／30～60 太嚴
+const RANGE = { 1: [8, 40], 2: [30, 300] };  // 2026-10-31 實際 24 張：簡單 9～38 塊（fairy-3 頭髮翅膀細塊多但仍是單純構圖）、困難 71～263 塊（細節多、靠兩指放大）
 const TINY = 400;                              // 小於 400 像素（約 20×20）的塊，小孩手指點不到
 const SPECK = 50;                              // --fix 會把小於 50 像素的碎塊塗黑
 

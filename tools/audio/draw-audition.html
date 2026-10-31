@@ -1,0 +1,15 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>畫畫遊戲音效試聽</title>
+<style>body{font-family:system-ui,"Noto Sans TC",sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#fffaf0;color:#333}
+h1{font-size:22px}button{font-size:18px;padding:10px 18px;border-radius:12px;border:2px solid #f4a261;background:#fff;cursor:pointer;margin:4px 0}
+button:active{background:#ffe8c9}.row{display:flex;align-items:center;gap:12px;border-bottom:1px solid #eee;padding:6px 0}.row b{width:76px}.row span{color:#777;font-size:14px}
+.bgm{background:#fff;border-radius:12px;padding:12px;border:2px solid #8ecae6;margin-bottom:16px}</style></head><body>
+<h1>畫畫遊戲 音樂與音效試聽</h1>
+<div class="bgm"><b>背景音樂</b>（約 68 秒，循環 0.5s–67.99s）<br><audio id="bgm" controls loop src="../../audio/draw/bgm.mp3"></audio><br>
+<button id="seam">試聽接縫（循環點前後各 1 秒）</button> <audio id="seamA" src="../../audio/draw/_seam.mp3"></audio>
+<br><label>音量 <input type="range" id="vol" min="0" max="1" step="0.05" value="0.5"></label></div>
+<div id="list"></div>
+<script>const R=[{"name": "tap", "file": "../../audio/draw/sfx/tap.mp3", "gain": 0.55, "dur": 0.041, "desc": "一般按鈕（輕 click）"}, {"name": "pick", "file": "../../audio/draw/sfx/pick.mp3", "gain": 0.6, "dur": 0.041, "desc": "選工具／選筆（tick）"}, {"name": "fill", "file": "../../audio/draw/sfx/fill.mp3", "gain": 0.7, "dur": 0.78, "desc": "填色桶倒顏料（水滴潑一下）"}, {"name": "sticker", "file": "../../audio/draw/sfx/sticker.mp3", "gain": 0.7, "dur": 0.43, "desc": "蓋貼紙（彈性啵＋亮點）"}, {"name": "undo", "file": "../../audio/draw/sfx/undo.mp3", "gain": 0.55, "dur": 0.452, "desc": "復原（倒轉 swoosh）"}, {"name": "clear", "file": "../../audio/draw/sfx/clear.mp3", "gain": 0.6, "dur": 0.823, "desc": "清空整張（紙揉掉）"}, {"name": "open", "file": "../../audio/draw/sfx/open.mp3", "gain": 0.6, "dur": 0.223, "desc": "打開一張圖（翻頁）"}, {"name": "finish", "file": "../../audio/draw/sfx/finish.mp3", "gain": 0.75, "dur": 2.229, "desc": "完成作品（鐘琴上行）"}, {"name": "save", "file": "../../audio/draw/sfx/save.mp3", "gain": 0.7, "dur": 0.73, "desc": "存到相簿（叮）"}, {"name": "magic", "file": "../../audio/draw/sfx/magic.mp3", "gain": 0.55, "dur": 0.871, "desc": "魔法閃亮"}, {"name": "pop", "file": "../../audio/draw/sfx/pop.mp3", "gain": 0.5, "dur": 0.059, "desc": "彈出選單（輕 pop）"}];const vol=document.getElementById('vol');
+document.getElementById('seam').onclick=()=>{const a=document.getElementById('seamA');a.currentTime=0;a.play()};
+const L=document.getElementById('list');R.forEach(r=>{const d=document.createElement('div');d.className='row';
+d.innerHTML='<button>▶ 播放</button><b>'+r.name+'</b><span>'+r.desc+'（'+r.dur+'s，建議音量 '+r.gain+'）</span>';
+d.firstChild.onclick=()=>{const a=new Audio(r.file);a.volume=r.gain;a.play()};L.appendChild(d)});</script></body></html>

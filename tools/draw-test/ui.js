@@ -106,7 +106,7 @@ function versionCheck() {
 
   // Task 6：貼紙
   const st = await p.evaluate(async () => {
-    const M = await import("./js/draw-stickers.js?v=2");
+    const M = await import("./js/draw-stickers.js?v=3");
     const ids = M.STICKERS.map(s => s.id);
     const img = await M.stickerImage("star");
     __draw.painter.sticker(img, 1000, 1200, 200);
@@ -119,7 +119,7 @@ function versionCheck() {
 
   // Task 7：特效
   await p.evaluate(async () => {
-    const M = await import("./js/draw-fx.js?v=2");
+    const M = await import("./js/draw-fx.js?v=3");
     window.__fx = __draw.fx || new M.Fx(__draw.board);   // Task 9 之後用遊戲自己的那一個，免得兩組亮粉互相干擾
     __draw.painter.clearAll();
   });
@@ -207,7 +207,7 @@ function versionCheck() {
 
   // Task 8：作品牆
   const gal = await p.evaluate(async () => {
-    const G = await import("./js/draw-gallery.js?v=2");
+    const G = await import("./js/draw-gallery.js?v=3");
     await G.wipe();
     const c = __draw.board.composite();
     const w = { id: G.newId(), art: "test-shapes", done: true, thumb: await G.thumbOf(c), image: await G.toBlob(c),
@@ -276,11 +276,13 @@ function versionCheck() {
   await p.tap("#bColor");
   check("顏色選單 30 色（含膚色）", await on("#pop") && await p.locator("#pop .sw").count() === 30);
   await p.tap("#pop .sw:nth-child(17)");
+  await p.waitForTimeout(400);
   check("選了顏色、選單自動收起", await p.evaluate(() => __draw.S.color) === "#7e57c2" && !(await on("#pop")));
-  await p.tap("#bMat");
-  check("材質選單 7 種", await p.locator("#pop .opt").count() === 7);
-  await p.tap("#pop .opt:nth-child(2)");
-  check("選了亮粉", await p.evaluate(() => __draw.S.mat.kind) === "glitter");
+  await p.tap("#bColor");
+  check("顏色選單下面有 9 種材質（含兩種漸層）", await p.locator("#pop .opt.mat").count() === 9);
+  await p.tap('#pop .opt[aria-label="glitter"]');
+  await p.waitForTimeout(400);
+  check("選了亮粉、選單收起", await p.evaluate(() => __draw.S.mat.kind) === "glitter" && !(await on("#pop")));
   await tapImg(1550, 1100);
   check("用工具列選的顏色和材質填色", await colorsIn(1440, 990, 220, 220) > 30);
 
@@ -405,8 +407,8 @@ function versionCheck() {
   await p.tap('[data-tool="fill"]');
   await p.tap("#bColor");
   const popOn = await on("#pop");
-  await tapImg(1450, 500);
-  check("選單開著點畫布 → 選單關了、那塊仍是白色", popOn && !(await on("#pop")) && await px(1450, 500) === "255,255,255", `pop=${popOn} px=${await px(1450, 500)}`);
+  await tapImg(300, 500);   // 畫布左邊（選單貼在右邊的顏色鈕旁，不會蓋到這裡）
+  check("選單開著點畫布 → 選單關了、那塊仍是白色", popOn && !(await on("#pop")) && await px(300, 500) === "255,255,255", `pop=${popOn} px=${await px(300, 500)}`);
 
   // 放大後按完成 → 動畫播完回到原本大小
   await p.evaluate(() => __draw.board.setView({ s: 2.5, tx: 0, ty: 0 }));
@@ -415,6 +417,7 @@ function versionCheck() {
   await waitOn("#after");
   check("放大後按完成 → 播完回到原本大小", zoomed > 2 && await view() === 1, `before=${zoomed} after=${await view()}`);
   await p.evaluate(() => __draw.G.wipe());
+  await p.tap("#aAgain");   // 完成後右側是慶祝欄（蓋住工具列），按「繼續畫」回到工具列
 
   // 上線前審查修正
   // 選了蠟筆 → 筆刷鈕換成 🖍️；選了貼紙 heart → 貼紙鈕換成那張貼紙圖
@@ -427,7 +430,7 @@ function versionCheck() {
   check("第一次選貼紙 → 自動打開選單", await on("#pop"));
   await p.tap('#pop .opt[aria-label="heart"]');
   const stk = await p.evaluate(async () => {
-    const M = await import("./js/draw-stickers.js?v=2");
+    const M = await import("./js/draw-stickers.js?v=3");
     const want = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(M.STICKERS.find(s => s.id === "heart").svg);
     const im = document.querySelector('[data-tool="sticker"] img');
     return { has: !!im, same: !!im && im.getAttribute("src") === want };
@@ -625,6 +628,85 @@ function versionCheck() {
   await p.evaluate(() => { delete document.visibilityState; });
   check("切到別的 App → 馬上自動存", await p.evaluate(() => __draw.G.count()) === 2 && !(await p.evaluate(() => __draw.isDirty())));
   await p.evaluate(() => __draw.G.wipe());
+
+  // ── 第三版：聲音、回放、漸層、粒子 ──
+  const au = () => p.evaluate(() => __draw.A.state());
+  await p.waitForFunction(() => __draw.A.state().loaded.includes("sfx:fill"), null, { timeout: 8000 }).catch(() => {});
+  const s1 = await au();
+  check("聲音：點過畫面後音訊已開、清單與音效載入、背景音樂在播", s1.ctx !== "none" && s1.man && s1.loaded.includes("sfx:fill") && s1.bgm, JSON.stringify(s1));
+  await openTest();
+  await p.evaluate(() => {
+    const P = __draw.painter;
+    Object.assign(__draw.S, { tool: "fill", mat: { kind: "gradient" }, color: "#1e88e5" });
+  });
+  await tapImg(1450, 500);
+  const gTop = await px(1450, 270), gBot = await px(1450, 730);
+  check("漸層材質：同一塊上面比較亮、下面比較暗", sum(gTop) > sum(gBot) + 60, `${gTop} / ${gBot}`);
+  check("填色時冒出水花粒子", await p.evaluate(() => __draw.parts.list.length) > 0);
+  await p.evaluate(() => { __draw.S.mat = { kind: "solid" }; __draw.S.tool = "brush"; __draw.S.brush = "rainbow"; __draw.S.clip = false; });
+  const R1 = await toClient(1000, 100), R2 = await toClient(1500, 100);
+  await touch("touchStart", [[R1.x, R1.y, 1]]); for (let i = 1; i <= 5; i++) await touch("touchMove", [[R1.x + (R2.x - R1.x) * i / 5, R1.y, 1]]); await touch("touchEnd", []);
+  await p.evaluate(() => { __draw.S.tool = "sticker"; });
+  await tapImg(300, 500);
+  await p.tap("#bUndo");
+  const rk = await p.evaluate(() => __draw.rec().map(a => a.t).join(""));
+  check("畫畫過程有記下來：填色、一筆、貼紙、復原", rk === "fsku", rk);
+  const before = [await px(1450, 500), await px(1250, 100), await p.evaluate(() => __draw.painter.history.size)];
+  const rp = p.evaluate(() => __draw.replay());
+  await p.waitForTimeout(250);
+  const mid = await p.evaluate(() => ({ busy: __draw.S.busy, cls: document.querySelector("#paint").classList.contains("replaying"), stop: getComputedStyle(document.querySelector("#rStop")).display }));
+  check("回放中：擋住操作、出現停止鈕", mid.busy && mid.cls && mid.stop === "block", JSON.stringify(mid));
+  await p.waitForTimeout(400);
+  check("回放中：畫布從空白開始重畫", await px(1250, 100) === "255,255,255");
+  const ok = await rp;
+  const after = [await px(1450, 500), await px(1250, 100), await p.evaluate(() => __draw.painter.history.size)];
+  check("回放播完：畫回原本的樣子、復原紀錄沒被動到、可以再操作", ok === true && JSON.stringify(before) === JSON.stringify(after) && !(await p.evaluate(() => __draw.S.busy)), JSON.stringify([before, after]));
+  const rp2 = p.evaluate(() => __draw.replay());
+  await p.waitForTimeout(300);
+  await p.tap("#rStop");
+  const t1 = Date.now(); await rp2;
+  check("按停止 → 馬上停、畫面放回原本", Date.now() - t1 < 1500 && await px(1450, 500) === before[0] && !(await p.evaluate(() => document.querySelector("#paint").classList.contains("replaying"))), `${Date.now() - t1}ms`);
+  await p.evaluate(() => __draw.G.wipe());
+  await p.tap("#bDone");
+  await waitOn("#after");
+  check("完成後有 ▶️ 回放鈕", await p.evaluate(() => getComputedStyle(document.querySelector("#aPlay")).display !== "none"));
+  const lg = await p.evaluate(async () => (await __draw.G.list())[0]?.log?.length);
+  check("存進作品牆的作品帶著畫畫紀錄", lg === 4, String(lg));
+  await p.evaluate(() => document.querySelector("#after").classList.remove("on"));
+  await p.evaluate(() => { __draw.show("home"); __draw.renderHome(); });
+  await p.tap("#tMusic");
+  const m1 = await p.evaluate(() => [document.querySelector("#tMusic").classList.contains("off"), __draw.A.musicEnabled(), JSON.parse(localStorage.getItem("draw-audio")).music]);
+  await p.tap("#tMusic");
+  const m2 = await p.evaluate(() => [document.querySelector("#tMusic").classList.contains("off"), __draw.A.musicEnabled()]);
+  check("音樂開關：按一下關（記住）、再按一下開", JSON.stringify(m1) === "[true,false,false]" && JSON.stringify(m2) === "[false,true]", JSON.stringify([m1, m2]));
+  await p.evaluate(() => { __draw.G.wipe(); __draw.show("paint"); });
+  // 第一次玩的提示：沒塗過 → 開圖時出現一隻手；塗一次就消失、之後不再出現
+  await p.evaluate(() => { localStorage.removeItem("draw-hinted"); __draw.S.tool = "fill"; });
+  await openTest(); await p.waitForTimeout(200);
+  check("第一次玩：開圖時出現點擊提示", await p.locator(".tap-hint").count() === 1);
+  await tapImg(1450, 500);
+  check("塗過一次：提示消失並記住", await p.locator(".tap-hint").count() === 0 && await p.evaluate(() => localStorage.getItem("draw-hinted")) === "1");
+  await openTest(); await p.waitForTimeout(200);
+  check("之後開圖不再出現提示", await p.locator(".tap-hint").count() === 0);
+
+  // 寧次第三版意見：工具列 9 顆、選單貼在按鈕旁、不出線移進筆刷／橡皮擦選單、完成時右側慶祝欄不擋畫
+  check("工具列只剩 9 顆按鈕", await p.locator("#bar button").count() === 9);
+  await p.tap('[data-tool="eraser"]'); await p.tap('[data-tool="eraser"]');
+  const eb = await p.locator('[data-tool="eraser"]').boundingBox(), ep = await p.locator("#pop").boundingBox();
+  check("橡皮擦再點一次有選單（粗細＋不出線），選單貼在按鈕旁邊", await on("#pop") && await p.locator("#pop .opt.size").count() === 3 && await p.locator("#pop .opt.clip").count() === 1
+    && ep.y <= eb.y + eb.height && ep.y + ep.height >= eb.y && ep.x + ep.width <= eb.x, JSON.stringify([eb, ep]));
+  const c0 = await p.evaluate(() => __draw.S.clip);
+  await p.tap("#pop .opt.clip");
+  check("不出線開關在選單裡切換、選單不收", await p.evaluate(() => __draw.S.clip) === !c0 && await on("#pop") && await p.evaluate(() => document.querySelector("#pop .opt.clip").classList.contains("yes")) === !c0);
+  await p.tap("#pop .opt.clip");
+  await p.tap('[data-tool="eraser"]');   // 收起
+  await p.tap('[data-tool="fill"]');
+  await p.evaluate(() => { const P = __draw.painter; P.fill(P.regionAt(1450, 500), { kind: "solid" }, "#43a047").done(); });
+  await p.tap("#bDone"); await waitOn("#after");
+  const ab = await p.locator("#after").boundingBox(), bb2 = await p.locator("#bar").boundingBox(), sb = await p.locator("#stage").boundingBox();
+  check("完成：慶祝欄剛好蓋在工具列上、不擋到畫", Math.abs(ab.x - bb2.x) < 2 && Math.abs(ab.width - bb2.width) < 2 && ab.x >= sb.x + sb.width, JSON.stringify([ab, bb2, sb]));
+  await p.screenshot({ path: path.join(OUT, "09-after-panel.png") });
+  await p.tap("#aAgain"); await p.evaluate(() => __draw.G.wipe());
 
   // ── 後續 task 的測試插在這一行上面 ──
   check("沒有頁面錯誤", errs.length === 0, errs.join(" | "));

@@ -1,0 +1,90 @@
+{
+ "bgm": {
+  "file": "audio/draw/bgm.mp3",
+  "loopStart": 0.5,
+  "loopEnd": 67.988821,
+  "lufs": -18.5,
+  "bpm": 96.0,
+  "source": "reused audio/bgm/rainbow.mp3 (Gemini Lyria lyria-3.5, candidate rainbow_3); Lyria call for a new draw theme failed HTTP 402",
+  "license": "Gemini API generated (Lyria 3.5, instrumental); no attribution needed; see audio/CREDITS.md"
+ },
+ "sfx": {
+  "tap": {
+   "file": "audio/draw/sfx/tap.mp3",
+   "gain": 0.55,
+   "dur": 0.041,
+   "source": "Kenney Interface Sounds click_002",
+   "license": "CC0 1.0"
+  },
+  "pick": {
+   "file": "audio/draw/sfx/pick.mp3",
+   "gain": 0.6,
+   "dur": 0.041,
+   "source": "Kenney Interface Sounds tick_001",
+   "license": "CC0 1.0"
+  },
+  "fill": {
+   "file": "audio/draw/sfx/fill.mp3",
+   "gain": 0.7,
+   "dur": 0.78,
+   "source": "Freesound Water drop / Splash by bxyorna (https://freesound.org/people/bxyorna/sounds/410335/) (lowpassed, trimmed)",
+   "license": "CC0 1.0"
+  },
+  "sticker": {
+   "file": "audio/draw/sfx/sticker.mp3",
+   "gain": 0.7,
+   "dur": 0.43,
+   "source": "numpy synth (elastic pop + bell sparkle)",
+   "license": "CC0 (own synthesis)"
+  },
+  "undo": {
+   "file": "audio/draw/sfx/undo.mp3",
+   "gain": 0.55,
+   "dur": 0.452,
+   "source": "Freesound Whoosh by qubodup (https://freesound.org/people/qubodup/sounds/60013/) (reversed, lowpassed, trimmed)",
+   "license": "CC0 1.0"
+  },
+  "clear": {
+   "file": "audio/draw/sfx/clear.mp3",
+   "gain": 0.6,
+   "dur": 0.823,
+   "source": "numpy synth (paper crumple: random noise crackle + soft whoosh body)",
+   "license": "CC0 (own synthesis)"
+  },
+  "open": {
+   "file": "audio/draw/sfx/open.mp3",
+   "gain": 0.6,
+   "dur": 0.223,
+   "source": "Kenney RPG Audio bookFlip3",
+   "license": "CC0 1.0"
+  },
+  "finish": {
+   "file": "audio/draw/sfx/finish.mp3",
+   "gain": 0.75,
+   "dur": 2.229,
+   "source": "Freesound Short Success Sound Glockenspiel Treasure Video Game.mp3 by FunWithSound (https://freesound.org/people/FunWithSound/sounds/456965/) (trimmed 2.2s, faded)",
+   "license": "CC0 1.0"
+  },
+  "save": {
+   "file": "audio/draw/sfx/save.mp3",
+   "gain": 0.7,
+   "dur": 0.73,
+   "source": "Freesound [UI Sound] Approval - High Pitched Bell Synth by GabFitzgerald (https://freesound.org/people/GabFitzgerald/sounds/625174/) (trimmed)",
+   "license": "CC0 1.0"
+  },
+  "magic": {
+   "file": "audio/draw/sfx/magic.mp3",
+   "gain": 0.55,
+   "dur": 0.871,
+   "source": "Freesound cartoon_wink_magic_sparkle.wav by MLaudio (https://freesound.org/people/MLaudio/sounds/511485/) (trimmed)",
+   "license": "CC0 1.0"
+  },
+  "pop": {
+   "file": "audio/draw/sfx/pop.mp3",
+   "gain": 0.5,
+   "dur": 0.059,
+   "source": "Freesound Pop Sound by ConarB13 (https://freesound.org/people/ConarB13/sounds/401542/) (trimmed)",
+   "license": "CC0 1.0"
+  }
+ }
+}

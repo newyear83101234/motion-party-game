@@ -1,4 +1,8 @@
-:root { --bar-w: 112px; --bg: #fff4e0; --wood: #f3dfb8; --wood-d: #e2c48f; --ink: #3b2a1a; --on: #ffcf4d; }
+:root { --bar-w: 112px; --bg: #fff4e0; --wood: #f3dfb8; --wood-d: #e2c48f; --ink: #3b2a1a; --on: #ffcf4d;
+  --sun: #ffc93c; --tomato: #ff6b5b; --mint: #4fcf9b; --sky: #4fb3ff; --grape: #a77bff; --pink: #ff7eb6;
+  --lift: 0 4px 0 var(--wood-d), 0 8px 14px rgba(90, 60, 20, .12);   /* 按鈕底下那條「厚度」＋柔和陰影 */
+  --press: 0 1px 0 var(--wood-d), 0 2px 4px rgba(90, 60, 20, .12);
+  --spring: cubic-bezier(.3, 1.6, .5, 1); }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); overflow: hidden; touch-action: none;
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
@@ -6,57 +10,117 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); 
 button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
 .screen { position: fixed; inset: 0; display: none;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
-.screen.on { display: flex; }
+.screen.on { display: flex; animation: screenIn .3s ease-out both; }
+#home.on, #gallery.on { animation-name: screenSlide; }
+/* 畫畫頁只淡入、不位移：開圖時要量畫框大小，位移會量錯 */
+@keyframes screenIn { from { opacity: 0; } }
+@keyframes screenSlide { from { opacity: 0; transform: translateY(14px); } }
 #home.on, #gallery.on { flex-direction: column; }
 .grow { flex: 1; }
 
 /* 首頁與作品牆 */
 .top { display: flex; align-items: center; gap: 16px; padding: 16px 20px 8px; }
-.themes { display: flex; gap: 16px; flex: 1; }
-.big { width: 88px; height: 88px; border-radius: 24px; background: #fff; font-size: 48px; position: relative;
-  box-shadow: 0 4px 0 var(--wood-d); flex: 0 0 auto; }
-.big.on, .btn.on { background: #fff; box-shadow: 0 0 0 5px var(--ink); }
-.big:active, .btn:active, .card:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--wood-d); }
+#home { background: var(--bg) url("../IMAGE/draw/ui/home-bg.jpg?v=3") center / cover; }
+.hero { padding: 12px 24px 4px; gap: 14px; }
+.mascot { height: 92px; width: auto; animation: bob 2.6s ease-in-out infinite; filter: drop-shadow(0 6px 6px rgba(60, 30, 0, .2)); }
+@keyframes bob { 50% { transform: translateY(-6px) rotate(-3deg); } }
+/* 標題字：每個字不同顏色、白色粗外框、輪流上下跳 */
+.logo { margin: 0; font-size: 56px; font-weight: 900; letter-spacing: 2px; line-height: 1; white-space: nowrap; }
+.logo span { display: inline-block; -webkit-text-stroke: 10px #fff; paint-order: stroke fill; text-shadow: 0 6px 0 rgba(90, 60, 20, .18);
+  animation: hop 1.6s ease-in-out .3s 1 backwards; }   /* 進首頁時跳一輪就好 */
+.logo span:nth-child(1) { color: var(--tomato); transform: rotate(-6deg); }
+.logo span:nth-child(2) { color: var(--sun); animation-delay: .15s; transform: rotate(4deg); }
+.logo span:nth-child(3) { color: var(--mint); animation-delay: .3s; transform: rotate(-3deg); }
+.logo span:nth-child(4) { color: var(--sky); animation-delay: .45s; transform: rotate(5deg); }
+@keyframes hop { 0%, 40%, 100% { translate: 0 0; } 60% { translate: 0 -12px; } 80% { translate: 0 2px; } }
+/* 主題：膠囊鈕（圖示＋名字），選中的換成主題色 */
+.themes { display: flex; gap: 14px; padding: 6px 24px 10px; overflow-x: auto; touch-action: pan-x; flex: 0 0 auto; }
+.theme:first-child { margin-left: auto; }
+.theme:last-child { margin-right: auto; }   /* 放得下時置中，放不下時照樣可以橫捲 */
+.theme { height: 74px; padding: 0 24px 0 8px; border-radius: 40px; display: flex; align-items: center; gap: 6px; flex: 0 0 auto;
+  background: linear-gradient(#fff, #fbf5ea); box-shadow: var(--lift); font-size: 22px; font-weight: 800; color: var(--ink);
+  transition: transform .16s var(--spring), background .2s, box-shadow .16s; }
+.theme .ico { width: 60px; height: 60px; }
+.theme .emo { width: 60px; font-size: 40px; text-align: center; }
+.theme.on { background: var(--c); color: var(--ink); box-shadow: 0 0 0 4px var(--ink), 0 8px 0 rgba(59, 42, 26, .25); transform: translateY(-2px) scale(1.04); }
+.theme:active { transform: translateY(2px) scale(.96); }
+.big { width: 88px; height: 88px; border-radius: 26px; background: linear-gradient(#fff, #fbf5ea); font-size: 48px; position: relative;
+  box-shadow: var(--lift); flex: 0 0 auto; display: grid; place-items: center; transition: transform .14s var(--spring), box-shadow .14s; }
+.big.on, .btn.on { background: #fff; box-shadow: 0 0 0 5px var(--ink), 0 0 0 10px rgba(255, 201, 60, .55); transform: scale(1.04); }
+.big:active, .btn:active, .card:active { transform: translateY(3px) scale(.97); box-shadow: var(--press); }
+.ico { width: 70%; height: 70%; object-fit: contain; pointer-events: none; -webkit-user-drag: none; filter: drop-shadow(0 2px 2px rgba(60, 30, 0, .18)); }
 .arts, .works { flex: 1; overflow-y: auto; touch-action: pan-y; display: grid; align-content: start; gap: 20px;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); grid-auto-rows: max-content; padding: 12px 20px 24px; }
-.arts { grid-template-columns: repeat(2, minmax(0, 460px)); justify-content: center; }
-.works .empty { grid-column: 1 / -1; justify-self: center; margin-top: 12vh; font-size: 96px; }
+.arts { grid-template-columns: repeat(2, minmax(0, min(440px, calc((100vh - 262px) / 2 * 1.5)))); justify-content: center; gap: 24px 28px; padding-top: 14px; }
+@supports (height: 100dvh) { .arts { grid-template-columns: repeat(2, minmax(0, min(440px, calc((100dvh - 262px) / 2 * 1.5)))); } }
+.works .empty { grid-column: 1 / -1; justify-self: center; margin-top: 8vh; display: flex; align-items: flex-end; gap: 10px; }
+.works .empty img { height: 220px; animation: bob 2.6s ease-in-out infinite; }
+.works .empty img.ico { width: 110px; height: 110px; animation-delay: .4s; }
 .tidy-tip { display: none; margin: 0 20px; padding: 12px 20px; font-size: 22px; line-height: 1.5; background: #fff; border-radius: 16px; box-shadow: 0 4px 0 var(--wood-d); }
 .tidy-tip.on { display: block; }
 #gTip { position: absolute; right: 20px; bottom: 20px; width: 48px; height: 48px; font-size: 26px; border-radius: 14px; opacity: .7; z-index: 3; }
-.card { position: relative; background: #fff; border-radius: 20px; box-shadow: 0 4px 0 var(--wood-d); overflow: hidden; aspect-ratio: 4 / 3; }
-.card img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }
-.card .lv { position: absolute; right: 10px; top: 8px; font-size: 26px; background: rgba(255, 255, 255, .92); border-radius: 14px; padding: 2px 8px; }
-.card .wip { position: absolute; left: 10px; top: 8px; font-size: 30px; }
+.card { position: relative; background: #fff; border-radius: 26px; padding: 10px; box-shadow: var(--lift); aspect-ratio: 3 / 2;
+  transition: transform .16s var(--spring), box-shadow .16s; animation: cardIn .45s var(--spring) backwards; animation-delay: calc(var(--i, 0) * 60ms); }
+@keyframes cardIn { from { opacity: 0; transform: translateY(24px) scale(.92); } }
+.card img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; border-radius: 18px; }
+/* 難度：右上角黃色星星標籤 */
+.card .lv { position: absolute; right: -6px; top: -8px; font-size: 24px; line-height: 1; padding: 5px 10px; border-radius: 20px; display: flex; gap: 1px;
+  background: #fff; box-shadow: 0 0 0 3px #ffc93c, 0 4px 8px rgba(90, 60, 20, .2); }
+.card .lv b { color: #eadcbe; }
+.card .lv b.lit { color: #ffb300; text-shadow: 0 1px 0 #c77f00; }
+.card .wip { position: absolute; left: -6px; top: -8px; font-size: 26px; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%;
+  background: #fff; box-shadow: 0 0 0 3px var(--sky), 0 4px 8px rgba(90, 60, 20, .2); }
+/* 作品牆：暖色壁紙＋白邊畫框，一張正一張歪 */
+#gallery { background: #f6ead6 repeating-linear-gradient(90deg, rgba(255, 255, 255, .22) 0 28px, transparent 28px 56px); }
+.wall-title { margin: 0; font-size: 34px; font-weight: 900; color: var(--ink); -webkit-text-stroke: 8px #fff; paint-order: stroke fill; }
+/* 第一次玩的提示：一隻手在某一塊上面點，外面一圈波紋 */
+.tap-hint { position: absolute; z-index: 4; pointer-events: none; width: 0; height: 0; }
+.tap-hint::before { content: ""; position: absolute; left: -36px; top: -36px; width: 72px; height: 72px; border-radius: 50%; border: 6px solid #fff;
+  box-shadow: 0 0 0 4px var(--sun); animation: hintRing 1.4s ease-out infinite; }
+.tap-hint::after { content: "👆"; position: absolute; left: -14px; top: 4px; font-size: 64px; animation: hintTap 1.4s ease-in-out infinite; filter: drop-shadow(0 4px 4px rgba(0, 0, 0, .3)); }
+@keyframes hintRing { 0% { transform: scale(.4); opacity: 0; } 30% { opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
+@keyframes hintTap { 0%, 100% { transform: translate(12px, 18px); } 30% { transform: translate(0, 0); } }
+.works { grid-template-columns: repeat(auto-fill, 280px); justify-content: center; gap: 40px 36px; padding-top: 24px; }
+.works .card { padding: 12px; border-radius: 3px; aspect-ratio: auto; box-shadow: 0 0 0 10px #c8955a, 0 0 0 13px #a8743f, 0 16px 24px rgba(90, 60, 20, .3); }
+.works .card img { border-radius: 2px; aspect-ratio: 3 / 2; height: auto; }
+.works .card:nth-child(odd) { rotate: -1.2deg; }
+.works .card:nth-child(even) { rotate: 1deg; }
 
 /* 畫畫頁 */
 #stage { position: relative; flex: 1; overflow: hidden; background: #efe8da; margin: 12px; border-radius: 18px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, .12); }
 .board { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 .layer { position: absolute; inset: 0; width: 100%; height: 100%; }
-#bar { width: var(--bar-w); background: var(--wood); display: flex; flex-direction: column; align-items: center;
-  gap: 8px; padding: 10px 0; overflow-y: auto; }   /* 12 顆按鈕要在 iPad 橫放（高 744～820）放得下：按鈕高度用 clamp 跟著螢幕高度 */
-#bar hr { width: 70%; border: 0; border-top: 3px dashed var(--wood-d); margin: 2px 0; }
+#bar { width: var(--bar-w); background: linear-gradient(90deg, #f6e3bd, #f1d9aa); box-shadow: inset 6px 0 10px -6px rgba(90, 60, 20, .25);
+  display: flex; flex-direction: column; align-items: center;
+  gap: 8px; padding: 10px 0; overflow-y: auto; }   /* 9 顆按鈕要在 iPad 橫放（高 744～820）放得下：按鈕高度用 clamp 跟著螢幕高度 */
+#bar hr { width: 54%; height: 4px; border: 0; border-radius: 2px; background: var(--wood-d); opacity: .7; margin: 2px 0; }
 /* dvh = 扣掉 Safari 網址列後實際看得到的高度；舊瀏覽器不認得就用上一行的 vh */
-.btn { width: 76px; height: clamp(44px, calc((100vh - 160px) / 12), 62px); height: clamp(44px, calc((100dvh - 160px) / 12), 62px);
-  flex: 0 0 auto; border-radius: 18px; background: #fff; font-size: 30px; position: relative;
-  display: grid; place-items: center; box-shadow: 0 4px 0 var(--wood-d); }
+.btn { width: 80px; height: clamp(48px, calc((100vh - 140px) / 9), 72px); height: clamp(48px, calc((100dvh - 140px) / 9), 72px);
+  flex: 0 0 auto; border-radius: 18px; background: linear-gradient(#fff, #fbf5ea); font-size: 30px; position: relative;
+  display: grid; place-items: center; box-shadow: var(--lift); transition: transform .14s var(--spring), box-shadow .14s; }
+.btn .ico { width: auto; height: 82%; max-width: 62px; }
 .btn.dim > * { opacity: .35; }   /* 復原沒步驟可退、目前工具用不到的設定：只有圖示變淡，按鈕本身不變 */
 .btn svg, .btn canvas { pointer-events: none; }
 .tool[data-tool="brush"] canvas { width: 56px; height: 34px; border-radius: 6px; }
 .btn.ok { background: #8bd96b; }
 #bColor .dot { width: 40px; height: 40px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px var(--ink); }
-#bMat canvas { width: 40px; height: 40px; border-radius: 10px; }
 .btn img { width: 40px; height: 40px; pointer-events: none; }
 /* 筆刷、貼紙：右下角小三角 = 再點一次有選單 */
-.tool[data-tool="brush"]::after, .tool[data-tool="sticker"]::after { content: "▾"; position: absolute; right: 6px; bottom: 1px; font-size: 16px; line-height: 1; color: var(--ink); }
+.tool[data-tool="brush"]::after, .tool[data-tool="sticker"]::after, .tool[data-tool="eraser"]::after { content: "▾"; position: absolute; right: 6px; bottom: 1px; font-size: 16px; line-height: 1; color: var(--ink); }
 /* 不出線開關：永遠是一般按鈕外觀，右下角圓形徽章 ✓ 開／✕ 關 */
-#bClip.on { background: #fff; box-shadow: 0 4px 0 var(--wood-d); }
-#bClip::after { content: "✕"; position: absolute; right: -6px; bottom: -6px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+.opt.clip::after { content: "✕"; position: absolute; right: -6px; bottom: -6px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
   background: #e53935; color: #fff; font-size: 16px; font-weight: 700; line-height: 1; box-shadow: 0 0 0 2px #fff; }
-#bClip.on::after { content: "✓"; background: #43a047; }
-.loading { position: absolute; inset: 0; z-index: 4; display: none; place-items: center; font-size: 80px; pointer-events: none; }
+.opt.clip.yes::after { content: "✓"; background: #43a047; }
+.pop .opt.clip { position: relative; }
+.pop .opt.clip .ico { width: 70%; height: auto; border-radius: 0; }
+/* 載入中：三顆彩色圓點輪流跳 */
+.loading { position: absolute; inset: 0; z-index: 4; display: none; place-content: center; grid-auto-flow: column; gap: 14px; pointer-events: none; }
 .loading.on { display: grid; }
+.loading i { width: 26px; height: 26px; border-radius: 50%; background: var(--tomato); animation: dots .9s ease-in-out infinite; }
+.loading i:nth-child(2) { background: var(--sun); animation-delay: .15s; }
+.loading i:nth-child(3) { background: var(--sky); animation-delay: .3s; }
+@keyframes dots { 40% { transform: translateY(-22px) scale(1.1); } }
 
 /* 要按住的按鈕：外圈紅色進度條，跑滿 1 秒才算 */
 .ring { position: absolute; inset: -4px; border-radius: 22px; border: 5px solid #e53935; clip-path: inset(0 100% 0 0); pointer-events: none; }
@@ -68,7 +132,13 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 /* 彈出選單：貼在工具列左邊 */
 .pop { position: absolute; right: calc(var(--bar-w) + 12px); top: 12px; z-index: 6; display: none; flex-wrap: wrap; gap: 10px;
   max-width: 470px; padding: 14px; background: #fff; border-radius: 22px; box-shadow: 0 8px 30px rgba(0, 0, 0, .25); }
-.pop.on { display: flex; }
+.pop.on { display: flex; animation: popIn .22s var(--spring) both; transform-origin: right top; }
+.pop::after { content: ""; position: absolute; right: -11px; top: calc(var(--ay, 44px) - 12px); border: 12px solid transparent; border-right: 0; border-left-color: #fff; }
+@keyframes popIn { from { opacity: 0; transform: translateX(14px) scale(.9); } }
+.pop .sw, .pop .opt { transition: transform .14s var(--spring); }
+.pop .sw:active, .pop .opt:active { transform: scale(.9); }
+.pop .sw.on, .pop .opt.on { animation: picked .3s var(--spring); }
+@keyframes picked { 40% { transform: scale(1.15); } }
 .pop .sw { width: 64px; height: 64px; border-radius: 50%; border: 4px solid #fff; box-shadow: 0 0 0 2px #ccc; }
 .pop .sw.on { box-shadow: 0 0 0 4px var(--ink); }
 .pop .sw[aria-label="#ffffff"]:not(.on) { box-shadow: 0 0 0 2px #8a8a8a; }
@@ -77,20 +147,36 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .pop .opt canvas, .pop .opt img { width: 60px; height: 60px; border-radius: 12px; pointer-events: none; }
 .pop .row { display: flex; gap: 10px; width: 100%; }
 .pop .size i { display: block; border-radius: 50%; background: var(--ink); }
-/* 筆刷選單：左邊 8 種筆的預覽小圖（4 張一排），右邊粗細一直排 */
+/* 筆刷選單：左邊 8 種筆的預覽小圖（4 張一排），右邊 2×2：三種粗細＋不出線 */
 .pop.brush { max-width: none; flex-wrap: nowrap; }
 .pop .brushes { display: grid; grid-template-columns: repeat(4, 128px); gap: 10px; }
-.pop .sizes { display: flex; flex-direction: column; gap: 10px; }
-.pop .sizes .opt { width: 64px; height: 52px; }
+.pop .side { display: grid; grid-template-columns: repeat(2, 64px); grid-auto-rows: 84px; gap: 10px; }
+.pop .side .sizes { display: contents; }
+.pop .side .opt { width: 64px; height: 84px; }
+/* 橡皮擦選單：三種粗細＋不出線排一排 */
+.pop.eraser { flex-wrap: nowrap; }
+.pop.eraser .sizes { display: flex; gap: 10px; }
+/* 顏色選單：上面 30 色、下面一排材質（目前的工具用不到材質時變淡） */
+.pop.color { flex-direction: column; max-width: 470px; }
+.pop .swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.pop .mats { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 12px; border-top: 3px dashed #eadfca; }
+.pop .mats.dim { opacity: .45; }
+.pop .opt.mat { width: 64px; height: 64px; }
+.pop .opt.mat canvas { width: 50px; height: 50px; border-radius: 50%; }
 .pop .opt.wide { width: 128px; height: 84px; }
 .pop .opt.wide canvas { width: 112px; height: 66px; border-radius: 10px; }
 
+/* 全螢幕鈕：畫布左上角半透明小圓鈕（全螢幕時改用右邊的離開鈕） */
+.corner { position: absolute; left: calc(22px + env(safe-area-inset-left)); top: calc(22px + env(safe-area-inset-top)); z-index: 5; width: 54px; height: 54px; border-radius: 50%;
+  display: grid; place-items: center; background: rgba(255, 255, 255, .85); box-shadow: 0 2px 8px rgba(60, 30, 0, .25); transition: transform .14s var(--spring); }
+.corner:active { transform: scale(.9); }
+.corner svg { pointer-events: none; filter: drop-shadow(0 2px 1px rgba(0, 40, 90, .25)); }
+#paint.full .corner, #paint.replaying .corner { display: none; }
 /* 全螢幕：工具列收起來、畫布放到最大；右邊留一條窄邊放三顆圓鈕，按鈕不會壓到畫 */
 #paint.full { --mini-w: 80px; background: #efe8da; }
 #paint.full #bar { display: none; }
 #paint.full #stage { margin: 0 var(--mini-w) 0 0; border-radius: 0; box-shadow: none; }
 #paint.full .pop { right: calc(var(--mini-w) + 8px + env(safe-area-inset-right)); }
-#paint.full .after { right: var(--mini-w); }
 .mini { position: absolute; right: calc(8px + env(safe-area-inset-right)); top: calc(14px + env(safe-area-inset-top)); z-index: 6;
   display: none; flex-direction: column; gap: 12px; }
 #paint.full .mini { display: flex; }
@@ -100,12 +186,31 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .mini .btn:active { box-shadow: 0 1px 4px rgba(0, 0, 0, .3); }
 .mini .dot { width: 38px; height: 38px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px var(--ink); }
 
-/* 完成後的兩顆大按鈕 */
-.after { position: absolute; left: 0; right: var(--bar-w); bottom: 40px; z-index: 7; display: none; justify-content: center; gap: 40px; }
+/* 完成：右側整條（跟工具列同寬、蓋住工具列）換成慶祝欄：吉祥物＋三顆星＋三顆大按鈕，畫整張都看得到 */
+.after { position: absolute; top: 0; right: env(safe-area-inset-right); bottom: 0; width: var(--bar-w); z-index: 7; display: none; flex-direction: column;
+  align-items: center; justify-content: center; gap: 16px; padding: 10px 0; background: linear-gradient(90deg, #f6e3bd, #f1d9aa);
+  box-shadow: inset 6px 0 10px -6px rgba(90, 60, 20, .25); }
 .after.on { display: flex; }
-.after .big { width: 120px; height: 120px; font-size: 64px; border-radius: 30px; box-shadow: 0 0 0 4px var(--ink); }
-#aHome { background: #ffcf4d; }
-#aAgain { background: #8bd96b; }
+.after .big { width: 92px; height: 92px; font-size: 52px; border-radius: 28px; box-shadow: 0 0 0 4px var(--ink), 0 7px 0 rgba(59, 42, 26, .35); }
+.after.on .big { animation: afterIn .5s var(--spring) backwards; }
+.after.on .big:nth-of-type(1) { animation-delay: .25s; }
+.after.on .big:nth-of-type(2) { animation-delay: .33s; }
+.after.on .big:nth-of-type(3) { animation-delay: .41s; }
+@keyframes afterIn { from { opacity: 0; transform: translateX(40px) scale(.6); } }
+#aHome { background: linear-gradient(#ffe07a, #ffc93c); }
+#aPlay { background: linear-gradient(#9fd8ff, #4fb3ff); }
+#aAgain { background: linear-gradient(#b4ec97, #7fd35e); }
+/* 慶祝：吉祥物跳出來、三顆星星一顆一顆蹦出來 */
+.cheer { display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+.cheer img { height: 104px; animation: cheerJump .8s var(--spring) backwards, bob 2.6s ease-in-out 1s infinite; filter: drop-shadow(0 6px 6px rgba(60, 30, 0, .25)); }
+.cheer p { margin: -6px 0 0; white-space: nowrap; line-height: 1; }
+.cheer span { display: inline-block; font-size: 30px; color: #ffc93c; -webkit-text-stroke: 4px #fff; paint-order: stroke fill;
+  text-shadow: 0 3px 0 rgba(90, 60, 20, .25); animation: starPop .55s var(--spring) backwards; }
+.cheer span:nth-child(1) { animation-delay: .1s; }
+.cheer span:nth-child(2) { font-size: 40px; animation-delay: .28s; }
+.cheer span:nth-child(3) { animation-delay: .46s; }
+@keyframes starPop { from { opacity: 0; transform: scale(0) rotate(-120deg); } }
+@keyframes cheerJump { from { opacity: 0; transform: translateY(60px) scale(.5); } }
 .finish-ov { position: absolute; inset: 0; width: 100%; height: 100%; background: #fff; z-index: 5; pointer-events: none; }
 
 /* 作品牆：放大看 */
@@ -119,7 +224,23 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .tip.on { display: block; }
 .toast { position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 20; display: none; padding: 24px 40px;
   font-size: 56px; background: #fff; border-radius: 28px; box-shadow: 0 8px 30px rgba(0, 0, 0, .3); }
-.toast.on { display: block; }
+.toast.on { display: block; animation: toastIn .3s var(--spring) both; }
+@keyframes toastIn { from { opacity: 0; transform: translate(-50%, -50%) scale(.7); } }
+
+/* 粒子層：蓋在畫布上、不擋手指 */
+.parts { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; }
+
+/* 回放中：工具列不能按、底下一顆停止鈕 */
+#rStop { position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 8; display: none; width: 96px; height: 96px; font-size: 52px; box-shadow: 0 0 0 4px var(--ink), 0 8px 24px rgba(0, 0, 0, .3); }
+#paint.replaying #rStop { display: block; }
+#paint.replaying #bar, #paint.replaying .mini { pointer-events: none; opacity: .45; }
+#paint.full.replaying #rStop { left: calc(50% - var(--mini-w) / 2); }
+
+/* 音樂／音效開關：關掉時右下角紅色 ✕ */
+.big.tog { width: 72px; height: 72px; font-size: 38px; }
+.big.tog.off { background: #e8e2d6; box-shadow: 0 4px 0 var(--wood-d); }
+.big.tog.off::after { content: "✕"; position: absolute; right: -6px; bottom: -6px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+  background: #e53935; color: #fff; font-size: 17px; font-weight: 700; box-shadow: 0 0 0 2px #fff; }
 
 /* 直向：整頁蓋上「請轉橫」 */
 .rotate { position: fixed; inset: 0; z-index: 30; display: none; place-items: center; font-size: 96px; background: var(--bg); }

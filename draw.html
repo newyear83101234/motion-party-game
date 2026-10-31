@@ -7,53 +7,61 @@
   <meta name="theme-color" content="#fff4e0">
   <title>畫畫樂園</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="css/draw.css?v=2">
-  <link rel="modulepreload" href="js/draw-core.js?v=2">
-  <link rel="modulepreload" href="js/draw-canvas.js?v=2">
-  <link rel="modulepreload" href="js/draw-paint.js?v=2">
-  <link rel="modulepreload" href="js/draw-fx.js?v=2">
-  <link rel="modulepreload" href="js/draw-gallery.js?v=2">
-  <link rel="modulepreload" href="js/draw-stickers.js?v=2">
+  <link rel="stylesheet" href="css/draw.css?v=3">
+  <link rel="modulepreload" href="js/draw-core.js?v=3">
+  <link rel="modulepreload" href="js/draw-canvas.js?v=3">
+  <link rel="modulepreload" href="js/draw-paint.js?v=3">
+  <link rel="modulepreload" href="js/draw-fx.js?v=3">
+  <link rel="modulepreload" href="js/draw-gallery.js?v=3">
+  <link rel="modulepreload" href="js/draw-stickers.js?v=3">
+  <link rel="modulepreload" href="js/draw-audio.js?v=3">
+  <link rel="modulepreload" href="js/draw-particles.js?v=3">
 </head>
 <body>
   <!-- 首頁：上排選主題，下面是線稿縮圖 -->
   <section id="home" class="screen on">
-    <header class="top">
-      <div class="themes" id="themes"></div>
+    <header class="top hero">
+      <img class="mascot" src="IMAGE/draw/ui/mascot.png?v=3" alt="" onerror="this.remove()">
+      <h1 class="logo" aria-label="畫畫樂園"><span>畫</span><span>畫</span><span>樂</span><span>園</span></h1>
+      <span class="grow"></span>
+      <button class="big tog" id="tMusic" data-sfx="none" aria-label="背景音樂開關">🎵</button>
+      <button class="big tog" id="tSound" data-sfx="none" aria-label="音效開關">🔊</button>
       <button class="big" id="toGallery" aria-label="作品牆">🖼️</button>
     </header>
+    <nav class="themes" id="themes"></nav>
     <div class="arts" id="arts"></div>
   </section>
 
   <!-- 畫畫頁：左邊畫布、右邊工具列 -->
   <section id="paint" class="screen">
-    <div id="stage"><div id="loading" class="loading">⏳</div></div>
+    <div id="stage"><div id="loading" class="loading"><i></i><i></i><i></i></div></div>
+    <button id="bFull" class="corner" aria-label="全螢幕"><svg viewBox="0 0 40 40" width="30" height="30" fill="none" stroke="url(#gFull)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="gFull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6fc0ff"/><stop offset="1" stop-color="#1f7fe0"/></linearGradient></defs><path d="M5 15V5h10M25 5h10v10M35 25v10H25M15 35H5V25"/></svg></button>
     <nav id="bar">
-      <button id="bDone" class="btn ok" aria-label="完成">✔️</button>
+      <button id="bDone" class="btn ok" data-sfx="none" aria-label="完成">✔️</button>
       <button id="bHome" class="btn" aria-label="回首頁">🏠</button>
-      <button id="bFull" class="btn" aria-label="全螢幕"><svg viewBox="0 0 40 40" width="34" height="34" fill="none" stroke="#3b2a1a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15V5h10M25 5h10v10M35 25v10H25M15 35H5V25"/></svg></button>
       <hr>
-      <button class="btn tool on" data-tool="fill" aria-label="填色桶">🪣</button>
-      <button class="btn tool" data-tool="brush" aria-label="筆刷"></button>
-      <button class="btn tool" data-tool="sticker" aria-label="貼紙">⭐</button>
-      <button class="btn tool" data-tool="eraser" aria-label="橡皮擦">🧽</button>
+      <button data-sfx="pick" class="btn tool on" data-tool="fill" aria-label="填色桶">🪣</button>
+      <button data-sfx="pick" class="btn tool" data-tool="brush" aria-label="筆刷"></button>
+      <button data-sfx="pick" class="btn tool" data-tool="sticker" aria-label="貼紙">⭐</button>
+      <button data-sfx="pick" class="btn tool" data-tool="eraser" aria-label="橡皮擦">🧽</button>
       <hr>
-      <button id="bColor" class="btn" aria-label="顏色"><span class="dot"></span></button>
-      <button id="bMat" class="btn" aria-label="材質"><canvas width="64" height="64"></canvas></button>
-      <button id="bClip" class="btn on" aria-label="不出線">🛡️</button>
+      <button id="bColor" class="btn" data-sfx="pop" aria-label="顏色與材質"><span class="dot"></span></button>
       <hr>
-      <button id="bUndo" class="btn" aria-label="復原"><span>↩️</span></button>
+      <button id="bUndo" class="btn" data-sfx="undo" aria-label="復原"><span>↩️</span></button>
       <button id="bClear" class="btn hold" aria-label="清空（要按住）">🗑️<i class="ring"></i></button>
     </nav>
     <!-- 全螢幕時右上角只留這三顆 -->
     <div id="mini" class="mini">
       <button id="mFull" class="btn" aria-label="離開全螢幕"><svg viewBox="0 0 40 40" width="32" height="32" fill="none" stroke="#3b2a1a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3v10H3M27 3v10h10M37 27H27v10M3 27h10v10"/></svg></button>
-      <button id="mColor" class="btn" aria-label="顏色"><span class="dot"></span></button>
-      <button id="mUndo" class="btn" aria-label="復原"><span>↩️</span></button>
+      <button id="mColor" class="btn" data-sfx="pop" aria-label="顏色"><span class="dot"></span></button>
+      <button id="mUndo" class="btn" data-sfx="undo" aria-label="復原"><span>↩️</span></button>
     </div>
     <div id="pop" class="pop"></div>
+    <button id="rStop" class="big" aria-label="停止回放"><svg viewBox="0 0 40 40" width="46" height="46"><defs><linearGradient id="gStop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8a80"/><stop offset="1" stop-color="#e53935"/></linearGradient></defs><rect x="7" y="7" width="26" height="26" rx="7" fill="url(#gStop)"/></svg></button>
     <div id="after" class="after">
+      <div class="cheer" aria-hidden="true"><img src="IMAGE/draw/ui/mascot.png?v=3" alt="" onerror="this.remove()"><p><span>★</span><span>★</span><span>★</span></p></div>
       <button class="big" id="aHome" aria-label="回首頁">🏠</button>
+      <button class="big" id="aPlay" aria-label="回放畫畫過程">▶️</button>
       <button class="big" id="aAgain" aria-label="繼續畫">🖌️</button>
     </div>
   </section>
@@ -62,8 +70,9 @@
   <section id="gallery" class="screen">
     <header class="top">
       <button class="big" id="gBack" aria-label="回首頁">🏠</button>
+      <h2 class="wall-title">我的作品</h2>
       <span class="grow"></span>
-      <button class="big" id="gTip" aria-label="加到主畫面">📲</button>
+      <button class="big" id="gTip" aria-label="加到主畫面"><svg viewBox="0 0 40 40" width="28" height="28" fill="none" stroke="#3b2a1a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="4" width="22" height="32" rx="4"/><path d="M20 13v12M14 19h12"/></svg></button>
     </header>
     <div id="tidyTip" class="tidy-tip">🖼️ 作品牆滿了：點一張舊作品，按住 🗑️ 刪掉，再按 🏠 回去存這張畫</div>
     <div class="works" id="works"></div>
@@ -71,8 +80,9 @@
       <img id="vImg" alt="">
       <div class="vbar">
         <button class="big" id="vClose" aria-label="關閉">✖️</button>
+        <button class="big" id="vPlay" aria-label="回放畫畫過程">▶️</button>
         <button class="big" id="vEdit" aria-label="接著畫">🖌️</button>
-        <button class="big" id="vSave" aria-label="存到相簿">📥</button>
+        <button class="big" id="vSave" data-sfx="save" aria-label="存到相簿">📥</button>
         <button class="big hold" id="vDel" aria-label="刪除（要按住）">🗑️<i class="ring"></i></button>
       </div>
     </div>
@@ -81,6 +91,6 @@
 
   <div id="toast" class="toast"></div>
   <div id="rotate" class="rotate">📱 ↻</div>
-  <script type="module" src="js/draw.js?v=2"></script>
+  <script type="module" src="js/draw.js?v=3"></script>
 </body>
 </html>
