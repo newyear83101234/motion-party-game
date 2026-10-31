@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <!-- 模組用相對路徑插 css/draw-mirror.css：把基準位置拉回專案根目錄，跟 draw.html 一樣 -->
+  <base href="../../">
+  <title>鏡子魔法畫 測試</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/draw.css">
+</head>
+<body>
+  <!-- 假首頁：一顆按鈕進鏡子魔法畫 -->
+  <section id="home" class="screen on" style="align-items:center;justify-content:center">
+    <button class="big" id="goMirror" aria-label="鏡子魔法畫">🪞</button>
+  </section>
+  <div id="toast" class="toast"></div>
+  <script type="module">
+    import { mountMirror } from "./js/draw-mirror.js";
+    // 假的 deps：聲音、粒子只記錄呼叫；show 自己切 class；作品牆結果可以從測試改（window.__saveResult）
+    const log = window.__calls = [];
+    const rec = (name, fn = () => {}) => (...a) => { log.push([name, ...a]); return fn(...a); };
+    const A = { sfx: rec("sfx"), note: rec("note"), chime: rec("chime"), strokeOn: rec("strokeOn"), strokeSpeed: rec("strokeSpeed"), strokeOff: rec("strokeOff") };
+    class Particles {
+      constructor(host) { this.host = host; log.push(["Particles", host.className]); }
+      trail(...a) { log.push(["trail", ...a]); }
+      splash(...a) { log.push(["splash", ...a]); }
+      stars(...a) { log.push(["stars", ...a]); }
+      fit() { log.push(["fit"]); }
+    }
+    const show = id => document.querySelectorAll(".screen").forEach(s => s.classList.toggle("on", s.id === id));
+    let tt = 0;
+    const toast = rec("toast", (text, ms = 2500) => {
+      const t = document.getElementById("toast");
+      t.textContent = text; t.classList.add("on");
+      clearTimeout(tt); tt = setTimeout(() => t.classList.remove("on"), ms);
+    });
+    window.__saved = [];
+    window.__saveResult = "ok";
+    const saveWork = rec("saveWork", async c => {
+      await new Promise(r => setTimeout(r, 120));   // 假裝存 IndexedDB 要一點時間
+      window.__saved.push({ w: c.width, h: c.height, url: c.toDataURL("image/png") });
+      return window.__saveResult;
+    });
+    const onHome = rec("onHome", () => show("home"));
+    const mirror = mountMirror({ v: "7", show, A, Particles, toast, onHome, saveWork });
+    window.__mod = mirror;
+    document.getElementById("goMirror").onclick = () => mirror.open();
+    window.__ready = true;
+  </script>
+</body>
+</html>

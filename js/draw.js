@@ -8,6 +8,7 @@ import { STICKERS, stickerImage } from "./draw-stickers.js?v=6";
 import * as A from "./draw-audio.js?v=6";
 import { Particles } from "./draw-particles.js?v=6";
 import { play as playMusic } from "./draw-music.js?v=6";
+import { mountMirror } from "./draw-mirror.js?v=6";
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -825,7 +826,7 @@ function openWork(w) {
   if (viewUrl) URL.revokeObjectURL(viewUrl);
   viewUrl = URL.createObjectURL(w.image || w.thumb);
   $("#vImg").src = viewUrl;
-  $("#vEdit").style.display = tidy ? "none" : "";   // 整理模式只能刪、不能接著畫
+  $("#vEdit").style.display = tidy || !INDEX.arts.some(a => a.id === w.art) ? "none" : "";   // 整理模式只能刪；鏡子畫這類沒有線稿的作品不能接著畫
   $("#vPlay").style.display = !tidy && w.log && w.log.length ? "" : "none";
   $("#view").classList.add("on");
 }
@@ -873,10 +874,36 @@ hold($("#vDel"), async () => {
   $("#view").classList.remove("on"); renderGallery();
 });
 
+// ── 新玩法模組（鏡子畫…）：各自建立自己的畫面，需要的東西從這裡注入；版號沿用這支檔案網址上的 ?v= ──
+const V = new URL(import.meta.url).searchParams.get("v") || "0";
+const modules = [];
+function homeFrom() { modules.forEach(m => m.close?.()); show("home"); renderHome(); }
+const deps = { v: V, show, A, Particles, toast, onHome: homeFrom };
+// 沒有線稿的作品（鏡子畫）存進作品牆：只存成品圖，不能接著畫、沒有回放
+async function saveCanvasWork(c, art) {
+  try {
+    const w = { id: G.newId(), art, done: true, w: c.width, h: c.height, log: null };
+    // 深色底的成品用 JPEG（比 PNG 小很多、編碼快）；編碼或寫入卡住超過 8 秒就當失敗，不讓模組的按鈕一直鎖著
+    const limit = pr => Promise.race([pr, new Promise((_, bad) => setTimeout(() => bad(new Error("逾時")), 8000))]);
+    [w.thumb, w.image] = await limit(Promise.all([G.thumbOf(c), G.toBlob(c, "image/jpeg", 0.92)]));
+    await limit(G.save(w));
+    return "ok";
+  } catch (e) {
+    if (e && e.code === "FULL") return "full";
+    console.warn("存檔失敗：" + (e && e.message));
+    return "fail";
+  }
+}
+const mirror = mountMirror({ ...deps, saveWork: c => saveCanvasWork(c, "mirror") });
+modules.push(mirror);
+$("#toMirror").onclick = () => mirror.open();
+
 // ── 圖示：GPT 生的立體圖示（IMAGE/draw/ui/*.png）載入成功才換掉 emoji，沒有檔案就維持 emoji ──
 const ICONS = [["#bDone, #aDone", "btn-done"], ["#bHome, #gBack, #aHome", "btn-home"], ['[data-tool="eraser"]', "tool-eraser"],
   ["#bUndo, #mUndo", "btn-undo"], ["#bClear, #vDel", "btn-clear"], ["#toGallery", "btn-gallery"], ["#aPlay, #vPlay", "btn-play"],
-  ["#aAgain, #vEdit", "btn-edit"], ["#aMusic", "mode-music"], ["#vClose", "btn-close"], ["#vSave", "btn-save"], ["#tMusic", "btn-music"], ["#tSound", "btn-sound"]];
+  ["#aAgain, #vEdit", "btn-edit"], ["#aMusic", "mode-music"], ["#vClose", "btn-close"], ["#vSave", "btn-save"], ["#tMusic", "btn-music"], ["#tSound", "btn-sound"],
+  ["#xSave", "btn-done"], ["#xHome", "btn-home"], ["#xUndo", "btn-undo"], ["#xClear", "btn-clear"],
+  ["#toMirror", "mode-mirror"], ["#toWorld", "mode-world"], ["#toBook", "btn-book"], ["#toScratch, #sAgain", "btn-gift"]];
 function applyIcons() {
   for (const [sel, name] of ICONS) for (const b of $$(sel)) {
     const img = new Image();
@@ -892,7 +919,7 @@ function applyIcons() {
 // ── 開始 ──
 window.addEventListener("resize", () => { if (board.labels && $("#paint").classList.contains("on")) { board.fit(); showHint(); } });
 window.__draw = { S, board, painter, fx, G, A, show, renderHome, startArt, renderGallery, COLORS, AUTO, setFull, autoSave, isDirty: () => dirty, SC, startScratch,
-  replay, stopReplay, rec: () => rec, parts, cutout, canLive, music: () => music };
+  replay, stopReplay, rec: () => rec, parts, cutout, canLive, music: () => music, mirror };
 (async () => {
   G.persist();
   refreshBar(); refreshTools(); refreshUndo(); refreshToggles(); applyIcons();

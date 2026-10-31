@@ -1,0 +1,68 @@
+/* 鏡子魔法畫：深夜藍到黑的背景＋淡淡星點；中間正方形畫布，旁邊工具列（跟畫畫頁同大小、同一邊） */
+#mirror { --lift: 0 4px 0 #070a26, 0 8px 14px rgba(0, 0, 0, .35); --press: 0 1px 0 #070a26, 0 2px 4px rgba(0, 0, 0, .35);
+  background: radial-gradient(ellipse at 42% 38%, #1c2470 0%, #0b1040 48%, #03040f 100%); color: #fff; }
+#mirror.left { flex-direction: row-reverse; }
+.x-stage { position: relative; flex: 1; overflow: hidden; touch-action: none; }
+
+/* 星點：幾層大小不同的小圓點磁磚疊起來，看起來是亂撒的；兩層錯開一閃一閃 */
+.x-sky { position: absolute; inset: 0; pointer-events: none; opacity: .55;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, .9) 0 1px, transparent 1.6px),
+    radial-gradient(circle, rgba(200, 210, 255, .8) 0 1.2px, transparent 2px),
+    radial-gradient(circle, rgba(255, 240, 210, .7) 0 .8px, transparent 1.4px);
+  background-size: 97px 89px, 173px 151px, 61px 67px; background-position: 11px 23px, 67px 41px, 29px 7px;
+  animation: xTwinkle 5s ease-in-out infinite; }
+.x-sky.b { background-size: 131px 113px, 223px 197px, 79px 83px; background-position: 53px 71px, 3px 131px, 41px 47px; animation-delay: -2.5s; }
+@keyframes xTwinkle { 50% { opacity: .2; } }
+#mirror.spinning .x-sky { animation-duration: 1.2s; }
+
+/* 畫框：正方形、深藍發光邊；裡面的畫（.x-art）轉起來時框不動 */
+.x-frame { position: absolute; z-index: 1; border-radius: 28px;
+  background: radial-gradient(circle at 50% 50%, #1b2268 0%, #0c1142 58%, #060824 100%);
+  box-shadow: 0 0 0 3px rgba(140, 160, 255, .25), 0 0 46px rgba(90, 110, 255, .28), inset 0 0 60px rgba(0, 0, 0, .45); }
+.x-art { position: absolute; inset: 0; isolation: isolate; will-change: transform; }
+.x-art canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* 正在畫的那一筆「加亮」疊在畫好的上面，跟畫完合進去時（canvas lighter）看起來一樣，放開手不會閃一下 */
+.x-glow, .x-core { mix-blend-mode: screen; mix-blend-mode: plus-lighter; }
+.x-axes { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; transition: opacity .8s ease;
+  stroke: rgba(190, 200, 255, .32); stroke-width: .35; stroke-dasharray: 1.6 1.8; fill: rgba(190, 200, 255, .5); }
+.x-axes.off { opacity: 0; }
+.x-halo { position: absolute; inset: -8%; border-radius: 50%; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle, rgba(170, 140, 255, .45) 0%, rgba(90, 120, 255, .18) 45%, transparent 70%); }
+#mirror.spinning .x-halo { animation: xHalo .66s ease-in-out infinite alternate; }
+@keyframes xHalo { from { opacity: .25; transform: scale(.96); } to { opacity: .9; transform: scale(1.03); } }
+
+/* 示範／提示的手指：指尖對準筆尖 */
+.x-hand { position: absolute; z-index: 5; width: 0; height: 0; pointer-events: none; opacity: 0; transition: opacity .25s; }
+.x-hand.on { opacity: 1; }
+.x-hand::after { content: "👆"; position: absolute; left: -22px; top: -4px; font-size: 60px; line-height: 1; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .55)); }
+.x-hand.swipe::after { animation: xSwipe 1.6s ease-in-out infinite; }
+@keyframes xSwipe { 0%, 100% { transform: translate(-50px, 6px) rotate(-8deg); } 50% { transform: translate(50px, 0) rotate(8deg); } }
+
+/* 工具列：跟畫畫頁一樣寬、一樣的按鈕，底換成深藍 */
+.x-bar { position: relative; z-index: 4; width: var(--bar-w); flex: 0 0 auto; display: flex; flex-direction: column; align-items: center;
+  gap: 8px; padding: 10px 0; overflow-y: auto; background: linear-gradient(90deg, #171d52, #10143c);
+  box-shadow: inset 6px 0 10px -6px rgba(0, 0, 0, .6); }
+#mirror.left .x-bar { box-shadow: inset -6px 0 10px -6px rgba(0, 0, 0, .6); }
+.x-bar hr { width: 54%; height: 4px; border: 0; border-radius: 2px; background: rgba(150, 165, 255, .28); margin: 2px 0; }
+#xSym svg { width: auto; height: 86%; max-width: 62px; }
+#xBrush canvas { width: 58px; height: 36px; border-radius: 9px; box-shadow: 0 0 0 2px rgba(59, 42, 26, .25); }
+#xColor .dot { width: 40px; height: 40px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px var(--ink); }
+#xSpin.on { background: #fff; box-shadow: 0 0 0 4px #fff, 0 0 20px 6px rgba(170, 140, 255, .85); transform: scale(1.04); }
+#xSpin.on .x-spin-ico { animation: xSpinIco 1.4s linear infinite; }
+.x-spin-ico { display: inline-block; }
+@keyframes xSpinIco { to { transform: rotate(360deg); } }
+
+/* 顏色選單：深色玻璃卡片，一排 8 個霓虹色＋彩虹自動，貼在工具列旁邊、小三角指著顏色鈕 */
+.x-pop { position: absolute; right: calc(var(--bar-w) + 12px); top: 12px; z-index: 6; display: none; gap: 12px; padding: 14px 16px;
+  background: rgba(18, 22, 64, .95); border-radius: 22px; box-shadow: 0 0 0 2px rgba(150, 170, 255, .4), 0 10px 30px rgba(0, 0, 0, .55); }
+.x-pop.on { display: flex; animation: xPopIn .22s var(--spring) both; transform-origin: right center; }
+.x-pop::after { content: ""; position: absolute; right: -12px; top: calc(var(--ay, 44px) - 12px); border: 12px solid transparent; border-right: 0; border-left-color: rgba(18, 22, 64, .95); }
+#mirror.left .x-pop { right: auto; left: calc(var(--bar-w) + 12px); transform-origin: left center; }
+#mirror.left .x-pop::after { right: auto; left: -12px; border-left: 0; border-right: 12px solid rgba(18, 22, 64, .95); }
+@keyframes xPopIn { from { opacity: 0; transform: scale(.9); } }
+.x-sw { width: 64px; height: 64px; border-radius: 50%; flex: 0 0 auto; background: var(--c); border: 4px solid rgba(255, 255, 255, .92);
+  box-shadow: 0 0 14px 2px var(--c); transition: transform .14s var(--spring); }
+.x-sw.auto { background: conic-gradient(#ff3fa4, #ffa21f, #ffe53b, #72ff52, #2cefff, #4f82ff, #b55cff, #ff3fa4); box-shadow: 0 0 14px 2px rgba(255, 255, 255, .5); }
+.x-sw:active { transform: scale(.9); }
+.x-sw.on { box-shadow: 0 0 0 4px #fff, 0 0 24px 6px var(--c, #fff); animation: xPicked .3s var(--spring); }
+@keyframes xPicked { 40% { transform: scale(1.15); } }

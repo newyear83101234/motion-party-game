@@ -18,6 +18,7 @@
   <link rel="modulepreload" href="js/draw-audio.js?v=6">
   <link rel="modulepreload" href="js/draw-particles.js?v=6">
   <link rel="modulepreload" href="js/draw-music.js?v=6">
+  <link rel="modulepreload" href="js/draw-mirror.js?v=6">
 </head>
 <body>
   <!-- 首頁：上排選主題，下面是線稿縮圖 -->
@@ -31,8 +32,13 @@
       <button class="big tog" id="tMusic" data-sfx="none" aria-label="背景音樂開關">🎵</button>
       <button class="big tog" id="tSound" data-sfx="none" aria-label="音效開關">🔊</button>
       </div>
-      <button class="big gift" id="toScratch" data-sfx="magic" aria-label="刮刮樂驚喜">🎁</button>
-      <button class="big" id="toGallery" aria-label="作品牆">🖼️</button>
+      <nav class="modes">
+        <button class="big mode m-mirror" id="toMirror" data-sfx="magic" aria-label="鏡子魔法畫">🪞</button>
+        <button class="big mode m-world off" id="toWorld" aria-label="我的世界">🌍</button>
+        <button class="big mode m-book off" id="toBook" aria-label="貼紙本">📖</button>
+        <button class="big gift" id="toScratch" data-sfx="magic" aria-label="刮刮樂驚喜">🎁</button>
+        <button class="big" id="toGallery" aria-label="作品牆">🖼️</button>
+      </nav>
     </header>
     <nav class="themes" id="themes"></nav>
     <div class="arts" id="arts"></div>

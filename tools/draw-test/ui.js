@@ -15,6 +15,10 @@ const OUT = process.argv[2] || path.join(process.env.TEMP, "draw-shots");
 fs.mkdirSync(OUT, { recursive: true });
 const results = [];
 const check = (name, ok, info = "") => { results.push((ok ? "✅ " : "❌ ") + name + (info ? "  " + info : "")); };
+// 中途當掉（例如等不到元素逾時）也要把已經跑完的結果印出來，才知道壞在哪一步
+const crashed = e => { console.log(results.join(String.fromCharCode(10))); console.log("💥 測試中途當掉：" + String((e && e.message) || e).split(String.fromCharCode(10))[0]); process.exit(1); };
+process.on("uncaughtException", crashed);
+process.on("unhandledRejection", crashed);
 
 // draw.html 與 js/draw*.js 裡所有 ?v= 必須相同（漏升版號 → iPad 會吃到舊快取）
 function versionCheck() {
@@ -795,6 +799,27 @@ function versionCheck() {
   check("按 🎵：畫分成 16 排彈出來、彈的時候不能畫", mus && mus.cols === 16 && mus.notes > 0 && mus.busy, JSON.stringify(mus));
   await p.waitForFunction(() => !__draw.music(), null, { timeout: 9000 }).catch(() => {});
   check("音樂彈完：光帶移除、可以繼續操作", await p.evaluate(() => !__draw.music() && !__draw.S.busy && !document.querySelector(".music-bar")));
+  await p.evaluate(() => { __draw.G.wipe(); });
+
+  // 鏡子魔法畫（真的接起來，不用假 deps）：首頁按 🪞 → 畫一筆 → ✔️ 存進作品牆 → 🏠 回首頁
+  await p.evaluate(() => { __draw.show("home"); __draw.renderHome(); });
+  await p.tap("#toMirror");
+  await waitOn("#mirror", 5000);
+  check("首頁按鏡子畫鈕：打開鏡子魔法畫", await on("#mirror") && !(await on("#home")));
+  await p.evaluate(() => window.__mirror.drawStroke([[0.55, 0.3], [0.62, 0.4], [0.7, 0.45], [0.75, 0.38]]));
+  const n0 = await p.evaluate(() => __draw.G.count());
+  await p.tap("#xSave");
+  await p.evaluate(async n => { for (let t = 0; t < 80 && (await __draw.G.count()) !== n + 1; t++) await new Promise(r => setTimeout(r, 100)); }, n0);   // 等存檔寫進去（最多 8 秒）
+  const mw = await p.evaluate(async () => (await __draw.G.list())[0]);
+  check("鏡子畫按 ✔️：存進作品牆（標成 mirror、有縮圖）", mw && mw.art === "mirror" && !!mw.thumb && mw.done, JSON.stringify({ n0, art: mw && mw.art }));
+  await p.tap("#xHome");
+  await waitOn("#home", 5000);
+  check("鏡子畫按 🏠：回到首頁", await on("#home") && !(await on("#mirror")));
+  await p.tap("#toGallery");
+  await p.waitForSelector("#works .card:not(.blank)", { timeout: 5000 }).catch(() => {});
+  if (await p.locator("#works .card:not(.blank)").count()) await p.tap("#works .card:not(.blank)");
+  check("作品牆打開鏡子畫作品：沒有「接著畫」（沒有線稿）", await p.evaluate(() => getComputedStyle(document.querySelector("#vEdit")).display === "none"));
+  await p.tap("#vClose");
   await p.evaluate(() => { __draw.G.wipe(); });
 
   // 首頁三欄：每個主題 6 張，左欄一顆星、中欄兩顆星、右欄三顆星
