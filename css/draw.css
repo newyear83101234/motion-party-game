@@ -109,9 +109,10 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .works .card:nth-child(even) { rotate: 1deg; }
 
 /* 畫畫頁 */
-#stage { position: relative; flex: 1; overflow: hidden; background: #efe8da; margin: 12px; border-radius: 18px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, .12); }
-.board { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+/* 桌面：淡淡的點點紋，圖像一張紙擺在上面 */
+#stage { position: relative; flex: 1; overflow: hidden; margin: 12px; border-radius: 22px;
+  background: #f1e6d1 radial-gradient(rgba(170, 130, 80, .13) 1.6px, transparent 1.8px) 0 0 / 22px 22px; box-shadow: inset 0 2px 8px rgba(90, 60, 20, .12); }
+.board { position: absolute; left: 0; top: 0; transform-origin: 0 0; overflow: hidden; background: #fff; }
 .layer { position: absolute; inset: 0; width: 100%; height: 100%; }
 #bar { width: var(--bar-w); background: linear-gradient(90deg, #f6e3bd, #f1d9aa); box-shadow: inset 6px 0 10px -6px rgba(90, 60, 20, .25);
   display: flex; flex-direction: column; align-items: center;
@@ -300,7 +301,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
   background: #e53935; color: #fff; font-size: 17px; font-weight: 700; box-shadow: 0 0 0 2px #fff; }
 
 /* 刮刮樂：銀色刮刮膜只蓋在圖上；刮的時候工具列換成提示欄（看不到工具），刮完右側出現三顆大按鈕 */
-.foil { position: absolute; z-index: 6; display: none; border-radius: 6px; touch-action: none; box-shadow: 0 0 0 4px #fff, 0 10px 26px rgba(60, 40, 20, .3); }
+.foil { position: absolute; z-index: 6; display: none; border-radius: 16px; touch-action: none; box-shadow: 0 0 0 4px #fff, 0 10px 26px rgba(60, 40, 20, .3); }
 .foil.on { display: block; animation: foilIn .45s var(--spring) backwards; }
 .foil.gone { transition: opacity .6s ease, transform .6s ease; opacity: 0; transform: scale(1.04); pointer-events: none; }
 @keyframes foilIn { from { opacity: 0; transform: scale(.9) rotate(-2deg); } }

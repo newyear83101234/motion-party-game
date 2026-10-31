@@ -4,6 +4,7 @@ import { lineMask, labelRegions } from "./draw-core.js?v=6";
 export function makeCanvas(w, h) { const c = document.createElement("canvas"); c.width = w; c.height = h; return c; }
 
 export class Board {
+  static MARGIN = 16;
   constructor(stage) {
     this.stage = stage;                          // 固定大小的外框（overflow: hidden）
     this.wrap = document.createElement("div");   // 被縮放平移的那一層
@@ -53,9 +54,10 @@ export class Board {
     return true;
   }
 
+  // 圖像一張紙放在桌上：四周留 MARGIN 像素（圓角、陰影才露得出來）；放大後就不留了
   fit() {
-    const r = this.stage.getBoundingClientRect();
-    this.base = Math.min(r.width / this.W, r.height / this.H);
+    const r = this.stage.getBoundingClientRect(), M = Board.MARGIN;
+    this.base = Math.min((r.width - 2 * M) / this.W, (r.height - 2 * M) / this.H);
     this.setView({ s: 1, tx: 0, ty: 0 });
   }
   origin(r) {
@@ -70,6 +72,9 @@ export class Board {
     this.view = { s, tx: clampT(v.tx, cx), ty: clampT(v.ty, cy) };
     const o = this.origin(r);
     this.wrap.style.transform = `translate(${o.x}px, ${o.y}px) scale(${k})`;
+    // 紙的圓角與陰影跟著縮放倍率換算，螢幕上看起來永遠一樣大
+    this.wrap.style.borderRadius = 16 / k + "px";
+    this.wrap.style.boxShadow = `0 ${6 / k}px 0 #e2d3b4, 0 ${12 / k}px ${26 / k}px rgba(90, 60, 20, .2)`;
   }
   toImage(clientX, clientY) {
     const r = this.stage.getBoundingClientRect(), o = this.origin(r);
