@@ -19,17 +19,16 @@
 //     onSubmit(phrase, power)        可能進全島榜前 5 才呼叫（只送詞句本身＋前端算的戰力；伺服器要自己重算）；
 //                                    可回傳 Promise<{ pending?, rank? }> → pending＝顯示「審核後就會上榜喔！」
 //     leaderboard()                  Promise<{ island:[{p,power}], home:[{p,power,z?}] }>（舊格式：直接回陣列＝island）
-//     tickets()  useTicket()         剩幾張陀螺券；按「下場！」那一刻才 useTicket()（打字階段離開不扣券）
-//     firstFree?()                   true＝第一次免費（沒券也能玩；主程式的 useTicket 自己記 freeUsed）
-//     needStars?()                   沒券時顯示「再拿 N 顆星星就能玩」的 N
-//     onExit?({ why })               要回小島（沒券、結算按 🏝️）；why＝"noticket"／"done"
+//     stars()  cost  pay()           陀螺星星有幾顆、玩一次幾顆（預設 5）；按「下場！」那一刻才 pay() 扣星星（打字階段離開不扣）
+//                                    10-31 阿葉「不用兌換券、直接用星星就可以玩」：拿掉陀螺券；星星不夠＝「星星不夠了」卡片（不再讓小孩打完字存成蛋卡住）
+//     firstFree?()                   true＝第一次免費（星星不夠也能玩；主程式的 pay 自己記 freeUsed）
+//     onExit?({ why })               要回小島（星星不夠、結算按 🏝️）；why＝"nostars"／"done"
 //     onFail?({ why })               "dict"（字典載不到／15 秒逾時）／"nowebgl"／"contextlost"／"morph"（變身流程出錯）
 //     dictUrl?                       字典網址（主程式要加 ?v= 時用）
-//     eggs?()  setEggs?(list)        陀螺蛋（沒券時打好的句子，最多 3 顆）[{p, z:[5 個注音]}]；沒給＝只存在記憶體
-//     starsBank?()                   集點卡：存著換券的星星 0..15（沒給＝用 15 − needStars() 推）
+//     eggs?()  setEggs?(list)        陀螺蛋（10-31 前沒券時打好的句子，最多 3 顆；現在只孵不生新的）[{p, z:[5 個注音]}]；沒給＝只存在記憶體
 //     leaderboard() 回傳可多帶 recent:[{p, o}]（最近對戰紀錄：詞句 p 打過對手 o；同一句再下場時避開）
 //     speed?                         測試用：遊戲時鐘倍速
-// 計時：純畫面的動畫、對戰播放走自己的遊戲時鐘（暫停時不走、⏩ 會加速）；其他計時（語音保底、沒券自動回小島）走 api.later。
+// 計時：純畫面的動畫、對戰播放走自己的遊戲時鐘（暫停時不走、⏩ 會加速）；其他計時（語音保底）走 api.later。
 // stop()：dispose renderer、停 rAF、作廢所有舊回呼（run 號碼）、清語音佇列。
 import * as THREE from "three";
 import * as TP from "./zhuyin-tops-power.js?v=1";          // ?v=1：跟 js/zhuyin-tops-sim.js 的 import 網址完全一樣（同一份模組）；改了一起升
@@ -67,12 +66,9 @@ export const LINES = {
   record: "新紀錄！",
   pending: "審核後就會上榜喔！",
   ranked: "上榜了！",
-  noTicket: "再收集一些星星，就能玩陀螺囉！",
+  noTicket: "再收集一些星星，就能玩陀螺囉！",   // 10-31 起＝「星星不夠了」卡片唸的（key 沿用舊名：已經錄好配音）
   guide: "跟著發亮的按鍵，拼出最後一個字！",
-  eggMode: "沒有陀螺券也可以打字，打好的句子會變成陀螺蛋！",
-  eggSaved: "陀螺蛋存好了！拿到陀螺券就能孵出來對戰！",
   eggAsk: "你有陀螺蛋！要孵出來對戰嗎？",
-  starCard: "集滿十五顆星星，就能換一張陀螺券！",
   rematch: "換個對手，再打一次！",
   loseRematch: "再接再厲！可以換個對手再打一次喔！",
   cheer: "加油！加油！",
@@ -618,15 +614,12 @@ export function createTopsGame(root, api) {
   function flashScreen(a) { if (!E || !st) return; E.flash.style.setProperty("--fa", String(st.rm ? Math.min(0.25, a * 0.35) : a)); bump(E.flash, "tp-flashing"); st.flashes = (st.flashes || 0) + 1; }
   const mk = (tag, cls, parent, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; if (parent) parent.appendChild(e); return e; };
   const btn = (cls, parent, txt, fn, label) => { const b = mk("button", cls, parent, txt); b.type = "button"; if (label) b.setAttribute("aria-label", label); if (fn) b.onclick = e => { if (!st || paused()) return; fn(e); }; return b; };
-  const hasTicket = () => { let n = 0, free = false; try { n = +api.tickets() || 0; } catch (e) {} try { free = !!(api.firstFree && api.firstFree()); } catch (e) {} return n > 0 || free; };
-  const ticketsN = () => { try { return Math.max(0, +api.tickets() || 0); } catch (e) { return 0; } };
+  // 陀螺星星（10-31 拿掉陀螺券）：玩一次扣 cost 顆；第一次免費
+  const cost = () => Math.max(1, Math.floor(+api.cost) || 5);
+  const starsN = () => { try { return Math.max(0, Math.floor(+api.stars()) || 0); } catch (e) { return 0; } };
   const isFirstFree = () => { try { return !!(api.firstFree && api.firstFree()); } catch (e) { return false; } };
-  const starsBank = () => {
-    let n = NaN; try { if (api.starsBank) n = +api.starsBank(); } catch (e) {}
-    if (!Number.isFinite(n)) { try { n = api.needStars ? 15 - (+api.needStars() || 15) : 0; } catch (e) { n = 0; } }
-    return clamp(Math.floor(n), 0, 15);
-  };
-  // 陀螺蛋：[{p, z}]，最多 3 顆（新的放最後）
+  const canPlay = () => isFirstFree() || starsN() >= cost();
+  // 陀螺蛋：[{p, z}]，最多 3 顆（新的放最後）；10-31 起只孵以前存的，不再生新的
   const getEggs = () => {
     let l = null; try { if (api.eggs) l = api.eggs(); } catch (e) {}
     if (!Array.isArray(l)) l = memEggs;
@@ -666,11 +659,12 @@ export function createTopsGame(root, api) {
     const head = mk("div", "tp-head", type);
     mk("div", "tp-title", head, "⚔️ 注音戰鬥陀螺");
     const tools = mk("div", "tp-tools", head);
+    const wallet = mk("div", "tp-wallet", tools);             // 10-31：有幾顆陀螺星星（第一次＝🎁 免費）
     const inspire = btn("tp-btn tp-inspire", tools, "🎲", () => tapInspire(), "隨機靈感"); mk("span", "tp-btn-t", inspire, "隨機靈感");
     const boardBtn = btn("tp-btn tp-boardbtn", tools, "🏆", () => showBoards(), "排行榜");
     const slotrow = mk("div", "tp-slotrow", type), slots = mk("div", "tp-slots", slotrow), slotEls = [];
     for (let i = 0; i < 5; i++) { const b = btn("tp-slot", slots, null, () => tapSlot(i), `第${i + 1}個字`); b.dataset.i = i; slotEls.push(b); }
-    const go = btn("tp-go", slotrow, "⚔️", () => tapGo(), "下場"), goT = zText(mk("span", "tp-go-t", go), "下場！");
+    const go = btn("tp-go", slotrow, "⚔️", () => tapGo(), "下場"), goT = zText(mk("span", "tp-go-t", go), "下場！"), goC = mk("span", "tp-go-c", go);   // goC：右上角「⭐5」／「免費」（10-31）
     const note = mk("div", "tp-note", type, "🙅 不要打自己或別人的名字喔！");
     const candbar = mk("div", "tp-candbar", type);
     const prev = btn("tp-pg tp-prev", candbar, "◀", () => turnPage(-1), "上一頁");
@@ -710,11 +704,11 @@ export function createTopsGame(root, api) {
     const ff = btn("tp-ff", hud, "⏩", () => toggleFast(), "快轉");
     const cheerHint = mk("div", "tp-cheerhint tp-off", hud, "👆 點畫面幫陀螺加油！");
     const banner = mk("div", "tp-banner", wrap);               // v2：大字放在最外層（合體的「合體！」也要看得到），在結算面板下面
-    // 結算、排行榜、沒券／陀螺蛋
+    // 結算、排行榜、星星不夠／陀螺蛋
     const result = mk("div", "tp-result tp-off", wrap);
     const msg = mk("div", "tp-msg tp-off", wrap);
     const boards = mk("div", "tp-boardsov tp-off", wrap);
-    E = { wrap, stage, flash, loading, type, head, tools, inspire, boardBtn, slotrow, slots, slotEls, go, goT, note, candbar, prev, cands, next, tip, fillAll, kb, keys, morph, mhead, legend, total, num, badges, cards, cardEls, fcard, fchips: [], skip, vs, vsInfo, fight, hud, teams, score, tags, banner, ff, cheerHint, result, msg, boards, gfill: [], gpct: [] };
+    E = { wrap, stage, flash, loading, type, head, tools, wallet, inspire, boardBtn, slotrow, slots, slotEls, go, goT, goC, note, candbar, prev, cands, next, tip, fillAll, kb, keys, morph, mhead, legend, total, num, badges, cards, cardEls, fcard, fchips: [], skip, vs, vsInfo, fight, hud, teams, score, tags, banner, ff, cheerHint, result, msg, boards, gfill: [], gpct: [] };
     // 對戰中點畫面＝幫陀螺加油（純表演：火花＋歡呼，不影響結果——對戰早就算好了）；合體中（看過一次以後）點一下＝跳過
     on(wrap, "pointerdown", e => {
       if (!st || paused() || (e.target && e.target.closest && e.target.closest("button"))) return;
@@ -733,10 +727,10 @@ export function createTopsGame(root, api) {
 
   // ===================== 打字 =====================
   const compSyl = () => st.comp.ini + st.comp.med + st.comp.fin;
-  // 沒券也能打字（10-12 櫻木）：打好的句子存成「陀螺蛋」，拿到券再孵出來對戰；有券又有蛋＝先問要不要孵蛋
-  function enterTypeOrEggs() { if (hasTicket() && getEggs().length) showEggs(); else enterType(); }
+  // 10-31：星星不夠＝「星星不夠了」卡片（以前沒券也讓打字、存成陀螺蛋，小孩打完字就卡住）；夠又有以前存的蛋＝先問要不要孵
+  function enterTypeOrEggs() { if (!canPlay()) showNoStars(); else if (getEggs().length) showEggs(); else enterType(); }
   function enterType() {
-    st.phase = "type"; st.slots = [null, null, null, null, null]; st.cur = 0; st.comp = { ini: "", med: "", fin: "" }; st.tone = null; st.cands = []; st.candZ = []; st.sel = 0; st.page = 0; st.saidFull = false; st.guide = null; st.hatch = null;
+    st.phase = "type"; st.slots = [null, null, null, null, null]; st.cur = 0; st.comp = { ini: "", med: "", fin: "" }; st.tone = null; st.cands = []; st.candZ = []; st.sel = 0; st.page = 0; st.saidFull = false; st.wasFull = false; st.guide = null; st.hatch = null;
     st.cur2 = st.champ = st.match = st.rs = st.win = st.submit = st.opp = st.power = null; st.score = null; st.fast = false; st.tl.length = 0; st.statusEl = null; st.saidSubmit = false;
     st.fuse = st.smallTops = st.bigMe = st.bigOpp = st.fused = st.oppB = st.oppFused = st.rankUp = null; st.wantVs = false;
     E.result.textContent = ""; E.boards.classList.add("tp-off"); E.wrap.classList.remove("tp-slowmo"); E.banner.textContent = "";
@@ -744,10 +738,8 @@ export function createTopsGame(root, api) {
     if (W) { W.dispose(); W = null; }
     bgm(null);
     E.stage.classList.remove("tp-on");
-    st.eggMode = !hasTicket();
     relayout(); paintType();
-    if (!st.saidIntro) { st.saidIntro = true; talk(LINES.intro); talk(LINES.noName); if (st.eggMode) { st.saidEggMode = true; talk(LINES.eggMode); } talk(LINES.first); }
-    else if (st.eggMode && !st.saidEggMode) { st.saidEggMode = true; talk(LINES.eggMode, true); }
+    if (!st.saidIntro) { st.saidIntro = true; talk(LINES.intro); talk(LINES.noName); talk(LINES.first); }
   }
   // 灰鍵（10-12 櫻木）：按下去之後拼不出任何字的符號、這個聲調沒有字的聲調鍵。仍然可以按，只會輕輕搖一下
   function keysOff() {
@@ -845,7 +837,7 @@ export function createTopsGame(root, api) {
     st.guide = full ? null : { slot: 4, ch: p[4], z: zs[4], p };
     play("ding"); paintType(); E.slotEls.forEach((e, i) => setTimeout(() => bump(e, "tp-pop"), i * 70));
     talk(sayPhrase(p), true);
-    if (full) st.saidFull = true; else { st.saidFull = false; talk(LINES.guide); }
+    if (full) { st.saidFull = true; talk(LINES.full); } else { st.saidFull = false; talk(LINES.guide); }   // 10-31 櫻木：骰子一次填滿＝唸完句子接著說「可以下場囉」（以前只唸句子，小孩不知道下一步）
   }
   // 填空引導：下一個該按的（{key} 鍵盤上的鍵、{cand} 候選字的位置）；不在引導中＝null
   function guideNext() {
@@ -892,11 +884,14 @@ export function createTopsGame(root, api) {
     });
     const full = st.slots.every(Boolean);
     E.go.classList.toggle("tp-ready", full); E.go.disabled = !full;
-    // 沒券＝「存成蛋」（10-12 櫻木：沒券也能打字）
-    const egg = !!st.eggMode; E.go.classList.toggle("tp-egg", egg);
-    if (E.go.firstChild && E.go.firstChild.nodeType === 3) E.go.firstChild.nodeValue = egg ? "🥚" : "⚔️";
-    E.goT.textContent = egg ? "存成蛋！" : "下場！"; E.go.setAttribute("aria-label", egg ? "存成陀螺蛋" : "下場");
-    E.note.textContent = egg ? "🥚 沒有陀螺券：打好的句子先存成陀螺蛋！" : "🙅 不要打自己或別人的名字喔！";
+    // 10-31 櫻木：五個字好了 8 秒還沒按下場＝再提醒一次（只提醒一次；換字、下場、離開就作廢）
+    if (full && !st.wasFull) { const tok = st.fullTok = (st.fullTok || 0) + 1; later(() => { if (st && st.phase === "type" && st.fullTok === tok && st.slots.every(Boolean)) { talk(LINES.full); bump(E.go, "tp-pop"); } }, 8000); }
+    if (!full) st.fullTok = (st.fullTok || 0) + 1; st.wasFull = full;
+    // 10-31 陀螺星星：右上角有幾顆、下場鈕右上角寫這次要扣幾顆（第一次＝免費）
+    const free = isFirstFree();
+    E.wallet.textContent = ""; zText(E.wallet, free ? "🎁 免費" : "⭐ " + starsN());
+    E.goC.textContent = ""; zText(E.goC, free ? "免費" : "⭐−" + cost());   // 「−5」＝要用掉（10-31 櫻木：只寫 5 小孩會以為拿到 5 顆）
+    E.go.setAttribute("aria-label", free ? "下場（這次免費）" : `下場（用 ${cost()} 顆星星）`);
     // 候選字
     E.cands.textContent = "";
     const pp = pageSize(), n = st.cands.length, pages = Math.ceil(n / pp);
@@ -911,7 +906,7 @@ export function createTopsGame(root, api) {
     E.candbar.classList.toggle("tp-hascand", n > 0);
     E.tip.textContent = "";
     const fresh = !typing && st.cur <= 4 && !st.slots.some(Boolean);   // 手機橫式沒地方放提醒那行：一開始的提示改放提醒
-    if (!n) zText(E.tip, gd ? "👉 跟著發亮的鍵按！" : st.cur > 4 ? (full ? (egg ? "按「存成蛋！」把句子存起來！" : "按「下場！」開始對戰！") : "點一個格子，就可以換字喔！") : typing ? "最後按聲調，字就會跑出來！" : fresh && L && L.side ? "🙅 不要打自己或別人的名字喔！" : "先選一個符號，拼出一個字。");
+    if (!n) zText(E.tip, gd ? "👉 跟著發亮的鍵按！" : st.cur > 4 ? (full ? "好了！按「⚔️ 下場！」開始對戰！" : "點一個格子，就可以換字喔！") : typing ? "最後按聲調，字就會跑出來！" : fresh && L && L.side ? "🙅 不要打自己或別人的名字喔！" : "先選一個符號，拼出一個字。");
     E.fillAll.classList.toggle("tp-off", !gd || n > 0);
     E.kb.classList.toggle("tp-wanttone", typing && !n && !gd);
     E.keys.ok.classList.toggle("tp-ready", n > 0 || (full && !typing));
@@ -925,36 +920,31 @@ export function createTopsGame(root, api) {
   // ===================== 下場 → 變身 =====================
   function tapGo() {
     if (st.phase !== "type" || !st.slots.every(Boolean)) return;
-    if (!hasTicket()) return saveEgg();
+    if (!canPlay()) return showNoStars();                       // 主程式擋在門口了；這裡是保險（打字中星星不會變少）
     st.isFree = isFirstFree();                                  // 第一次免費那場：挑小孩會贏的對手（pickOpponent）
-    try { api.useTicket(); } catch (e) { /* 主程式的事 */ }
+    let paid = false; try { paid = api.pay() !== false; } catch (e) { /* 主程式的事 */ }
+    if (!paid) return showNoStars();                            // 主程式說扣不到（10-31 里維：不靠上一行的 canPlay 擋）
     E.boards.classList.add("tp-off");
-    st.ticketUsed = (st.ticketUsed || 0) + 1; st.rematchUsed = false;   // 輸了「換個對手再打」：每張券限一次
+    st.paid = (st.paid || 0) + 1; st.rematchUsed = false;       // 輸了「換個對手再打」：每付一次限一次
     play("go");
     st.phrase = st.slots.map(s => s.ch).join(""); st.z = st.slots.map(s => s.z);
     enterMorph().catch(e => { console.warn("[tops]", e); try { api.onFail && api.onFail({ why: "morph" }); } catch (_) {} });   // 10-12 里維：主程式 topsFail 會回小島並退券
   }
-  // ---------- 陀螺蛋（沒券時打好的句子；最多 3 顆，滿了擠掉最舊的） ----------
-  function saveEgg() {
-    const p = st.slots.map(s => s.ch).join(""), z = st.slots.map(s => s.z);
-    const eggs = getEggs().filter(e => e.p !== p); eggs.push({ p, z }); setEggs(eggs);
-    play("egg"); showEggSaved(p, z);
-  }
   function msgCard(cls) { E.msg.textContent = ""; showOnly("msg"); E.loading.classList.add("tp-off"); const card = mk("div", "tp-msg-card " + (cls || ""), E.msg); bump(card, "tp-pop"); return card; }
-  function showEggSaved(p, z) {
-    st.phase = "egg";
-    const card = msgCard("tp-eggcard");
-    const top = mk("div", "tp-egg-top", card); mk("div", "tp-egg-ic", top, "🥚"); top.appendChild(phraseEl(p, z, "tp-ph tp-egg-ph"));
-    mk("div", "tp-msg-t", card, "陀螺蛋存好了！");
-    mk("div", "tp-msg-s", card, "拿到陀螺券就能孵出來對戰！");
-    starCard(card);
-    const n = getEggs().length; mk("div", "tp-egg-n", card, "🥚".repeat(n) + "（陀螺蛋最多 3 顆）");
+  // ---------- 10-31 星星不夠了（進來時、或打完一場想再玩）：說還差幾顆、哪裡拿星星，只有「回小島」一顆鈕 ----------
+  function showNoStars() {
+    st.phase = "nostars";
+    if (W) { W.dispose(); W = null; } E.stage.classList.remove("tp-on"); bgm(null);
+    const card = msgCard("tp-nostars");
+    mk("div", "tp-msg-ic", card, "⭐");
+    mk("div", "tp-msg-t", card, "星星不夠了！");
+    starMeter(card);
+    mk("div", "tp-msg-s", card, "去玩別的遊戲收集星星，再回來玩陀螺！");
     const bt = mk("div", "tp-msg-btns", card);
-    btn("tp-btn tp-again", bt, "✏️", () => enterType(), "再打新句子").appendChild(mk("span", "tp-btn-t", null, "再打新句子"));
-    btn("tp-btn tp-home", bt, "🏝️", () => exit("noticket"), "回小島").appendChild(mk("span", "tp-btn-t", null, "回小島"));
-    talk(LINES.eggSaved, true); talk(LINES.starCard);
+    btn("tp-btn tp-home", bt, "🏝️", () => exit("nostars"), "回小島").appendChild(mk("span", "tp-btn-t", null, "回小島"));
+    play("bad"); talk(LINES.noTicket, true);
   }
-  // 有券又有蛋：先問要不要孵蛋（點蛋＝直接下場；也可以打新的）
+  // 星星夠又有以前存的陀螺蛋：先問要不要孵蛋（點蛋＝直接下場；也可以打新的）
   function showEggs() {
     st.phase = "eggs";
     if (W) { W.dispose(); W = null; } E.stage.classList.remove("tp-on"); bgm(null);
@@ -965,7 +955,7 @@ export function createTopsGame(root, api) {
       const b = btn("tp-egg-btn", list, null, () => hatchEgg(e), "孵出來對戰"); mk("span", "tp-egg-ic", b, "🥚"); b.appendChild(phraseEl(e.p, e.z, "tp-ph tp-egg-ph")); mk("span", "tp-egg-go", b, "🐣 孵出來");
       b.dataset.p = e.p;
     });
-    const t = ticketsN(); mk("div", "tp-msg-s", card, isFirstFree() ? "🎟️ 這次免費！" : "🎟️ 陀螺券 " + t + " 張");
+    mk("div", "tp-msg-s", card, isFirstFree() ? "🎁 這次免費！" : `⭐ 孵一顆用 ${cost()} 顆星星（你有 ${starsN()} 顆）`);
     const bt = mk("div", "tp-msg-btns", card);
     btn("tp-btn tp-again", bt, "✏️", () => enterType(), "打新句子").appendChild(mk("span", "tp-btn-t", null, "打新句子"));
     talk(LINES.eggAsk, true);
@@ -976,12 +966,13 @@ export function createTopsGame(root, api) {
     st.slots = [...e.p].map((ch, i) => ({ ch, z: e.z[i] })); st.cur = 5; st.hatch = e.p; st.saidFull = true;
     paintType(); tapGo();
   }
-  function starCard(parent) {                                  // 15 格集點卡（亮幾格＝存了幾顆；集滿換 1 張陀螺券）
-    const n = starsBank(), t = ticketsN();
-    const box = mk("div", "tp-stars", parent);
-    const h = mk("div", "tp-stars-h", box); mk("span", "", h, "⭐ 集點卡"); mk("b", "", h, n + " / 15");
-    const row = mk("div", "tp-stars-row", box); for (let i = 0; i < 15; i++) mk("span", "tp-star" + (i < n ? " tp-lit" : ""), row, "★");
-    mk("div", "tp-stars-s", box, "集滿 15 顆換 1 張陀螺券" + (t ? "（現在有 " + t + " 張）" : ""));
+  function starMeter(parent) {                                 // 10-31 陀螺星星（取代 15 格集點卡）：有幾顆、亮 cost 格（夠玩一次＝全亮）、再拿幾顆
+    const n = starsN(), c = cost(), lack = Math.max(0, c - n);
+    const box = mk("div", "tp-stars" + (lack ? "" : " tp-enough"), parent);
+    const h = mk("div", "tp-stars-h", box); mk("span", "", h, "⭐ 陀螺星星");   // 10-31 櫻木：叫「陀螺星星」，跟星星罐分開（數字不一樣）
+    mk("b", "", h, n + " 顆");
+    const row = mk("div", "tp-stars-row", box); row.style.gridTemplateColumns = `repeat(${c}, 1.5em)`; for (let i = 0; i < c; i++) mk("span", "tp-star" + (i < n ? " tp-lit" : ""), row, "★");
+    mk("div", "tp-stars-s", box, lack ? `再拿 ${lack} 顆星星，就能再玩一次！` : `${c} 顆星星玩一次`);
     return box;
   }
   function ensureWorld() {
@@ -1392,7 +1383,7 @@ export function createTopsGame(root, api) {
     };
     st.win = info;
     fought.push({ p: st.phrase, o: st.opp.p }); if (fought.length > 30) fought.shift();   // 同一句再下場時避開打過的對手
-    if (st.hatch === st.phrase) { setEggs(getEggs().filter(e => e.p !== st.hatch)); st.hatch = null; }   // 孵出來打完了＝那顆蛋用掉（中途離開的話蛋還在、券也退回）
+    if (st.hatch === st.phrase) { setEggs(getEggs().filter(e => e.p !== st.hatch)); st.hatch = null; }   // 孵出來打完了＝那顆蛋用掉（中途離開的話蛋還在、星星也退回）
     try { api.onWin && api.onWin(info); } catch (e) { console.warn("[tops] onWin", e); }
     // 全島榜：常用字、沒擋到、而且戰力可能進前 5 才送（其他詞句永遠不離開這台裝置）；同一次開頁同一句只送一次（換對手再打不重送）
     const isl = board.island, issue = TP.phraseIssue(st.phrase, Dk);
@@ -1407,7 +1398,7 @@ export function createTopsGame(root, api) {
     }
     st.board = { ...board, island: isl, home };
     E.cheerHint.classList.add("tp-off");
-    st.canRematch = !win && !st.rematchUsed;                 // 輸了：一次免費「換個對手再打」（不用重打字、不扣券；每張券限一次）
+    st.canRematch = !win && !st.rematchUsed;                 // 輸了：一次免費「換個對手再打」（不用重打字、不扣星星；每付一次限一次）
     banner(win ? "勝利！" : "再接再厲", win ? "tp-bn-final" : "tp-bn-lose", 1.8);
     play(win ? "victory" : "lose"); if (win) play("cheer", 1.05);
     talk(win ? LINES.win : st.canRematch ? LINES.loseRematch : LINES.lose, true);
@@ -1434,18 +1425,19 @@ export function createTopsGame(root, api) {
     if (r.record) bump(mk("div", "tp-rec", left, "✨ 新紀錄！"), "tp-pop");
     const bl = mk("div", "tp-rbon", left); r.bonuses.forEach(b => mk("span", "tp-badge", bl, b.name + " +" + b.value));
     st.statusEl = mk("div", "tp-rstatus", left); paintSubmit();
-    starCard(left);                                            // 15 格集點卡（10-12 櫻木：不要只說「再拿 N 顆」）
+    starMeter(left);                                           // 10-31 陀螺星星（還剩幾顆、夠不夠再玩）
     const right = mk("div", "tp-rright", pan);
     renderBoards(right);
     const bt = mk("div", "tp-rbtns", pan);
     if (st.canRematch) btn("tp-btn tp-rematch", bt, "🔄", () => rematch(), "換個對手再打").appendChild(mk("span", "tp-btn-t", null, "換個對手再打"));
-    btn("tp-btn tp-again", bt, "🔁", () => enterTypeOrEggs(), "再玩一次").appendChild(mk("span", "tp-btn-t", null, "再玩一次"));
+    if (canPlay()) { const ag = btn("tp-btn tp-again", bt, "🔁", () => enterTypeOrEggs(), `再玩一次（用 ${cost()} 顆星星）`); ag.appendChild(mk("span", "tp-btn-t", null, "再玩一次")); mk("span", "tp-btn-c", ag, "⭐−" + cost()); }   // 星星不夠就不放（不給按了才說不行）
     btn("tp-btn tp-home", bt, "🏝️", () => exit("done"), "回小島").appendChild(mk("span", "tp-btn-t", null, "回小島"));
     showOnly("result"); bump(pan, "tp-pop");
+    if (!canPlay()) talk(`再拿 ${Math.max(1, cost() - starsN())} 顆星星就能玩陀螺喔！`);   // 10-31 櫻木：沒有「再玩一次」鈕要說為什麼（跟主程式貓頭鷹同一句，有預錄）
     if (W) W.lowPower(true);                                   // 結算期間 3D 降像素比到 1（10-12 里維：省電）
     relayout();
   }
-  // 輸了：換個對手再打（不用重打字、不扣券、每張券限一次）——挑沒打過、會贏的對手（第一次輸也不要連輸兩場）
+  // 輸了：換個對手再打（不用重打字、不扣星星、每付一次限一次）——挑沒打過、會贏的對手（第一次輸也不要連輸兩場）
   function rematch() {
     if (!st || st.phase !== "result" || !st.canRematch || st.rematchUsed) return;
     st.rematchUsed = true; st.canRematch = false; st.rematches = (st.rematches || 0) + 1;
@@ -1490,7 +1482,7 @@ export function createTopsGame(root, api) {
     btn("tp-btn tp-close", pan, "✖", () => E.boards.classList.add("tp-off"), "關掉");
     E.boards.classList.remove("tp-off"); play("pop");
   }
-  // （10-12 起沒券不再擋在門口：照樣進打字畫面，「下場！」變「存成蛋！」→ showEggSaved）
+  // （10-31 起星星不夠擋在門口：主程式介紹卡鎖著；模組裡再保險一次＝showNoStars）
   function exit(why) { const s = st; if (!s || s.exited) return; s.exited = true; try { api.onExit && api.onExit({ why }); } catch (e) {} }
 
   // ===================== 版面 =====================
@@ -1563,7 +1555,7 @@ export function createTopsGame(root, api) {
   function frame(now) {
     raf = requestAnimationFrame(frame);
     if (!st) return;
-    // 效能體檢 10-12：沒有 3D 要畫、也沒有排程（打字、沒券、載入中）→ 停掉迴圈（下場 enterMorph()、開戰 tapFight() 會再 startLoop()）
+    // 效能體檢 10-12：沒有 3D 要畫、也沒有排程（打字、星星不夠、載入中）→ 停掉迴圈（下場 enterMorph()、開戰 tapFight() 會再 startLoop()）
     if (!W && st.phase !== "battle" && !st.tl.length && !st.rolls.length && !(st.fuse && !st.fuse.done)) { cancelAnimationFrame(raf); raf = 0; return; }
     if (lastMs && now - lastMs < 1000 / 30 - 3) return;       // 最多 30 格／秒（-3ms 容許 rAF 抖動，跟小島一樣；物理是事先模擬好的，播放用 gdt，不受格數影響）
     const real = lastMs ? Math.min(0.05, (now - lastMs) / 1000) : 0; lastMs = now;
@@ -1586,7 +1578,7 @@ export function createTopsGame(root, api) {
     stop();
     run++;
     const my = run;
-    st = { phase: "load", opts, spoken: [], tl: [], rolls: [], clock: 0, slots: [null, null, null, null, null], cur: 0, comp: { ini: "", med: "", fin: "" }, tone: null, cands: [], candZ: [], sel: 0, page: 0, ticketUsed: 0, rm: reducedMotion() };
+    st = { phase: "load", opts, spoken: [], tl: [], rolls: [], clock: 0, slots: [null, null, null, null, null], cur: 0, comp: { ini: "", med: "", fin: "" }, tone: null, cands: [], candZ: [], sel: 0, page: 0, paid: 0, rm: reducedMotion() };
     voice.q.length = 0; voice.busy = false; voice.tok++; bgmK = null;   // 主程式進遊戲時已經放這個遊戲平常的音樂
     build(); relayout(); showOnly();
     st.boardP = Promise.resolve().then(() => api.leaderboard ? api.leaderboard() : null).catch(() => null);
@@ -1595,7 +1587,7 @@ export function createTopsGame(root, api) {
       Dk = D;
       st.boardP = st.boardP.then(b => normBoard(b)).catch(() => normBoard(null));
       st.boardP.then(b => { if (my === run && st && !st.board) st.board = b; });   // 對手要避開的「最近對戰」在 board.recent
-      enterTypeOrEggs();                                          // 沒券也能打字（存成陀螺蛋）；有券又有蛋＝先問要不要孵
+      enterTypeOrEggs();                                          // 星星不夠＝星星不夠了卡片；夠又有以前存的蛋＝先問要不要孵
       startLoop();
     }).catch(e => {
       console.warn("[tops] 字典載入失敗", e);
@@ -1618,9 +1610,9 @@ export function createTopsGame(root, api) {
       round: st.rs ? { i: st.rs.i, stage: st.rs.stage, slow: st.rs.slow, hold: st.rs.hold, decisive: st.rs.decisive } : null, score: st.score ? st.score.slice() : null, fast: !!st.fast,
       fuse: st.fuse ? { t: st.fuse.t, burst: st.fuse.burst, done: st.fuse.done, skip: st.fuse.skip, skipped: st.fuse.skipped } : null, fused: st.fused || null, oppFused: st.oppFused || null,
       rank: curRank(), rankUp: st.rankUp || null, oppTarget: st.oppTarget || null, oppSalt: st.oppSalt || 0, hitN: st.hitN || 0, hitLv: st.hitLv ? st.hitLv.slice() : null, holds: st.holds || 0, launches: st.launches || 0, flashes: st.flashes || 0, rm: !!st.rm,
-      win: st.win || null, submit: st.submit || null, spoken: st.spoken.slice(), ticketUsed: st.ticketUsed, clock: st.clock, layout: L && { ...L },
+      win: st.win || null, submit: st.submit || null, spoken: st.spoken.slice(), paid: st.paid, clock: st.clock, layout: L && { ...L },
       candZ: (st.candZ || []).slice(), keysOff: st.phase === "type" ? [...keysOff()] : [], guide: st.phase === "type" ? guideNext() : null, guideCh: st.guide ? st.guide.ch : null,
-      eggMode: !!st.eggMode, eggs: Dk ? getEggs() : [], hatch: st.hatch || null, oppWhy: st.oppWhy || null, isFree: !!st.isFree,
+      eggs: Dk ? getEggs() : [], hatch: st.hatch || null, oppWhy: st.oppWhy || null, isFree: !!st.isFree,
       canRematch: !!st.canRematch, rematchUsed: !!st.rematchUsed, rematches: st.rematches || 0, cheers: st.cheers || 0, countdown: st.countdown || 0, glowed: st.glowed || 0,
       hits: st.hits || null, stats: st.stats || null, bstats: st.bstats || null, oppHits: st.oppHits || null, greyTaps: st.greyTaps || 0,
     };

@@ -22,10 +22,10 @@
   </script>
   <!-- 自己的程式一開頁就同時抓（高優先）：不然要等 zhuyin.js 下載完才知道要抓 ann/words/ui，再等它跑起來才抓 hub3d，
        一層等一層，線上 4Mbps 實測多卡約 3 秒（tools/zy-test/loadprofile.js）。網址要跟實際 import 的完全一樣（含 ?v=） -->
-  <link rel="modulepreload" href="js/zhuyin.js?v=32" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin.js?v=33" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-words.js" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-ann.js?v=11" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-ui.js?v=11" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-ann.js?v=12" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-ui.js?v=12" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-voice.js?v=8" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=13" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-weather.js?v=5">
@@ -53,7 +53,7 @@
   <link rel="stylesheet" href="css/zhuyin-deliver.css?v=1">
   <link rel="stylesheet" href="css/zhuyin-plaza.css?v=1">
   <link rel="stylesheet" href="css/zhuyin-detective.css?v=2">
-  <link rel="stylesheet" href="css/zhuyin-tops.css?v=2">
+  <link rel="stylesheet" href="css/zhuyin-tops.css?v=3">
   <link rel="stylesheet" href="css/zhuyin-tower.css?v=1">
 </head>
 <body class="gate-on">
@@ -368,6 +368,6 @@
   <div id="flash" class="flash"></div>
 
   <div id="fx" class="fx"></div>
-  <script type="module" src="js/zhuyin.js?v=32"></script>
+  <script type="module" src="js/zhuyin.js?v=33"></script>
 </body>
 </html>

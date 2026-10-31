@@ -1,12 +1,12 @@
 {
  "meta": {
   "generated_by": "tools/voice/build_lines.py",
-  "total_lines": 916,
-  "total_chars": 5765,
+  "total_lines": 903,
+  "total_chars": 5589,
   "by_cat": {
    "intro": 10,
    "praise": 8,
-   "guide": 443,
+   "guide": 440,
    "system": 4,
    "result": 7,
    "word": 163,
@@ -14,7 +14,7 @@
    "friend": 19,
    "order": 76,
    "phrase": 83,
-   "dynamic": 74,
+   "dynamic": 64,
    "hunt": 1
   },
   "words": 136,
@@ -43,9 +43,9 @@
   },
   {
    "template": "再拿 ${n} 顆星星就能玩陀螺喔！",
-   "src": "zhuyin.js topsNoTicketSay（10-12 陀螺沒券）",
-   "range": "n = 1..15（每 15 顆星星換 1 張陀螺券）",
-   "suggestion": "展開成 15 句預錄。"
+   "src": "zhuyin.js startMode／topsExit（10-31 陀螺星星不夠）",
+   "range": "n = 1..5（玩一次 5 顆星星）",
+   "suggestion": "展開成 5 句預錄。"
   },
   {
    "template": "再 ${n} 顆星星就可以扭蛋囉！",
@@ -2398,31 +2398,10 @@
    "src": "zhuyin-tops.js LINES.guide"
   },
   {
-   "id": "tp_eggMode",
-   "text": "沒有陀螺券也可以打字，打好的句子會變成陀螺蛋！",
-   "cat": "guide",
-   "src": "zhuyin-tops.js LINES.eggMode",
-   "tts_text": "沒有陀螺勸也可以打字，打好的句子會變成陀螺蛋！"
-  },
-  {
-   "id": "tp_eggSaved",
-   "text": "陀螺蛋存好了！拿到陀螺券就能孵出來對戰！",
-   "cat": "guide",
-   "src": "zhuyin-tops.js LINES.eggSaved",
-   "tts_text": "陀螺蛋存好了！拿到陀螺勸就能孵出來對戰！"
-  },
-  {
    "id": "tp_eggAsk",
    "text": "你有陀螺蛋！要孵出來對戰嗎？",
    "cat": "guide",
    "src": "zhuyin-tops.js LINES.eggAsk"
-  },
-  {
-   "id": "tp_starCard",
-   "text": "集滿十五顆星星，就能換一張陀螺券！",
-   "cat": "guide",
-   "src": "zhuyin-tops.js LINES.starCard",
-   "tts_text": "集滿十五顆星星，就能換一張陀螺勸！"
   },
   {
    "id": "tp_rematch",
@@ -2730,11 +2709,10 @@
    "src": "zhuyin.js 詞句小偵探／陀螺接線（10-12）"
   },
   {
-   "id": "tp_ticket_got",
-   "text": "拿到一張陀螺券了！",
+   "id": "tp_stars_ok",
+   "text": "星星夠了，可以去玩陀螺囉！",
    "cat": "guide",
-   "src": "zhuyin.js 詞句小偵探／陀螺接線（10-12）",
-   "tts_text": "拿到一張陀螺勸了！"
+   "src": "zhuyin.js 詞句小偵探／陀螺接線（10-12）"
   },
   {
    "id": "pick_fish",
@@ -4260,7 +4238,7 @@
    "id": "tops_need_1",
    "text": "再拿 1 顆星星就能玩陀螺喔！",
    "cat": "dynamic",
-   "src": "zhuyin.js topsNoTicketSay（10-12）",
+   "src": "zhuyin.js startMode／topsExit（10-31）",
    "tts_text": "再拿一顆星星就能玩陀螺喔！",
    "n": 1
   },
@@ -4268,7 +4246,7 @@
    "id": "tops_need_2",
    "text": "再拿 2 顆星星就能玩陀螺喔！",
    "cat": "dynamic",
-   "src": "zhuyin.js topsNoTicketSay（10-12）",
+   "src": "zhuyin.js startMode／topsExit（10-31）",
    "tts_text": "再拿兩顆星星就能玩陀螺喔！",
    "n": 2
   },
@@ -4276,7 +4254,7 @@
    "id": "tops_need_3",
    "text": "再拿 3 顆星星就能玩陀螺喔！",
    "cat": "dynamic",
-   "src": "zhuyin.js topsNoTicketSay（10-12）",
+   "src": "zhuyin.js startMode／topsExit（10-31）",
    "tts_text": "再拿三顆星星就能玩陀螺喔！",
    "n": 3
   },
@@ -4284,7 +4262,7 @@
    "id": "tops_need_4",
    "text": "再拿 4 顆星星就能玩陀螺喔！",
    "cat": "dynamic",
-   "src": "zhuyin.js topsNoTicketSay（10-12）",
+   "src": "zhuyin.js startMode／topsExit（10-31）",
    "tts_text": "再拿四顆星星就能玩陀螺喔！",
    "n": 4
   },
@@ -4292,89 +4270,9 @@
    "id": "tops_need_5",
    "text": "再拿 5 顆星星就能玩陀螺喔！",
    "cat": "dynamic",
-   "src": "zhuyin.js topsNoTicketSay（10-12）",
+   "src": "zhuyin.js startMode／topsExit（10-31）",
    "tts_text": "再拿五顆星星就能玩陀螺喔！",
    "n": 5
-  },
-  {
-   "id": "tops_need_6",
-   "text": "再拿 6 顆星星就能玩陀螺喔！",
-   "cat": "dynamic",
-   "src": "zhuyin.js topsNoTicketSay（10-12）",
-   "tts_text": "再拿六顆星星就能玩陀螺喔！",
-   "n": 6
-  },
-  {
-   "id": "tops_need_7",
-   "text": "再拿 7 顆星星就能玩陀螺喔！",
-   "cat": "dynamic",
-   "src": "zhuyin.js topsNoTicketSay（10-12）",
-   "tts_text": "再拿七顆星星就能玩陀螺喔！",
-   "n": 7
-  },
-  {
-   "id": "tops_need_8",
-   "text": "再拿 8 顆星星就能玩陀螺喔！",
-   "cat": "dynamic",
-   "src": "zhuyin.js topsNoTicketSay（10-12）",
-   "tts_text": "再拿八顆星星就能玩陀螺喔！",
-   "n": 8
-  },
-  {
-   "id": "tops_need_9",
-   "text": "再拿 9 顆星星就能玩陀螺喔！",
-   "cat": "dynamic",
-   "src": "zhuyin.js topsNoTicketSay（10-12）",
-   "tts_text": "再拿九顆星星就能玩陀螺喔！",
-   "n": 9
-  },
-  {
-   "id": "tops_need_10",
-   "text": "再拿 10 顆星星就能玩陀螺喔！",
-   "cat": "dynamic",
-   "src": "zhuyin.js topsNoTicketSay（10-12）",
-   "tts_text": "再拿十顆星星就能玩陀螺喔！",
-   "n": 10
-  },
-  {
-   "id": "tops_need_11",
-   "text": "再拿 11 顆星星就能玩陀螺喔！",
-   "cat": "dynamic",
-   "src": "zhuyin.js topsNoTicketSay（10-12）",
-   "tts_text": "再拿十一顆星星就能玩陀螺喔！",
-   "n": 11
-  },
-  {
-   "id": "tops_need_12",
-   "text": "再拿 12 顆星星就能玩陀螺喔！",
-   "cat": "dynamic",
-   "src": "zhuyin.js topsNoTicketSay（10-12）",
-   "tts_text": "再拿十二顆星星就能玩陀螺喔！",
-   "n": 12
-  },
-  {
-   "id": "tops_need_13",
-   "text": "再拿 13 顆星星就能玩陀螺喔！",
-   "cat": "dynamic",
-   "src": "zhuyin.js topsNoTicketSay（10-12）",
-   "tts_text": "再拿十三顆星星就能玩陀螺喔！",
-   "n": 13
-  },
-  {
-   "id": "tops_need_14",
-   "text": "再拿 14 顆星星就能玩陀螺喔！",
-   "cat": "dynamic",
-   "src": "zhuyin.js topsNoTicketSay（10-12）",
-   "tts_text": "再拿十四顆星星就能玩陀螺喔！",
-   "n": 14
-  },
-  {
-   "id": "tops_need_15",
-   "text": "再拿 15 顆星星就能玩陀螺喔！",
-   "cat": "dynamic",
-   "src": "zhuyin.js topsNoTicketSay（10-12）",
-   "tts_text": "再拿十五顆星星就能玩陀螺喔！",
-   "n": 15
   },
   {
    "id": "coin_need_1",

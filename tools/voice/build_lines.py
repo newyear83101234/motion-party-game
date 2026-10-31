@@ -313,11 +313,11 @@ must('const plaza = createPlaza(')   # 主程式有接上（同樂廣場在 zhuy
 
 # ---- 10-12 注音戰鬥陀螺 ----
 # 台詞都在 js/zhuyin-tops.js 的 LINES、ROUND_LINES、BONUS_TEXT（加成名稱跟 js/zhuyin-tops-power.js 的 TOPS_BONUS 一樣）。
-# 全部用 talk()；**不唸小孩打的字**（自由組合的詞句、候選字一律不出聲）。「再拿 N 顆星星」只顯示字、唸的是不帶數字的 noTicket。
+# 全部用 talk()；**不唸小孩打的字**（自由組合的詞句、候選字一律不出聲）。「星星不夠了」卡片唸不帶數字的 noTicket（key 沿用舊名）；貓頭鷹的「再拿 N 顆星星就能玩陀螺喔！」在下面「5. 動態句」。
 TPSRC = (ROOT / "js" / "zhuyin-tops.js").read_text(encoding="utf-8")
 TPPOW = (ROOT / "js" / "zhuyin-tops-power.js").read_text(encoding="utf-8")
 TP_LINES = re.findall(r'^\s+(\w+): "([^"]+)",', TPSRC.split("export const LINES = {")[1].split("\n};")[0], re.M)
-assert len(TP_LINES) == 36, f"陀螺台詞解析失敗：{len(TP_LINES)}"   # 10-12 櫻木改善 +10 句；10-13 v7 合體三戰兩勝：拿掉 變身／這回合你贏了／這回合對手贏了，加 合體！／發射！／決勝回合！／藍隊勝！／紅隊勝！（勝利、再接再厲改寫）
+assert len(TP_LINES) == 33, f"陀螺台詞解析失敗：{len(TP_LINES)}"   # 10-31 拿掉陀螺券：去掉 eggMode／eggSaved／starCard（noTicket 留著給「星星不夠了」卡片唸）； 10-12 櫻木改善 +10 句；10-13 v7 合體三戰兩勝：拿掉 變身／這回合你贏了／這回合對手贏了，加 合體！／發射！／決勝回合！／藍隊勝！／紅隊勝！（勝利、再接再厲改寫）
 for key, t in TP_LINES:
     add(f"tp_{key}", t, "guide", f"zhuyin-tops.js LINES.{key}", **({"tts_text": "對手是"} if key == "vsPre" else {}))
 # 內建詞句（骰子詞庫 INSPIRE；島上傳說 LEGENDS 都在裡面）：抽到時唸「宇宙強爸爸！」；對手是內建詞句時唸「對手是：」＋「宇宙強爸爸！」
@@ -351,9 +351,9 @@ for key, t in TP_BONUS:
 
 # ---- 10-12 詞句小偵探／注音戰鬥陀螺接進主程式（zhuyin.js）----
 # 偵探：開場語＝MODES.detective.intro＝模組 LINES.intro（dt_intro）；結算唸模組的 WIN_TALK（dt_win）；引擎打不開時貓頭鷹說 DETECTIVE_FAIL。
-# 陀螺：開場語＝模組每次自己唸（tp_intro）；結算拿到陀螺券唸「拿到一張陀螺券了！」；打不開時 TOPS_FAIL；
-#       沒券時貓頭鷹唸「再拿 N 顆星星就能玩陀螺喔！」（N＝1..TOPS_STARS，在下面「5. 動態句」展開）。
-for i, t in [("dt_fail", "偵探社現在打不開，等一下再試試看！"), ("tp_fail", "陀螺競技場現在打不開，等一下再試試看！"), ("tp_ticket_got", "拿到一張陀螺券了！")]:
+# 陀螺：開場語＝模組每次自己唸（tp_intro）；結算時陀螺星星剛好夠玩一次唸「星星夠了，可以去玩陀螺囉！」（10-31 拿掉陀螺券）；打不開時 TOPS_FAIL；
+#       星星不夠時貓頭鷹唸「再拿 N 顆星星就能玩陀螺喔！」（N＝1..TOPS_STARS，在下面「5. 動態句」展開）。
+for i, t in [("dt_fail", "偵探社現在打不開，等一下再試試看！"), ("tp_fail", "陀螺競技場現在打不開，等一下再試試看！"), ("tp_stars_ok", "星星夠了，可以去玩陀螺囉！")]:
     must(t); add(i, t, "guide", "zhuyin.js 詞句小偵探／陀螺接線（10-12）")
 for t in ["仔細聽，選出你聽到的那一句！", "用注音拼出五個字，變成戰鬥陀螺！"]:
     must(f'intro: "{t}"')   # MODES 的開場語要跟模組的教學句一樣（上面才不用另外錄）
@@ -445,12 +445,12 @@ DYNAMIC.append(dict(template="拿到 ${n} 張新貼紙！", src="zhuyin.js:763 �
 for n in range(1, nmax + 1):
     add(f"result_stickers_{n}", f"拿到 {n} 張新貼紙！", "dynamic", "zhuyin.js:763", tts=f"拿到{CN_NUM[n]}張新貼紙！", n=n)
 
-must("再拿 ${topsNeed()} 顆星星就能玩陀螺喔！")   # 10-12 陀螺沒券（點陀螺競技場／卡片時貓頭鷹說）
+must("再拿 ${topsNeed()} 顆星星就能玩陀螺喔！")   # 10-31 陀螺星星不夠（點陀螺競技場／卡片時貓頭鷹說）
 TOPS_STARS = int(re.search(r"const TOPS_STARS = (\d+)", SRC).group(1))
-DYNAMIC.append(dict(template="再拿 ${n} 顆星星就能玩陀螺喔！", src="zhuyin.js topsNoTicketSay（10-12 陀螺沒券）",
-                    range=f"n = 1..{TOPS_STARS}（每 {TOPS_STARS} 顆星星換 1 張陀螺券）", suggestion=f"展開成 {TOPS_STARS} 句預錄。"))
+DYNAMIC.append(dict(template="再拿 ${n} 顆星星就能玩陀螺喔！", src="zhuyin.js startMode／topsExit（10-31 陀螺星星不夠）",
+                    range=f"n = 1..{TOPS_STARS}（玩一次 {TOPS_STARS} 顆星星）", suggestion=f"展開成 {TOPS_STARS} 句預錄。"))
 for n in range(1, TOPS_STARS + 1):
-    add(f"tops_need_{n}", f"再拿 {n} 顆星星就能玩陀螺喔！", "dynamic", "zhuyin.js topsNoTicketSay（10-12）", tts=f"再拿{CN_NUM[n]}顆星星就能玩陀螺喔！", n=n)
+    add(f"tops_need_{n}", f"再拿 {n} 顆星星就能玩陀螺喔！", "dynamic", "zhuyin.js startMode／topsExit（10-31）", tts=f"再拿{CN_NUM[n]}顆星星就能玩陀螺喔！", n=n)
 
 must("再 ${EGG_STARS - RW.jarLeft(save.rw, save.stars)} 顆星星就可以扭蛋囉！")
 DYNAMIC.append(dict(template="再 ${n} 顆星星就可以扭蛋囉！", src="zhuyin.js tryHatch（10-11 孵蛋改扭蛋）",

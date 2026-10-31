@@ -33,6 +33,7 @@
 .tp-btn-t { font-size: 0.66em; }
 .tp-side .tp-btn { height: var(--S); min-width: var(--S); padding: 0 0.35em; }
 .tp-side .tp-inspire .tp-btn-t { display: none; }
+.tp-inspire .tp-btn-t { white-space: nowrap; }
 
 .tp-slotrow { display: flex; gap: var(--g); align-items: stretch; }
 .tp-port .tp-slotrow { flex-direction: column; align-items: center; }
@@ -58,6 +59,18 @@
 .tp-port .tp-go { width: min(90vw, calc(var(--S) * 4)); height: var(--goh); flex-direction: row; gap: 0.3em; font-size: calc(var(--goh) * 0.42); }
 .tp-go.tp-ready { opacity: 1; filter: none; animation: tpPulse 1s ease-in-out infinite; }
 .tp-go-t { font-size: 0.78em; }
+/* 10-31 陀螺星星：右上角「⭐ 7」、下場鈕右上角「⭐−5」／「免費」、五個字好了 👆 指著下場鈕（小孩取完名字不知道下一步） */
+.tp-go { position: relative; }
+.tp-go-c { position: absolute; top: -0.4em; right: -0.4em; padding: 0.12em 0.45em; border-radius: 999px; background: #fff6d8; color: #a05a00; border: max(2px, calc(var(--S) * 0.02)) solid #ffd54a; font-size: max(15px, calc(var(--S) * 0.16)); line-height: 1.15; white-space: nowrap; box-shadow: 0 0.12em 0 #d9a400; }
+.tp-port .tp-go-c { top: -0.5em; right: -0.3em; font-size: max(15px, calc(var(--goh) * 0.24)); }
+.tp-go.tp-ready::after { content: "👆"; position: absolute; left: 50%; top: 100%; margin-left: -0.5em; font-size: max(30px, calc(var(--S) * 0.34)); line-height: 1; pointer-events: none; animation: tpPoint 0.8s ease-in-out infinite alternate; filter: none; }
+.tp-port .tp-go.tp-ready::after { content: "👈"; left: 100%; top: 50%; margin: -0.5em 0 0 0.15em; font-size: max(30px, calc(var(--goh) * 0.5)); animation-name: tpPointX; }
+.tp-side .tp-go.tp-ready::after { top: auto; bottom: -0.15em; left: auto; right: -0.35em; margin: 0; font-size: 24px; }   /* 手機橫式：下面緊貼提示字，小手放按鈕右下角 */
+@keyframes tpPoint { from { transform: translateY(0.05em); } to { transform: translateY(0.4em); } }
+@keyframes tpPointX { from { transform: translateX(0.05em); } to { transform: translateX(0.4em); } }
+.tp-wallet { display: inline-flex; align-items: center; height: max(56px, calc(var(--u) * 10)); padding: 0 calc(var(--u) * 1.6); border-radius: 999px; background: #fff6d8; color: #8a5200; border: 3px solid #ffd54a;
+  font-size: max(22px, calc(var(--u) * 4)); font-weight: 900; white-space: nowrap; box-shadow: 0 0.2em 0 #d9a400; }
+.tp-side .tp-wallet { height: var(--S); padding: 0 0.45em; font-size: max(18px, calc(var(--S) * 0.32)); }
 .tp-note { display: flex; align-items: center; justify-content: center; font-size: max(17px, calc(var(--u) * 2.7)); font-weight: 800; color: #ffe6a3; white-space: nowrap; }
 
 .tp-candbar { display: flex; align-items: center; justify-content: center; gap: var(--g); }
@@ -128,6 +141,9 @@
 .tp-fight { height: max(60px, calc(var(--u) * 11)); padding: 0 0.8em; border-radius: 0.6em; background: linear-gradient(#ff8a3d, #ff3d5a); font-size: max(26px, calc(var(--u) * 5)); font-weight: 900; color: #fff;
   box-shadow: 0 0.16em 0 #a8213a, 0 0 1em rgba(255, 90, 90, 0.6); display: flex; align-items: center; gap: 0.15em; animation: tpPulse 1s ease-in-out infinite; }
 .tp-fight:disabled { opacity: 0.4; animation: none; }
+.tp-fight { position: relative; }
+.tp-vs.tp-shown .tp-fight:not(:disabled)::after { content: "👇"; position: absolute; left: 50%; bottom: 100%; margin-left: -0.5em; font-size: max(30px, calc(var(--u) * 5.5)); line-height: 1; pointer-events: none; animation: tpPoint 0.8s ease-in-out infinite alternate; }   /* 10-31 櫻木：開戰是第二個「下一步」，一樣用手指指著 */
+.tp-side .tp-vs.tp-shown .tp-fight:not(:disabled)::after { font-size: 24px; }
 
 /* ---------- 對戰 HUD ---------- */
 .tp-hud { position: absolute; inset: 0; pointer-events: none; }
@@ -267,8 +283,6 @@
 .tp-cand { position: relative; }
 .tp-emo { position: absolute; right: 0.06em; bottom: 0.02em; font-size: 0.36em; line-height: 1; pointer-events: none; }
 .tp-cand.tp-other:not(.tp-sel) { background: #f4f0ff; box-shadow: 0 calc(var(--C) * 0.06) 0 #b9add6, 0 0.3em 0.8em rgba(0, 0, 0, 0.3); }
-/* 沒券：下場鈕變「存成蛋！」 */
-.tp-go.tp-egg { background: linear-gradient(#fff7d6, #ffd36e); color: #7a4a00; box-shadow: 0 calc(var(--S) * 0.06) 0 #c9932a; }
 /* 等級徽章 */
 .tp-tier { display: inline-flex; align-items: center; gap: 0.15em; padding: 0.08em 0.5em; border-radius: 999px; font-weight: 900; font-size: 0.72em; white-space: nowrap; color: #3a2a00; line-height: 1.2; }
 .tp-tier1 { background: linear-gradient(#f3c39a, #c8783f); }
@@ -304,16 +318,18 @@
 .tp-cheer { position: absolute; transform: translate(-50%, -50%); font-size: max(26px, calc(var(--u) * 5)); font-weight: 900; color: #7ee0ff; text-shadow: 0 0.06em 0 #12306e, 0 0 0.4em rgba(80, 200, 255, 0.9); pointer-events: none; white-space: nowrap; animation: tpCheer 0.9s ease-out both; }
 @keyframes tpCheer { 0% { opacity: 0; scale: 0.5; } 20% { opacity: 1; scale: 1.15; } 100% { opacity: 0; scale: 1; translate: 0 -1.6em; } }
 .tp-cheerhint { position: absolute; left: 50%; bottom: calc(var(--m) + max(70px, calc(var(--u) * 13))); transform: translateX(-50%); font-size: max(18px, calc(var(--u) * 3.2)); font-weight: 900; color: #fff; background: rgba(30, 20, 80, 0.72); border-radius: 999px; padding: 0.25em 0.9em; white-space: nowrap; pointer-events: none; animation: tpPulse 1.2s ease-in-out infinite; }
-/* 15 格集點卡 */
-.tp-stars { display: flex; flex-direction: column; align-items: center; gap: 0.15em; background: #fff6d8; border: 2px solid #ffd54a; border-radius: 0.7em; padding: 0.25em 0.6em 0.3em; font-size: max(15px, calc(var(--u) * 2.4)); color: #6b4a00; }
+/* 10-31 我的星星（取代 15 格集點卡）：有幾顆＋5 格（夠玩一次＝全亮、綠框）＋再拿幾顆 */
+.tp-stars { display: flex; flex-direction: column; align-items: center; gap: 0.15em; background: #fff6d8; border: 2px solid #ffd54a; border-radius: 0.7em; padding: 0.25em 0.8em 0.3em; font-size: max(16px, calc(var(--u) * 2.6)); color: #6b4a00; }
+.tp-stars.tp-enough { border-color: #3cc98f; background: #eefcf4; }
 .tp-stars-h { display: flex; gap: 0.5em; align-items: baseline; font-weight: 900; }
 .tp-stars-h b { color: #e0780b; font-variant-numeric: tabular-nums; }
-.tp-stars-row { display: grid; grid-template-columns: repeat(15, 1.15em); gap: 0.1em; line-height: 1; }
-.tp-star { font-size: 1.1em; color: #e6dcc0; text-align: center; }
+.tp-stars-row { display: grid; grid-template-columns: repeat(5, 1.5em); gap: 0.15em; line-height: 1; }
+.tp-star { font-size: 1.4em; color: #e6dcc0; text-align: center; }
 .tp-star.tp-lit { color: #ffb300; text-shadow: 0 0 0.25em rgba(255, 190, 40, 0.8); }
-.tp-stars-s { font-size: 0.82em; font-weight: 700; color: #8a6a20; }
-.tp-side .tp-stars { font-size: 12px; padding: 2px 6px; gap: 1px; }
-.tp-side .tp-stars-s { display: none; }
+.tp-stars-s { font-size: 0.9em; font-weight: 800; color: #8a6a20; }
+.tp-stars.tp-enough .tp-stars-s { color: #17855a; }
+.tp-side .tp-stars { font-size: 13px; padding: 2px 8px; gap: 1px; }
+.tp-btn-c { font-size: 0.5em; padding: 0.1em 0.45em; border-radius: 999px; background: #fff6d8; color: #a05a00; margin-left: 0.1em; }
 /* 陀螺蛋 */
 .tp-egg-top { display: flex; align-items: center; gap: 0.4em; }
 .tp-egg-ic { font-size: max(44px, calc(var(--u) * 9)); line-height: 1; display: inline-block; animation: tpWobble 1.4s ease-in-out infinite; }
@@ -343,7 +359,6 @@
 .tp-port .tp-row { font-size: max(18px, calc(var(--u) * 2.7)); }
 .tp-port .tp-rbtns { gap: calc(var(--u) * 1.4); }
 .tp-port .tp-rbtns .tp-btn { font-size: max(20px, calc(var(--u) * 3.3)); padding: 0 calc(var(--u) * 1.8); }
-.tp-port .tp-stars-s { display: none; }
 
 /* ---------- 動畫 ---------- */
 .tp-pop { animation: tpPop 0.4s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
@@ -358,7 +373,7 @@
 @keyframes tpBnIn { 0% { opacity: 0; scale: 2.2; } 100% { opacity: 1; scale: 1; } }
 @keyframes tpBnOut { to { opacity: 0; scale: 0.7; } }
 @keyframes tpSpin { to { transform: translate(-50%, -50%) rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .tp-go.tp-ready, .tp-fight, .tp-ok.tp-ready, .tp-kb.tp-wanttone .tp-tone, .tp-key.tp-guide, .tp-cand.tp-guide, .tp-egg-ic, .tp-rematch, .tp-cheerhint { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .tp-go.tp-ready::after, .tp-fight::after, .tp-go.tp-ready, .tp-fight,.tp-ok.tp-ready, .tp-kb.tp-wanttone .tp-tone, .tp-key.tp-guide, .tp-cand.tp-guide, .tp-egg-ic, .tp-rematch, .tp-cheerhint { animation: none; } }
 
 /* ---------- v2（10-13）合體：五張能力卡收成一張「合體陀螺」卡、看過一次可以點一下跳過 ---------- */
 .tp-card.tp-merge { opacity: 0; transform: translate(calc(-50% + var(--dx, 0px)), -40%) scale(0.3); transition: opacity 0.35s ease-in, transform 0.4s ease-in; }   /* --dx：飛到畫面中間（relayout 算） */

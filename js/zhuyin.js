@@ -3,7 +3,7 @@
 // 八個模式：釣魚 / 點餐 / 積木 / 尋寶 / 翻牌 / 聲調氣球 / 打地鼠 / 跳跳蛙（後兩個 2026-10-10 加）。長期動力：貼紙圖鑑（每個詞一張貼紙）＋星星罐孵蛋（解鎖朋友）。
 // 設計依據：櫻木花道（遊戲設計）＋寧次（UI/UX）2026-09-09 審查報告；規格見 memory project-zhuyin-game.md
 import { WORDS, PHRASES, CATS, FRIENDS } from "./zhuyin-words.js";
-import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js?v=11";
+import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js?v=12";
 import { voiceUnlock, voiceSay, voiceStop, voiceSpeaking, voicePreload, voiceCtx, voiceBind } from "./zhuyin-voice.js?v=8";
 import A from "./zhuyin-audio.js?v=3";               // 音訊引擎：一個 AudioContext、music／sfx／voice／ambience 四條 bus（docs/zhuyin-v5-plan.md §5）
 import * as RW from "./zhuyin-rewards.js?v=3";   // 獎勵系統（扭蛋機）純邏輯
@@ -50,7 +50,7 @@ const GAME_INFO = {
   dress: { name: "寵物服裝店", short: "服裝店", ico: "🎀", desc: "幫寵物換上漂亮的衣服" },
 };
 const SELF_INTRO = new Set(["detective", "tops", "tower"]);     // 模組自己唸教學（卡片／鍵盤等教學講完才出來）：主程式不唸 MODES.intro，免得念兩次
-const TOPS_STARS = 15, TOPS_MAX = 3;                   // 注音戰鬥陀螺（docs/zhuyin-tops-spec.md §1）：每 15 顆星星換 1 張陀螺券、最多存 3 張；第一次免費
+const TOPS_STARS = 5, TOPS_BANK = 999;                 // 注音戰鬥陀螺：玩一次扣 5 顆陀螺星星、第一次免費（10-31 阿葉「不用兌換券、直接用星星就可以玩」：拿掉陀螺券）；TOPS_BANK＝存檔清洗的上限
 // 陀螺詞句＝剛好 5 個國字（範圍 U+3400–U+9FFF，跟 js/zhuyin-ann.js 一樣）；用字碼組出來：原始碼裡不放範圍兩端的怪字（不然 tools/build_zhuyin_ui.py 會把它們當畫面文字收進字典）
 const HAN5 = new RegExp("^[" + String.fromCharCode(0x3400) + "-" + String.fromCharCode(0x9fff) + "]{5}$");
 const DELIVER_TASKS = 12;                              // 彩虹配送站關數（10-13 由 8 加到 12：9–12 是進階關）＝js/zhuyin-deliver.js TASKS.length（模組載入前就要用：存檔、選關、備份碼；模組載入時會核對）
@@ -443,8 +443,8 @@ function loadSlot(n) {
   if (save.bubble.all && (save.bubble.lv === 9 || save.bubble.lv === 29)) { save.bubble.lv += 1; delete save.bubble.all; }   // 舊存檔（10 關或 30 關版、全通）升級後接著玩下一區第 1 關（v6：30→50 關）   // 泡泡救援灣：lv＝下一關（0 起算）、stars＝每關最佳星數
   save.deliver = cleanDeliver(lsGet(K("deliver"), null));   // 彩虹配送站（10-12）：lv＝下一關（0 起算）、stars＝每關最佳星數、all＝8 關都過了
   save.detective = cleanDetective(lsGet(K("detective"), null));   // 詞句小偵探（10-12）：seen＝玩過的題目 id、best＝最佳星數
-  save.tops = cleanTops(lsGet(K("tops"), null));       // 注音戰鬥陀螺（10-12）：tickets 陀螺券、starsBank 存著換券的星星、freeUsed 第一次免費用過了、best、home 我家排行、history 最近 10 句
-  if (topsUnpend(save.tops)) lsSet(K("tops"), save.tops);   // 上次下場了還沒打完頁面就沒了（iPad 回收分頁、重新整理）＝那張券退回（里維必修 2）
+  save.tops = cleanTops(lsGet(K("tops"), null));       // 注音戰鬥陀螺（10-12）：stars 陀螺星星、freeUsed 第一次免費用過了、best、home 我家排行、history 最近 10 句（10-31 前的陀螺券在 cleanTops 換回星星）
+  if (topsUnpend(save.tops)) lsSet(K("tops"), save.tops);   // 上次下場了還沒打完頁面就沒了（iPad 回收分頁、重新整理）＝扣掉的星星退回（里維必修 2）
   save.mix = lsGet(K("mix"), {});
   save.stats = ST.clean(lsGet(K("stats"), null), ST.taipeiDay(Date.now()));   // 玩了什麼（家長頁）：最近 60 天的每日分鐘／次數＋每個遊戲累計；讀出來先清洗
   save.rw = RW.migrate({ eggs: save.eggs, rewards: lsGet(K("rewards"), null) });   // 扭蛋幣、寵物、點心、集章卡…（docs/zhuyin-rewards-spec.md）；舊的 eggs 自動搬成已收集的朋友
@@ -510,27 +510,31 @@ function cleanRt(d) {
   return out;
 }
 // 注音戰鬥陀螺存檔清洗（存檔、備份碼共用；docs/zhuyin-tops-spec.md §5）：
-// { tickets 0..3, starsBank 0..15（換券用的星星）, freeUsed（第一次免費用過了）, pending（下場扣了券、還沒打完：0 沒有／1 一張券／2 免費那次）,
+// { stars 陀螺星星 0..TOPS_BANK（每次結算拿到的星星也存一份在這裡，跟星星罐分開算、不扣罐子；下場扣 TOPS_STARS 顆）, freeUsed（第一次免費用過了）,
+//   pending（下場扣了、還沒打完：0 沒有／1 扣了星星／2 免費那次）,
 //   best {p,power}, home 我家排行前 5 {p,power,z}, history 最近 10 句 {p,power,win,o（對手；同一句再下場時避開）},
-//   eggs 陀螺蛋（沒券時打好的句子，最多 3 顆）{p,power,z}, rank 段位 0..4（v7：新手、銅牌、銀牌、金牌、彩虹；贏一場升一段＝對手越來越強） }
+//   eggs 陀螺蛋（10-31 前沒券時打好的句子，最多 3 顆；現在只孵不再生新的）{p,power,z}, rank 段位 0..4（v7：新手、銅牌、銀牌、金牌、彩虹；贏一場升一段＝對手越來越強） }
+// 10-31 前的格式（tickets 陀螺券＋starsBank）：券照原價 1 張＝15 顆換回星星，扣了券還沒打完的（pending 1）也照 15 顆退
 // 詞句一律剛好 5 個國字（HAN5，跟 js/zhuyin-ann.js 同一個國字範圍）；戰力 0..9999（規格上限）
 function cleanTops(d) {
-  const out = { tickets: 0, starsBank: 0, freeUsed: 0, pending: 0, best: null, home: [], history: [], eggs: [], rank: 0 }; if (!d || typeof d !== "object") return out;
+  const out = { stars: 0, freeUsed: 0, pending: 0, best: null, home: [], history: [], eggs: [], rank: 0 }; if (!d || typeof d !== "object") return out;
   const num = (v, hi) => Math.min(hi, Math.max(0, Math.floor(+v) || 0));
   const zOk = z => Array.isArray(z) && z.length === 5 && z.every(s => typeof s === "string" && s.length <= 6);
   const ent = e => e && typeof e === "object" && typeof e.p === "string" && HAN5.test(e.p) ? { p: e.p, power: num(e.power, 9999), ...(zOk(e.z) ? { z: e.z.slice() } : {}) } : null;
-  out.tickets = num(d.tickets, TOPS_MAX); out.starsBank = num(d.starsBank, TOPS_STARS); if (d.freeUsed) out.freeUsed = 1; out.pending = num(d.pending, 2); out.rank = num(d.rank, 4);
+  const old = d.stars === undefined && (d.tickets !== undefined || d.starsBank !== undefined), pd = num(d.pending, 2);
+  out.stars = old ? num(num(d.starsBank, 15) + num(d.tickets, 3) * 15 + (pd === 1 ? 15 : 0), TOPS_BANK) : num(d.stars, TOPS_BANK);
+  out.pending = old && pd === 1 ? 0 : pd; if (d.freeUsed) out.freeUsed = 1; out.rank = num(d.rank, 4);
   out.best = ent(d.best); if (out.best) delete out.best.z;
   if (Array.isArray(d.home)) { const m = new Map(); for (const e of d.home.map(ent).filter(Boolean)) if (!m.has(e.p) || m.get(e.p).power < e.power) m.set(e.p, e); out.home = [...m.values()].sort((a, b) => b.power - a.power || (a.p < b.p ? -1 : 1)).slice(0, 5); }
   if (Array.isArray(d.history)) out.history = d.history.map(e => { const x = ent(e); if (x) { delete x.z; if (e.win) x.win = 1; if (typeof e.o === "string" && HAN5.test(e.o)) x.o = e.o; } return x; }).filter(Boolean).slice(-10);
   if (Array.isArray(d.eggs)) { const m = new Map(); for (const e of d.eggs.map(ent).filter(Boolean)) { m.delete(e.p); m.set(e.p, e); } out.eggs = [...m.values()].slice(-3); }   // 10-12 陀螺蛋：同一句只留一顆、最多 3 顆（新的在後）
   return out;
 }
-// 存檔裡有「下場扣了、還沒打完」的券 → 退回（免費那次＝freeUsed 還原、一般券＝tickets＋1，最多 TOPS_MAX）並歸零。回傳有沒有改（呼叫端負責存檔）
+// 存檔裡有「下場扣了、還沒打完」的那一場 → 退回（免費那次＝freeUsed 還原、一般＝星星加回 TOPS_STARS 顆）並歸零。回傳有沒有改（呼叫端負責存檔）
 // loadSlot 開頁就會呼叫：這裡只碰傳進來的 t（不碰 topsPending 等後面才宣告的變數）
 function topsUnpend(t) {
   const pd = t.pending | 0; if (!pd) return false;
-  if (pd === 2) t.freeUsed = 0; else t.tickets = Math.min(TOPS_MAX, t.tickets + 1);
+  if (pd === 2) t.freeUsed = 0; else t.stars = Math.min(TOPS_BANK, t.stars + TOPS_STARS);
   t.pending = 0; return true;
 }
 // 備份碼裡的一位 → 乾淨的存檔資料：只收詞庫有的詞、只收認得的模式、數字有上下限（不是正確格式就回 null）
@@ -834,19 +838,19 @@ new MutationObserver(() => document.body.classList.toggle("has-resume", !$("resu
 const goIsle = k => { if (!hub) return; play("whoosh"); hub.goPlace(hub.place() === k ? "main" : k); };   // 再按一次（變成 🏝️ 的那顆）＝回主島
 
 // ---------- 小島介紹卡（10-12 阿葉：「點下去想看是哪些關卡時就直接進入了，沒辦法決定是不是要玩這關」）----------
-// 點一下建築／浮標（hub3d opts.onPick）→ 下面彈出介紹卡：大圖示、名字、一句「這裡玩什麼」、最佳星星（或關卡進度、扭蛋幣、陀螺券）、
+// 點一下建築／浮標（hub3d opts.onPick）→ 下面彈出介紹卡：大圖示、名字、一句「這裡玩什麼」、最佳星星（或關卡進度、扭蛋幣、陀螺星星）、
 // 鎖著＝「再收集 N 張貼紙」沒有開始鈕；「▶️ 開始玩」＝hub.start（跟同一棟再點一次一樣）；✕＝收起來。貓頭鷹唸名字。
 // 介紹卡開著：貓頭鷹（直式在下面）、左下膠囊（橫式在下面）先淡出（body.pick-on；位置照樣佔著，小島不重擺）
 let pickMode = null;
 const modeIco = m => (GAME_INFO[m] && GAME_INFO[m].ico) || document.querySelector(`.mode-card[data-mode=${m}] .big`)?.textContent || "🎮";
 const starRow = n => { const w = el("span", "pk-stars"); for (let i = 0; i < 3; i++) w.appendChild(el("i", i < n ? "on" : "", "⭐")); return w; };
-// 介紹卡／清單上的「成績」：一般遊戲＝最佳星星；泡泡、配送站＝過了幾關；陀螺＝陀螺券；扭蛋機＝扭蛋幣；服裝店＝沒有
+// 介紹卡／清單上的「成績」：一般遊戲＝最佳星星；泡泡、配送站＝過了幾關；陀螺＝陀螺星星；扭蛋機＝扭蛋幣；服裝店＝沒有
 function pickMeta(m) {
   if (m === "gacha") return el("span", "pk-txt", `🪙 ${save.rw.coins + save.rw.gold}`);
   if (m === "dress") return null;
   if (m === "tower") return towerMeta();               // 10-13 挑戰燈塔：最高第幾層
   if (m === "bubble" || m === "deliver") { const n = Object.keys(save[m].stars || {}).length; return el("span", "pk-txt", `🏁 ${n}／${m === "bubble" ? BUBBLE_N : DELIVER_TASKS} 關・越後面越難`); }   // 10-13：關卡制的難度＝第幾關（泡泡 50、配送 12），寫出總關數讓家長看得懂
-  if (m === "tops") return el("span", "pk-txt", topsTrial() ? "🎁 第一次免費玩・之後 15 顆星換 1 張券" : `🎟️ ${save.tops.tickets}・對手段位 ${topsRankLabel()}`);   // 10-13 阿葉「第一次不用星星就可以玩，後面才需要」：本來就第一次免費，介紹卡寫清楚   // 10-13 v7：陀螺的難度＝對手段位（新手→銅→銀→金→彩虹）
+  if (m === "tops") return el("span", "pk-txt", topsTrial() ? `🎁 第一次免費玩・之後 ${TOPS_STARS} 顆⭐玩一次` : `⭐ ${save.tops.stars} 顆・${TOPS_STARS} 顆玩一次・${topsRankLabel()}`);   // 10-13 阿葉「第一次不用星星就可以玩，後面才需要」；10-31 不用券、直接扣星星：寫出有幾顆、玩一次幾顆（星星不夠＝showPick 鎖起來）   // 10-13 v7：陀螺的難度＝對手段位（新手→銅→銀→金→彩虹）
   return starRow(m === "detective" ? save.detective.best : save.best[m] || 0);
 }
 function topsTrial() { return !!(save && save.tops && !save.tops.freeUsed); }   // 陀螺第一次免費那場還沒用過（function 宣告：開頁 loadSlot→renderMenu 比這行早跑）；   // 10-13 阿葉「陀螺第一次不用貼紙或星星就可以玩，要先讓人玩一次看看才知道」：還沒用過第一次免費＝可以試玩（貼紙不夠、歸仁區還沒開也行）
@@ -854,15 +858,16 @@ const pickNeed = (m, info = {}) => m === "dress" ? (info.locked ? Math.max(1, (i
 function showPick(m, info = {}) {
   const g = GAME_INFO[m]; if (!g || mode) return;
   pickMode = m;
-  const need = pickNeed(m, info), lockedM = need > 0, box = $("pick");
+  const need = pickNeed(m, info), starLock = m === "tops" && need <= 0 && !topsCanPlay(), lockedM = need > 0 || starLock, box = $("pick");   // 10-31 陀螺星星不夠＝跟沒開一樣不給「開始玩」，先說還差幾顆（以前會進去打完字才發現不能玩）
   $("pkIco").textContent = modeIco(m); $("pkName").textContent = g.name; $("pkDesc").textContent = g.desc;
   const meta = $("pkMeta"); meta.innerHTML = ""; const mt = lockedM ? null : pickMeta(m); if (mt) meta.appendChild(mt);
-  $("pkLock").textContent = lockedM ? `🔒 再收集 ${need} 張貼紙` : "";
+  $("pkLock").textContent = starLock ? `⭐ ${save.tops.stars}／${TOPS_STARS}・再拿 ${topsNeed()} 顆星星就能玩` : lockedM ? `🔒 再收集 ${need} 張貼紙` : "";
   PZ(() => pickLevels(m, lockedM));                     // v6：五色等級徽章（可切換，預設最高級）
   box.classList.toggle("locked", lockedM); box.dataset.mode = m;
   if (box.classList.contains("hidden")) { box.classList.remove("hidden"); } else { box.classList.remove("swap"); void box.offsetWidth; box.classList.add("swap"); }   // 換一棟：彈一下
   document.body.classList.add("pick-on");
   play("tap"); talk(g.name + "！");                      // 貓頭鷹唸名字（說明語音關著就不唸）
+  if (starLock) queueTalk(`再拿 ${topsNeed()} 顆星星就能玩陀螺喔！`);   // 10-31 櫻木：星星不夠第一次點就說為什麼不能玩（唸完名字接著唸；有預錄；字已經寫在介紹卡上）
 }
 // v6 介紹卡的等級徽章（§2.1、§1.4）：名字下面一排五顆圓形徽章（綠藍紫橘金＋數字，不用星星圖案免得跟分數混淆）；沒開的灰＋🔒；
 // 每顆下面小字＝那級最佳星數；預設選開到的最高級（max），點一顆＝這次玩那一級（存 cur）
@@ -1288,6 +1293,7 @@ function getResume() {
 async function startMode(m, resume, tw) {
   if (tower && tower !== tw) towerEnd(tower, true);    // 爬塔局進行中被別的遊戲打斷＝離開挑戰
   if (!tw && stickerCount() < MODES[m].need) { play("select"); guideSay(`再收集 ${MODES[m].need - stickerCount()} 張貼紙就可以玩囉！`); return; }
+  if (m === "tops" && !topsCanPlay()) { play("select"); guideSay(`再拿 ${topsNeed()} 顆星星就能玩陀螺喔！`); return; }   // 10-31：陀螺星星不夠（介紹卡已經鎖著；3D 同一棟再點、卡片選單也擋）
   towerNavKeep = !!tw; const tok = nav(); towerNavKeep = false; stopSpeech(); introUntil = 0; clearIdle(); locked = true;
   if (!tw) { pzAdd("play", 1); PZ(() => plaza.roundStart()); }   // 同樂廣場：開始一局（全島「這週大家玩了幾次」）；這一局幫了多少從 0 算
   // 音樂與開場語在「點下去的當下」就開始（iOS 要求在點擊裡啟動聲音；圖片載入時也不會一片安靜）
@@ -2210,7 +2216,7 @@ function renderDeliverPick() {
 // 第一次玩：教學交給模組唸（start({ intro:true })：卡片等教學講完才出來）；之後 intro:false（主程式本來就不唸開場語，見 SELF_INTRO）。
 // 答對一題（模組的 onCorrect）＝點心 +1、同樂廣場讀字週 +1；演出完（onWin）存檔 save.detective＝{ seen, best }，結算走共用 showResult（星星＝模組算的、點心再 +2、唸 WIN_TALK）。
 let detectiveMod = null, detectiveGame = null, detectiveRun = null, detectiveWinTalk = "", detectiveAdv = null;
-const importDetective = () => detectiveMod || (detectiveMod = import("./zhuyin-detective.js?v=5").catch(e => { detectiveMod = null; throw e; }));
+const importDetective = () => detectiveMod || (detectiveMod = import("./zhuyin-detective.js?v=6").catch(e => { detectiveMod = null; throw e; }));
 const DETECTIVE_FAIL = "偵探社現在打不開，等一下再試試看！";
 async function buildDetective() {
   const tok = navToken; let m;
@@ -2242,15 +2248,16 @@ function detectiveWin(r) {
 }
 
 // ---------- 注音戰鬥陀螺（10-12；js/zhuyin-tops.js＋css/zhuyin-tops.css；入口＝歸仁區「陀螺競技場」；docs/zhuyin-tops-spec.md）----------
-// 用注音拼 5 個字 → 5 顆陀螺 → 一對一對戰。要「陀螺券」：每次結算拿到的星星都存進 save.tops.starsBank，滿 15 顆換 1 張（最多 3 張）；第一次免費。
-// 券在按「下場！」那一刻才扣（模組呼叫 useTicket）；下場了還沒打完就離開（🏠 回小島、重新開始、3D 掛掉）＝那張券退回（topsRefund，小孩誤觸不會白白損失 15 顆星星）。
+// 用注音拼 5 個字 → 合體成一顆陀螺 → 三戰兩勝。玩一次要 TOPS_STARS（5）顆「陀螺星星」：每次結算拿到的星星都另存一份在 save.tops.stars（不扣星星罐）；第一次免費。
+//   10-31 阿葉：「不用兌換券、直接用星星就可以玩」＋小孩不知道怎麼換、卡在取名後 → 拿掉陀螺券和陀螺蛋（沒券打完字只能存成蛋＝卡住）；星星不夠在介紹卡就說還差幾顆、不讓進去打字。
+// 星星在按「下場！」那一刻才扣（模組呼叫 pay）；下場了還沒打完就離開（🏠 回小島、重新開始、3D 掛掉）＝星星退回（topsRefund，小孩誤觸不會白白損失）。
 // 全島陀螺榜：讀＝同樂廣場後端 doGet 的 tops（只有公開的前 5 名；不足 5 筆用模組的 LEGENDS 補）；送＝POST {k:"top", p}（只有詞句本身，戰力伺服器重算）。
 //   跟同樂廣場同一個開關：家長關掉廣場、或在本機／自動化瀏覽器（plaza 的 netOK）＝不送也不讀，全島榜只有島上傳說。我家排行＝這台平板（save.tops.home）。
-// 結算是模組自己的畫面（勝負、戰力、兩個排行榜、再玩一次／回小島）；陀螺不給星星（券的經濟跟星星罐分開），所以不走共用 showResult、也不送同樂廣場的 star。
-let topsMod = null, topsGame = null, topsPending = null, topsLegends = [], topsIsland = [];   // topsPending：已經扣了券、還沒打完的那一場 { free }
+// 結算是模組自己的畫面（勝負、戰力、兩個排行榜、再玩一次／回小島）；陀螺不給星星（陀螺星星跟星星罐分開），所以不走共用 showResult、也不送同樂廣場的 star。
+let topsMod = null, topsGame = null, topsPending = null, topsLegends = [], topsIsland = [];   // topsPending：已經扣了星星、還沒打完的那一場 { free }
 function importTops() {
   if (topsMod) return topsMod;
-  const url = "./zhuyin-tops.js?v=2";                   // 要 three（importmap）；舊 iPad 沒有 importmap → 跟 3D 小島一樣走 es-module-shims
+  const url = "./zhuyin-tops.js?v=3";                   // 要 three（importmap）；舊 iPad 沒有 importmap → 跟 3D 小島一樣走 es-module-shims
   const p = window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports("importmap") ? import(url)
     : window.importShim ? window.importShim(new URL(url, import.meta.url).href) : Promise.reject(new Error("no importmap"));
   return (topsMod = p.catch(e => { topsMod = null; throw e; }));
@@ -2260,7 +2267,8 @@ const TOPS_DICT_URL = new URL("./zhuyin-tops-dict.json?v=1", import.meta.url).hr
 // 手指一碰陀螺卡片／3D 競技場浮標（hub3d 會轉成卡片的 pointerdown）＝先抓引擎＋字典（10-12 里維：放開時多半已經好了）
 function topsPreload() { importTops().then(m => m.loadDict && m.loadDict(TOPS_DICT_URL)).catch(() => {}); }
 { const c = document.querySelector(".mode-card[data-mode=tops]"); if (c) c.addEventListener("pointerdown", topsPreload); }
-const topsNeed = () => Math.max(1, TOPS_STARS - save.tops.starsBank);
+function topsNeed() { return Math.max(1, TOPS_STARS - save.tops.stars); }   // 還差幾顆星星（function 宣告：介紹卡、startMode 都會叫）
+function topsCanPlay() { return !save.tops.freeUsed || save.tops.stars >= TOPS_STARS; }   // 第一次免費還沒用、或星星夠扣一次
 // v7 段位（對手難度）：新手 → 銅牌 → 銀牌 → 金牌 → 彩虹；贏一場升一段（模組 onWin 的 info.rank）。名字跟 js/zhuyin-tops.js 的 RANKS 一樣（tools/zy-test/tops.js 比對）
 // 介紹卡用：topsRankLabel() → "🥉 銅牌"（純函式，不動畫面、不呼叫 nav/goMenu、不清 gLater）
 const TOPS_RANKS = [["🔰", "新手"], ["🥉", "銅牌"], ["🥈", "銀牌"], ["🥇", "金牌"], ["🌈", "彩虹"]];
@@ -2268,27 +2276,25 @@ function topsRank() { return Math.min(TOPS_RANKS.length - 1, Math.max(0, save.to
 function topsRankLabel() { const r = TOPS_RANKS[topsRank()]; return `${r[0]} ${r[1]}`; }
 if (location.search.includes("debug")) setTimeout(() => { if (window.__zy) Object.assign(window.__zy, { topsRankLabel }); }, 0);   // 測試用（window.__zy 在檔案最後才建，模組跑完才合併）
 const topsNet = () => { try { return plaza.isOn() && !!plaza.debug.netOK; } catch (e) { return false; } };   // 跟同樂廣場同一個開關（plaza 的 netOK：本機／自動化瀏覽器不連，?plaza=on 才連）
-// 結算拿到星星：存進 starsBank，滿 15 顆換 1 張券；券滿 3 張時 starsBank 最多存到 15（用掉一張後，下次結算再換）。回傳這次換到幾張
+// 結算拿到星星：也存一份進陀螺星星。回傳 1＝這次剛好從「不夠」變成「夠玩一次」（結算膠囊＋貓頭鷹提醒可以去玩陀螺）
 function topsCredit(n) {
-  const t = save.tops; let got = 0;
-  t.starsBank += Math.max(0, Math.floor(+n) || 0);
-  while (t.starsBank >= TOPS_STARS && t.tickets < TOPS_MAX) { t.tickets++; t.starsBank -= TOPS_STARS; got++; }
-  t.starsBank = Math.min(TOPS_STARS, t.starsBank);
-  return got;
+  const t = save.tops, was = t.stars;
+  t.stars = Math.min(TOPS_BANK, t.stars + Math.max(0, Math.floor(+n) || 0));
+  return t.freeUsed && was < TOPS_STARS && t.stars >= TOPS_STARS ? 1 : 0;   // 第一次免費還沒用＝本來就能玩，不用提醒
 }
-function topsUseTicket() {                             // 第一次免費優先（有券也先用免費的那次）
+function topsPay() {                                   // 按「下場！」：第一次免費優先（星星夠也先用免費的那次），不然扣 TOPS_STARS 顆
   const t = save.tops;
   if (!t.freeUsed) { t.freeUsed = 1; topsPending = { free: true }; }
-  else if (t.tickets > 0) { t.tickets--; topsPending = { free: false }; }
+  else if (t.stars >= TOPS_STARS) { t.stars -= TOPS_STARS; topsPending = { free: false }; }
   else return false;
-  t.pending = topsPending.free ? 2 : 1;                 // 扣券跟「待退」一起存（里維必修 2）：分頁被回收／重新整理，下次開頁 loadSlot 會退回
+  t.pending = topsPending.free ? 2 : 1;                 // 扣星星跟「待退」一起存（里維必修 2）：分頁被回收／重新整理，下次開頁 loadSlot 會退回
   persist(); return true;
 }
-function topsRefund() {                                // nav() 呼叫：下場了還沒打完就離開 → 退回那張券（免費那次也還回去）
+function topsRefund() {                                // nav() 呼叫：下場了還沒打完就離開 → 退回扣掉的星星（免費那次也還回去）
   topsPending = null;                                  // 以存檔的 save.tops.pending 為準（loadSlot 已經退過就不會再退一次）
   if (topsUnpend(save.tops)) persist();
 }
-// （10-12 起沒券不擋在門口：模組照樣進打字畫面，打好的句子存成陀螺蛋；「再拿 N 顆星星」改在模組的結算／蛋畫面用 15 格集點卡顯示，回小島時貓頭鷹再說）
+// （10-31 起星星不夠擋在門口：介紹卡鎖著、startMode 不進；結算後星星不夠＝模組顯示「星星不夠了」卡片，回小島時貓頭鷹再說還差幾顆）
 // 全島榜（模組開局就要，挑對手用）：後端公開的前 5 名（最多等 4 秒；連不上用上次讀到的），不足 5 筆用島上傳說補（戰力由模組照公式算）
 async function topsBoard() {
   let tops = null;
@@ -2327,34 +2333,33 @@ async function buildTops() {
   if (!topsGame) topsGame = m.createTopsGame($("topsRoot"), {
     say: (t, r, cb) => say(t, r, cb), talk: (t, cb) => talk(t, cb), play: (n, r) => play(n, r), later: (fn, ms) => gLater(fn, ms), paused: () => gamePaused,
     onWin: info => topsWin(info), onSubmit: p => topsSubmit(p), leaderboard: () => topsBoard(),
-    tickets: () => save.tops.tickets, useTicket: () => topsUseTicket(), firstFree: () => !save.tops.freeUsed, needStars: () => topsNeed(),
-    starsBank: () => save.tops.starsBank,                // 15 格集點卡（10-12 櫻木）
+    stars: () => save.tops.stars, cost: TOPS_STARS, pay: () => topsPay(), firstFree: () => !save.tops.freeUsed,   // 10-31 陀螺星星（不用券）
     rank: () => topsRank(),                              // v7 段位（對手照段位挑）
     bgm: k => { if (mode === "tops") playBgm(k || MODES.tops.bgm); },   // v7：合體起＝battle；回打字＝null → 換回 road
-    eggs: () => save.tops.eggs.map(e => ({ p: e.p, ...(e.z ? { z: e.z.slice() } : {}) })), setEggs: l => { save.tops.eggs = cleanTops({ eggs: l }).eggs; persist(); },   // 陀螺蛋：沒券時打好的句子
+    eggs: () => save.tops.eggs.map(e => ({ p: e.p, ...(e.z ? { z: e.z.slice() } : {}) })), setEggs: l => { save.tops.eggs = cleanTops({ eggs: l }).eggs; persist(); },   // 陀螺蛋：10-31 前沒券時打好的句子（只孵、不再生新的）
     onExit: e => setTimeout(() => topsExit(e), 0), onFail: f => setTimeout(() => topsFail(f), 0),
     dictUrl: TOPS_DICT_URL,
   });
   try { await topsGame.start(); } catch (e) { console.warn("[tops] start", e); }
 }
-// 分出勝負（模組 onWin，結算畫面出來前）：券這一場用掉了（不退）；最佳、我家排行（模組算好的前 5）、最近 10 句存起來
+// 分出勝負（模組 onWin，結算畫面出來前）：星星這一場用掉了（不退）；最佳、我家排行（模組算好的前 5）、最近 10 句存起來
 function topsWin(info) {
   if (mode !== "tops" || !info || typeof info.phrase !== "string") return;
   topsPending = null;
   const t = save.tops, power = Math.max(0, Math.min(9999, Math.floor(+info.power) || 0));
-  t.pending = 0;                                       // 打完了：券這一場用掉（不退），下面 persist() 一起存
+  t.pending = 0;                                       // 打完了：星星這一場用掉（不退），下面 persist() 一起存
   t.home = cleanTops({ home: Array.isArray(info.home) ? info.home : [] }).home;
   if (!t.best || power > t.best.power) t.best = { p: info.phrase, power };
   t.history = cleanTops({ history: [...t.history, { p: info.phrase, power, win: info.win ? 1 : 0, o: info.opponent && info.opponent.p }] }).history;
   if (info.win && info.rank && Number.isFinite(+info.rank.to)) t.rank = Math.max(t.rank, Math.min(t.rank + 1, TOPS_RANKS.length - 1, Math.floor(+info.rank.to)));   // v7 段位：贏了最多升一段、不會降
   persist();
 }
-function topsExit(e) {                                 // 模組要回小島：結算按 🏝️、存好陀螺蛋後按 🏝️（why "noticket"＝貓頭鷹說還差幾顆星星）
+function topsExit(e) {                                 // 模組要回小島：結算按 🏝️、「星星不夠了」卡片按 🏝️（why "nostars"＝貓頭鷹寫還差幾顆星星；模組已經唸過，這裡不出聲）
   if (mode !== "tops") return;
   goMenu();
-  if (e && e.why === "noticket") guideSay(`再拿 ${topsNeed()} 顆星星就能玩陀螺喔！`, false);
+  if (e && e.why === "nostars") guideSay(`再拿 ${topsNeed()} 顆星星就能玩陀螺喔！`, false);
 }
-function topsFail(f) {                                 // 字典載不到、3D 畫面被系統收走：回小島（下場了沒打完的券由 nav() 退回）；沒有 WebGL2＝模組照樣用平面畫面玩，不用回去
+function topsFail(f) {                                 // 字典載不到、3D 畫面被系統收走：回小島（下場了沒打完的星星由 nav() 退回）；沒有 WebGL2＝模組照樣用平面畫面玩，不用回去
   if (mode !== "tops" || !f || f.why === "nowebgl") { if (f) console.warn("[tops]", f.why); return; }
   console.warn("[tops] 打不開，回小島", f);
   goMenu(); guideSay(TOPS_FAIL);
@@ -2363,7 +2368,7 @@ function topsFail(f) {                                 // 字典載不到、3D �
 // ---------- 挑戰燈塔（爬塔／無限挑戰，10-13；js/zhuyin-tower.js＋zhuyin-tower-core.js＋css/zhuyin-tower.css；入口＝主島燈塔岬；docs/zhuyin-v6-plan.md §5）----------
 // 1–100 層，一層一個遊戲（呼叫主程式的 playFloor）、每 10 層守塔怪（泡泡 Boss＝playBubbleBoss、連戰＝playFloor 6 次）；規則都在模組裡。
 // 爬塔名字（24 個代號）＋排行榜前 5 名：後端＝同樂廣場同一個 Apps Script（tw_claim／tw_ping／tw_score／tw_leave；doGet 的 tower）。跟同樂廣場同一個開關（topsNet）。
-// 存檔 zy{n}_tower（模組 cleanTower 清洗）；秘密碼只在本機、只用 POST 送、不印出來。星星＝放進星星罐（也算陀螺券、同樂廣場收集週）；扭蛋幣＝save.rw.coins。
+// 存檔 zy{n}_tower（模組 cleanTower 清洗）；秘密碼只在本機、只用 POST 送、不印出來。星星＝放進星星罐（也算陀螺星星、同樂廣場收集週）；扭蛋幣＝save.rw.coins。
 let towerMod = null, towerGame = null, towerCoreP = null;
 const importTower = () => towerMod || (towerMod = import("./zhuyin-tower.js?v=1").catch(e => { towerMod = null; throw e; }));
 const towerCore = () => towerCoreP || (towerCoreP = import("./zhuyin-tower-core.js?v=1").catch(e => { towerCoreP = null; throw e; }));   // 每天回報、家長頁用（同一個網址＝跟模組同一份）
@@ -2484,7 +2489,7 @@ function showResult() {
   save.stars += jarAdd; statsStars(mode, roundStars);   // 玩了什麼：這個遊戲累計星星（記表現，不是罐子）
   pzAdd("star", jarAdd); const pzGain = PZ(() => plaza.roundGain()); PZ(() => plaza.flushSoon(2500));   // 同樂廣場：收集週＝結算拿到的星星；這一局幫了多少（左上小字）；演出完合併送出
   const rwGain = { coins: RW.creditJar(save.rw, save.stars), stamp: RW.stampToday(save.rw, today()), cats: RW.categoryBonus(save.rw, CATS.map(c => ({ id: c.id, words: WORDS.filter(w => w.c === c.id).map(w => w.h) })), save.stickers), treats: roundTreats, fed: RW.feed(save.rw, roundTreats),
-    tickets: topsCredit(jarAdd) };                     // 10-12 陀螺券：這次的星星也存進陀螺的 starsBank（跟星星罐分開算，不扣罐子）
+    topsReady: topsCredit(jarAdd) };                   // 這次的星星也存一份進陀螺星星（跟星星罐分開算，不扣罐子）；1＝剛好夠玩一次陀螺了
   rwGain.evo = PZ(() => evoAfterRound(L, roundStars, lvr, roundTreats)) || null;   // v7 進化能量：第 3 級以上 3 星、每天第一次餵點心（只加給超級的夥伴）
   persist();
   const st = rs = { tok: navToken, T: [], fly: [], done: false, said: false, record, stamped: false, jarFrom, t0: performance.now(), k: earned.length, rw: rwGain, lv: lvr };
@@ -2668,7 +2673,7 @@ function rewardStrip(st) {
   if (g.coins) add(`🪙 扭蛋幣 +${g.coins}`);
   if (g.cats.length) add(`🎉 ${g.cats.map(id => CATS.find(c => c.id === id)?.label).join("、")}貼紙集滿！🪙 +${g.cats.length}`);
   if (g.fed.grew) { const p = RW.PET[save.rw.partner]; add(`✨ ${p.name}${g.fed.grew === 3 ? "變成超級" : "長大"}了！`); setTimeout(() => { if (rs === st) talk(`${p.name}${g.fed.grew === 3 ? "變成超級" : "長大"}了！`); }, 1200); }
-  if (g.tickets && stickerCount() >= MODES.tops.need) { add(`🎟️ 陀螺券 +${g.tickets}`); setTimeout(() => { if (rs === st) queueTalk("拿到一張陀螺券了！"); }, 1600); }   // 10-12 陀螺券（陀螺競技場開了才提：還沒開的先默默存著）
+  if (g.topsReady && stickerCount() >= MODES.tops.need) { add(`🌀 ${TOPS_STARS} 顆⭐夠玩陀螺了！`); setTimeout(() => { if (rs === st) queueTalk("星星夠了，可以去玩陀螺囉！"); }, 1600); }   // 10-31 陀螺星星剛好夠玩一次（陀螺競技場開了才提：還沒開的先默默存著）
   if (g.evo && g.evo.got) add(`💫 進化能量 +${g.evo.got}`);   // v7 寵物進化：能量只給超級的夥伴；集滿＝回小島點牠看進化
   if (g.evo && g.evo.full && RW.PET[g.evo.id]) { const nm = RW.PET[g.evo.id].name; add(`🌟 ${nm}要進化了！`); setTimeout(() => { if (rs === st) queueTalk(`${nm}好像要進化了！`); }, 2000); }
   if (st.pz) {   // 10-12 同樂廣場：左下角小字（不跳出、不打斷；css/zhuyin-plaza.css）；寬度到右下星星罐左邊為止
