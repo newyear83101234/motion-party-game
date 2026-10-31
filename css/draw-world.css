@@ -38,7 +38,7 @@
 /* 角色：絕對定位，每幀只改 transform；白色描邊像貼紙，在什麼背景上都跳得出來 */
 #world .w-mob { position: absolute; left: 0; top: 0; transform-origin: 50% 100%; will-change: transform; pointer-events: none; transform: scale(0); }
 #world .w-mob > img, #world .w-mob > canvas { display: block; width: 100%; height: 100%; object-fit: contain; -webkit-user-drag: none;
-  filter: drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff) drop-shadow(0 5px 4px rgba(40, 30, 10, .22)); }
+  filter: drop-shadow(0 5px 4px rgba(40, 30, 10, .22)); }   /* 白邊已經烤在角色圖裡（主程式剪角色時加），這裡只留影子 */
 #world .w-new > img, #world .w-new > canvas {   /* 剛畫完飛下來的那隻：發金光幾秒 */
   filter: drop-shadow(3px 0 0 #fff) drop-shadow(-3px 0 0 #fff) drop-shadow(0 3px 0 #fff) drop-shadow(0 -3px 0 #fff) drop-shadow(0 0 8px #fff6b0) drop-shadow(0 0 14px #ffc93c); }
 #world .w-shadow { position: absolute; left: 0; top: 0; z-index: 0; border-radius: 50%; pointer-events: none; will-change: transform; transform: scale(0);

@@ -265,12 +265,17 @@ function cutout(c) {
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (!mask[(y + y0) * W + x + x0]) d[(y * w + x) * 4 + 3] = 0;
   const t = document.createElement("canvas");
   t.width = w; t.height = h; t.getContext("2d").putImageData(img, 0, 0);
-  const k = Math.min(1, 600 / Math.max(w, h));
-  if (k === 1) return t;
-  const o = document.createElement("canvas");
-  o.width = Math.round(w * k); o.height = Math.round(h * k);
-  o.getContext("2d").drawImage(t, 0, 0, o.width, o.height);
-  t.width = t.height = 0;
+  // 縮到最長邊 600，外圍加一圈白邊（像貼紙；先烤進圖裡，世界裡就不用每隻角色疊 4 層 CSS 濾鏡，iPad 比較順）
+  const E = 7, k = Math.min(1, (600 - E * 2) / Math.max(w, h)), cw = Math.round(w * k), ch = Math.round(h * k);
+  const sil = document.createElement("canvas"), o = document.createElement("canvas");
+  sil.width = cw; sil.height = ch;
+  const sx = sil.getContext("2d");
+  sx.drawImage(t, 0, 0, cw, ch); sx.globalCompositeOperation = "source-in"; sx.fillStyle = "#fff"; sx.fillRect(0, 0, cw, ch);
+  o.width = cw + E * 2; o.height = ch + E * 2;
+  const ox = o.getContext("2d");
+  for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8; ox.drawImage(sil, E + Math.cos(a) * E, E + Math.sin(a) * E); }
+  ox.drawImage(t, E, E, cw, ch);
+  t.width = t.height = 0; sil.width = sil.height = 0;
   return o;
 }
 
