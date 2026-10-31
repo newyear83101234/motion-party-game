@@ -117,8 +117,10 @@ export class Fx {
     sx.putImageData(img, 0, 0);
     const part = mk(w, h), px = part.getContext("2d");
     px.drawImage(shape, 0, 0); px.globalCompositeOperation = "source-in"; px.drawImage(comp, x0, y0, w, h, 0, 0, w, h);
-    const hole = mk(w, h), hx = hole.getContext("2d");
-    hx.drawImage(shape, 0, 0); hx.globalCompositeOperation = "source-in"; hx.fillStyle = fill; hx.fillRect(0, 0, w, h);
+    // 補洞再往外擴 HP 像素，蓋掉黑線外緣的抗鋸齒淡灰（它們不算線，所以不在零件遮罩裡）
+    const HP = 3, hole = mk(w + HP * 2, h + HP * 2), hx = hole.getContext("2d");
+    for (let dy = -HP; dy <= HP; dy += HP) for (let dx = -HP; dx <= HP; dx += HP) hx.drawImage(shape, HP + dx, HP + dy);
+    hx.globalCompositeOperation = "source-in"; hx.fillStyle = fill; hx.fillRect(0, 0, hole.width, hole.height);
     const [cx, cy] = pt.pivot || [x0 + w / 2, y0 + h / 2];
     return { type: pt.type, deg: pt.deg || 12, x: x0, y: y0, img: part, hole, px: cx, py: cy };
   }
@@ -146,7 +148,7 @@ function drawPart(O, q, s) {
   }
   const a = q.type === "spin" ? s * Math.PI * 2 : Math.sin(s * Math.PI * (q.type === "wag" ? 6 : 4)) * q.deg * Math.PI / 180;
   O.save();
-  O.drawImage(q.hole, q.x, q.y);
+  O.drawImage(q.hole, q.x - (q.hole.width - q.img.width) / 2, q.y - (q.hole.height - q.img.height) / 2);
   O.translate(q.px, q.py); O.rotate(a); O.translate(-q.px, -q.py);
   O.drawImage(q.img, q.x, q.y);
   O.restore();
