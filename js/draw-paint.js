@@ -149,6 +149,13 @@ export class Painter {
     b.ctx.fillStyle = "#fff"; b.ctx.fillRect(0, 0, b.W, b.H);
     b.gctx.clearRect(0, 0, b.W, b.H);
   }
+
+  // 貼紙：以 (x, y) 為中心蓋上去，不受不出線限制
+  sticker(img, x, y, size) {
+    const c = mk(size, size);
+    c.getContext("2d").drawImage(img, 0, 0, size, size);
+    this.commit(c, Math.round(x - size / 2), Math.round(y - size / 2), false);
+  }
 }
 
 // 材質顏料：整張畫布大小。純色直接填；亮粉與圖樣先做一塊小磁磚，再鋪滿整張

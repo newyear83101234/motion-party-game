@@ -103,6 +103,19 @@ function versionCheck() {
   check("清空也能復原", await px(1050, 650) === "142,36,170");
   await p.screenshot({ path: path.join(OUT, "03-strokes.png") });
 
+  // Task 6：貼紙
+  const st = await p.evaluate(async () => {
+    const M = await import("./js/draw-stickers.js?v=1");
+    const ids = M.STICKERS.map(s => s.id);
+    const img = await M.stickerImage("star");
+    __draw.painter.sticker(img, 1000, 1200, 200);
+    return { n: ids.length, uniq: new Set(ids).size };
+  });
+  check("12 種貼紙、編號不重複", st.n === 12 && st.uniq === 12, JSON.stringify(st));
+  check("蓋上星星貼紙", await px(1000, 1200) !== "255,255,255", await px(1000, 1200));
+  await p.evaluate(() => __draw.painter.undo());
+  check("貼紙可以復原", await px(1000, 1200) === "255,255,255");
+
   // ── 後續 task 的測試插在這一行上面 ──
   check("沒有頁面錯誤", errs.length === 0, errs.join(" | "));
   await browser.close();
