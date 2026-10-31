@@ -1,9 +1,12 @@
 // 畫畫遊戲塗色：先在暫存畫布做好、用區塊遮罩裁切後才合進顏色層；復原只存被改到的長方形範圍
-import { regionMask, regionAt, rectClamp, rectUnion, History } from "./draw-core.js?v=4";
-import { makeCanvas as mk } from "./draw-canvas.js?v=4";
+import { regionMask, regionAt, rectClamp, rectUnion, History } from "./draw-core.js?v=5";
+import { makeCanvas as mk } from "./draw-canvas.js?v=5";
 
 // 每種筆的筆跡最遠會離中心線幾倍半徑（即時層的重畫範圍要涵蓋到）；沒列的是 1 倍
-const REACH = { crayon: 1.3, watercolor: 1.25, spray: 1.75, neon: 1.7, sparkle: 1.75, pencil: 0.5 };
+const REACH = { crayon: 1.3, watercolor: 1.25, spray: 1.75, neon: 1.7, sparkle: 1.75, pencil: 0.5, chalk: 1.2 };
+// 魔法筆的配色：柔和又鮮豔，每一塊從這裡挑一個
+const MAGIC = ["#ff8a80", "#ffb74d", "#ffe57f", "#b9f6ca", "#80d8ff", "#b388ff", "#f48fb1", "#a5d6a7",
+  "#ffcc80", "#81d4fa", "#ce93d8", "#fff59d", "#90caf9", "#ef9a9a", "#80cbc4", "#c5e1a5"];
 
 export class Painter {
   constructor(board) {
@@ -15,6 +18,7 @@ export class Painter {
   }
   reset() {
     this.history.clear(); this.maskCache.clear(); this.paintKey = ""; if (this.paint) this.paint.width = 0; this.paint = null;
+    if (this.magic) { this.magic.width = this.magic.height = 0; this.magic = null; }
     this.st = null;
     if (this.scratch) { this.scratch.width = this.scratch.height = 0; this.scratch = null; this.sctx = null; }
   }
@@ -39,6 +43,29 @@ export class Painter {
     const key = `${mat.kind}:${mat.pattern || ""}:${color}`;
     if (key !== this.paintKey) { if (this.paint) this.paint.width = 0; this.paint = makePaint(mat, color, this.b.W, this.b.H); this.paintKey = key; }
     return this.paint;
+  }
+
+  // 魔法筆的「答案圖」：每一塊自動配一個好看的顏色（同一張圖每次都一樣，回放也一樣），由上到下帶一點亮暗；
+  // 最大的那塊（背景）是天空漸層；黑線的位置沿用左邊的顏色，塞在線底下不留白縫
+  magicPaint() {
+    if (this.magic) return this.magic;
+    const b = this.b, W = b.W, H = b.H, Lb = b.labels, n = b.boxes.length, rnd = mulberry32(n * 7919 + W * 31 + H);
+    let bg = 0;
+    for (let i = 1; i < n; i++) if (b.boxes[i].area > b.boxes[bg].area) bg = i;
+    const cols = b.boxes.map(() => hexRgb(MAGIC[(rnd() * MAGIC.length) | 0]));
+    const sky = [hexRgb("#bfe6ff"), hexRgb("#fff3d6")];
+    const c = mk(W, H), x = c.getContext("2d"), img = x.createImageData(W, H), d = img.data;
+    for (let y = 0; y < H; y++) for (let i = 0; i < W; i++) {
+      const k = y * W + i, id = Lb[k], p = k * 4;
+      d[p + 3] = 255;
+      if (id < 0) { if (i > 0) { d[p] = d[p - 4]; d[p + 1] = d[p - 3]; d[p + 2] = d[p - 2]; } else d[p] = d[p + 1] = d[p + 2] = 255; continue; }
+      if (id === bg) { const t = y / H; for (let q = 0; q < 3; q++) d[p + q] = sky[0][q] + (sky[1][q] - sky[0][q]) * t; continue; }
+      const bx = b.boxes[id], t = (y - bx.y0) / Math.max(1, bx.y1 - bx.y0), cc = cols[id];
+      const f = t < 0.35 ? 0.3 * (1 - t / 0.35) : -0.14 * (t - 0.35) / 0.65;   // 上面亮、下面略暗
+      for (let q = 0; q < 3; q++) d[p + q] = f > 0 ? cc[q] + (255 - cc[q]) * f : cc[q] * (1 + f);
+    }
+    x.putImageData(img, 0, 0);
+    return (this.magic = c);
   }
 
   snapshot(rect) {
@@ -118,7 +145,7 @@ export class Painter {
     L.save();
     L.beginPath(); L.rect(seg.x, seg.y, seg.w, seg.h); L.clip();
     L.clearRect(seg.x, seg.y, seg.w, seg.h);
-    compose(L, o, this.scratch, seg, () => this.paintFor(o.mat, o.color));
+    compose(L, o, this.scratch, seg, () => (o.brush === "magic" ? this.magicPaint() : this.paintFor(o.mat, o.color)));
     if (st.mask) { L.globalCompositeOperation = "destination-in"; L.drawImage(st.mask.canvas, st.mask.x, st.mask.y); }
     L.restore();
   }
@@ -209,6 +236,18 @@ function drawSeg(sx, st, a, b) {
       sx.fillStyle = shade(o.color, 0.55);
       sx.beginPath(); sx.arc(cx + d * Math.cos(ang), cy + d * Math.sin(ang), r * 0.18, 0, Math.PI * 2); sx.fill();
     });
+  } else if (o.brush === "chalk") {        // 粉筆：顏色偏淡、顆粒細、邊緣毛毛的，會透一點底色
+    const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / (r * 0.25)));
+    sx.fillStyle = st.chalk || (st.chalk = shade(o.color, 0.3));
+    for (let i = 1; i <= n; i++) {
+      const cx = a.x + (b.x - a.x) * i / n, cy = a.y + (b.y - a.y) * i / n;
+      for (let k = 0; k < 14; k++) {
+        const ang = Math.random() * Math.PI * 2, d = r * Math.sqrt(Math.random());
+        sx.globalAlpha = 0.25 + Math.random() * 0.5;
+        sx.beginPath(); sx.arc(cx + d * Math.cos(ang), cy + d * Math.sin(ang), r * 0.14, 0, Math.PI * 2); sx.fill();
+      }
+    }
+    sx.globalAlpha = 1;
   } else if (o.brush === "pencil") {       // 鉛筆：細細的、深淺不一帶點顆粒
     const pr = Math.max(1.5, r * 0.3);
     sx.fillStyle = o.color;
@@ -219,7 +258,7 @@ function drawSeg(sx, st, a, b) {
       sx.fill();
     });
     sx.globalAlpha = 1;
-  } else {                                 // 馬克筆、橡皮擦（黑色形狀）、彩虹筆（邊畫邊換色）
+  } else {                                 // 馬克筆、魔法筆、橡皮擦（黑色形狀）、彩虹筆（邊畫邊換色）
     sx.lineCap = "round"; sx.lineJoin = "round"; sx.lineWidth = r * 2;
     if (o.brush === "rainbow") {
       st.hue = (st.hue + Math.hypot(b.x - a.x, b.y - a.y) * 0.4) % 360;
@@ -236,7 +275,7 @@ function compose(L, o, src, seg, paint) {
     L.fillStyle = o.brush === "eraser" ? "#fff" : o.color; L.fillRect(seg.x, seg.y, seg.w, seg.h);
     L.globalAlpha = 1;
     L.globalCompositeOperation = "destination-in";
-  } else if (o.brush === "marker") {
+  } else if (o.brush === "marker" || o.brush === "magic") {   // 魔法筆＝用「答案圖」當顏料的馬克筆
     L.drawImage(paint(), seg.x, seg.y, seg.w, seg.h, seg.x, seg.y, seg.w, seg.h);
     L.globalCompositeOperation = "destination-in";
   }
@@ -272,7 +311,7 @@ export function previewBrush(brush, color, w = 224, h = 132) {
     drawSeg(src.getContext("2d"), st, a, b); a = b;
   }
   const lay = mk(w, h);
-  compose(lay.getContext("2d"), st.o, src, { x: 0, y: 0, w, h }, () => makePaint({ kind: "solid" }, color, w, h));
+  compose(lay.getContext("2d"), st.o, src, { x: 0, y: 0, w, h }, () => makePaint({ kind: brush === "magic" ? "rainbowgrad" : "solid" }, color, w, h));   // 魔法筆預覽：彩虹（實際顏色看圖而定）
   const out = mk(w, h), O = out.getContext("2d");
   O.fillStyle = lum(color) > 0.75 ? "#7a6e60" : "#fff"; O.fillRect(0, 0, w, h);
   O.drawImage(lay, 0, 0);
@@ -302,6 +341,10 @@ export function makePaint(mat, color, W, H) {
   return c;
 }
 
+// 固定種子的亂數：同一張圖每次配到一樣的魔法顏色
+function mulberry32(a) {
+  return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
 function hexRgb(hex) { const n = parseInt(hex.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
 function shade(hex, k) {   // k < 0 變暗、k > 0 變亮
   const [r, g, b] = hexRgb(hex), f = v => Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k);

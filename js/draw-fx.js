@@ -1,6 +1,6 @@
 // 畫畫遊戲特效：填色水波、亮粉閃爍、完成動畫（跳一下＋零件動作＋彩帶）。全部沒有聲音
-import { regionAt, regionMask } from "./draw-core.js?v=4";
-import { makeCanvas as mk } from "./draw-canvas.js?v=4";
+import { regionAt, regionMask } from "./draw-core.js?v=5";
+import { makeCanvas as mk } from "./draw-canvas.js?v=5";
 
 export class Fx {
   constructor(board) { this.b = board; this.pending = null; this.sparkOn = false; this.parts = []; this.cells = []; }
@@ -140,7 +140,7 @@ export class Fx {
     // 洞裡每個點補「離它最近的、洞外的彩色點」的顏色：旁邊是機頭就補機頭色、是天空就補天空色，比整塊同一色自然
     const HP = 3, hole = mk(w + HP * 2, h + HP * 2), hx = hole.getContext("2d", { willReadFrequently: true });
     for (let dy = -HP; dy <= HP; dy += HP) for (let dx = -HP; dx <= HP; dx += HP) hx.drawImage(shape, HP + dx, HP + dy);
-    inpaint(comp, hx, x0 - HP, y0 - HP, fill);
+    inpaint(b.color, hx, x0 - HP, y0 - HP, fill);   // 從「顏色層」取色：它沒有黑線，補出來不會沾到線邊的灰色
     const [cx, cy] = pt.pivot || [x0 + w / 2, y0 + h / 2];
     return { type: pt.type, deg: pt.deg || 12, speed: pt.speed || 1, x: x0, y: y0, img: part, hole, px: cx, py: cy };
   }
@@ -177,7 +177,7 @@ function drawPart(O, q, s) {
   O.restore();
 }
 
-// 補洞：hx 畫布上不透明的地方＝洞（左上角在原圖 ox, oy）。洞外一圈 32px 裡的彩色點當顏色來源（太暗的黑線不算），
+// 補洞：hx 畫布上不透明的地方＝洞（左上角在原圖 ox, oy）。洞外一圈 32px 裡的點當顏色來源（src 用顏色層，沒有黑線），
 // 從洞的邊緣一圈一圈往裡補，每個點取「周圍 8 格已經有顏色的點」的平均（像剝洋蔥），顏色會自然延伸、不會拉出條紋；
 // 整個洞被黑線包住、沒有來源時用 fallback 色
 function inpaint(comp, hx, ox, oy, fallback) {
@@ -192,9 +192,7 @@ function inpaint(comp, hx, ox, oy, fallback) {
   }
   for (let k = 0; k < N; k++) {
     if (hole[k]) continue;
-    const r = src[k * 4], g = src[k * 4 + 1], b = src[k * 4 + 2];
-    if (r * 0.299 + g * 0.587 + b * 0.114 < 90) continue;   // 黑線、深色抗鋸齒不當顏色來源
-    ok[k] = 1; R[k] = r; Gc[k] = g; B[k] = b;
+    ok[k] = 1; R[k] = src[k * 4]; Gc[k] = src[k * 4 + 1]; B[k] = src[k * 4 + 2];
   }
   const NB = [-cw - 1, -cw, -cw + 1, -1, 1, cw - 1, cw, cw + 1];
   let ring = [];

@@ -7,25 +7,27 @@
   <meta name="theme-color" content="#fff4e0">
   <title>畫畫樂園</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="css/draw.css?v=4">
-  <link rel="modulepreload" href="js/draw-core.js?v=4">
-  <link rel="modulepreload" href="js/draw-canvas.js?v=4">
-  <link rel="modulepreload" href="js/draw-paint.js?v=4">
-  <link rel="modulepreload" href="js/draw-fx.js?v=4">
-  <link rel="modulepreload" href="js/draw-gallery.js?v=4">
-  <link rel="modulepreload" href="js/draw-stickers.js?v=4">
-  <link rel="modulepreload" href="js/draw-audio.js?v=4">
-  <link rel="modulepreload" href="js/draw-particles.js?v=4">
+  <link rel="stylesheet" href="css/draw.css?v=5">
+  <link rel="modulepreload" href="js/draw-core.js?v=5">
+  <link rel="modulepreload" href="js/draw-canvas.js?v=5">
+  <link rel="modulepreload" href="js/draw-paint.js?v=5">
+  <link rel="modulepreload" href="js/draw-fx.js?v=5">
+  <link rel="modulepreload" href="js/draw-gallery.js?v=5">
+  <link rel="modulepreload" href="js/draw-stickers.js?v=5">
+  <link rel="modulepreload" href="js/draw-audio.js?v=5">
+  <link rel="modulepreload" href="js/draw-particles.js?v=5">
 </head>
 <body>
   <!-- 首頁：上排選主題，下面是線稿縮圖 -->
   <section id="home" class="screen on">
     <header class="top hero">
-      <img class="mascot" src="IMAGE/draw/ui/mascot.png?v=4" alt="" onerror="this.remove()">
+      <img class="mascot" src="IMAGE/draw/ui/mascot.png?v=5" alt="" onerror="this.remove()">
       <h1 class="logo" aria-label="畫畫樂園"><span>畫</span><span>畫</span><span>樂</span><span>園</span></h1>
       <span class="grow"></span>
+      <button class="big tog" id="tSide" aria-label="工具列放左邊或右邊"><svg viewBox="0 0 40 40" width="40" height="40" fill="none" stroke-linejoin="round"><rect x="4" y="7" width="32" height="26" rx="5" fill="#fff" stroke="#3b2a1a" stroke-width="3"/><rect class="sideBar" x="27" y="10" width="6" height="20" rx="2" fill="#ffc93c" stroke="#3b2a1a" stroke-width="2"/><path d="M13 20h9M13 20l3.5-3.5M13 20l3.5 3.5" stroke="#3b2a1a" stroke-width="2.6" stroke-linecap="round"/></svg></button>
       <button class="big tog" id="tMusic" data-sfx="none" aria-label="背景音樂開關">🎵</button>
       <button class="big tog" id="tSound" data-sfx="none" aria-label="音效開關">🔊</button>
+      <button class="big gift" id="toScratch" data-sfx="magic" aria-label="刮刮樂驚喜">🎁</button>
       <button class="big" id="toGallery" aria-label="作品牆">🖼️</button>
     </header>
     <nav class="themes" id="themes"></nav>
@@ -57,8 +59,16 @@
     </div>
     <div id="pop" class="pop"></div>
     <button id="rStop" class="big" aria-label="停止回放"><svg viewBox="0 0 40 40" width="46" height="46"><defs><linearGradient id="gStop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8a80"/><stop offset="1" stop-color="#e53935"/></linearGradient></defs><rect x="7" y="7" width="26" height="26" rx="7" fill="url(#gStop)"/></svg></button>
+    <!-- 刮刮樂：畫好顏色的圖蓋一層銀色刮刮膜，用手指刮開；刮完選「自己畫這張」或「再刮一張」 -->
+    <canvas id="foil" class="foil"></canvas>
+    <div id="scratchBar" class="after scratch-bar">
+      <div class="cheer" aria-hidden="true"><img src="IMAGE/draw/ui/mascot.png?v=5" alt="" onerror="this.remove()"></div>
+      <button class="big" id="sHome" aria-label="回首頁">🏠</button>
+      <button class="big" id="sPaint" aria-label="自己畫這張">🖌️</button>
+      <button class="big" id="sAgain" data-sfx="magic" aria-label="再刮一張">🎁</button>
+    </div>
     <div id="after" class="after">
-      <div class="cheer" aria-hidden="true"><img src="IMAGE/draw/ui/mascot.png?v=4" alt="" onerror="this.remove()"><p><span>★</span><span>★</span><span>★</span></p></div>
+      <div class="cheer" aria-hidden="true"><img src="IMAGE/draw/ui/mascot.png?v=5" alt="" onerror="this.remove()"><p><span>★</span><span>★</span><span>★</span></p></div>
       <button class="big" id="aHome" aria-label="回首頁">🏠</button>
       <button class="big" id="aPlay" aria-label="回放畫畫過程">▶️</button>
       <button class="big" id="aAgain" aria-label="繼續畫">🖌️</button>
@@ -90,6 +100,6 @@
 
   <div id="toast" class="toast"></div>
   <div id="rotate" class="rotate">📱 ↻</div>
-  <script type="module" src="js/draw.js?v=4"></script>
+  <script type="module" src="js/draw.js?v=5"></script>
 </body>
 </html>

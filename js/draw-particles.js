@@ -34,7 +34,7 @@ export class Particles {
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2, v = 0.03 + Math.random() * 0.08;
       this.add({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 0.02, g: 0.00008, life: 420 + Math.random() * 300, age: 0,
-        r: 2 + Math.random() * 3, col: tint(o), kind: o.brush === "sparkle" ? "star" : "dot", glow: o.brush === "neon" });
+        r: 2 + Math.random() * 3, col: tint(o), kind: o.brush === "sparkle" || o.brush === "magic" ? "star" : "dot", glow: o.brush === "neon" || o.brush === "magic" });
     }
   }
   // 填色：顏料水花往外濺、往下掉，再加一圈白色波紋
@@ -89,7 +89,7 @@ export class Particles {
 }
 
 function tint(o) {
-  if (o.brush === "rainbow") return `hsl(${Math.random() * 360},90%,60%)`;
+  if (o.brush === "rainbow" || o.brush === "magic") return `hsl(${Math.random() * 360},90%,60%)`;
   if (o.brush === "sparkle") return Math.random() < 0.5 ? "#fff8c4" : o.color;
   return o.color;
 }

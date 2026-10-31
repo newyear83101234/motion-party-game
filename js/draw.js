@@ -1,11 +1,11 @@
 // 畫畫遊戲主程式：首頁、畫畫頁（工具列、彈出選單、手勢）、完成、作品牆
-import { Board } from "./draw-canvas.js?v=4";
-import { Painter, previewMat, previewBrush } from "./draw-paint.js?v=4";
-import { Fx } from "./draw-fx.js?v=4";
-import * as G from "./draw-gallery.js?v=4";
-import { STICKERS, stickerImage } from "./draw-stickers.js?v=4";
-import * as A from "./draw-audio.js?v=4";
-import { Particles } from "./draw-particles.js?v=4";
+import { Board } from "./draw-canvas.js?v=5";
+import { Painter, previewMat, previewBrush } from "./draw-paint.js?v=5";
+import { Fx } from "./draw-fx.js?v=5";
+import * as G from "./draw-gallery.js?v=5";
+import { STICKERS, stickerImage } from "./draw-stickers.js?v=5";
+import * as A from "./draw-audio.js?v=5";
+import { Particles } from "./draw-particles.js?v=5";
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -18,7 +18,7 @@ const COLORS = ["#e53935", "#f06292", "#ad1457", "#ff7043", "#fb8c00", "#ffb300"
   "#ffe0bd", "#f1c27d", "#c68642", "#ffcdd2", "#c8e6c9", "#bbdefb"];   // 最後一排：三種膚色＋三種粉嫩色（畫人物用）
 const MATS = [{ kind: "solid" }, { kind: "gradient" }, { kind: "rainbowgrad" }, { kind: "glitter" },
   ...["star", "heart", "dot", "stripe", "snow"].map(p => ({ kind: "pattern", pattern: p }))];   // 漸層：亮→暗立體感、彩虹
-const BRUSHES = ["marker", "crayon", "rainbow", "watercolor", "spray", "neon", "sparkle", "pencil"];
+const BRUSHES = ["magic", "marker", "crayon", "rainbow", "watercolor", "spray", "neon", "sparkle", "pencil", "chalk"];   // magic＝魔法筆：塗到哪、配好的顏色就出現在哪
 const AUTO = { ms: 10000 };            // 畫了東西多久沒再動就自動存檔（測試會改它）
 const SIZES = [10, 22, 40];            // 筆刷半徑（畫布像素）
 const STICKER_SIZE = [120, 200, 300];  // 貼紙邊長，跟著筆刷粗細
@@ -91,16 +91,20 @@ function renderHome(theme) {
   $("#themes").replaceChildren(...INDEX.themes.map(t => {
     const b = button("theme" + (t.id === theme ? " on" : ""), "", () => { if (t.id !== theme) renderHome(t.id); }, t.name);
     b.style.setProperty("--c", t.color || "#ffc93c");
-    b.append(t.img ? Object.assign(new Image(), { src: ART_DIR.replace("lineart/", "ui/") + t.img + "?v=4", alt: "", className: "ico" }) : el("span", "emo", t.icon),
+    b.append(t.img ? Object.assign(new Image(), { src: ART_DIR.replace("lineart/", "ui/") + t.img + "?v=5", alt: "", className: "ico" }) : el("span", "emo", t.icon),
       el("span", "name", t.name));
     b.dataset.sfx = "pick";
     return b;
   }));
-  const arts = INDEX.arts.filter(a => a.theme === theme && (DEV || !a.test));
+  // 三欄：左一顆星、中兩顆星、右三顆星；每張卡固定在自己難度那一欄（第幾排看它是那個難度的第幾張）
+  const arts = INDEX.arts.filter(a => a.theme === theme && (DEV || !a.test)), nth = {};
   $("#arts").replaceChildren(...arts.map((a, i) => {
     const lit = Math.min(3, a.level || 1);   // 難度一律三格：簡單一顆亮、中等兩顆、困難三顆
-    const c = card(ART_DIR + (a.thumb || a.file) + "?v=4", () => startArt(a), [0, 1, 2].map(i => `<b class="${i < lit ? "lit" : ""}">★</b>`).join(""));
+    const c = card(ART_DIR + (a.thumb || a.file) + "?v=5", () => startArt(a), [0, 1, 2].map(i => `<b class="${i < lit ? "lit" : ""}">★</b>`).join(""));
     c.dataset.id = a.id; c.dataset.sfx = "open";
+    const lv = Math.min(3, a.level || 1);
+    nth[lv] = (nth[lv] || 0) + 1;
+    c.style.gridColumn = String(lv); c.style.gridRow = String(nth[lv]);
     c.style.setProperty("--i", i);   // 一張接一張彈進來
     return c;
   }));
@@ -120,7 +124,7 @@ async function startArt(a, work = null) {
   $("#loading").classList.add("on");
   try {
     let ok;
-    try { ok = await board.load(a.url || ART_DIR + a.file + "?v=4"); }
+    try { ok = await board.load(a.url || ART_DIR + a.file + "?v=5"); }
     catch (e) {
       if (my !== loadSeq) return false;   // 已經被更新的請求取代，不要動畫面
       console.warn("線稿載入失敗：" + (e && e.message));   // 不用 console.error：測試把它當頁面錯誤
@@ -404,7 +408,7 @@ function refreshTools() {
 // 目前的工具用不到的設定鈕變淡（仍可以按，先選好等一下用）：彩虹筆、貼紙、橡皮擦不看顏色；只有填色桶和馬克筆吃材質
 function refreshDims() {
   const brush = S.tool === "brush";
-  for (const b of $$("#bColor, #mColor")) b.classList.toggle("dim", S.tool === "sticker" || S.tool === "eraser" || (brush && S.brush === "rainbow"));
+  for (const b of $$("#bColor, #mColor")) b.classList.toggle("dim", S.tool === "sticker" || S.tool === "eraser" || (brush && (S.brush === "rainbow" || S.brush === "magic")));
 }
 const usesMat = () => S.tool === "brush" && S.brush === "marker";   // 材質只有馬克筆用得到
 
@@ -429,7 +433,7 @@ function renderPop(kind, from = popFrom) {
   };
   const clip = () => {
     const b = button("opt clip" + (S.clip ? " yes" : ""), "", () => { S.clip = !S.clip; again(); }, "不出線");
-    b.append(Object.assign(new Image(), { src: "IMAGE/draw/ui/btn-clip.png?v=4", alt: "", className: "ico" }));
+    b.append(Object.assign(new Image(), { src: "IMAGE/draw/ui/btn-clip.png?v=5", alt: "", className: "ico" }));
     return b;
   };
   if (kind === "color") {   // 上面 30 色（每個顏色一個音，從左到右往上爬），下面一排材質
@@ -505,7 +509,7 @@ const pen = {
     painter.strokeMove(pt.x, pt.y);
     if (d >= 3) { c.p.push(Math.round(pt.x), Math.round(pt.y)); c.last = pt; }   // 回放只記每 3 像素一個點
     A.strokeSpeed(d / Math.max(4, t - c.t)); c.t = t;
-    if (c.o.brush === "sparkle" && (c.ding += d) > c.o.size * 4) { c.ding = 0; A.chime(); }
+    if ((c.o.brush === "sparkle" || c.o.brush === "magic") && (c.ding += d) > c.o.size * (c.o.brush === "magic" ? 7 : 4)) { c.ding = 0; A.chime(); }
     if (Math.hypot(cx - c.cx, cy - c.cy) > 14) { parts.trail(cx, cy, c.o); c.cx = cx; c.cy = cy; }
   },
   end() {
@@ -590,6 +594,87 @@ async function tapAt(cx, cy) {
   }
 }
 
+// ── 刮刮樂驚喜（學 Bimi Boo）：隨機一張圖用魔法筆的配色畫好，蓋一層銀色刮刮膜，手指刮開；刮掉七成剩下的自己掉光 ──
+// 刮的時候 S.busy 擋住一般畫畫；刮完可以「自己畫這張」（畫布清回白色、照常畫）或「再刮一張」
+const SC = { on: false, ctx: null, last: null, timer: 0 };
+async function startScratch() {
+  if (S.busy && !SC.on) return;
+  const pool = INDEX.arts.filter(a => !a.test && a.id !== S.art?.id);
+  const a = pool[(Math.random() * pool.length) | 0];
+  endScratch(false);
+  if (!a || !(await startArt(a))) return;
+  const b = board;
+  b.ctx.drawImage(painter.magicPaint(), 0, 0);   // 直接畫上去、不記復原、不觸發存檔（不是小孩畫的）
+  $(".tap-hint")?.remove();
+  const f = $("#foil"), r = b.stage.getBoundingClientRect(), host = $("#paint").getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+  const o = b.origin(r), w = b.W * o.k, h = b.H * o.k;   // 刮刮膜只蓋在圖上
+  Object.assign(f.style, { left: r.left - host.left + o.x + "px", top: r.top - host.top + o.y + "px", width: w + "px", height: h + "px" });
+  f.width = Math.round(w * dpr); f.height = Math.round(h * dpr);
+  const x = f.getContext("2d", { willReadFrequently: true });
+  const g = x.createLinearGradient(0, 0, f.width, f.height);
+  ["#c9ced6", "#eef1f5", "#b8bec8", "#e3e7ee", "#c3c9d2"].forEach((c, i) => g.addColorStop(i / 4, c));
+  x.globalCompositeOperation = "source-over"; x.fillStyle = g; x.fillRect(0, 0, f.width, f.height);
+  x.font = `${Math.round(70 * dpr)}px sans-serif`; x.textAlign = "center"; x.textBaseline = "middle";
+  for (let i = 0; i < 26; i++) {   // 膜上撒一些淡淡的星星和問號，看起來像刮刮卡
+    x.globalAlpha = 0.18 + Math.random() * 0.2; x.fillStyle = i % 2 ? "#fff" : "#8a93a3";
+    x.fillText(i % 3 ? "★" : "?", Math.random() * f.width, Math.random() * f.height);
+  }
+  x.globalAlpha = 1;
+  Object.assign(SC, { on: true, ctx: x, last: null, dpr, art: a });
+  S.busy = true;
+  $("#paint").classList.add("scratching");
+  f.classList.add("on");
+}
+function scratchAt(cx, cy) {
+  const f = $("#foil"), r = f.getBoundingClientRect(), k = SC.dpr, x = SC.ctx;
+  const p = { x: (cx - r.left) * k, y: (cy - r.top) * k }, R = 46 * k;
+  x.globalCompositeOperation = "destination-out"; x.lineCap = "round"; x.lineWidth = R * 2;
+  x.beginPath(); x.moveTo((SC.last || p).x, (SC.last || p).y); x.lineTo(p.x + 0.01, p.y); x.stroke();
+  SC.last = p;
+  if (Math.random() < 0.35) parts.trail(cx, cy, { brush: "sparkle", color: "#fff176" });
+  clearTimeout(SC.timer); SC.timer = setTimeout(checkScratch, 250);
+}
+function checkScratch() {   // 每 4 格取一點，刮掉超過 70% → 剩下的淡出、慶祝
+  if (!SC.on) return;
+  const f = $("#foil"), d = SC.ctx.getImageData(0, 0, f.width, f.height).data;
+  let left = 0, all = 0;
+  for (let i = 3; i < d.length; i += 64) { all++; if (d[i] > 30) left++; }
+  if (left / all > 0.3) return;
+  f.classList.add("gone");
+  A.strokeOff(); A.sfx("finish"); A.chime();
+  const r = f.getBoundingClientRect();
+  parts.splash(r.left + r.width / 2, r.top + r.height / 2, null);
+  parts.stars(r.left + r.width / 2, r.top + r.height / 2, Math.min(r.width, r.height) * 0.6);
+  setTimeout(() => $("#scratchBar").classList.add("on"), 600);
+}
+function endScratch(paintIt) {
+  if (!SC.on) return;
+  SC.on = false; clearTimeout(SC.timer); A.strokeOff();
+  const f = $("#foil");
+  f.classList.remove("on", "gone"); f.width = f.height = 0;
+  $("#scratchBar").classList.remove("on");
+  $("#paint").classList.remove("scratching");
+  S.busy = false;
+  if (paintIt && board.labels) {   // 自己畫：清回白色（剛剛的彩色是魔法配色，不算小孩的畫）
+    board.ctx.fillStyle = "#fff"; board.ctx.fillRect(0, 0, board.W, board.H); board.gctx.clearRect(0, 0, board.W, board.H);
+    painter.reset(); refreshUndo(); showHint();
+  }
+}
+{
+  const f = $("#foil");
+  f.addEventListener("pointerdown", e => { if (!SC.on) return; SC.last = null; A.strokeOn("chalk"); scratchAt(e.clientX, e.clientY); });
+  f.addEventListener("pointermove", e => {
+    if (!SC.on || !(e.buttons || e.pointerType === "touch")) return;
+    for (const ev of e.getCoalescedEvents?.() || [e]) scratchAt(ev.clientX, ev.clientY);
+    A.strokeSpeed(1.2);
+  });
+  for (const t of ["pointerup", "pointercancel"]) f.addEventListener(t, () => { SC.last = null; A.strokeOff(); });
+}
+$("#toScratch").onclick = startScratch;
+$("#sAgain").onclick = startScratch;
+$("#sPaint").onclick = () => endScratch(true);
+$("#sHome").onclick = () => { endScratch(true); goHome(); };
+
 // ── 第一次玩的提示：在一塊不貼邊的最大區塊上放一隻來回塗的手（用手指在這裡畫）；畫過一筆就不再出現 ──
 function hintSeen() { try { return !!localStorage.getItem("draw-hinted"); } catch { return true; } }
 function showHint() {
@@ -633,7 +718,7 @@ async function renderGallery() {
     urls.push(u);
     return card(u, () => openWork(w), "", w.done ? "" : "✏️");
   }).filter(Boolean);
-  $("#works").replaceChildren(...(cards.length ? cards : [el("div", "empty", '<img src="IMAGE/draw/ui/mascot.png?v=4" alt="" onerror="this.remove()"><img class="ico" src="IMAGE/draw/ui/btn-edit.png?v=4" alt="">')]));   // 還沒有作品：吉祥物拿著畫筆
+  $("#works").replaceChildren(...(cards.length ? cards : [el("div", "empty", '<img src="IMAGE/draw/ui/mascot.png?v=5" alt="" onerror="this.remove()"><img class="ico" src="IMAGE/draw/ui/btn-edit.png?v=5" alt="">')]));   // 還沒有作品：吉祥物拿著畫筆
 }
 function openWork(w) {
   viewing = w;
@@ -645,6 +730,17 @@ function openWork(w) {
   $("#view").classList.add("on");
 }
 $("#toGallery").onclick = renderGallery;
+// 工具列放左邊或右邊（左手拿筆的小孩，手不會一直壓到工具列）；記在這台平板上
+function setSide(left) {
+  $("#paint").classList.toggle("left", left);
+  $("#tSide").classList.toggle("left", left);
+  try { localStorage.setItem("draw-side", left ? "left" : "right"); } catch { /* 私密瀏覽 */ }
+  closePop();
+  if (board.labels) requestAnimationFrame(() => board.fit());
+}
+$("#tSide").onclick = () => setSide(!$("#paint").classList.contains("left"));
+setSide((() => { try { return localStorage.getItem("draw-side") === "left"; } catch { return false; } })());
+
 // 音樂、音效開關（記在這台平板上）；關掉時右下角紅色 ✕
 function refreshToggles() { $("#tMusic").classList.toggle("off", !A.musicEnabled()); $("#tSound").classList.toggle("off", !A.soundEnabled()); }
 $("#tMusic").onclick = () => { A.setMusic(!A.musicEnabled()); refreshToggles(); A.sfx("tap"); };
@@ -689,19 +785,19 @@ function applyIcons() {
       const t = [...b.childNodes].find(n => n.nodeType === 3 && n.textContent.trim()) || b.querySelector("span:not(.dot)");
       if (t) t.replaceWith(img);
     };
-    img.src = "IMAGE/draw/ui/" + name + ".png?v=4";
+    img.src = "IMAGE/draw/ui/" + name + ".png?v=5";
   }
 }
 
 // ── 開始 ──
 window.addEventListener("resize", () => { if (board.labels && $("#paint").classList.contains("on")) { board.fit(); showHint(); } });
-window.__draw = { S, board, painter, fx, G, A, show, renderHome, startArt, renderGallery, COLORS, AUTO, setFull, autoSave, isDirty: () => dirty,
+window.__draw = { S, board, painter, fx, G, A, show, renderHome, startArt, renderGallery, COLORS, AUTO, setFull, autoSave, isDirty: () => dirty, SC, startScratch,
   replay, stopReplay, rec: () => rec, parts };
 (async () => {
   G.persist();
   refreshBar(); refreshTools(); refreshUndo(); refreshToggles(); applyIcons();
   try {
-    const res = await fetch(ART_DIR + "index.json?v=4");
+    const res = await fetch(ART_DIR + "index.json?v=5");
     if (!res.ok) throw new Error("HTTP " + res.status);
     INDEX = await res.json();
   } catch (e) {
