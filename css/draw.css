@@ -9,3 +9,4 @@ html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; t
 .board { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 .layer { position: absolute; inset: 0; width: 100%; height: 100%; }
 #bar { width: var(--bar-w); background: var(--wood); }
+.finish-ov { position: absolute; inset: 0; width: 100%; height: 100%; background: #fff; z-index: 5; pointer-events: none; }

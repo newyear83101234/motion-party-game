@@ -1,0 +1,179 @@
+// 畫畫遊戲特效：填色水波、亮粉閃爍、完成動畫（跳一下＋零件動作＋彩帶）。全部沒有聲音
+import { regionAt, regionMask } from "./draw-core.js?v=1";
+import { makeCanvas as mk } from "./draw-canvas.js?v=1";
+
+export class Fx {
+  constructor(board) { this.b = board; this.pending = null; this.sparkOn = false; this.parts = []; this.cells = []; }
+
+  // 填色水波：f = painter.fill() 的回傳值；顏料從 (px, py) 圓形擴散，ms 毫秒後合進顏色層
+  ripple(f, px, py, ms = 400) {
+    this.flush();
+    const F = this.b.fctx, c = f.canvas;
+    const R = Math.max(...[[f.x, f.y], [f.x + c.width, f.y], [f.x, f.y + c.height], [f.x + c.width, f.y + c.height]]
+      .map(([x, y]) => Math.hypot(x - px, y - py)));
+    const job = { f, done: false }, t0 = performance.now();
+    this.pending = job;
+    const step = now => {
+      if (job.done) return;
+      const t = Math.min(1, (now - t0) / ms), e = 1 - (1 - t) ** 3;
+      F.clearRect(f.x, f.y, c.width, c.height);
+      F.save(); F.beginPath(); F.arc(px, py, Math.max(1, R * e), 0, Math.PI * 2); F.clip();
+      F.drawImage(c, f.x, f.y); F.restore();
+      if (t < 1) requestAnimationFrame(step); else this.flush();
+    };
+    requestAnimationFrame(step);
+  }
+  // 動畫還沒跑完就有新動作：立刻把這一筆合進顏色層
+  flush() {
+    const job = this.pending;
+    if (!job || job.done) return;
+    job.done = true; this.pending = null;
+    this.b.fctx.clearRect(job.f.x, job.f.y, job.f.canvas.width, job.f.canvas.height);
+    job.f.done();
+  }
+
+  // 亮粉閃爍：每秒看一次亮粉遮罩（縮小 16 倍），在有亮粉的格子隨機冒出小星光
+  sparkleStart() {
+    if (this.sparkOn) return;
+    this.sparkOn = true; this.lastScan = 0;
+    const loop = now => {
+      if (!this.sparkOn) return;
+      const F = this.b.fctx;
+      if (now - this.lastScan > 1000) { this.scan(); this.lastScan = now; }
+      for (const s of this.parts) F.clearRect(s.x - s.r - 2, s.y - s.r - 2, s.r * 2 + 4, s.r * 2 + 4);
+      this.parts = this.parts.filter(s => now - s.t0 < 700);
+      if (this.cells.length && this.parts.length < 24 && Math.random() < 0.5) {
+        const [cx, cy] = this.cells[(Math.random() * this.cells.length) | 0];
+        this.parts.push({ x: cx + Math.random() * 16, y: cy + Math.random() * 16, r: 8 + Math.random() * 10, t0: now });
+      }
+      for (const s of this.parts) { const a = Math.sin((now - s.t0) / 700 * Math.PI); spark(F, s.x, s.y, s.r * (0.6 + a * 0.4), a); }
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  }
+  sparkleStop() {
+    this.sparkOn = false;
+    for (const s of this.parts) this.b.fctx.clearRect(s.x - s.r - 2, s.y - s.r - 2, s.r * 2 + 4, s.r * 2 + 4);
+    this.parts = [];
+  }
+  scan() {
+    const b = this.b, G = 16, w = Math.ceil(b.W / G), h = Math.ceil(b.H / G);
+    if (!this.small || this.small.width !== w) { this.small = mk(w, h); this.smx = this.small.getContext("2d", { willReadFrequently: true }); }
+    this.smx.clearRect(0, 0, w, h); this.smx.drawImage(b.glit, 0, 0, w, h);
+    const d = this.smx.getImageData(0, 0, w, h).data;
+    this.cells = [];
+    for (let i = 0; i < w * h; i++) if (d[i * 4 + 3] > 128) this.cells.push([(i % w) * G, ((i / w) | 0) * G]);
+  }
+
+  // 完成動畫：約 2.2 秒，播完回傳（Promise）。parts = 這張線稿的零件設定
+  finish(parts = []) {
+    this.flush();
+    const b = this.b, comp = b.composite();
+    const P = parts.map(pt => this.cutPart(comp, pt)).filter(Boolean);
+    const r = b.stage.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+    const ov = mk(Math.round(r.width * dpr), Math.round(r.height * dpr));
+    ov.className = "finish-ov";
+    b.stage.appendChild(ov);
+    const O = ov.getContext("2d"), k = Math.min(r.width / b.W, r.height / b.H) * dpr;
+    const ox = (ov.width - b.W * k) / 2, oy = (ov.height - b.H * k) / 2;
+    const conf = [];
+    let burst = false;
+    return new Promise(done => {
+      const t0 = performance.now();
+      const frame = now => {
+        const s = (now - t0) / 1000, h = hop(s);
+        O.clearRect(0, 0, ov.width, ov.height);
+        O.save();
+        O.translate(ox + b.W * k / 2, oy + b.H * k * (1 + h.dy));
+        O.scale(h.sx * k, h.sy * k);
+        O.translate(-b.W / 2, -b.H);
+        O.drawImage(comp, 0, 0);
+        for (const q of P) drawPart(O, q, s);
+        O.restore();
+        if (s > 0.65 && !burst) { burst = true; for (let i = 0; i < 90; i++) conf.push(confetti(ov.width, dpr)); }
+        for (const c of conf) {
+          c.vy += 0.35 * dpr; c.x += c.vx; c.y += c.vy; c.a += c.va;
+          O.save(); O.translate(c.x, c.y); O.rotate(c.a); O.fillStyle = c.col; O.fillRect(-c.w / 2, -c.h / 2, c.w, c.h); O.restore();
+        }
+        if (s < 2.2) requestAnimationFrame(frame); else { ov.remove(); done(); }
+      };
+      requestAnimationFrame(frame);
+    });
+  }
+
+  // 依座標點找出零件那幾塊：眨眼只要位置和周圍顏色；會轉、會擺的要切出圖（含外框線）和補洞用的底色
+  cutPart(comp, pt) {
+    const b = this.b;
+    const ids = [...new Set(pt.at.map(([x, y]) => regionAt(b.labels, b.W, b.H, x, y)).filter(id => id >= 0))];
+    if (!ids.length) return null;
+    const ms = ids.map(id => regionMask(b.labels, b.W, b.H, id, b.boxes[id], pt.type === "blink" ? 0 : 14));
+    const x0 = Math.min(...ms.map(m => m.x)), y0 = Math.min(...ms.map(m => m.y));
+    const w = Math.max(...ms.map(m => m.x + m.w)) - x0, h = Math.max(...ms.map(m => m.y + m.h)) - y0;
+    const fill = surround(comp, x0, y0, w, h);
+    if (pt.type === "blink") return { type: "blink", cx: x0 + w / 2, cy: y0 + h / 2, rx: w / 2 + 8, ry: h / 2 + 8, fill };
+    const shape = mk(w, h), sx = shape.getContext("2d"), img = sx.createImageData(w, h);
+    for (const m of ms) for (let j = 0; j < m.h; j++) for (let i = 0; i < m.w; i++)
+      if (m.data[j * m.w + i]) img.data[((m.y - y0 + j) * w + (m.x - x0 + i)) * 4 + 3] = 255;
+    sx.putImageData(img, 0, 0);
+    const part = mk(w, h), px = part.getContext("2d");
+    px.drawImage(shape, 0, 0); px.globalCompositeOperation = "source-in"; px.drawImage(comp, x0, y0, w, h, 0, 0, w, h);
+    const hole = mk(w, h), hx = hole.getContext("2d");
+    hx.drawImage(shape, 0, 0); hx.globalCompositeOperation = "source-in"; hx.fillStyle = fill; hx.fillRect(0, 0, w, h);
+    const [cx, cy] = pt.pivot || [x0 + w / 2, y0 + h / 2];
+    return { type: pt.type, deg: pt.deg || 12, x: x0, y: y0, img: part, hole, px: cx, py: cy };
+  }
+}
+
+// 跳一下：sx/sy = 水平／垂直縮放，dy = 往上位移（畫面高度的比例，負數往上）
+function hop(s) {
+  const ease = t => 0.5 - Math.cos(Math.PI * Math.min(1, Math.max(0, t))) / 2;
+  if (s < 0.25) { const e = ease(s / 0.25); return { sx: 1 + 0.06 * e, sy: 1 - 0.1 * e, dy: 0 }; }
+  if (s < 0.65) { const u = (s - 0.25) / 0.4, e = ease(u * 3); return { sx: 1.06 - 0.09 * e, sy: 0.9 + 0.15 * e, dy: -0.12 * Math.sin(Math.PI * u) }; }
+  if (s < 0.85) { const e = ease((s - 0.65) / 0.2); return { sx: 1.06 - 0.06 * e, sy: 0.9 + 0.1 * e, dy: 0 }; }
+  if (s < 1.2) return { sx: 1, sy: 1, dy: -0.025 * Math.sin(Math.PI * (s - 0.85) / 0.35) };
+  return { sx: 1, sy: 1, dy: 0 };
+}
+
+function drawPart(O, q, s) {
+  if (q.type === "blink") {
+    if (!((s > 0.3 && s < 0.46) || (s > 1.3 && s < 1.46))) return;
+    O.save();
+    O.fillStyle = q.fill; O.beginPath(); O.ellipse(q.cx, q.cy, q.rx, q.ry, 0, 0, Math.PI * 2); O.fill();
+    O.strokeStyle = "#000"; O.lineCap = "round"; O.lineWidth = Math.max(6, q.ry * 0.22);
+    O.beginPath(); O.moveTo(q.cx - q.rx * 0.8, q.cy); O.quadraticCurveTo(q.cx, q.cy + q.ry * 0.5, q.cx + q.rx * 0.8, q.cy); O.stroke();
+    O.restore();
+    return;
+  }
+  const a = q.type === "spin" ? s * Math.PI * 2 : Math.sin(s * Math.PI * (q.type === "wag" ? 6 : 4)) * q.deg * Math.PI / 180;
+  O.save();
+  O.drawImage(q.hole, q.x, q.y);
+  O.translate(q.px, q.py); O.rotate(a); O.translate(-q.px, -q.py);
+  O.drawImage(q.img, q.x, q.y);
+  O.restore();
+}
+
+// 零件外面一圈的顏色（避開黑線），用來補零件移開後露出的洞、或當眼皮顏色
+function surround(comp, x, y, w, h) {
+  const c = comp.getContext("2d");
+  for (const [sx, sy] of [[x - 10, y + h / 2], [x + w + 10, y + h / 2], [x + w / 2, y - 10], [x + w / 2, y + h + 10]]) {
+    if (sx < 0 || sy < 0 || sx >= comp.width || sy >= comp.height) continue;
+    const d = c.getImageData(sx | 0, sy | 0, 1, 1).data;
+    if (d[0] * 0.299 + d[1] * 0.587 + d[2] * 0.114 > 60) return `rgb(${d[0]},${d[1]},${d[2]})`;
+  }
+  return "#fff";
+}
+
+function spark(F, x, y, r, a) {
+  F.save(); F.globalAlpha = a; F.fillStyle = "#fff";
+  F.beginPath();
+  F.moveTo(x, y - r); F.quadraticCurveTo(x, y, x + r, y); F.quadraticCurveTo(x, y, x, y + r);
+  F.quadraticCurveTo(x, y, x - r, y); F.quadraticCurveTo(x, y, x, y - r);
+  F.fill(); F.restore();
+}
+
+function confetti(W, dpr) {
+  const cols = ["#e53935", "#fdd835", "#43a047", "#1e88e5", "#8e24aa", "#fb8c00", "#ec407a"];
+  return { x: W / 2 + (Math.random() - 0.5) * W * 0.3, y: -10 * dpr, vx: (Math.random() - 0.5) * 18 * dpr, vy: Math.random() * 4 * dpr,
+    a: Math.random() * 6, va: (Math.random() - 0.5) * 0.4, w: (8 + Math.random() * 8) * dpr, h: (5 + Math.random() * 5) * dpr,
+    col: cols[(Math.random() * cols.length) | 0] };
+}

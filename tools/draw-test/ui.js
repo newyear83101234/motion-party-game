@@ -116,6 +116,44 @@ function versionCheck() {
   await p.evaluate(() => __draw.painter.undo());
   check("貼紙可以復原", await px(1000, 1200) === "255,255,255");
 
+  // Task 7：特效
+  await p.evaluate(async () => {
+    const M = await import("./js/draw-fx.js?v=1");
+    window.__fx = __draw.fx || new M.Fx(__draw.board);   // Task 9 之後用遊戲自己的那一個，免得兩組亮粉互相干擾
+    __draw.painter.clearAll();
+  });
+  const fxAlpha = (x, y, w, h) => p.evaluate(([x, y, w, h]) => {
+    const d = __draw.board.fctx.getImageData(x, y, w, h).data; let n = 0;
+    for (let i = 3; i < d.length; i += 4) if (d[i]) n++;
+    return n;
+  }, [x, y, w, h]);
+  await p.evaluate(() => { const P = __draw.painter; __fx.ripple(P.fill(P.regionAt(1450, 500), { kind: "solid" }, "#fb8c00"), 1450, 500); });
+  await p.waitForTimeout(120);
+  check("水波進行中：顏色層還沒變", await px(1780, 730) === "255,255,255");
+  check("水波進行中：特效層有東西", await fxAlpha(1110, 260, 680, 480) > 0);
+  await p.waitForTimeout(600);
+  check("水波結束：整塊填好（連最遠的角落）", await px(1780, 730) === "251,140,0", await px(1780, 730));
+  check("水波結束：特效層清乾淨", await fxAlpha(1110, 260, 680, 480) === 0);
+  await p.evaluate(() => { const P = __draw.painter; __fx.ripple(P.fill(P.regionAt(1550, 1100), { kind: "solid" }, "#00897b"), 1550, 1100); __fx.flush(); });
+  check("動畫中又有新動作 → 立刻完成", await px(1550, 1100) === "0,137,123");
+
+  await p.evaluate(() => { const P = __draw.painter; P.fill(P.regionAt(300, 500), { kind: "glitter" }, "#e91e63").done(); __fx.sparkleStart(); });
+  await p.waitForTimeout(1600);
+  check("亮粉會閃", await fxAlpha(200, 200, 300, 600) > 0);
+  await p.evaluate(() => __fx.sparkleStop());
+  check("停止閃爍後清乾淨", await fxAlpha(200, 200, 300, 600) === 0);
+
+  const fin = p.evaluate(() => __fx.finish([
+    { type: "spin", at: [[1550, 1100]] },
+    { type: "blink", at: [[1450, 500]] },
+    { type: "wag", at: [[700, 500]], pivot: [500, 800], deg: 15 },
+  ]).then(() => "ok"));
+  await p.waitForTimeout(900);
+  check("完成動畫播放中有疊在畫面上", await p.evaluate(() => !!document.querySelector(".finish-ov")));
+  await p.screenshot({ path: path.join(OUT, "04-finish.png") });
+  check("完成動畫 3 秒內播完", await Promise.race([fin, new Promise(r => setTimeout(() => r("timeout"), 3000))]) === "ok");
+  check("播完把疊加層拿掉", await p.evaluate(() => !document.querySelector(".finish-ov")));
+
   // ── 後續 task 的測試插在這一行上面 ──
   check("沒有頁面錯誤", errs.length === 0, errs.join(" | "));
   await browser.close();
