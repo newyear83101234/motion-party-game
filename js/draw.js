@@ -12,6 +12,7 @@ import { mountMirror } from "./draw-mirror.js?v=7";
 import { mountRewards } from "./draw-rewards.js?v=7";
 import { mountWorld } from "./draw-world.js?v=7";
 import { mountPuzzle } from "./draw-puzzle.js?v=7";
+import { mountSeek } from "./draw-seek.js?v=7";
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -1013,6 +1014,18 @@ $("#vPuzzle").onclick = async () => {
   try { await puzzle.open(u); } finally { URL.revokeObjectURL(u); }
 };
 
+// 變色龍躲貓貓：躲在小孩畫好的作品裡（最近 12 件）或 6 張世界場景裡
+let seekUrls = [];
+async function seekScenes() {
+  seekUrls.forEach(u => URL.revokeObjectURL(u)); seekUrls = [];   // 上一局的網址先釋放
+  let works = [];
+  try { works = (await G.list()).filter(w => w.done && w.image).slice(0, 12); } catch { /* 讀不到就只用場景圖 */ }
+  const mine = works.map(w => { const u = URL.createObjectURL(w.image); seekUrls.push(u); return { id: w.id, src: u }; });
+  return [...mine, ...INDEX.themes.map(t => ({ id: "world-" + t.id, src: "IMAGE/draw/world/" + t.id + ".jpg?v=" + V }))];
+}
+const seek = safeMount(() => mountSeek({ ...deps, getScenes: seekScenes, mascot: "IMAGE/draw/ui/mascot.png?v=" + V }), "#toSeek");
+$("#toSeek").onclick = () => seek?.open();
+
 // 扭蛋貼紙本、我的世界：要主題清單，線稿清單載入後才掛上（之前按鈕藏著）
 const themeOfArt = id => INDEX.arts.find(a => a.id === id)?.theme;
 let worksMemo = null;
@@ -1051,7 +1064,7 @@ const ICONS = [["#bDone, #aDone", "btn-done"], ["#bHome, #gBack, #aHome", "btn-h
   ["#bUndo, #mUndo", "btn-undo"], ["#bClear, #vDel", "btn-clear"], ["#toGallery", "btn-gallery"], ["#aPlay, #vPlay", "btn-play"],
   ["#aAgain, #vEdit", "btn-edit"], ["#aMusic", "mode-music"], ["#vClose", "btn-close"], ["#vSave", "btn-save"], ["#tMusic", "btn-music"], ["#tSound", "btn-sound"],
   ["#xSave", "btn-done"], ["#xHome", "btn-home"], ["#xUndo", "btn-undo"], ["#xClear", "btn-clear"],
-  ["#toMirror", "mode-mirror"], ["#aPuzzle, #vPuzzle", "mode-puzzle"], ["#aWorld", "mode-world"], ["#toDaily", "btn-gacha"], ["#toWorld", "mode-world"], ["#toBook", "btn-book"], ["#toScratch, #sAgain", "btn-gift"]];
+  ["#toMirror", "mode-mirror"], ["#toSeek", "mode-seek"], ["#aPuzzle, #vPuzzle", "mode-puzzle"], ["#aWorld", "mode-world"], ["#toDaily", "btn-gacha"], ["#toWorld", "mode-world"], ["#toBook", "btn-book"], ["#toScratch, #sAgain", "btn-gift"]];
 function applyIcons() {
   for (const [sel, name] of ICONS) for (const b of $$(sel)) {
     const img = new Image();
@@ -1067,7 +1080,7 @@ function applyIcons() {
 // ── 開始 ──
 window.addEventListener("resize", () => { if (board.labels && $("#paint").classList.contains("on")) { board.fit(); showHint(); } });
 window.__draw = { S, board, painter, fx, G, A, show, renderHome, startArt, renderGallery, COLORS, AUTO, setFull, autoSave, isDirty: () => dirty, SC, startScratch,
-  replay, stopReplay, rec: () => rec, parts, cutout, canLive, music: () => music, mirror, rewards: () => rewards, world: () => world, refreshDaily, puzzle, crownMoment, worldEntries };
+  replay, stopReplay, rec: () => rec, parts, cutout, canLive, music: () => music, mirror, rewards: () => rewards, world: () => world, refreshDaily, puzzle, crownMoment, worldEntries, seek };
 (async () => {
   G.persist();
   refreshBar(); refreshTools(); refreshUndo(); refreshToggles(); applyIcons();

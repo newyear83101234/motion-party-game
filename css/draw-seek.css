@@ -1,0 +1,148 @@
+/* 變色龍躲貓貓：暖色壁紙上掛一張畫（白邊畫框），變色龍躲在畫裡 */
+#seek { --lift: 0 4px 0 var(--wood-d), 0 8px 14px rgba(90, 60, 20, .14); touch-action: none; overflow: hidden;
+  background: #f4e5cc repeating-linear-gradient(90deg, rgba(255, 255, 255, .24) 0 28px, transparent 28px 56px); }
+#seek::before { content: ""; position: absolute; inset: 0; pointer-events: none;   /* 四周淡淡暗角，視線集中在畫上 */
+  background: radial-gradient(ellipse 80% 75% at 50% 55%, rgba(255, 250, 238, .5), rgba(150, 100, 40, 0) 60%, rgba(150, 100, 40, .16)); }
+#seek > .parts { z-index: 9; }
+.sk-wall { position: absolute; inset: 0; touch-action: none; }
+
+/* 畫框：白邊＋淡木色細線＋陰影；圖的座標就是框內座標（白邊用 box-shadow 畫在外面） */
+.sk-frame { position: absolute; z-index: 1; border-radius: 12px; background: #fff;
+  box-shadow: 0 0 0 12px #fff, 0 0 0 15px #e8d2ad, 0 22px 38px rgba(90, 60, 20, .3); }
+.sk-frame.in { animation: skIn .5s var(--spring) both; }
+@keyframes skIn { from { opacity: 0; transform: scale(.92) rotate(-1.2deg); } }
+.sk-pic { position: absolute; inset: 0; width: 100%; height: 100%; display: block; border-radius: 12px; pointer-events: none; }
+
+/* 變色龍：外層定位、sk-move 跳／轉／抖／揮手、sk-body 呼吸（scale）；眼皮蓋在眼睛上，平常收起來，每 4 秒眨一下 */
+.sk-cham { position: absolute; z-index: 2; pointer-events: none; }
+.sk-cham.off { visibility: hidden; }
+.sk-move, .sk-body { position: absolute; inset: 0; transform-origin: 50% 92%; }
+.sk-body { animation: skBreath 2.6s ease-in-out infinite; }
+@keyframes skBreath { 50% { scale: 1.03; } }
+.sk-body canvas { width: 100%; height: 100%; display: block; }
+.sk-lid { position: absolute; border-radius: 50%; background: var(--lid, #7ac030); transform: scaleY(0); transform-origin: 50% 0;
+  box-shadow: inset 0 -2px 0 rgba(40, 60, 10, .3); animation: skBlink 4s linear infinite; }
+.sk-lid.l { left: 34.6%; top: 18%; width: 15.4%; height: 14%; }
+.sk-lid.r { left: 61.5%; top: 21.8%; width: 11%; height: 14.7%; animation-delay: .03s; }
+@keyframes skBlink { 0%, 93%, 100% { transform: scaleY(0); } 96% { transform: scaleY(1.05); } }
+
+/* 提示 1（8 秒）：眨兩下、身體抖一下 */
+.sk-cham.peek .sk-lid { animation: skBlink2 .8s linear; }
+@keyframes skBlink2 { 0%, 40%, 80%, 100% { transform: scaleY(0); } 20%, 60% { transform: scaleY(1.05); } }
+.sk-cham.peek .sk-move { animation: skShake .55s ease-in-out .75s; }
+@keyframes skShake { 20% { transform: translateX(-7%) rotate(-6deg); } 45% { transform: translateX(6%) rotate(5deg); } 70% { transform: translateX(-3%) rotate(-2deg); } }
+/* 提示 2（15 秒）：旁邊一閃一閃 */
+.sk-spark { position: absolute; display: none; width: 0; height: 0; }
+.sk-spark::before { content: "✨"; position: absolute; left: -.5em; top: -.5em; font-size: 34px; font-style: normal; line-height: 1; }
+.sk-cham.glint .sk-spark { display: block; animation: skTwinkle 1.2s ease-in-out infinite; }
+.sk-spark:nth-of-type(1) { left: 6%; top: 8%; }
+.sk-spark:nth-of-type(2) { left: 96%; top: 30%; animation-delay: .4s; }
+.sk-spark:nth-of-type(3) { left: 20%; top: 92%; animation-delay: .8s; }
+@keyframes skTwinkle { 0%, 100% { opacity: 0; transform: scale(.3) rotate(0); } 50% { opacity: 1; transform: scale(1.1) rotate(25deg); } }
+
+/* 找到：變回原色、跳起來轉一圈、發光 */
+.sk-cham.yay .sk-move { animation: skYay .95s var(--spring); }
+@keyframes skYay { 35% { transform: translateY(-48%) rotate(200deg) scale(1.25); } 70% { transform: translateY(-8%) rotate(360deg) scale(1.12); } 100% { transform: rotate(360deg); } }
+.sk-cham.yay canvas, .sk-cham.say canvas, .sk-cham.wave canvas { filter: drop-shadow(0 0 6px #fff) drop-shadow(0 0 10px rgba(255, 214, 80, .9)); }
+/* 25 秒沒找到：自己跳出來說「在這裡」 */
+.sk-cham.say .sk-move { animation: skPop .7s var(--spring); }
+@keyframes skPop { 40% { transform: translateY(-30%) scale(1.2); } }
+.sk-say { position: absolute; left: 50%; bottom: 100%; display: none; padding: 8px 20px; border-radius: 24px; white-space: nowrap;
+  background: #fff; color: var(--ink); font-size: 32px; font-weight: 900; line-height: 1.2; box-shadow: 0 0 0 4px var(--sun), 0 8px 16px rgba(90, 60, 20, .25);
+  translate: -50% -14px; }
+.sk-say::after { content: ""; position: absolute; left: 50%; top: 100%; margin-left: -10px; border: 10px solid transparent; border-top-color: #fff; border-bottom: 0; }
+.sk-cham.say .sk-say, .sk-cham.wave .sk-say { display: block; animation: skSay .45s var(--spring) both; }
+.sk-cham.wave .sk-say { font-size: 46px; padding: 6px 14px; }
+@keyframes skSay { from { opacity: 0; transform: scale(.4); } }
+/* 第一次示範：揮手（左右晃） */
+.sk-cham.wave .sk-move { animation: skWave .5s ease-in-out infinite alternate; }
+@keyframes skWave { from { transform: rotate(-11deg); } to { transform: rotate(11deg); } }
+
+/* 藏模式：一圈波紋＋手指示範「拖我」；拿起來放大、影子變大 */
+.sk-cham.grab::before { content: ""; position: absolute; inset: -8%; border-radius: 50%; border: 6px solid #fff; box-shadow: 0 0 0 4px var(--sun);
+  animation: skRing 1.4s ease-out infinite; }
+@keyframes skRing { 0% { transform: scale(.6); opacity: 0; } 30% { opacity: 1; } 100% { transform: scale(1.25); opacity: 0; } }
+.sk-cham.grab::after { content: "👆"; position: absolute; left: 50%; top: 62%; font-size: 64px; line-height: 1; filter: drop-shadow(0 4px 4px rgba(0, 0, 0, .3));
+  animation: skDragHint 2s ease-in-out infinite; }
+@keyframes skDragHint { 0%, 15% { transform: translate(-30%, 0); } 60%, 75% { transform: translate(90%, 20%); } 100% { transform: translate(-30%, 0); } }
+.sk-cham.held .sk-move { transform: scale(1.12); filter: drop-shadow(0 16px 10px rgba(60, 30, 0, .3)); transition: transform .15s var(--spring); }
+
+/* 點錯：那裡冒一圈淡淡的水波 */
+.sk-ripple { position: absolute; z-index: 3; width: 96px; height: 96px; margin: -48px 0 0 -48px; border-radius: 50%; pointer-events: none;
+  border: 5px solid rgba(255, 255, 255, .9); box-shadow: 0 0 0 3px rgba(79, 179, 255, .35), inset 0 0 0 3px rgba(79, 179, 255, .25); animation: skRipple .75s ease-out forwards; }
+@keyframes skRipple { from { transform: scale(.2); opacity: 1; } to { transform: scale(1.3); opacity: 0; } }
+
+/* 上方：左邊回首頁；右邊 找／藏 切換、三顆進度星、（藏的時候）✔️ */
+#skHome { position: absolute; z-index: 10; left: calc(16px + env(safe-area-inset-left)); top: calc(14px + env(safe-area-inset-top)); }
+.sk-right { position: absolute; z-index: 10; right: calc(16px + env(safe-area-inset-right)); top: calc(14px + env(safe-area-inset-top));
+  display: flex; align-items: center; gap: 16px; }
+#skHide { display: flex; gap: 6px; padding: 6px; border-radius: 48px; background: rgba(255, 255, 255, .55); box-shadow: inset 0 2px 6px rgba(90, 50, 10, .2); }
+#skHide span { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; font-size: 42px; opacity: .4;
+  transition: transform .18s var(--spring), opacity .18s, background .18s; }
+#seek:not(.hiding) #skHide .sk-f, #seek.hiding #skHide .sk-h { opacity: 1; transform: scale(1.06);
+  box-shadow: 0 0 0 4px var(--ink), 0 5px 0 rgba(59, 42, 26, .3); }
+#seek:not(.hiding) #skHide .sk-f { background: linear-gradient(#c9ecff, #7cc8ff); }
+#seek.hiding #skHide .sk-h { background: linear-gradient(#ffe0ef, #ffadd2); }
+#skHide:active span { transform: scale(.92); }
+.sk-stars { display: flex; gap: 2px; padding: 6px 14px; border-radius: 44px; background: rgba(255, 255, 255, .55); box-shadow: inset 0 2px 6px rgba(90, 50, 10, .2); }
+.sk-stars b { font-size: 52px; line-height: 1; color: #fff; -webkit-text-stroke: 3px #c9a46c; paint-order: stroke fill; transition: color .2s; }
+.sk-stars b.lit { color: #ffc93c; -webkit-text-stroke: 3px #fff; text-shadow: 0 3px 0 rgba(178, 107, 0, .45); animation: skStar .55s var(--spring); }
+@keyframes skStar { from { transform: scale(0) rotate(-120deg); } 60% { transform: scale(1.4) rotate(10deg); } }
+#seek.hiding .sk-stars { display: none; }
+#skOk { display: none; background: linear-gradient(#5fd06b, #2e9e3e); box-shadow: 0 4px 0 #1f7a2c, 0 8px 14px rgba(90, 60, 20, .14); font-size: 46px; }
+#seek.placing #skOk { display: grid; }
+#skOk.ready { animation: skOkHop 1.4s ease-in-out infinite; }
+@keyframes skOkHop { 0%, 70%, 100% { transform: none; } 80% { transform: translateY(-10px) scale(1.08); } 90% { transform: none; } }
+
+/* 換人找：整頁蓋起來（藏的位置不給偷看），兩雙手、變色龍從左邊的手跳到右邊的手；點哪裡都開始 */
+.sk-pass { position: absolute; inset: 0; z-index: 8; display: none; place-content: center; justify-items: center; gap: 10px;
+  background: radial-gradient(circle at 50% 46%, #fffaf0 0 22%, #f8e6c6 65%, #efd4a6); }
+#seek.passing .sk-pass { display: grid; animation: skFade .3s ease-out both; }
+@keyframes skFade { from { opacity: 0; } }
+.sk-swap { position: relative; width: 460px; height: 290px; }
+.sk-hand { position: absolute; bottom: 0; font-size: 150px; line-height: 1; font-weight: 400; filter: drop-shadow(0 6px 6px rgba(90, 60, 20, .25)); }
+.sk-hand.a { left: 0; rotate: 8deg; }
+.sk-hand.b { right: 0; rotate: -8deg; scale: -1 1; }
+.sk-pm { position: absolute; left: 50%; bottom: 96px; height: 150px; margin-left: -75px; animation: skHop 2.2s ease-in-out infinite; filter: drop-shadow(0 8px 6px rgba(60, 30, 0, .25)); }
+@keyframes skHop { 0%, 12% { transform: translate(-150px, 0); } 50% { transform: translate(0, -110px) rotate(10deg); } 88%, 100% { transform: translate(150px, 0); } }
+.sk-go { position: relative; font-size: 72px; line-height: 1; animation: skTap 1.2s ease-in-out infinite; }
+.sk-go::before { content: ""; position: absolute; left: 50%; top: 4px; width: 76px; height: 76px; margin-left: -38px; border-radius: 50%; border: 6px solid #fff;
+  box-shadow: 0 0 0 4px var(--sun); animation: skRing 1.2s ease-out infinite; }
+@keyframes skTap { 50% { transform: translateY(10px) scale(.9); } }
+
+/* 一局結束：吉祥物跳出來＋三顆大星星＋彩帶；兩顆大鈕 */
+.sk-end { position: absolute; inset: 0; z-index: 7; display: none; place-content: center; justify-items: center; gap: 10px;
+  background: radial-gradient(circle at 50% 44%, rgba(255, 249, 236, .94) 0 26%, rgba(255, 244, 224, .7) 55%, rgba(255, 244, 224, .45)); }
+#seek.ended .sk-end { display: grid; animation: skFade .3s ease-out both; }
+.sk-cheer { display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+.sk-cheer img { height: clamp(170px, 32vh, 260px); filter: drop-shadow(0 10px 10px rgba(60, 30, 0, .25));
+  animation: skJump .9s var(--spring) backwards, skBob 2.6s ease-in-out 1.2s infinite; }
+@keyframes skJump { from { opacity: 0; transform: translateY(80px) scale(.4); } }
+@keyframes skBob { 50% { transform: translateY(-8px) rotate(-3deg); } }
+.sk-cheer p { margin: -12px 0 0; white-space: nowrap; line-height: 1; }
+.sk-cheer span { display: inline-block; font-size: 70px; color: #ffc93c; -webkit-text-stroke: 8px #fff; paint-order: stroke fill;
+  text-shadow: 0 6px 0 rgba(90, 60, 20, .25); animation: skStarBig .55s var(--spring) backwards; }
+.sk-cheer span:nth-child(1) { animation-delay: .35s; rotate: -12deg; }
+.sk-cheer span:nth-child(2) { font-size: 92px; animation-delay: .53s; translate: 0 -14px; }
+.sk-cheer span:nth-child(3) { animation-delay: .71s; rotate: 12deg; }
+@keyframes skStarBig { from { opacity: 0; transform: scale(0) rotate(-120deg); } }
+.sk-btns { display: flex; gap: 34px; margin-top: 10px; }
+.sk-btns .big { width: 120px; height: 120px; border-radius: 34px; font-size: 62px;
+  box-shadow: 0 0 0 5px var(--ink), 0 8px 0 rgba(59, 42, 26, .4), 0 14px 24px rgba(60, 30, 0, .3); }
+#seek.ended .sk-btns .big { animation: skBtnIn .55s var(--spring) .8s backwards; }
+#seek.ended .sk-btns .big + .big { animation-delay: .92s; }
+@keyframes skBtnIn { from { opacity: 0; transform: translateY(40px) scale(.5); } }
+#skAgain { background: linear-gradient(#b4ec97, #7fd35e); }
+#skAgain .ico { width: 78%; height: 78%; }
+#seek.hiding #skAgain::after { content: "🙈"; position: absolute; right: -14px; bottom: -14px; width: 56px; height: 56px; border-radius: 50%;   /* 藏模式的再玩一次＝再藏一次 */
+  display: grid; place-items: center; font-size: 34px; background: #fff; box-shadow: 0 0 0 4px var(--ink); }
+#skHome2 { background: linear-gradient(#ffe07a, #ffc93c); }
+
+/* 彩帶：一條條彩色紙片往下飄、邊轉邊翻 */
+.sk-confetti { position: absolute; inset: 0; z-index: 8; pointer-events: none; overflow: hidden; }
+.sk-confetti i { position: absolute; left: var(--x); top: -40px; width: var(--w); height: calc(var(--w) * 2.2); border-radius: 3px; background: var(--c);
+  animation: skFall var(--t) cubic-bezier(.3, .1, .6, 1) var(--d) both; }
+@keyframes skFall { from { transform: translate(0, 0) rotate(0) rotateY(0); } to { transform: translate(var(--sx), calc(100vh + 80px)) rotate(var(--r)) rotateY(900deg); } }
+
+/* 載入中的三顆點點：蓋在畫的位置上 */
+#seek .loading { z-index: 6; }

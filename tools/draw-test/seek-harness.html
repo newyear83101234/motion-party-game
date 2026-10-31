@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <!-- 模組用相對路徑插 css/draw-seek.css、吉祥物圖：把基準位置拉回專案根目錄，跟 draw.html 一樣 -->
+  <base href="../../">
+  <title>躲貓貓 測試</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/draw.css">
+</head>
+<body>
+  <section id="home" class="screen on" style="align-items:center;justify-content:center;gap:30px">
+    <button class="big" id="goSeek" aria-label="躲貓貓"><img class="ico" src="IMAGE/draw/ui/mode-seek.png" alt=""></button>
+  </section>
+  <div id="toast" class="toast"></div>
+  <script type="module">
+    import { mountSeek } from "./js/draw-seek.js";
+    // 假的 deps：聲音、粒子只記錄呼叫；show 自己切 class
+    const log = window.__calls = [];
+    const rec = (name, fn = () => {}) => (...a) => { log.push([name, ...a]); return fn(...a); };
+    const A = { sfx: rec("sfx"), note: rec("note"), chime: rec("chime"), strokeOn: rec("strokeOn"), strokeSpeed: rec("strokeSpeed"), strokeOff: rec("strokeOff") };
+    class Particles {
+      constructor(host) { this.host = host; log.push(["Particles", host.id]); }
+      trail(...a) { log.push(["trail", ...a]); }
+      splash(...a) { log.push(["splash", ...a]); }
+      stars(...a) { log.push(["stars", ...a]); }
+      fit() { log.push(["fit"]); }
+    }
+    const show = id => document.querySelectorAll(".screen").forEach(s => s.classList.toggle("on", s.id === id));
+    let tt = 0;
+    const toast = rec("toast", (text, ms = 2500) => {
+      const t = document.getElementById("toast");
+      t.textContent = text; t.classList.add("on");
+      clearTimeout(tt); tt = setTimeout(() => t.classList.remove("on"), ms);
+    });
+    const onHome = rec("onHome", () => show("home"));
+
+    // 假的小孩作品（1200×800）：塗好顏色的著色畫，粗黑線框
+    function drawing() {
+      const c = document.createElement("canvas"); c.width = 1200; c.height = 800;
+      const x = c.getContext("2d");
+      const sky = x.createLinearGradient(0, 0, 0, 560); sky.addColorStop(0, "#7cc8ff"); sky.addColorStop(1, "#d8f0ff");
+      x.fillStyle = sky; x.fillRect(0, 0, 1200, 800);
+      x.lineWidth = 10; x.lineJoin = x.lineCap = "round"; x.strokeStyle = "#2b2118";
+      const shape = (fill, f) => { x.beginPath(); f(); x.fillStyle = fill; x.fill(); x.stroke(); };
+      shape("#ffd93b", () => x.arc(1010, 150, 88, 0, Math.PI * 2));
+      shape("#fff", () => { x.arc(640, 130, 50, Math.PI * 0.5, Math.PI * 1.5); x.arc(700, 90, 60, Math.PI, 0); x.arc(770, 130, 50, Math.PI * 1.5, Math.PI * 0.5); x.closePath(); });
+      shape("#7fd35e", () => { x.moveTo(-20, 560); x.quadraticCurveTo(300, 470, 620, 560); x.quadraticCurveTo(920, 640, 1220, 540); x.lineTo(1220, 820); x.lineTo(-20, 820); x.closePath(); });
+      shape("#ff8a65", () => x.rect(700, 400, 300, 240));
+      shape("#d84315", () => { x.moveTo(670, 410); x.lineTo(850, 270); x.lineTo(1030, 410); x.closePath(); });
+      shape("#8d5a3b", () => x.rect(140, 470, 50, 190));
+      shape("#43a047", () => x.arc(165, 430, 90, 0, Math.PI * 2));
+      [[330, 700, "#ff7eb6"], [480, 660, "#ffd93b"], [600, 720, "#a77bff"]].forEach(([a, b, col]) => {
+        for (let i = 0; i < 5; i++) { const t = i / 5 * Math.PI * 2; shape(col, () => x.arc(a + Math.cos(t) * 24, b + Math.sin(t) * 24, 18, 0, Math.PI * 2)); }
+      });
+      return c;
+    }
+    // 一整片的顏色（加一點點雜點）：測偽裝顏色有沒有接近底下的顏色
+    function flat(col = "#e0559a", w = 1600, h = 900) {
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      const x = c.getContext("2d");
+      x.fillStyle = col; x.fillRect(0, 0, w, h);
+      return c;
+    }
+    // 四條寬寬的色帶（上下）：測不同位置會變成不同顏色
+    function bands(w = 1600, h = 900) {
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      const x = c.getContext("2d"), cols = ["#3d7be0", "#f2c230", "#3fae5a", "#c2452d"];
+      cols.forEach((col, i) => { x.fillStyle = col; x.fillRect(0, i * h / 4, w, h / 4 + 1); });
+      return c;
+    }
+    const url = async c => URL.createObjectURL(await new Promise(r => c.toBlob(r, "image/png")));
+    const lib = {
+      drawing: async () => url(drawing()), flat: async () => url(flat()), bands: async () => url(bands()),
+      animal: async () => "IMAGE/draw/world/animal.jpg", ocean: async () => "IMAGE/draw/world/ocean.jpg", sweets: async () => "IMAGE/draw/world/sweets.jpg",
+      broken: async () => "IMAGE/draw/world/no-such-file.jpg",
+    };
+    let kinds = ["drawing", "animal", "ocean"];
+    window.__setScenes = k => { kinds = k; };
+    const getScenes = rec("getScenes", async () => Promise.all(kinds.map(async (k, i) => ({ id: k + i, src: await lib[k]() }))));
+    const seek = mountSeek({ v: "7", show, A, Particles, toast, onHome, getScenes, mascot: "IMAGE/draw/ui/mascot.png" });
+    window.__mod = seek;
+    document.getElementById("goSeek").onclick = () => seek.open();
+    window.__ready = true;
+  </script>
+</body>
+</html>

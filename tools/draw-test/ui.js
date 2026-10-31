@@ -878,6 +878,23 @@ function versionCheck() {
   check("集滿的主題：6 張貼紙變成我的世界的居民", stkN === 6, "n=" + stkN);
   await p.evaluate(() => window.__rewards.reset());
 
+  // 變色龍躲貓貓（真的接起來）：首頁按 🔍 → 找到 3 次 → 結束鈕 → 🏠
+  await p.evaluate(() => { __draw.show("home"); __draw.renderHome(); });
+  await p.tap("#toSeek");
+  await waitOn("#seek", 8000);
+  check("首頁按 🔍：打開變色龍躲貓貓", await on("#seek") && !(await on("#home")));
+  await p.waitForFunction(() => window.__seek && window.__seek.where(), null, { timeout: 15000 }).catch(() => {});
+  for (let r = 0; r < 3; r++) {
+    await p.waitForFunction(() => window.__seek.where() && window.__seek.state.phase === "seek", null, { timeout: 15000 }).catch(() => {});
+    await p.evaluate(() => window.__seek.find());
+    await p.waitForTimeout(1900);
+  }
+  await p.waitForFunction(() => { const b = document.querySelector("#skAgain"); return b && b.getBoundingClientRect().width > 0; }, null, { timeout: 8000 }).catch(() => {});
+  check("找到 3 次：出現再玩一次", await p.evaluate(() => { const b = document.querySelector("#skAgain"); return !!b && b.getBoundingClientRect().width > 0; }));
+  await p.tap("#skHome2");
+  await waitOn("#home", 5000);
+  check("躲貓貓按 🏠：回首頁", await on("#home") && !(await on("#seek")));
+
   // ── 後續 task 的測試插在這一行上面 ──
   check("沒有頁面錯誤", errs.length === 0, errs.join(" | "));
   await browser.close();

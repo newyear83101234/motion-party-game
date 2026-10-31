@@ -367,6 +367,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .modes:has(#toDaily:not(.off)) #toScratch { animation: none; }
 @media (max-width: 1110px) { .modes .big { width: 68px; height: 68px; font-size: 38px; border-radius: 20px; } .modes { gap: 8px; } .hero { gap: 10px; } }
 .big.m-world { background: linear-gradient(#bfe8ff, #7cc8ff); box-shadow: 0 4px 0 #4a9ad6, 0 8px 14px rgba(40, 90, 140, .2); }
+.big.m-seek { background: linear-gradient(#d9f7a8, #9be06a); box-shadow: 0 4px 0 #5fa83a, 0 8px 14px rgba(40, 110, 30, .2); }
 .big.m-book { background: linear-gradient(#ffe0ef, #ffb3d6); box-shadow: 0 4px 0 #e07aa9, 0 8px 14px rgba(140, 40, 90, .2); }
 .big.gift { box-shadow: 0 4px 0 #e0609d, 0 8px 14px rgba(140, 40, 90, .2); }
 .big.m-gacha { background: linear-gradient(#fff3b0, #ffd54f); box-shadow: 0 4px 0 #d9a52e, 0 8px 14px rgba(140, 100, 20, .25); animation: gift 1.8s ease-in-out infinite; }
