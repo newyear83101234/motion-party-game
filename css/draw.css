@@ -20,7 +20,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 
 /* 首頁與作品牆 */
 .top { display: flex; align-items: center; gap: 16px; padding: 16px 20px 8px; }
-#home { background: var(--bg) url("../IMAGE/draw/ui/home-bg.jpg?v=5") center / cover; }
+#home { background: var(--bg) url("../IMAGE/draw/ui/home-bg.jpg?v=6") center / cover; }
 .hero { padding: 12px 24px 4px; gap: 14px; }
 .mascot { height: 92px; width: auto; animation: bob 2.6s ease-in-out infinite; filter: drop-shadow(0 6px 6px rgba(60, 30, 0, .2)); }
 @keyframes bob { 50% { transform: translateY(-6px) rotate(-3deg); } }

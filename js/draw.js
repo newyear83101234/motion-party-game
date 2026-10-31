@@ -1,11 +1,11 @@
 // 畫畫遊戲主程式：首頁、畫畫頁（工具列、彈出選單、手勢）、完成、作品牆
-import { Board } from "./draw-canvas.js?v=5";
-import { Painter, previewMat, previewBrush } from "./draw-paint.js?v=5";
-import { Fx } from "./draw-fx.js?v=5";
-import * as G from "./draw-gallery.js?v=5";
-import { STICKERS, stickerImage } from "./draw-stickers.js?v=5";
-import * as A from "./draw-audio.js?v=5";
-import { Particles } from "./draw-particles.js?v=5";
+import { Board } from "./draw-canvas.js?v=6";
+import { Painter, previewMat, previewBrush } from "./draw-paint.js?v=6";
+import { Fx } from "./draw-fx.js?v=6";
+import * as G from "./draw-gallery.js?v=6";
+import { STICKERS, stickerImage } from "./draw-stickers.js?v=6";
+import * as A from "./draw-audio.js?v=6";
+import { Particles } from "./draw-particles.js?v=6";
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -91,7 +91,7 @@ function renderHome(theme) {
   $("#themes").replaceChildren(...INDEX.themes.map(t => {
     const b = button("theme" + (t.id === theme ? " on" : ""), "", () => { if (t.id !== theme) renderHome(t.id); }, t.name);
     b.style.setProperty("--c", t.color || "#ffc93c");
-    b.append(t.img ? Object.assign(new Image(), { src: ART_DIR.replace("lineart/", "ui/") + t.img + "?v=5", alt: "", className: "ico" }) : el("span", "emo", t.icon),
+    b.append(t.img ? Object.assign(new Image(), { src: ART_DIR.replace("lineart/", "ui/") + t.img + "?v=6", alt: "", className: "ico" }) : el("span", "emo", t.icon),
       el("span", "name", t.name));
     b.dataset.sfx = "pick";
     return b;
@@ -100,7 +100,7 @@ function renderHome(theme) {
   const arts = INDEX.arts.filter(a => a.theme === theme && (DEV || !a.test)), nth = {};
   $("#arts").replaceChildren(...arts.map((a, i) => {
     const lit = Math.min(3, a.level || 1);   // 難度一律三格：簡單一顆亮、中等兩顆、困難三顆
-    const c = card(ART_DIR + (a.thumb || a.file) + "?v=5", () => startArt(a), [0, 1, 2].map(i => `<b class="${i < lit ? "lit" : ""}">★</b>`).join(""));
+    const c = card(ART_DIR + (a.thumb || a.file) + "?v=6", () => startArt(a), [0, 1, 2].map(i => `<b class="${i < lit ? "lit" : ""}">★</b>`).join(""));
     c.dataset.id = a.id; c.dataset.sfx = "open";
     const lv = Math.min(3, a.level || 1);
     nth[lv] = (nth[lv] || 0) + 1;
@@ -124,7 +124,7 @@ async function startArt(a, work = null) {
   $("#loading").classList.add("on");
   try {
     let ok;
-    try { ok = await board.load(a.url || ART_DIR + a.file + "?v=5"); }
+    try { ok = await board.load(a.url || ART_DIR + a.file + "?v=6"); }
     catch (e) {
       if (my !== loadSeq) return false;   // 已經被更新的請求取代，不要動畫面
       console.warn("線稿載入失敗：" + (e && e.message));   // 不用 console.error：測試把它當頁面錯誤
@@ -433,7 +433,7 @@ function renderPop(kind, from = popFrom) {
   };
   const clip = () => {
     const b = button("opt clip" + (S.clip ? " yes" : ""), "", () => { S.clip = !S.clip; again(); }, "不出線");
-    b.append(Object.assign(new Image(), { src: "IMAGE/draw/ui/btn-clip.png?v=5", alt: "", className: "ico" }));
+    b.append(Object.assign(new Image(), { src: "IMAGE/draw/ui/btn-clip.png?v=6", alt: "", className: "ico" }));
     return b;
   };
   if (kind === "color") {   // 上面 30 色（每個顏色一個音，從左到右往上爬），下面一排材質
@@ -679,7 +679,7 @@ $("#sHome").onclick = () => { endScratch(true); goHome(); };
 function hintSeen() { try { return !!localStorage.getItem("draw-hinted"); } catch { return true; } }
 function showHint() {
   $(".tap-hint")?.remove();
-  if (hintSeen() || S.tool !== "brush" || !board.boxes) return;
+  if (hintSeen() || S.tool !== "brush" || !board.boxes || SC.on) return;   // 刮刮樂時不出提示（開圖後下一格才補放，會蓋在刮刮膜上）
   const b = board, B = b.boxes.map((r, id) => [r, id]).filter(([r]) => r.x0 > 4 && r.y0 > 4 && r.x1 < b.W - 5 && r.y1 < b.H - 5)
     .sort((p, q) => q[0].area - p[0].area)[0];
   if (!B) return;
@@ -718,7 +718,7 @@ async function renderGallery() {
     urls.push(u);
     return card(u, () => openWork(w), "", w.done ? "" : "✏️");
   }).filter(Boolean);
-  $("#works").replaceChildren(...(cards.length ? cards : [el("div", "empty", '<img src="IMAGE/draw/ui/mascot.png?v=5" alt="" onerror="this.remove()"><img class="ico" src="IMAGE/draw/ui/btn-edit.png?v=5" alt="">')]));   // 還沒有作品：吉祥物拿著畫筆
+  $("#works").replaceChildren(...(cards.length ? cards : [el("div", "empty", '<img src="IMAGE/draw/ui/mascot.png?v=6" alt="" onerror="this.remove()"><img class="ico" src="IMAGE/draw/ui/btn-edit.png?v=6" alt="">')]));   // 還沒有作品：吉祥物拿著畫筆
 }
 function openWork(w) {
   viewing = w;
@@ -785,7 +785,7 @@ function applyIcons() {
       const t = [...b.childNodes].find(n => n.nodeType === 3 && n.textContent.trim()) || b.querySelector("span:not(.dot)");
       if (t) t.replaceWith(img);
     };
-    img.src = "IMAGE/draw/ui/" + name + ".png?v=5";
+    img.src = "IMAGE/draw/ui/" + name + ".png?v=6";
   }
 }
 
@@ -797,7 +797,7 @@ window.__draw = { S, board, painter, fx, G, A, show, renderHome, startArt, rende
   G.persist();
   refreshBar(); refreshTools(); refreshUndo(); refreshToggles(); applyIcons();
   try {
-    const res = await fetch(ART_DIR + "index.json?v=5");
+    const res = await fetch(ART_DIR + "index.json?v=6");
     if (!res.ok) throw new Error("HTTP " + res.status);
     INDEX = await res.json();
   } catch (e) {

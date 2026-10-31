@@ -107,7 +107,7 @@ function versionCheck() {
 
   // Task 6：貼紙
   const st = await p.evaluate(async () => {
-    const M = await import("./js/draw-stickers.js?v=5");
+    const M = await import("./js/draw-stickers.js?v=6");
     const ids = M.STICKERS.map(s => s.id);
     const img = await M.stickerImage("star");
     __draw.painter.sticker(img, 1000, 1200, 200);
@@ -120,7 +120,7 @@ function versionCheck() {
 
   // Task 7：特效
   await p.evaluate(async () => {
-    const M = await import("./js/draw-fx.js?v=5");
+    const M = await import("./js/draw-fx.js?v=6");
     window.__fx = __draw.fx || new M.Fx(__draw.board);   // Task 9 之後用遊戲自己的那一個，免得兩組亮粉互相干擾
     __draw.painter.clearAll();
   });
@@ -208,7 +208,7 @@ function versionCheck() {
 
   // Task 8：作品牆
   const gal = await p.evaluate(async () => {
-    const G = await import("./js/draw-gallery.js?v=5");
+    const G = await import("./js/draw-gallery.js?v=6");
     await G.wipe();
     const c = __draw.board.composite();
     const w = { id: G.newId(), art: "test-shapes", done: true, thumb: await G.thumbOf(c), image: await G.toBlob(c),
@@ -432,7 +432,7 @@ function versionCheck() {
   check("第一次選貼紙 → 自動打開選單", await on("#pop"));
   await p.tap('#pop .opt[aria-label="heart"]');
   const stk = await p.evaluate(async () => {
-    const M = await import("./js/draw-stickers.js?v=5");
+    const M = await import("./js/draw-stickers.js?v=6");
     const want = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(M.STICKERS.find(s => s.id === "heart").svg);
     const im = document.querySelector('[data-tool="sticker"] img');
     return { has: !!im, same: !!im && im.getAttribute("src") === want };
@@ -738,11 +738,13 @@ function versionCheck() {
   await p.evaluate(() => __draw.show("paint"));
 
   // 刮刮樂驚喜：首頁按 🎁 → 隨機一張圖上好魔法顏色、蓋刮刮膜；刮掉大部分 → 自己掉光、出現按鈕；「自己畫這張」→ 畫布清白、可以畫
-  await p.evaluate(() => { __draw.show("home"); __draw.renderHome(); });
+  await p.evaluate(() => { __draw.show("home"); __draw.renderHome(); __draw.S.tool = "brush"; localStorage.removeItem("draw-hinted"); });   // 當成第一次玩：看提示會不會蓋在刮刮膜上
   await p.tap("#toScratch");
   await p.waitForFunction(() => __draw.SC.on, null, { timeout: 10000 }).catch(() => {});
-  const sc1 = await p.evaluate(() => ({ on: __draw.SC.on, busy: __draw.S.busy, cls: document.querySelector("#paint").classList.contains("scratching"), foil: getComputedStyle(document.querySelector("#foil")).display }));
+  await p.waitForTimeout(400);   // 開圖後下一格畫面才會補放提示
+  const sc1 = await p.evaluate(() => ({ on: __draw.SC.on, busy: __draw.S.busy, cls: document.querySelector("#paint").classList.contains("scratching"), foil: getComputedStyle(document.querySelector("#foil")).display, hint: !!document.querySelector(".tap-hint") }));
   check("刮刮樂：開一張圖、蓋上刮刮膜、一般畫畫暫停", sc1.on && sc1.busy && sc1.cls && sc1.foil === "block", JSON.stringify(sc1));
+  check("刮刮樂：第一次玩的點擊提示不會蓋在刮刮膜上", !sc1.hint);
   const fb = await p.locator("#foil").boundingBox();
   await p.evaluate(() => { const x = __draw.SC.ctx; x.globalCompositeOperation = "destination-out"; x.fillRect(0, 0, x.canvas.width, x.canvas.height * 0.8); });
   await touch("touchStart", [[fb.x + 30, fb.y + fb.height - 20, 1]]); await touch("touchMove", [[fb.x + fb.width - 30, fb.y + fb.height - 20, 1]]); await touch("touchEnd", []);
@@ -751,7 +753,7 @@ function versionCheck() {
   await p.tap("#sPaint");
   const sc2 = await p.evaluate(() => ({ on: __draw.SC.on, busy: __draw.S.busy, cls: document.querySelector("#paint").classList.contains("scratching"), white: [...__draw.board.ctx.getImageData(1000, 600, 1, 1).data].slice(0, 3).join(",") }));
   check("自己畫這張：畫布清回白色、可以照常畫", !sc2.on && !sc2.busy && !sc2.cls && sc2.white === "255,255,255", JSON.stringify(sc2));
-  await p.evaluate(() => { __draw.G.wipe(); });
+  await p.evaluate(() => { __draw.G.wipe(); document.querySelector(".tap-hint")?.remove(); localStorage.setItem("draw-hinted", "1"); });
 
   // 首頁三欄：每個主題 6 張，左欄一顆星、中欄兩顆星、右欄三顆星
   await p.evaluate(() => { __draw.show("home"); __draw.renderHome("animal"); });
