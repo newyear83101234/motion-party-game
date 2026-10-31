@@ -4,15 +4,75 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#fff4e0">
   <title>畫畫樂園</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="css/draw.css?v=1">
+  <link rel="modulepreload" href="js/draw-core.js?v=1">
+  <link rel="modulepreload" href="js/draw-canvas.js?v=1">
+  <link rel="modulepreload" href="js/draw-paint.js?v=1">
+  <link rel="modulepreload" href="js/draw-fx.js?v=1">
+  <link rel="modulepreload" href="js/draw-gallery.js?v=1">
+  <link rel="modulepreload" href="js/draw-stickers.js?v=1">
 </head>
 <body>
-  <main id="paint" class="screen on">
+  <!-- 首頁：上排選主題，下面是線稿縮圖 -->
+  <section id="home" class="screen on">
+    <header class="top">
+      <div class="themes" id="themes"></div>
+      <button class="big" id="toGallery" aria-label="作品牆">🖼️</button>
+    </header>
+    <div class="arts" id="arts"></div>
+  </section>
+
+  <!-- 畫畫頁：左邊畫布、右邊工具列 -->
+  <section id="paint" class="screen">
     <div id="stage"></div>
-    <nav id="bar"></nav>
-  </main>
+    <nav id="bar">
+      <button id="bDone" class="btn ok" aria-label="完成">✔️</button>
+      <button id="bHome" class="btn" aria-label="回首頁">🏠</button>
+      <hr>
+      <button class="btn tool on" data-tool="fill" aria-label="填色桶">🪣</button>
+      <button class="btn tool" data-tool="brush" aria-label="筆刷">🖍️</button>
+      <button class="btn tool" data-tool="sticker" aria-label="貼紙">⭐</button>
+      <button class="btn tool" data-tool="eraser" aria-label="橡皮擦">🧽</button>
+      <hr>
+      <button id="bColor" class="btn" aria-label="顏色"><span class="dot"></span></button>
+      <button id="bMat" class="btn" aria-label="材質"><canvas width="64" height="64"></canvas></button>
+      <button id="bClip" class="btn on" aria-label="不出線">🛡️</button>
+      <hr>
+      <button id="bUndo" class="btn" aria-label="復原">↩️</button>
+      <button id="bClear" class="btn hold" aria-label="清空（要按住）">🗑️<i class="ring"></i></button>
+    </nav>
+    <div id="pop" class="pop"></div>
+    <div id="after" class="after">
+      <button class="big" id="aHome" aria-label="回首頁">🏠</button>
+      <button class="big" id="aAgain" aria-label="繼續畫">🖌️</button>
+    </div>
+  </section>
+
+  <!-- 作品牆 -->
+  <section id="gallery" class="screen">
+    <header class="top">
+      <button class="big" id="gBack" aria-label="回首頁">🏠</button>
+      <span class="grow"></span>
+      <button class="big" id="gTip" aria-label="加到主畫面">📲</button>
+    </header>
+    <div class="works" id="works"></div>
+    <div id="view" class="view">
+      <img id="vImg" alt="">
+      <div class="vbar">
+        <button class="big" id="vClose" aria-label="關閉">✖️</button>
+        <button class="big" id="vEdit" aria-label="接著畫">🖌️</button>
+        <button class="big" id="vSave" aria-label="存到相簿">📥</button>
+        <button class="big hold" id="vDel" aria-label="刪除（要按住）">🗑️<i class="ring"></i></button>
+      </div>
+    </div>
+    <div id="tip" class="tip">把這個遊戲加到主畫面，作品比較不會不見：<br>按 Safari 的「分享」⬆️ →「加入主畫面」➕</div>
+  </section>
+
+  <div id="full" class="toast">🖼️ 滿了</div>
+  <div id="rotate" class="rotate">📱 ↻</div>
   <script type="module" src="js/draw.js?v=1"></script>
 </body>
 </html>

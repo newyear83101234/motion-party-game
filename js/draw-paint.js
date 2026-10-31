@@ -246,3 +246,11 @@ function snowPath(x, cx, cy, R) {
     }
   }
 }
+
+// 材質預覽小方塊（工具列和材質選單用）
+export function previewMat(mat, color, size = 64) {
+  const c = mk(size, size), x = c.getContext("2d");
+  if (mat.kind === "solid") { x.fillStyle = color; x.fillRect(0, 0, size, size); }
+  else x.drawImage(mat.kind === "glitter" ? glitterTile(color) : patternTile(mat.pattern, color), 0, 0, size, size);
+  return c;
+}

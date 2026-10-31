@@ -233,6 +233,92 @@ function versionCheck() {
   check("作品牆照時間排、最新的在前面", gal.isW);
   check("可以刪除作品", gal.n2 === 49);
 
+  // Task 9：完整畫面與手勢（CDP 送真正的多指觸控）
+  const cdp = await ctx.newCDPSession(p);
+  const touch = (type, pts) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: pts.map(([x, y, id]) => ({ x, y, id })) });
+  const view = () => p.evaluate(() => __draw.board.view.s);
+  const on = sel => p.evaluate(s => document.querySelector(s).classList.contains("on"), sel);
+
+  await p.tap('[data-tool="brush"]');
+  await p.evaluate(() => { __draw.painter.clearAll(); __draw.S.clip = false; __draw.S.color = "#1e88e5"; __draw.S.mat = { kind: "solid" }; });
+  const A = await toClient(400, 100), B = await toClient(900, 100), Z = await toClient(1500, 1300);
+  await touch("touchStart", [[A.x, A.y, 1]]);
+  await touch("touchMove", [[(A.x + B.x) / 2, A.y, 1]]);
+  await p.waitForTimeout(300);
+  await touch("touchStart", [[(A.x + B.x) / 2, A.y, 1], [Z.x, Z.y, 2]]);   // 300 毫秒後才放上來的手掌
+  await touch("touchMove", [[B.x, B.y, 1], [Z.x, Z.y, 2]]);
+  await touch("touchMove", [[Z.x, Z.y, 2]]);                                // 第一根手指放開
+  await touch("touchEnd", []);
+  check("手掌誤觸：筆畫沒被打斷", await px(650, 100) === "30,136,229" && await px(880, 100) === "30,136,229", `${await px(650, 100)} / ${await px(880, 100)}`);
+  check("手掌誤觸：畫面沒有被縮放", await view() === 1);
+
+  const C1 = await toClient(800, 700), C2 = await toClient(1000, 700);
+  await touch("touchStart", [[C1.x, C1.y, 1]]);
+  await touch("touchStart", [[C1.x, C1.y, 1], [C2.x, C2.y, 2]]);            // 馬上放第二根 → 縮放
+  await touch("touchMove", [[C1.x - 150, C1.y, 1], [C2.x + 150, C2.y, 2]]);
+  await touch("touchEnd", []);
+  check("兩指張開 → 放大", await view() > 1.5, `s=${await view()}`);
+  check("縮放前那一筆被取消", await px(800, 700) === "255,255,255");
+  for (let i = 0; i < 2; i++) { await touch("touchStart", [[C1.x, C1.y, 1], [C2.x, C2.y, 2]]); await touch("touchEnd", []); await p.waitForTimeout(120); }
+  check("兩指點兩下 → 回到原本大小", await view() === 1);
+
+  await p.tap('[data-tool="fill"]');
+  await p.evaluate(() => { const P = __draw.painter; P.fill(P.regionAt(1450, 500), { kind: "solid" }, "#e53935").done(); });
+  const cb = await p.locator("#bClear").boundingBox(), cc = [cb.x + cb.width / 2, cb.y + cb.height / 2, 9];
+  await touch("touchStart", [cc]); await p.waitForTimeout(300); await touch("touchEnd", []);
+  check("清空按一下不會清", await px(1450, 500) === "229,57,53");
+  await touch("touchStart", [cc]); await p.waitForTimeout(1200); await touch("touchEnd", []);
+  check("清空要按住 1 秒才會清", await px(1450, 500) === "255,255,255");
+
+  await p.tap("#bColor");
+  check("顏色選單 24 色", await on("#pop") && await p.locator("#pop .sw").count() === 24);
+  await p.tap("#pop .sw:nth-child(17)");
+  check("選了顏色、選單自動收起", await p.evaluate(() => __draw.S.color) === "#7e57c2" && !(await on("#pop")));
+  await p.tap("#bMat");
+  check("材質選單 7 種", await p.locator("#pop .opt").count() === 7);
+  await p.tap("#pop .opt:nth-child(2)");
+  check("選了亮粉", await p.evaluate(() => __draw.S.mat.kind) === "glitter");
+  await tapImg(1550, 1100);
+  check("用工具列選的顏色和材質填色", await colorsIn(1440, 990, 220, 220) > 30);
+
+  await p.evaluate(() => __draw.G.wipe());
+  await p.tap("#bDone");
+  await p.waitForFunction(() => document.querySelector("#after").classList.contains("on"), null, { timeout: 8000 }).catch(() => {});
+  check("按完成 → 播完動畫出現兩顆大按鈕", await on("#after"));
+  check("完成的作品存進作品牆", await p.evaluate(() => __draw.G.count()) === 1);
+  await p.tap("#aHome");
+  check("回到首頁", await on("#home"));
+  await p.tap('#arts .card[data-id="test-shapes"]');
+  await p.waitForFunction(() => document.querySelector("#paint").classList.contains("on") && __draw.painter.history.size === 0, null, { timeout: 8000 });
+  await p.waitForTimeout(600);   // 等線稿載入完（載入時會重設復原紀錄）
+  await p.evaluate(() => { const P = __draw.painter; P.fill(P.regionAt(1450, 500), { kind: "solid" }, "#8e24aa").done(); });
+  await p.tap("#bHome");
+  await p.waitForTimeout(500);
+  check("沒畫完回首頁 → 自動存成未完成", await p.evaluate(() => __draw.G.count()) === 2);
+  await p.tap("#toGallery");
+  await p.waitForTimeout(300);
+  check("作品牆兩件，未完成的有 ✏️", await p.locator("#works .card").count() === 2 && await p.locator("#works .wip").count() === 1);
+  await p.screenshot({ path: path.join(OUT, "05-gallery.png") });
+  await p.tap("#works .card:has(.wip)");
+  check("點作品 → 放大看", await on("#view"));
+  await p.tap("#vEdit");
+  await p.waitForTimeout(800);
+  check("接著畫：畫畫頁還原原本的顏色", await on("#paint") && await px(1450, 500) === "142,36,170");
+
+  await p.setViewportSize({ width: 820, height: 1180 });
+  check("平板直著拿 → 蓋上轉向提示", await p.evaluate(() => getComputedStyle(document.querySelector("#rotate")).display) === "grid");
+  await p.setViewportSize({ width: 1180, height: 820 });
+  await p.screenshot({ path: path.join(OUT, "06-paint.png") });
+
+  // 線稿載入失敗 → 退回首頁、回傳 false，不當成頁面錯誤
+  const errs0 = errs.length;
+  const bad = await p.evaluate(() => __draw.startArt({ id: "bad", url: "IMAGE/draw/lineart/不存在.png", parts: [] }));
+  check("線稿載入失敗 → 回傳 false 並退回首頁", bad === false && await on("#home"), `bad=${bad}`);
+  // 瀏覽器自己會為那張 404 圖片記一則 "Failed to load resource" 主控台錯誤，這是預期的，只放行這一則
+  const i404 = errs.findIndex((e, i) => i >= errs0 && /Failed to load resource.*404/.test(e));
+  if (i404 >= 0) errs.splice(i404, 1);
+  await p.evaluate(() => __draw.startArt({ id: "test-shapes", url: "IMAGE/draw/lineart/test-shapes.svg", parts: [] }));
+
   // ── 後續 task 的測試插在這一行上面 ──
   check("沒有頁面錯誤", errs.length === 0, errs.join(" | "));
   await browser.close();

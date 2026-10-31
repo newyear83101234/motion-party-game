@@ -78,6 +78,13 @@ export class Board {
     const r = this.stage.getBoundingClientRect(), o = this.origin(r);
     return { x: r.left + o.x + x * o.k, y: r.top + o.y + y * o.k };
   }
+  // 以畫布上的 (ix, iy) 為定點縮放：縮放後那一點剛好落在螢幕 (clientX, clientY) 底下（兩指縮放用）
+  zoomAt(ix, iy, clientX, clientY, s) {
+    const r = this.stage.getBoundingClientRect();
+    s = Math.min(4, Math.max(1, s));
+    const k = this.base * s;
+    this.setView({ s, tx: clientX - r.left - ix * k - (r.width - this.W * k) / 2, ty: clientY - r.top - iy * k - (r.height - this.H * k) / 2 });
+  }
   // 顏色層＋線稿層合成一張（存作品、完成動畫用）
   composite() {
     const c = makeCanvas(this.W, this.H), x = c.getContext("2d");

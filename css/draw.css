@@ -1,12 +1,79 @@
-:root { --bar-w: 112px; --bg: #fff4e0; --wood: #f3dfb8; --ink: #3b2a1a; }
+:root { --bar-w: 112px; --bg: #fff4e0; --wood: #f3dfb8; --wood-d: #e2c48f; --ink: #3b2a1a; --on: #ffcf4d; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; touch-action: none;
-  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-.screen { position: fixed; inset: 0; display: none; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); overflow: hidden; touch-action: none;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  font-family: system-ui, -apple-system, "PingFang TC", "Noto Sans TC", sans-serif; }
+button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
+.screen { position: fixed; inset: 0; display: none;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
 .screen.on { display: flex; }
+#home.on, #gallery.on { flex-direction: column; }
+.grow { flex: 1; }
+
+/* 首頁與作品牆 */
+.top { display: flex; align-items: center; gap: 16px; padding: 16px 20px 8px; }
+.themes { display: flex; gap: 16px; flex: 1; }
+.big { width: 88px; height: 88px; border-radius: 24px; background: #fff; font-size: 48px; position: relative;
+  box-shadow: 0 4px 0 var(--wood-d); flex: 0 0 auto; }
+.big.on, .btn.on { background: var(--on); }
+.big:active, .btn:active, .card:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--wood-d); }
+.arts, .works { flex: 1; overflow-y: auto; touch-action: pan-y; display: grid; align-content: start; gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); padding: 12px 20px 24px; }
+.card { position: relative; background: #fff; border-radius: 20px; box-shadow: 0 4px 0 var(--wood-d); overflow: hidden; aspect-ratio: 4 / 3; }
+.card img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }
+.card .lv { position: absolute; right: 10px; top: 8px; font-size: 26px; }
+.card .wip { position: absolute; left: 10px; top: 8px; font-size: 30px; }
+
+/* 畫畫頁 */
 #stage { position: relative; flex: 1; overflow: hidden; background: #fff; margin: 12px; border-radius: 18px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, .12); }
 .board { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 .layer { position: absolute; inset: 0; width: 100%; height: 100%; }
-#bar { width: var(--bar-w); background: var(--wood); }
+#bar { width: var(--bar-w); background: var(--wood); display: flex; flex-direction: column; align-items: center;
+  gap: 8px; padding: 12px 0; overflow-y: auto; }
+#bar hr { width: 70%; border: 0; border-top: 3px dashed var(--wood-d); margin: 2px 0; }
+.btn { width: 76px; height: 62px; flex: 0 0 auto; border-radius: 18px; background: #fff; font-size: 32px; position: relative;
+  display: grid; place-items: center; box-shadow: 0 4px 0 var(--wood-d); }
+.btn.ok { background: #8bd96b; }
+#bColor .dot { width: 40px; height: 40px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px var(--ink); }
+#bMat canvas { width: 40px; height: 40px; border-radius: 10px; }
+#bClip:not(.on) { opacity: .45; }
+
+/* 要按住的按鈕：外圈紅色進度條，跑滿 1 秒才算 */
+.ring { position: absolute; inset: -4px; border-radius: 22px; border: 5px solid #e53935; clip-path: inset(0 100% 0 0); pointer-events: none; }
+.hold.holding .ring { animation: hold 1s linear forwards; }
+@keyframes hold { to { clip-path: inset(0 0 0 0); } }
+
+/* 彈出選單：貼在工具列左邊 */
+.pop { position: absolute; right: calc(var(--bar-w) + 12px); top: 12px; z-index: 6; display: none; flex-wrap: wrap; gap: 10px;
+  max-width: 470px; padding: 14px; background: #fff; border-radius: 22px; box-shadow: 0 8px 30px rgba(0, 0, 0, .25); }
+.pop.on { display: flex; }
+.pop .sw { width: 64px; height: 64px; border-radius: 50%; border: 4px solid #fff; box-shadow: 0 0 0 2px #ccc; }
+.pop .sw.on { box-shadow: 0 0 0 4px var(--ink); }
+.pop .opt { width: 76px; height: 76px; border-radius: 18px; background: #f6efe2; display: grid; place-items: center; font-size: 40px; }
+.pop .opt.on { background: var(--on); }
+.pop .opt canvas, .pop .opt img { width: 60px; height: 60px; border-radius: 12px; pointer-events: none; }
+.pop .row { display: flex; gap: 10px; width: 100%; }
+.pop .size i { display: block; border-radius: 50%; background: var(--ink); }
+
+/* 完成後的兩顆大按鈕 */
+.after { position: absolute; left: 0; right: var(--bar-w); bottom: 40px; z-index: 7; display: none; justify-content: center; gap: 40px; }
+.after.on { display: flex; }
 .finish-ov { position: absolute; inset: 0; width: 100%; height: 100%; background: #fff; z-index: 5; pointer-events: none; }
+
+/* 作品牆：放大看 */
+.view { position: fixed; inset: 0; z-index: 8; display: none; flex-direction: column; align-items: center; justify-content: center;
+  gap: 20px; background: rgba(40, 30, 20, .85); }
+.view.on { display: flex; }
+.view img { max-width: 90vw; max-height: 72vh; border-radius: 16px; background: #fff; }
+.vbar { display: flex; gap: 28px; }
+.tip { position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); z-index: 9; display: none; padding: 16px 24px;
+  font-size: 22px; line-height: 1.6; background: #fff; border-radius: 20px; box-shadow: 0 8px 30px rgba(0, 0, 0, .25); }
+.tip.on { display: block; }
+.toast { position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 20; display: none; padding: 24px 40px;
+  font-size: 56px; background: #fff; border-radius: 28px; box-shadow: 0 8px 30px rgba(0, 0, 0, .3); }
+.toast.on { display: block; }
+
+/* 直向：整頁蓋上「請轉橫」 */
+.rotate { position: fixed; inset: 0; z-index: 30; display: none; place-items: center; font-size: 96px; background: var(--bg); }
+@media (orientation: portrait) { .rotate { display: grid; } }

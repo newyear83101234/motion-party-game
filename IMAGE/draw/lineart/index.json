@@ -1,0 +1,12 @@
+{
+  "themes": [
+    { "id": "animal", "name": "動物", "icon": "🐱" },
+    { "id": "vehicle", "name": "交通工具", "icon": "🚗" },
+    { "id": "dino", "name": "恐龍", "icon": "🦖" },
+    { "id": "fairy", "name": "公主", "icon": "👑" }
+  ],
+  "arts": [
+    { "id": "test-shapes", "file": "test-shapes.svg", "theme": "animal", "level": 1, "test": true,
+      "parts": [{ "type": "spin", "at": [[1550, 1100]] }, { "type": "wag", "at": [[700, 500]], "pivot": [500, 800], "deg": 15 }] }
+  ]
+}
