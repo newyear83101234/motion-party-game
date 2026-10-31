@@ -127,7 +127,8 @@ const check = (name, ok, info = "") => { results.push((ok ? "✅ " : "❌ ") + n
   const urlInfo = await st(() => ({ live: H.live.size, mobs: __world.state.mobs.length, theme: __world.state.theme }));
   check("點分頁切到交通工具，上一個主題的 object URL 都釋放了", urlInfo.theme === "vehicle" && urlInfo.mobs === 8 && urlInfo.live === 8, JSON.stringify(urlInfo));
   const V1 = await ents(); await p.waitForTimeout(300); const V2 = await ents();
-  const drv = V1.filter(e => e.mode === "drive" && V2.find(o => o.id === e.id && o.mode === "drive" && o.dir === e.dir));
+  // 兩次取樣中間剛好從畫面一邊開出去、另一邊開回來的車（x 跳很遠）不算，不然測試會偶發失敗
+  const drv = V1.filter(e => e.mode === "drive" && V2.find(o => o.id === e.id && o.mode === "drive" && o.dir === e.dir && Math.abs(o.x - e.x) < B.W * 0.3));
   const fwd = drv.every(e => (V2.find(o => o.id === e.id).x - e.x) * e.dir > 0);
   const laneOk = V2.filter(e => e.mode === "drive").every(e => e.dir > 0 ? e.y >= B.H * .78 - 2 && e.y <= B.H * .93 + 2 : e.y >= B.H * .56 - 2 && e.y <= B.H * .585 + 2);
   check("車子沿馬路橫向開（往右走近車道、往左走遠車道）", drv.length >= 3 && fwd && laneOk, `drive=${drv.length}`);
