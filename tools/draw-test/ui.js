@@ -204,6 +204,35 @@ function versionCheck() {
   await p.evaluate(async () => { await __draw.board.load("IMAGE/draw/lineart/test-shapes.svg"); __draw.painter.reset(); });
   check("換回測試線稿", await p.evaluate(() => __draw.board.W) === 2048);
 
+  // Task 8：作品牆
+  const gal = await p.evaluate(async () => {
+    const G = await import("./js/draw-gallery.js?v=1");
+    await G.wipe();
+    const c = __draw.board.composite();
+    const w = { id: G.newId(), art: "test-shapes", done: true, thumb: await G.thumbOf(c), image: await G.toBlob(c),
+      color: await G.toBlob(__draw.board.color), glit: await G.toBlob(__draw.board.glit) };
+    await G.save(w);
+    const back = await G.get(w.id);
+    await G.save({ ...back, done: false });
+    const n1 = await G.count();
+    for (let i = 0; i < 49; i++) await G.save({ id: "x" + i, art: "test-shapes", done: true, thumb: back.thumb });
+    let full = "";
+    try { await G.save({ id: "overflow", art: "test-shapes", done: true, thumb: back.thumb }); } catch (e) { full = e.code; }
+    let updateOk = true;
+    try { await G.save({ ...back, done: true }); } catch { updateOk = false; }
+    const newest = (await G.list())[0].id;
+    await G.remove("x0");
+    const n2 = await G.count();
+    await G.wipe();
+    return { thumb: back.thumb.size, image: back.image.size, n1, full, updateOk, isW: newest === w.id, n2 };
+  });
+  check("作品存得進去也讀得回來", gal.thumb > 0 && gal.image > 0, JSON.stringify(gal));
+  check("同一件作品再存是覆蓋、不會多一件", gal.n1 === 1);
+  check("滿 50 件時新作品存不進去", gal.full === "FULL");
+  check("滿了之後還是可以更新舊作品", gal.updateOk);
+  check("作品牆照時間排、最新的在前面", gal.isW);
+  check("可以刪除作品", gal.n2 === 49);
+
   // ── 後續 task 的測試插在這一行上面 ──
   check("沒有頁面錯誤", errs.length === 0, errs.join(" | "));
   await browser.close();
