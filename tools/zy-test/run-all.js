@@ -4,6 +4,7 @@
 //   node tools/zy-test/run-all.js            全套（不含量載入時間的 loadtime／loadprofile：那兩支要量線上網路，另外跑）
 //   node tools/zy-test/run-all.js tops gamelist   只跑檔名含 tops 或 gamelist 的
 //   ZY_RUN_ALL_LOAD=1 node tools/zy-test/run-all.js   連 loadtime／loadprofile 一起跑
+// 10-31：瀏覽器改用顯示卡畫 3D（lib.js launch；ZY_GPU=0 退回軟體算圖），最慢四支 tops／tops-game／deliver／plaza 合計 34 分→15 分
 // 10-31：不需要 3D 小島的測試開頁帶 no3d（flow、newmodes、polish、regress、bubble-boss、bubble-shots、levels）＝每次開頁省 15–20 秒軟體算圖
 const { spawnSync } = require("child_process");
 const path = require("path"), fs = require("fs"), os = require("os");

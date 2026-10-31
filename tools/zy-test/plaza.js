@@ -80,6 +80,7 @@ async function openP(browser, M, { w = 1180, h = 820, query = "debug&plaza=on", 
       const s = {}; WORDS.slice(0, stickers).forEach(w => s[w.h] = 1);
       localStorage.setItem("zy1_stickers", JSON.stringify(s)); localStorage.setItem("zy1_stars", "0");
       localStorage.setItem("zy1_intro", JSON.stringify({ fish: 1, order: 1, build: 1, hunt: 1, match: 1, tone: 1, whack: 1, frog: 1, bubble: 1, deliver: 1 }));
+      if (!("zy1_home" in ls)) localStorage.setItem("zy1_home", JSON.stringify({ base: 0, hi: 1 }));   // 10-31 v8 我的家：新存檔會等貓頭鷹有空時講「這是你的家！」，插在⑥要檢查的慶祝台詞前面 → 預設已聽過
     });
   }, { stickers, ls });
   await p.reload(); await p.waitForFunction(() => document.getElementById("loading").classList.contains("hidden"), null, { timeout: 20000 });

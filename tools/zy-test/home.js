@@ -20,7 +20,7 @@ const slot = (p, i) => p.evaluate(i => window.__hub3d.tapHome({ k: "slot", i }),
 (async () => {
   const b = await launch();
   try {
-    const { p, errs } = await openGame(b, { w: 1180, h: 820, stickers: 20, stars: 0, query: Q });
+    const { p, errs } = await openGame(b, { w: 1180, h: 820, stickers: 20, stars: 0, query: Q, homeHi: false });   // 新存檔的我的家
     await ready(p);
     // ---- 新存檔：今天開工 ----
     let s = await S(p), h = await H(p);
