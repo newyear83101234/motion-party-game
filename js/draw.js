@@ -929,6 +929,9 @@ function setSide(left) {
   if (board.labels) requestAnimationFrame(() => board.fit());
 }
 $("#tSide").onclick = () => setSide(!$("#paint").classList.contains("left"));
+// 齒輪：打開／收起家長設定；點別的地方就收起來
+$("#tSet").onclick = () => $(".setwrap").classList.toggle("on");
+document.addEventListener("pointerdown", e => { if (!e.target.closest?.(".setwrap")) $(".setwrap")?.classList.remove("on"); }, true);
 setSide((() => { try { return localStorage.getItem("draw-side") === "left"; } catch { return false; } })());
 
 // 音樂、音效開關（記在這台平板上）；關掉時右下角紅色 ✕

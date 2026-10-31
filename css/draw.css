@@ -325,7 +325,12 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 #paint.full.replaying #rStop { left: calc(50% - var(--mini-w) / 2); }
 
 /* 音樂／音效開關：關掉時右下角紅色 ✕ */
-.setgroup { display: flex; gap: 6px; padding: 6px; border-radius: 22px; background: rgba(255, 255, 255, .45); }
+.setwrap { position: relative; }
+.setgroup { position: absolute; z-index: 8; right: -6px; top: 64px; display: none; gap: 6px; padding: 8px; border-radius: 22px; background: #fff;
+  box-shadow: 0 10px 30px rgba(90, 60, 20, .28); }
+.setwrap.on .setgroup { display: flex; animation: popIn .22s var(--spring) both; }
+#tSet { background: rgba(255, 255, 255, .55); box-shadow: none; }
+.setwrap.on #tSet { background: #fff; box-shadow: 0 0 0 3px var(--ink); }
 .big.tog { width: 56px; height: 56px; font-size: 30px; border-radius: 16px; box-shadow: 0 3px 0 var(--wood-d); }
 .big.tog svg { width: 32px; height: 32px; }
 .big.tog.off { background: #e8e2d6; box-shadow: 0 4px 0 var(--wood-d); }

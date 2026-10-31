@@ -710,6 +710,7 @@ function versionCheck() {
   check("存進作品牆的作品帶著畫畫紀錄", lg === 4, String(lg));
   await p.evaluate(() => document.querySelector("#after").classList.remove("on"));
   await p.evaluate(() => { __draw.show("home"); __draw.renderHome(); });
+  await p.tap("#tSet");   // 設定收在齒輪裡
   await p.tap("#tMusic");
   const m1 = await p.evaluate(() => [document.querySelector("#tMusic").classList.contains("off"), __draw.A.musicEnabled(), JSON.parse(localStorage.getItem("draw-audio")).music]);
   await p.tap("#tMusic");
@@ -747,7 +748,7 @@ function versionCheck() {
 
   // 工具列換到左邊（左手拿筆）：首頁按切換鈕 → 畫畫頁工具列在左、選單開在工具列右邊、記住設定
   await p.evaluate(() => { __draw.show("home"); __draw.renderHome(); });
-  await p.tap("#tSide");
+  await p.tap("#tSet"); await p.tap("#tSide");
   await openTest();
   const sb3 = await p.locator("#bar").boundingBox(), st3 = await p.locator("#stage").boundingBox();
   await p.tap('[data-tool="brush"]'); if (!(await on("#pop"))) await p.tap('[data-tool="brush"]');
@@ -759,7 +760,7 @@ function versionCheck() {
   await touch("touchStart", [[L1.x, L1.y, 1]]); for (let i = 1; i <= 4; i++) await touch("touchMove", [[L1.x + (L2.x - L1.x) * i / 4, L1.y, 1]]); await touch("touchEnd", []);
   check("工具列在左邊時，手指畫的位置照樣對得上", await px(1450, 500) !== "255,255,255");
   await p.evaluate(() => { __draw.show("home"); __draw.renderHome(); });
-  await p.tap("#tSide");
+  await p.tap("#tSet"); await p.tap("#tSide");
   check("再按一次換回右邊", !(await p.evaluate(() => document.querySelector("#paint").classList.contains("left"))) && await p.evaluate(() => localStorage.getItem("draw-side")) === "right");
   await p.evaluate(() => __draw.show("paint"));
 
