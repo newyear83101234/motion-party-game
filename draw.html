@@ -27,7 +27,7 @@
 
   <!-- 畫畫頁：左邊畫布、右邊工具列 -->
   <section id="paint" class="screen">
-    <div id="stage"></div>
+    <div id="stage"><div id="loading" class="loading">⏳</div></div>
     <nav id="bar">
       <button id="bDone" class="btn ok" aria-label="完成">✔️</button>
       <button id="bHome" class="btn" aria-label="回首頁">🏠</button>
@@ -58,6 +58,7 @@
       <span class="grow"></span>
       <button class="big" id="gTip" aria-label="加到主畫面">📲</button>
     </header>
+    <div id="tidyTip" class="tidy-tip">🖼️ 作品牆滿了：點一張舊作品，按住 🗑️ 刪掉，再按 🏠 回去存這張畫</div>
     <div class="works" id="works"></div>
     <div id="view" class="view">
       <img id="vImg" alt="">

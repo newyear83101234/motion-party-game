@@ -42,19 +42,27 @@ function card(src, onTap, badge = "", wip = "") {
 // 按住 1 秒才觸發（清空、刪除作品），按鈕外圈有進度條
 function hold(btn, fn) {
   let timer = null;
-  const stop = () => { clearTimeout(timer); timer = null; btn.classList.remove("holding"); };
-  btn.addEventListener("pointerdown", e => { e.stopPropagation(); stop(); btn.classList.add("holding"); timer = setTimeout(() => { stop(); fn(); }, 1000); });
-  for (const t of ["pointerup", "pointerleave", "pointercancel"]) btn.addEventListener(t, stop);
+  // flash = true：沒按滿就放開 → 紅圈閃一下，提示要按住
+  const stop = flash => {
+    const was = timer !== null;
+    clearTimeout(timer); timer = null; btn.classList.remove("holding");
+    if (flash && was) { btn.classList.remove("flash"); void btn.offsetWidth; btn.classList.add("flash"); setTimeout(() => btn.classList.remove("flash"), 400); }
+  };
+  btn.addEventListener("pointerdown", e => { e.stopPropagation(); stop(false); btn.classList.add("holding"); timer = setTimeout(() => { stop(false); fn(); }, 1000); });
+  for (const t of ["pointerup", "pointerleave", "pointercancel"]) btn.addEventListener(t, () => stop(true));
 }
 
 // ── 首頁 ──
 function renderHome(theme) {
   theme = theme || INDEX.themes[0]?.id;
-  $("#themes").replaceChildren(...INDEX.themes.map(t =>
-    button("big" + (t.id === theme ? " on" : ""), t.icon, () => renderHome(t.id), t.name)));
+  $("#themes").replaceChildren(...INDEX.themes.map(t => {
+    const b = button("big" + (t.id === theme ? " on" : ""), "", () => renderHome(t.id), t.name);
+    b.textContent = t.icon;
+    return b;
+  }));
   const arts = INDEX.arts.filter(a => a.theme === theme && (DEV || !a.test));
   $("#arts").replaceChildren(...arts.map(a => {
-    const c = card(ART_DIR + a.file, () => startArt(a), a.level === 1 ? "⭐" : "⭐⭐⭐");
+    const c = card(ART_DIR + (a.thumb || a.file) + "?v=1", () => startArt(a), a.level === 1 ? "⭐" : "⭐⭐⭐");
     c.dataset.id = a.id;
     return c;
   }));
@@ -71,11 +79,14 @@ async function startArt(a, work = null) {
   const my = ++loadSeq;
   S.busy = true;
   board.wrap.style.visibility = "hidden";
+  $("#loading").classList.add("on");
   try {
     let ok;
-    try { ok = await board.load(a.url || ART_DIR + a.file); }
+    try { ok = await board.load(a.url || ART_DIR + a.file + "?v=1"); }
     catch (e) {
+      if (my !== loadSeq) return false;   // 已經被更新的請求取代，不要動畫面
       console.warn("線稿載入失敗：" + (e && e.message));   // 不用 console.error：測試把它當頁面錯誤
+      toast("⚠️ 這張圖打不開");
       show("home"); renderHome(a.theme);
       return false;
     }
@@ -83,7 +94,7 @@ async function startArt(a, work = null) {
     painter.reset();
     S.art = a; S.workId = null; S.done = false;
     if (work) {
-      if (work.w && (work.w !== board.W || work.h !== board.H)) console.warn("作品尺寸跟線稿不同，從空白開始");
+      if (work.w && (work.w !== board.W || work.h !== board.H)) { console.warn("作品尺寸跟線稿不同，從空白開始"); toast("⚠️ 舊畫打不開，從空白開始"); }
       else try {
         for (const [blob, ctx] of [[work.color, board.ctx], [work.glit, board.gctx]]) {
           if (!blob) continue;
@@ -94,13 +105,14 @@ async function startArt(a, work = null) {
         S.workId = work.id; S.done = !!work.done;   // 還原成功才沿用舊作品，失敗時不要拿空白蓋掉它
       } catch (e) {
         console.warn("作品還原失敗：" + (e && e.message));
+        toast("⚠️ 舊畫打不開，從空白開始");
         board.ctx.fillStyle = "#fff"; board.ctx.fillRect(0, 0, board.W, board.H);
         board.gctx.clearRect(0, 0, board.W, board.H);
       }
     }
     return true;
   } finally {
-    if (my === loadSeq) { board.wrap.style.visibility = ""; S.busy = false; }
+    if (my === loadSeq) { board.wrap.style.visibility = ""; S.busy = false; $("#loading").classList.remove("on"); }
   }
 }
 
@@ -114,6 +126,8 @@ function toast(text, ms = 2500) {
 // 回傳 "ok" / "full"（作品牆滿了）/ "error"（其他錯誤，已跳提示）；不往外丟錯
 async function saveWork() {
   let c = null;
+  toast("💾", 60000);
+  const mine = toastTimer;
   try {
     c = board.composite();
     const w = { id: S.workId || G.newId(), art: S.art.id, done: S.done, w: board.W, h: board.H, thumb: await G.thumbOf(c), image: await G.toBlob(c),
@@ -125,7 +139,11 @@ async function saveWork() {
     console.warn("存檔失敗：" + (e && e.message));
     toast("⚠️ 沒存到");
     return "error";
-  } finally { if (c) c.width = c.height = 0; }
+  } finally {
+    if (c) c.width = c.height = 0;
+    // 存檔期間的 💾 收掉；若期間跳了別的提示（滿了／沒存到），以那個為準
+    if (toastTimer === mine && $("#toast").textContent === "💾") { clearTimeout(toastTimer); $("#toast").classList.remove("on"); }
+  }
 }
 function goHome() { $("#after").classList.remove("on"); show("home"); renderHome(S.art?.theme); }
 // 作品牆滿了：提示一下就進整理模式，讓大人刪幾件；整理完按 🏠 回到原本那張畫
@@ -157,11 +175,13 @@ $("#bHome").onclick = async () => {
   else if (r === "ok") goHome();
 };
 
+const firstPop = { brush: true, sticker: true };   // 開頁後第一次選到這兩個工具時，自動打開它的選單
 $$(".tool").forEach(b => b.onclick = () => {
   const t = b.dataset.tool;
   if (S.tool === t && (t === "brush" || t === "sticker")) return togglePop(t);   // 已選的工具再點一次 → 開選單
   S.tool = t; closePop();
   $$(".tool").forEach(x => x.classList.toggle("on", x === b));
+  if (firstPop[t]) { firstPop[t] = false; renderPop(t); }
 });
 $("#bColor").onclick = () => togglePop("color");
 $("#bMat").onclick = () => togglePop("mat");
@@ -169,10 +189,18 @@ $("#bClip").onclick = () => { S.clip = !S.clip; $("#bClip").classList.toggle("on
 $("#bUndo").onclick = () => { if (S.busy) return; fx.flush(); painter.undo(); };
 hold($("#bClear"), () => { if (S.busy) return; fx.flush(); painter.clearAll(); });
 
+const stickerSrc = s => "data:image/svg+xml;charset=utf-8," + encodeURIComponent(s.svg);
 function refreshBar() {
   $("#bColor .dot").style.background = S.color;
   const cv = $("#bMat canvas");
-  cv.getContext("2d").drawImage(previewMat(S.mat, S.color, cv.width), 0, 0);
+  cv.getContext("2d").drawImage(previewMat(S.mat, "#9e9e9e", cv.width), 0, 0);   // 工具列的材質預覽固定用灰色
+}
+// 筆刷鈕、貼紙鈕跟著目前選的筆與貼紙變
+function refreshTools() {
+  $('[data-tool="brush"]').textContent = BRUSHES.find(b => b[0] === S.brush)?.[1] || "🖊️";
+  const s = STICKERS.find(x => x.id === S.sticker), img = new Image();
+  img.alt = ""; if (s) img.src = stickerSrc(s);
+  $('[data-tool="sticker"]').replaceChildren(img);
 }
 
 // ── 彈出選單 ──
@@ -194,14 +222,14 @@ function renderPop(kind) {
   }
   if (kind === "brush") {
     const r1 = el("div", "row"), r2 = el("div", "row");
-    for (const [id, icon] of BRUSHES) r1.append(button("opt" + (id === S.brush ? " on" : ""), icon, () => { S.brush = id; renderPop("brush"); }, id));
+    for (const [id, icon] of BRUSHES) r1.append(button("opt" + (id === S.brush ? " on" : ""), icon, () => { S.brush = id; refreshTools(); renderPop("brush"); }, id));
     SIZES.forEach((_, i) => r2.append(button("opt size" + (i === S.size ? " on" : ""),
       `<i style="width:${12 + i * 14}px;height:${12 + i * 14}px"></i>`, () => { S.size = i; renderPop("brush"); }, "size" + i)));
     P.append(r1, r2);
   }
   if (kind === "sticker") for (const s of STICKERS) {
-    const b = button("opt" + (s.id === S.sticker ? " on" : ""), "", () => { S.sticker = s.id; closePop(); }, s.id), img = new Image();
-    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(s.svg);
+    const b = button("opt" + (s.id === S.sticker ? " on" : ""), "", () => { S.sticker = s.id; refreshTools(); closePop(); }, s.id), img = new Image();
+    img.src = stickerSrc(s);
     b.append(img); P.append(b);
   }
 }
@@ -289,7 +317,8 @@ async function tapAt(cx, cy) {
     if (id >= 0) fx.ripple(painter.fill(id, S.mat, S.color), pt.x, pt.y);
   } else if (S.tool === "sticker") {
     fx.flush();
-    painter.sticker(await stickerImage(S.sticker), pt.x, pt.y, STICKER_SIZE[S.size]);
+    const img = await stickerImage(S.sticker).catch(() => null);
+    if (img) painter.sticker(img, pt.x, pt.y, STICKER_SIZE[S.size]);   // 貼紙圖壞了就略過這一下
   }
 }
 
@@ -302,14 +331,19 @@ function revokeUrls() {
 async function renderGallery() {
   show("gallery");
   $("#view").classList.remove("on");
+  $("#tidyTip").classList.toggle("on", tidy);
   urls.forEach(u => URL.revokeObjectURL(u));
   urls = [];
-  const works = await G.list();
-  $("#works").replaceChildren(...works.map(w => {
+  let works;
+  try { works = await G.list(); }
+  catch (e) { console.warn("作品牆讀取失敗：" + (e && e.message)); toast("⚠️ 作品牆打不開"); $("#works").replaceChildren(); return; }
+  const cards = works.map(w => {
+    if (!w.thumb) return null;   // 壞掉的一件不拖累整面牆
     const u = URL.createObjectURL(w.thumb);
     urls.push(u);
     return card(u, () => openWork(w), "", w.done ? "" : "✏️");
-  }));
+  }).filter(Boolean);
+  $("#works").replaceChildren(...(cards.length ? cards : [el("div", "empty", "🖍️ ➜ 🖼️")]));
 }
 function openWork(w) {
   viewing = w;
@@ -333,17 +367,32 @@ $("#vEdit").onclick = async () => {
   $("#view").classList.remove("on");
   if (a) await startArt(a, viewing);
 };
-$("#vSave").onclick = () => G.saveToPhotos(viewing.image || viewing.thumb);
-hold($("#vDel"), async () => { await G.remove(viewing.id); $("#view").classList.remove("on"); renderGallery(); });
+$("#vSave").onclick = async () => {
+  try { await G.saveToPhotos(viewing.image || viewing.thumb); }
+  catch (e) { console.warn("存到相簿失敗：" + (e && e.message)); toast("⚠️ 沒存到相簿"); }
+};
+hold($("#vDel"), async () => {
+  try { await G.remove(viewing.id); }
+  catch (e) { console.warn("刪除失敗：" + (e && e.message)); toast("⚠️ 刪不掉"); return; }
+  $("#view").classList.remove("on"); renderGallery();
+});
 
 // ── 開始 ──
 window.addEventListener("resize", () => { if (board.labels && $("#paint").classList.contains("on")) board.fit(); });
 window.__draw = { S, board, painter, fx, G, show, renderHome, startArt, renderGallery, COLORS };
 (async () => {
   G.persist();
-  refreshBar();
-  INDEX = await (await fetch(ART_DIR + "index.json?v=1")).json();
-  const art = Q.get("art");
+  refreshBar(); refreshTools();
+  try {
+    const res = await fetch(ART_DIR + "index.json?v=1");
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    INDEX = await res.json();
+  } catch (e) {
+    console.warn("線稿清單載入失敗：" + (e && e.message));
+    toast("⚠️ 載入失敗，請連上網路再開一次", 8000);
+    return;
+  }
+  const art = DEV ? Q.get("art") : null;   // ?art= 只給開發測試用
   if (art) await startArt(INDEX.arts.find(a => ART_DIR + a.file === art) || { id: "dev", url: art, parts: [] });
   else { show("home"); renderHome(); }
 })();

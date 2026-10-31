@@ -10,6 +10,7 @@ function open() {
     r.onsuccess = () => ok(r.result);
     r.onerror = () => bad(r.error);
   });
+  dbp.catch(() => { dbp = null; });   // 失敗不要永久快取，下次再試
   return dbp;
 }
 function tx(mode, fn) {
@@ -34,7 +35,8 @@ export async function save(w) {
 }
 
 export const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-export const toBlob = (canvas, type = "image/png", q) => new Promise(ok => canvas.toBlob(ok, type, q));
+export const toBlob = (canvas, type = "image/png", q) => new Promise((ok, bad) =>
+  canvas.toBlob(b => (b ? ok(b) : bad(new Error("toBlob 回傳 null"))), type, q));
 export function thumbOf(canvas, w = 360) {
   const c = document.createElement("canvas");
   c.width = w; c.height = Math.round(canvas.height * w / canvas.width);

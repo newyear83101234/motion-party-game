@@ -240,6 +240,8 @@ function versionCheck() {
   const on = sel => p.evaluate(s => document.querySelector(s).classList.contains("on"), sel);
 
   await p.tap('[data-tool="brush"]');
+  check("第一次選筆刷 → 自動打開選單", await on("#pop"));
+  await p.tap('[data-tool="brush"]');   // 再點一次收起選單，免得下面的觸控第一下只是在關選單
   await p.evaluate(() => { __draw.painter.clearAll(); __draw.S.clip = false; __draw.S.color = "#1e88e5"; __draw.S.mat = { kind: "solid" }; });
   const A = await toClient(400, 100), B = await toClient(900, 100), Z = await toClient(1500, 1300);
   await touch("touchStart", [[A.x, A.y, 1]]);
@@ -412,6 +414,79 @@ function versionCheck() {
   await waitOn("#after");
   check("放大後按完成 → 播完回到原本大小", zoomed > 2 && await view() === 1, `before=${zoomed} after=${await view()}`);
   await p.evaluate(() => __draw.G.wipe());
+
+  // 上線前審查修正
+  // 選了蠟筆 → 筆刷鈕換成 🖍️；選了貼紙 heart → 貼紙鈕換成那張貼紙圖
+  await p.tap('[data-tool="fill"]');
+  await p.tap('[data-tool="brush"]');   // 已經用過第一次自動開選單，這次要自己點第二下才開
+  if (!(await on("#pop"))) await p.tap('[data-tool="brush"]');
+  await p.tap('#pop .opt[aria-label="crayon"]');
+  check("選了蠟筆 → 筆刷鈕顯示 🖍️", await p.evaluate(() => document.querySelector('[data-tool="brush"]').textContent) === "🖍️");
+  await p.tap('[data-tool="sticker"]');
+  check("第一次選貼紙 → 自動打開選單", await on("#pop"));
+  await p.tap('#pop .opt[aria-label="heart"]');
+  const stk = await p.evaluate(async () => {
+    const M = await import("./js/draw-stickers.js?v=1");
+    const want = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(M.STICKERS.find(s => s.id === "heart").svg);
+    const im = document.querySelector('[data-tool="sticker"] img');
+    return { has: !!im, same: !!im && im.getAttribute("src") === want };
+  });
+  check("選了貼紙 heart → 貼紙鈕是那張貼紙圖", stk.has && stk.same, JSON.stringify(stk));
+  check("工具鈕保留 aria-label", await p.evaluate(() => ["brush", "sticker"].every(t => document.querySelector(`[data-tool="${t}"]`).getAttribute("aria-label"))));
+  // 畫畫頁與首頁截圖給主對話看
+  await p.evaluate(() => document.querySelector("#after").classList.remove("on"));
+  await p.tap('[data-tool="fill"]');
+  await p.screenshot({ path: path.join(OUT, "final-paint-fill.png") });
+  await p.tap('[data-tool="sticker"]');
+  await p.screenshot({ path: path.join(OUT, "final-paint.png") });
+  await p.evaluate(() => { __draw.show("home"); __draw.renderHome(); });
+  await p.waitForTimeout(500);
+  await p.screenshot({ path: path.join(OUT, "final-home.png") });
+  // 首頁卡片用縮圖（測試線稿沒有縮圖、除外）
+  const srcs = await p.evaluate(() => [...document.querySelectorAll("#arts .card")].filter(c => c.dataset.id !== "test-shapes").map(c => c.querySelector("img").getAttribute("src")));
+  check("首頁卡片圖片網址含 thumbs/", srcs.length > 0 && srcs.every(s => s.includes("thumbs/")), srcs.join(","));
+  // 清空鈕在兩種 iPad 橫放尺寸下都要在畫面內（不用捲動）
+  await p.evaluate(() => __draw.show("paint"));
+  for (const [w, h] of [[1180, 820], [1133, 744]]) {
+    await p.setViewportSize({ width: w, height: h });
+    await p.waitForTimeout(150);
+    const bb = await p.locator("#bClear").boundingBox();
+    check(`${w}x${h}：清空鈕在畫面內`, bb.y + bb.height <= h, `bottom=${Math.round(bb.y + bb.height)}`);
+  }
+  await p.setViewportSize({ width: 1180, height: 820 });
+  // index.json 讀不到 → 跳提示、頁面沒錯誤
+  {
+    const p2 = await ctx.newPage(), e2 = [];
+    p2.on("pageerror", e => e2.push("PAGEERR " + e.message));
+    await p2.route("**/index.json*", r => r.fulfill({ status: 404, body: "no" }));
+    await p2.goto(BASE);
+    await p2.waitForFunction(() => document.querySelector("#toast").classList.contains("on"), null, { timeout: 5000 }).catch(() => {});
+    const t = await p2.evaluate(() => ({ on: document.querySelector("#toast").classList.contains("on"), text: document.querySelector("#toast").textContent }));
+    check("index.json 讀不到 → 跳出載入失敗提示、頁面沒錯誤", t.on && t.text.includes("載入失敗") && e2.length === 0, t.text + " " + e2.join("|"));
+    await p2.close();
+  }
+  // 完成動畫的 frame 丟錯 → 5 秒內仍解除 busy 並出現完成按鈕
+  await p.evaluate(() => __draw.startArt({ id: "test-shapes", url: "IMAGE/draw/lineart/test-shapes.svg", parts: [] }));
+  await p.waitForFunction(() => !__draw.S.busy && document.querySelector("#paint").classList.contains("on"), null, { timeout: 8000 });
+  await p.evaluate(() => {
+    const P = __draw.painter; P.fill(P.regionAt(1450, 500), { kind: "solid" }, "#00897b").done();
+    window.__drawImgOrig = CanvasRenderingContext2D.prototype.drawImage;
+    let n = 0;
+    CanvasRenderingContext2D.prototype.drawImage = function (...a) {
+      if (this.canvas.className === "finish-ov") throw new Error("測試：frame 出錯");   // 只在完成動畫的疊加層丟錯
+      return window.__drawImgOrig.apply(this, a);
+    };
+  });
+  await p.tap("#bDone");
+  const t0 = Date.now();
+  const okFx = await p.waitForFunction(() => !__draw.S.busy && !document.querySelector(".finish-ov"), null, { timeout: 5500 }).then(() => true, () => false);
+  await p.evaluate(() => { CanvasRenderingContext2D.prototype.drawImage = window.__drawImgOrig; });
+  check("完成動畫 frame 出錯 → 5 秒內解除 busy、疊加層移除", okFx, `${Date.now() - t0}ms`);
+  await waitOn("#after");
+  await p.evaluate(() => { document.querySelector("#after").classList.remove("on"); __draw.G.wipe(); });
+  // 沒按滿 1 秒放開 → 紅圈閃一下
+  await p.evaluate(() => { const b = document.querySelector("#bClear"); b.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })); b.dispatchEvent(new PointerEvent("pointerup", { bubbles: true })); });
+  check("清空沒按滿就放開 → 紅圈閃一下", await p.evaluate(() => document.querySelector("#bClear").classList.contains("flash")));
 
   // ── 後續 task 的測試插在這一行上面 ──
   check("沒有頁面錯誤", errs.length === 0, errs.join(" | "));

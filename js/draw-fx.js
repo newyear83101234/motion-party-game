@@ -79,9 +79,20 @@ export class Fx {
     const ox = (ov.width - b.W * k) / 2, oy = (ov.height - b.H * k) / 2;
     const conf = [];
     let burst = false;
-    return new Promise(done => {
+    return new Promise(resolve => {
+      let over = false;
+      // 收尾只生效一次：移除疊加層、釋放畫布、結束 Promise（正常播完、出錯、保險計時都走這裡）
+      const done = () => {
+        if (over) return;
+        over = true;
+        ov.remove(); comp.width = comp.height = 0; ov.width = ov.height = 0;
+        resolve();
+      };
+      setTimeout(() => { if (ov.isConnected) done(); }, 5000);   // 保險：5 秒後疊加層還在 → 強制收掉
       const t0 = performance.now();
       const frame = now => {
+        if (over) return;
+        try {
         const s = (now - t0) / 1000, h = hop(s);
         O.clearRect(0, 0, ov.width, ov.height);
         O.save();
@@ -97,7 +108,8 @@ export class Fx {
           c.vy += 0.35 * dpr; c.x += c.vx; c.y += c.vy; c.a += c.va;
           O.save(); O.translate(c.x, c.y); O.rotate(c.a); O.fillStyle = c.col; O.fillRect(-c.w / 2, -c.h / 2, c.w, c.h); O.restore();
         }
-        if (s < 2.2) requestAnimationFrame(frame); else { ov.remove(); comp.width = comp.height = 0; ov.width = ov.height = 0; done(); }
+        if (s < 2.2) requestAnimationFrame(frame); else done();
+        } catch (e) { console.warn("完成動畫出錯：" + (e && e.message)); done(); }
       };
       requestAnimationFrame(frame);
     });

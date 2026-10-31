@@ -9,7 +9,11 @@ export class Painter {
     this.maskCache = new Map();
     this.paintKey = ""; this.paint = null;
   }
-  reset() { this.history.clear(); this.maskCache.clear(); this.paintKey = ""; if (this.paint) this.paint.width = 0; this.paint = null; }
+  reset() {
+    this.history.clear(); this.maskCache.clear(); this.paintKey = ""; if (this.paint) this.paint.width = 0; this.paint = null;
+    this.st = null;
+    if (this.scratch) { this.scratch.width = this.scratch.height = 0; this.scratch = null; this.sctx = null; }
+  }
 
   regionAt(x, y) { const b = this.b; return regionAt(b.labels, b.W, b.H, x, y); }
 
