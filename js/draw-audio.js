@@ -65,7 +65,10 @@ document.addEventListener("visibilitychange", () => {
 // 播一個音效檔；檔案還沒好就算了（晚到的聲音比沒聲音更怪）
 // 聲音還沒真的開著（suspended／interrupted）就不排：時間不會走，等恢復時會全部一起爆出來
 const live = () => ac && ac.state === "running";
+// 宣傳片錄影用的記錄掛勾：window.__sfx 是陣列時（只有錄影程式會設），每個聲音記下名字＋時間，影片再照時間點疊上；平常是 undefined、什麼都不做
+const logSnd = e => { if (Array.isArray(window.__sfx)) window.__sfx.push(e); };
 export function sfx(name, { gain = 1, rate = 1 } = {}) {
+  logSnd({ bus: "sfx", name, vol: gain * (man?.sfx?.[name]?.gain ?? 1), rate });
   if (!live() || !soundOn || !man?.sfx?.[name]) return;
   const p = buf.get("sfx:" + name);
   if (!p) return;
@@ -81,6 +84,7 @@ export function sfx(name, { gain = 1, rate = 1 } = {}) {
 
 // 撥一個音符（選顏色用）：i 決定音高，五聲音階往上排
 export function note(i, { gain = 0.22, dur = 0.5 } = {}) {
+  logSnd({ bus: "note", name: "note", i, vol: gain, dur });
   if (!live() || !soundOn) return;
   const f = PENTA[i % 5] * 2 ** Math.floor(i / 5), t = ac.currentTime;
   const o1 = ac.createOscillator(), o2 = ac.createOscillator(), g = ac.createGain(), lp = ac.createBiquadFilter();
@@ -93,9 +97,23 @@ export function note(i, { gain = 0.22, dur = 0.5 } = {}) {
 // 叮鈴：高八度隨機五聲音階（星星筆、魔法特效）
 export function chime(gain = 0.12) { note(10 + ((Math.random() * 5) | 0), { gain, dur: 0.6 }); }
 
+// 相機快門：「喀」「嚓」兩下短短的濾波噪音
+export function shutter() {
+  logSnd({ bus: "sfx", name: "shutter", vol: 1, rate: 1 });
+  if (!live() || !soundOn || !noise) return;
+  const t = ac.currentTime;
+  for (const [at, f, g] of [[0, 2600, 0.5], [0.07, 1500, 0.35]]) {
+    const n = ac.createBufferSource(), bp = ac.createBiquadFilter(), v = ac.createGain();
+    n.buffer = noise; bp.type = "bandpass"; bp.frequency.value = f; bp.Q.value = 0.9;
+    v.gain.setValueAtTime(g, t + at); v.gain.exponentialRampToValueAtTime(0.001, t + at + 0.06);
+    n.connect(bp); bp.connect(v); v.connect(sfxBus); n.start(t + at); n.stop(t + at + 0.08);
+  }
+}
+
 // 「畫變成樂器」用的幾種合成樂器：i 一樣是五聲音階第幾個音，at 是幾秒後響（排程，節奏才準）
 // marimba 木琴、glock 鐵琴、pluck 撥弦、flute 笛子、drum 鼓（i 越小越低沉）
 export function inst(kind, i, { gain = 0.2, at = 0 } = {}) {
+  logSnd({ bus: "inst", name: kind, i, vol: gain, at });
   if (!live() || !soundOn) return;
   const t = ac.currentTime + at, f = PENTA[i % 5] * 2 ** Math.floor(i / 5);
   const g = ac.createGain(), end = t + (kind === "flute" ? 0.7 : kind === "drum" ? 0.35 : 0.9);

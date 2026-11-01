@@ -20,7 +20,7 @@
   font-size: 24px; font-weight: 800; color: #fff; text-shadow: 0 2px 4px rgba(0, 0, 0, .45); }
 
 /* 字型：jf open 粉圓（OFL），只收畫面用到的字（tools/draw-font.mjs 產生），沒收到的字退回蘋方 */
-@font-face { font-family: "Huninn"; src: url("../fonts/huninn-draw.woff2?v=10") format("woff2"); font-display: swap; }
+@font-face { font-family: "Huninn"; src: url("../fonts/huninn-draw.woff2?v=11") format("woff2"); font-display: swap; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); overflow: hidden; touch-action: none;
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
@@ -38,7 +38,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 
 /* 首頁與作品牆 */
 .top { display: flex; align-items: center; gap: 16px; padding: 16px 20px 8px; }
-#home { background: var(--bg) url("../IMAGE/draw/ui/home-bg.jpg?v=10") center / cover; }
+#home { background: var(--bg) url("../IMAGE/draw/ui/home-bg.jpg?v=11") center / cover; }
 .hero { padding: 12px 24px 22px; gap: 14px; }   /* 下面留位置給玩法鈕的小字 */
 .mascot { height: clamp(70px, 8vw, 92px); width: auto; animation: bob 2.6s ease-in-out infinite; filter: drop-shadow(0 6px 6px rgba(60, 30, 0, .2)); }
 @keyframes bob { 50% { transform: translateY(-6px) rotate(-3deg); } }
@@ -142,7 +142,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
   gap: 8px; padding: 10px 0; overflow-y: auto; }   /* 8 顆按鈕要在 iPad 橫放（高 744～820）放得下：按鈕高度用 clamp 跟著螢幕高度 */
 #bar hr { width: 54%; height: 4px; border: 0; border-radius: 2px; background: var(--wood-d); opacity: .7; margin: 2px 0; }
 /* dvh = 扣掉 Safari 網址列後實際看得到的高度；舊瀏覽器不認得就用上一行的 vh */
-.btn { width: 80px; height: clamp(48px, calc((100vh - 130px) / 8), 76px); height: clamp(48px, calc((100dvh - 130px) / 8), 76px);
+.btn { width: 80px; height: clamp(46px, calc((100vh - 150px) / 9), 76px); height: clamp(46px, calc((100dvh - 150px) / 9), 76px);
   flex: 0 0 auto; border-radius: 18px; background: linear-gradient(#fff, #fbf5ea); font-size: 30px; position: relative;
   display: grid; place-items: center; box-shadow: var(--lift); transition: transform .14s var(--spring), box-shadow .14s; }
 .btn .ico { width: auto; height: 82%; max-width: 62px; }
@@ -257,9 +257,27 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 #aPlay { background: linear-gradient(#9fd8ff, #4fb3ff); }
 #aAgain { background: linear-gradient(#b4ec97, #7fd35e); }
 #aMusic { background: linear-gradient(#ffd9a8, #ffb35c); }
+#aSnap { background: linear-gradient(#ffe0ef, #ffb3d6); }
+.after.on .big:nth-of-type(7) { animation-delay: .73s; }
+/* 拍照：白色閃光＋拍立得照片從上面掉下來（歪一點點），下面 ✖ 關閉、📥 存到相簿；存好了照片右下角蓋綠勾 */
+.snap-flash { position: fixed; inset: 0; z-index: 30; background: #fff; pointer-events: none; animation: snapFlash .45s ease-out forwards; }
+@keyframes snapFlash { from { opacity: .95; } to { opacity: 0; } }
+.snap { position: fixed; inset: 0; z-index: 14; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 28px; background: rgba(40, 30, 20, .62); }
+.snap.on { display: flex; animation: cheerFade .25s ease-out both; }
+.snap-photo { position: relative; animation: snapDrop .6s cubic-bezier(.2, 1.4, .4, 1) both; rotate: -3deg; }
+.snap-photo img { display: block; max-width: 74vw; max-height: 66vh; max-height: 66dvh; border-radius: 6px; box-shadow: 0 18px 40px rgba(0, 0, 0, .4); }
+@keyframes snapDrop { from { opacity: 0; transform: translateY(-40vh) rotate(-12deg) scale(.7); } }
+.snap-ok { position: absolute; right: -18px; bottom: -18px; width: 96px; height: 96px; border-radius: 50%; display: none; place-items: center; font-style: normal;
+  font-size: 56px; font-weight: 900; color: #fff; background: linear-gradient(#5fd06b, #2e9e3e); box-shadow: 0 0 0 6px #fff, 0 6px 14px rgba(0, 0, 0, .3); }
+.snap.saved .snap-ok { display: grid; animation: stampIn .5s var(--spring) both; }
+.snap-bar { display: flex; gap: 40px; }
+#snapSave { width: 104px; height: 104px; background: linear-gradient(#5fd06b, #2e9e3e); box-shadow: 0 5px 0 #1f7a2c, 0 10px 20px rgba(0, 0, 0, .3); animation: leadHop 1.6s ease-in-out .8s infinite; }
+#snapSave .ico { filter: brightness(0) invert(1); }
+#snapSave:disabled { opacity: .5; animation: none; }
+.snap.saved #snapSave { animation: none; }
 #aWorld { background: linear-gradient(#bfe8ff, #7cc8ff); }
 #aPuzzle { background: linear-gradient(#cfe6ff, #8fbfff); }
-.after .big { width: 84px; height: 84px; }   /* 5 顆大鈕在 iPad 較矮的視窗也放得下 */
+.after .big { width: 76px; height: 76px; }   /* 6 顆大鈕（加了📷）＋吉祥物：iPad 高 744 也放得下（約 710px） */
 .after.on .big:nth-of-type(5) { animation-delay: .57s; }
 .after.on .big:nth-of-type(6) { animation-delay: .65s; }
 /* 貼紙選單：收集到的貼紙越來越多，太多時可以上下捲 */

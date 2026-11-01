@@ -111,7 +111,7 @@ function versionCheck() {
 
   // Task 6：貼紙
   const st = await p.evaluate(async () => {
-    const M = await import("./js/draw-stickers.js?v=10");
+    const M = await import("./js/draw-stickers.js?v=11");
     const ids = M.STICKERS.map(s => s.id);
     const img = await M.stickerImage("star");
     __draw.painter.sticker(img, 1000, 1200, 200);
@@ -124,7 +124,7 @@ function versionCheck() {
 
   // Task 7：特效
   await p.evaluate(async () => {
-    const M = await import("./js/draw-fx.js?v=10");
+    const M = await import("./js/draw-fx.js?v=11");
     window.__fx = __draw.fx || new M.Fx(__draw.board);   // Task 9 之後用遊戲自己的那一個，免得兩組亮粉互相干擾
     __draw.painter.clearAll();
   });
@@ -212,7 +212,7 @@ function versionCheck() {
 
   // Task 8：作品牆
   const gal = await p.evaluate(async () => {
-    const G = await import("./js/draw-gallery.js?v=10");
+    const G = await import("./js/draw-gallery.js?v=11");
     await G.wipe();
     const c = __draw.board.composite();
     const w = { id: G.newId(), art: "test-shapes", done: true, thumb: await G.thumbOf(c), image: await G.toBlob(c),
@@ -478,7 +478,7 @@ function versionCheck() {
   check("第一次選貼紙 → 自動打開選單", await on("#pop"));
   await p.tap('#pop .opt[aria-label="heart"]');
   const stk = await p.evaluate(async () => {
-    const M = await import("./js/draw-stickers.js?v=10");
+    const M = await import("./js/draw-stickers.js?v=11");
     const want = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(M.STICKERS.find(s => s.id === "heart").svg);
     const im = document.querySelector('[data-tool="sticker"] img');
     return { has: !!im, same: !!im && im.getAttribute("src") === want };
@@ -749,7 +749,7 @@ function versionCheck() {
   check("之後開圖不再出現提示", await p.locator(".tap-hint").count() === 0);
 
   // 寧次第三版意見：工具列 9 顆、選單貼在按鈕旁、不出線移進筆刷／橡皮擦選單、完成時右側慶祝欄不擋畫
-  check("工具列只剩 8 顆按鈕（沒有油漆桶）", await p.locator("#bar button").count() === 8);
+  check("工具列 9 顆按鈕（多了📷拍照，沒有油漆桶）", await p.locator("#bar button").count() === 9 && await p.locator("#bar [data-tool=\"fill\"]").count() === 0);
   await p.tap('[data-tool="eraser"]'); await p.tap('[data-tool="eraser"]');
   const eb = await p.locator('[data-tool="eraser"]').boundingBox(), ep = await p.locator("#pop").boundingBox();
   check("橡皮擦再點一次有選單（粗細＋不出線），選單貼在按鈕旁邊", await on("#pop") && await p.locator("#pop .opt.size").count() === 3 && await p.locator("#pop .opt.clip").count() === 1
@@ -929,6 +929,29 @@ function versionCheck() {
   check("選了收集的皇冠：工具鈕顯示收集版圖片", okImg.s === "c:crown" && okImg.src, JSON.stringify(okImg));
   check("所有回首頁鈕都換成同一套立體圖示", await p.evaluate(() => ["#bHome", "#wHome", "#skHome", "#pzHome", "#bookHome", "#xHome"].every(s => document.querySelector(s + " img.ico"))));
   await p.evaluate(() => { window.__rewards.reset(); __draw.S.tool = "brush"; });
+
+  // 拍照（小朋友要的）：📷 → 閃光＋拍立得照片 → 📥 存到相簿（無頭瀏覽器沒有分享選單，走下載）→ 蓋綠勾 → ✖ 關掉
+  await p.evaluate(async () => { const a = (await (await fetch("IMAGE/draw/lineart/index.json")).json()).arts.find(x => x.id === "animal-1"); await __draw.startArt(a); });
+  await p.waitForFunction(() => __draw.board.labels && !__draw.S.busy, null, { timeout: 10000 });
+  await p.evaluate(() => { __draw.board.ctx.drawImage(__draw.painter.magicPaint(), 0, 0); });
+  await p.tap("#bSnap");
+  await p.waitForFunction(() => document.querySelector("#snap").classList.contains("on") && document.querySelector("#snapImg").naturalWidth > 0, null, { timeout: 8000 }).catch(() => {});
+  const snapInfo = await p.evaluate(() => { const i = document.querySelector("#snapImg"); return { on: document.querySelector("#snap").classList.contains("on"), w: i.naturalWidth, h: i.naturalHeight, save: !document.querySelector("#snapSave").disabled }; });
+  check("📷 拍照：跳出拍立得照片（畫在上面、下面一條寫日期和畫畫樂園），存檔鈕可以按", snapInfo.on && snapInfo.w > 1000 && snapInfo.h > snapInfo.w * 0.6 && snapInfo.save, JSON.stringify(snapInfo));
+  await p.tap("#snapSave");
+  await p.waitForFunction(() => document.querySelector("#snap").classList.contains("saved"), null, { timeout: 5000 }).catch(() => {});
+  check("📥 存到相簿：存好了蓋綠勾", await p.evaluate(() => document.querySelector("#snap").classList.contains("saved")));
+  await p.tap("#snapClose");
+  check("✖ 關掉照片：回到畫畫頁、照片網址釋放", await p.evaluate(() => !document.querySelector("#snap").classList.contains("on") && document.querySelector("#paint").classList.contains("on")));
+  check("工具列 9 顆按鈕在 820 高放得下（最後一顆不超出畫面）", await p.evaluate(() => document.querySelector("#bClear").getBoundingClientRect().bottom <= innerHeight));
+  // 連按兩下 📷 只拍一張（只閃一次光）；拍到一半換畫面：照片作廢，不會在別的畫面跳出來
+  const dbl = await p.evaluate(() => { document.querySelectorAll(".snap-flash").forEach(f => f.remove()); const b = document.querySelector("#bSnap"); b.click(); b.click(); return document.querySelectorAll(".snap-flash").length; });
+  await p.waitForFunction(() => document.querySelector("#snap").classList.contains("on"), null, { timeout: 8000 }).catch(() => {});
+  check("📷 連按兩下只拍一張", dbl === 1, "閃光 " + dbl + " 次");
+  await p.tap("#snapClose");
+  await p.evaluate(() => { document.querySelector("#bSnap").click(); __draw.show("home"); });
+  await p.waitForTimeout(2500);
+  check("拍到一半換畫面：照片不會在首頁跳出來", await p.evaluate(() => !document.querySelector("#snap").classList.contains("on") && document.querySelector("#home").classList.contains("on")));
 
   // ── 後續 task 的測試插在這一行上面 ──
   check("沒有頁面錯誤", errs.length === 0, errs.join(" | "));
