@@ -3,8 +3,24 @@
   --lift: 0 4px 0 var(--wood-d), 0 8px 14px rgba(90, 60, 20, .12);   /* 按鈕底下那條「厚度」＋柔和陰影 */
   --press: 0 1px 0 var(--wood-d), 0 2px 4px rgba(90, 60, 20, .12);
   --spring: cubic-bezier(.3, 1.6, .5, 1); }
+/* 首頁點了畫過的卡片：兩張大圖二選一（左：自己的畫＋鉛筆章＝接著畫；右：空白線稿＋加號章＝畫新的） */
+.pick { position: fixed; inset: 0; z-index: 12; display: none; place-items: center; background: rgba(60, 40, 20, .5); }
+.pick.on { display: grid; animation: cheerFade .2s ease-out both; }
+.pick-row { display: flex; gap: 48px; padding-bottom: 40px; }
+.pick-opt { position: relative; width: min(38vw, 440px); aspect-ratio: 4 / 3; padding: 14px; border-radius: 30px; background: #fff;
+  box-shadow: 0 8px 0 #e2c48f, 0 20px 40px rgba(0, 0, 0, .3); animation: cardIn .45s var(--spring) backwards; transition: transform .14s var(--spring); }
+.pick-opt.fresh { animation-delay: .08s; }
+.pick-opt:active { transform: scale(.96); }
+.pick-opt .art { width: 100%; height: 100%; object-fit: contain; border-radius: 18px; pointer-events: none; }
+.pick-opt .badge { position: absolute; right: -16px; bottom: -16px; width: 92px; height: 92px; border-radius: 50%; display: grid; place-items: center; font-style: normal;
+  font-size: 64px; font-weight: 900; line-height: 1; color: #fff; background: linear-gradient(#5fd06b, #2e9e3e); box-shadow: 0 0 0 6px #fff, 0 6px 12px rgba(0, 0, 0, .25); pointer-events: none; }
+.pick-opt .badge img { width: 64%; height: 64%; object-fit: contain; }
+.pick-opt.fresh .badge { background: linear-gradient(#ffd9a8, #ffb35c); }
+.pick-opt .lbl { position: absolute; left: 50%; top: calc(100% + 18px); transform: translateX(-50%); white-space: nowrap; pointer-events: none;
+  font-size: 24px; font-weight: 800; color: #fff; text-shadow: 0 2px 4px rgba(0, 0, 0, .45); }
+
 /* 字型：jf open 粉圓（OFL），只收畫面用到的字（tools/draw-font.mjs 產生），沒收到的字退回蘋方 */
-@font-face { font-family: "Huninn"; src: url("../fonts/huninn-draw.woff2?v=9") format("woff2"); font-display: swap; }
+@font-face { font-family: "Huninn"; src: url("../fonts/huninn-draw.woff2?v=10") format("woff2"); font-display: swap; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); overflow: hidden; touch-action: none;
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
@@ -22,7 +38,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 
 /* 首頁與作品牆 */
 .top { display: flex; align-items: center; gap: 16px; padding: 16px 20px 8px; }
-#home { background: var(--bg) url("../IMAGE/draw/ui/home-bg.jpg?v=9") center / cover; }
+#home { background: var(--bg) url("../IMAGE/draw/ui/home-bg.jpg?v=10") center / cover; }
 .hero { padding: 12px 24px 22px; gap: 14px; }   /* 下面留位置給玩法鈕的小字 */
 .mascot { height: clamp(70px, 8vw, 92px); width: auto; animation: bob 2.6s ease-in-out infinite; filter: drop-shadow(0 6px 6px rgba(60, 30, 0, .2)); }
 @keyframes bob { 50% { transform: translateY(-6px) rotate(-3deg); } }

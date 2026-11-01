@@ -111,7 +111,7 @@ function versionCheck() {
 
   // Task 6：貼紙
   const st = await p.evaluate(async () => {
-    const M = await import("./js/draw-stickers.js?v=9");
+    const M = await import("./js/draw-stickers.js?v=10");
     const ids = M.STICKERS.map(s => s.id);
     const img = await M.stickerImage("star");
     __draw.painter.sticker(img, 1000, 1200, 200);
@@ -124,7 +124,7 @@ function versionCheck() {
 
   // Task 7：特效
   await p.evaluate(async () => {
-    const M = await import("./js/draw-fx.js?v=9");
+    const M = await import("./js/draw-fx.js?v=10");
     window.__fx = __draw.fx || new M.Fx(__draw.board);   // Task 9 之後用遊戲自己的那一個，免得兩組亮粉互相干擾
     __draw.painter.clearAll();
   });
@@ -212,7 +212,7 @@ function versionCheck() {
 
   // Task 8：作品牆
   const gal = await p.evaluate(async () => {
-    const G = await import("./js/draw-gallery.js?v=9");
+    const G = await import("./js/draw-gallery.js?v=10");
     await G.wipe();
     const c = __draw.board.composite();
     const w = { id: G.newId(), art: "test-shapes", done: true, thumb: await G.thumbOf(c), image: await G.toBlob(c),
@@ -317,8 +317,28 @@ function versionCheck() {
   check("完成的作品存進作品牆", await p.evaluate(() => __draw.G.count()) === 1);
   await p.tap("#aHome");
   check("回到首頁", await on("#home"));
+  // 畫過的卡片：先問接著畫還是畫新的（原本一律開新的，小孩以為自己的畫不見了）
+  await p.waitForFunction(() => document.querySelector('#arts .card[data-id="test-shapes"].mine'), null, { timeout: 5000 }).catch(() => {});
   await p.tap('#arts .card[data-id="test-shapes"]');
+  await p.waitForFunction(s => document.querySelector(s).classList.contains("on"), "#pick", { timeout: 3000 }).catch(() => {});
+  const pk = await p.evaluate(() => ({ on: document.querySelector("#pick").classList.contains("on"), mine: document.querySelector("#pickMine .art").src.startsWith("blob:"), fresh: document.querySelector("#pickNew .art").src.includes("lineart") }));
+  check("點畫過的卡片：跳出「接著畫（自己的畫）／畫新的（空白線稿）」兩張大圖", pk.on && pk.mine && pk.fresh, JSON.stringify(pk));
+  const doneId = await p.evaluate(async () => (await __draw.G.list())[0].id);
+  await p.tap("#pickMine");
+  await p.waitForFunction(() => document.querySelector("#paint").classList.contains("on") && !__draw.S.busy, null, { timeout: 8000 });
+  const inked = () => p.evaluate(() => { const b = __draw.board, d = b.ctx.getImageData(0, 0, b.W, b.H).data; let n = 0; for (let i = 0; i < d.length; i += 4 * 97) if (d[i] < 245 || d[i + 1] < 245 || d[i + 2] < 245) n++; return n; });
+  const inkMine = await inked();
+  check("選「接著畫」：打開原本那一件（畫過的顏色都在、存回同一件）", await p.evaluate(id => __draw.S.workId === id, doneId) && inkMine > 50, "ink=" + inkMine);
+  await p.tap("#bHome");
+  await p.waitForFunction(s => document.querySelector(s).classList.contains("on"), "#home", { timeout: 8000 }).catch(() => {});
+  await p.waitForFunction(() => document.querySelector('#arts .card[data-id="test-shapes"].mine'), null, { timeout: 5000 }).catch(() => {});
+  check("接著畫後回首頁：沒有多存一件（同一件）", await p.evaluate(() => __draw.G.count()) === 1);
+  await p.tap('#arts .card[data-id="test-shapes"]');
+  await p.waitForFunction(s => document.querySelector(s).classList.contains("on"), "#pick", { timeout: 3000 }).catch(() => {});
+  await p.tap("#pickNew");
   await p.waitForFunction(() => document.querySelector("#paint").classList.contains("on") && !__draw.S.busy && __draw.painter.history.size === 0, null, { timeout: 8000 });   // 線稿載入完（載入時會重設復原紀錄）
+  const inkNew = await inked();
+  check("選「畫新的」：空白的一張（舊的還留在作品牆）", await p.evaluate(() => __draw.S.workId === null) && inkNew === 0, "ink=" + inkNew);
   await p.evaluate(() => { const P = __draw.painter; P.fill(P.regionAt(1450, 500), { kind: "solid" }, "#8e24aa").done(); });
   await p.tap("#bHome");
   await p.waitForFunction(() => document.querySelector("#home").classList.contains("on"), null, { timeout: 8000 }).catch(() => {});
@@ -458,7 +478,7 @@ function versionCheck() {
   check("第一次選貼紙 → 自動打開選單", await on("#pop"));
   await p.tap('#pop .opt[aria-label="heart"]');
   const stk = await p.evaluate(async () => {
-    const M = await import("./js/draw-stickers.js?v=9");
+    const M = await import("./js/draw-stickers.js?v=10");
     const want = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(M.STICKERS.find(s => s.id === "heart").svg);
     const im = document.querySelector('[data-tool="sticker"] img');
     return { has: !!im, same: !!im && im.getAttribute("src") === want };
