@@ -23,6 +23,7 @@ const SCHOOLS = [   // 魚群：哪座島、從島中心往哪個角度（度，
   { isl: "main", ang: 90, color: "#ff9a3d" }, { isl: "main", ang: 2, color: "#f7d44c" }, { isl: "main", ang: 182, color: "#f2808f" },
   { isl: "main", ang: 135, color: "#ffb36b" }, { isl: "town", ang: 40, color: "#b99cf2" }, { isl: "town", ang: 215, color: "#ff8a5c" },
   { isl: "rainbow", ang: 70, color: "#ff8fc8" },        // 10-12 彩虹島南邊（碼頭、貨船那一帶）
+  { isl: "music", ang: 15, color: "#7ad6ff" },          // v8 音樂島東邊（往主島那片海；加在最後：NIGHT_HIDE 的 index 不變）
 ];
 const NIGHT_HIDE = new Set([1, 3, 5]);                   // 晚上只留 3 群
 const SLOTS = [[0.3, 0], [0, 0.26], [0, -0.26], [-0.32, 0.12], [-0.3, -0.17]];   // 魚在群裡的位置（往前, 往右）

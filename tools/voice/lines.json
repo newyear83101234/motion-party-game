@@ -1,20 +1,20 @@
 {
  "meta": {
   "generated_by": "tools/voice/build_lines.py",
-  "total_lines": 981,
-  "total_chars": 6379,
+  "total_lines": 1029,
+  "total_chars": 6751,
   "by_cat": {
-   "intro": 10,
+   "intro": 11,
    "praise": 10,
-   "guide": 503,
+   "guide": 522,
    "system": 4,
-   "result": 20,
-   "word": 163,
+   "result": 22,
+   "word": 179,
    "hatch": 28,
    "friend": 19,
    "order": 76,
    "phrase": 83,
-   "dynamic": 64,
+   "dynamic": 74,
    "hunt": 1
   },
   "words": 136,
@@ -32,8 +32,8 @@
   {
    "template": "再收集 ${n} 張貼紙就可以玩囉！",
    "src": "zhuyin.js:295 點還沒解鎖的模式",
-   "range": "n = 1..30（解鎖門檻最高 30 張）",
-   "suggestion": "展開成 30 句完整句子預錄（數字用國字，二→兩）。或改寫成「再收集一些貼紙就可以玩囉！」＋畫面顯示數字，只要 1 句。"
+   "range": "n = 1..40（解鎖門檻最高 40 張）",
+   "suggestion": "展開成 40 句完整句子預錄（數字用國字，二→兩）。或改寫成「再收集一些貼紙就可以玩囉！」＋畫面顯示數字，只要 1 句。"
   },
   {
    "template": "拿到 ${n} 張新貼紙！",
@@ -148,6 +148,12 @@
   {
    "id": "intro_deliver",
    "text": "把貨物送到大家的家！",
+   "cat": "intro",
+   "src": "MODES.intro（zhuyin.js:12-19）"
+  },
+  {
+   "id": "intro_catch",
+   "text": "看旗子上的注音，用大鼓接住對的音符！",
    "cat": "intro",
    "src": "MODES.intro（zhuyin.js:12-19）"
   },
@@ -533,6 +539,118 @@
    "cat": "word",
    "src": "zhuyin-bubble.js SYMS（v6）",
    "tts_text": "日"
+  },
+  {
+   "id": "sym_en_ㄈ",
+   "text": "ㄈ",
+   "cat": "word",
+   "src": "zhuyin-endless-core.js（11-01 跑跑／小魚聽音題）",
+   "tts_text": "佛"
+  },
+  {
+   "id": "sym_en_ㄗ",
+   "text": "ㄗ",
+   "cat": "word",
+   "src": "zhuyin-endless-core.js（11-01 跑跑／小魚聽音題）",
+   "tts_text": "資"
+  },
+  {
+   "id": "sym_en_ㄘ",
+   "text": "ㄘ",
+   "cat": "word",
+   "src": "zhuyin-endless-core.js（11-01 跑跑／小魚聽音題）",
+   "tts_text": "疵"
+  },
+  {
+   "id": "sym_en_ㄙ",
+   "text": "ㄙ",
+   "cat": "word",
+   "src": "zhuyin-endless-core.js（11-01 跑跑／小魚聽音題）",
+   "tts_text": "思"
+  },
+  {
+   "id": "sym_en_ㄧ",
+   "text": "ㄧ",
+   "cat": "word",
+   "src": "zhuyin-endless-core.js（11-01 跑跑／小魚聽音題）",
+   "tts_text": "衣"
+  },
+  {
+   "id": "sym_en_ㄨ",
+   "text": "ㄨ",
+   "cat": "word",
+   "src": "zhuyin-endless-core.js（11-01 跑跑／小魚聽音題）",
+   "tts_text": "屋"
+  },
+  {
+   "id": "sym_en_ㄩ",
+   "text": "ㄩ",
+   "cat": "word",
+   "src": "zhuyin-endless-core.js（11-01 跑跑／小魚聽音題）",
+   "tts_text": "迂"
+  },
+  {
+   "id": "sym_en_ㄚ",
+   "text": "ㄚ",
+   "cat": "word",
+   "src": "zhuyin-endless-core.js（11-01 跑跑／小魚聽音題）",
+   "tts_text": "啊"
+  },
+  {
+   "id": "sym_en_ㄛ",
+   "text": "ㄛ",
+   "cat": "word",
+   "src": "zhuyin-endless-core.js（11-01 跑跑／小魚聽音題）",
+   "tts_text": "喔"
+  },
+  {
+   "id": "sym_en_ㄜ",
+   "text": "ㄜ",
+   "cat": "word",
+   "src": "zhuyin-endless-core.js（11-01 跑跑／小魚聽音題）",
+   "tts_text": "婀"
+  },
+  {
+   "id": "sym_en_ㄞ",
+   "text": "ㄞ",
+   "cat": "word",
+   "src": "zhuyin-endless-core.js（11-01 跑跑／小魚聽音題）",
+   "tts_text": "哀"
+  },
+  {
+   "id": "sym_en_ㄠ",
+   "text": "ㄠ",
+   "cat": "word",
+   "src": "zhuyin-endless-core.js（11-01 跑跑／小魚聽音題）",
+   "tts_text": "凹"
+  },
+  {
+   "id": "sym_en_ㄡ",
+   "text": "ㄡ",
+   "cat": "word",
+   "src": "zhuyin-endless-core.js（11-01 跑跑／小魚聽音題）",
+   "tts_text": "歐"
+  },
+  {
+   "id": "sym_en_ㄢ",
+   "text": "ㄢ",
+   "cat": "word",
+   "src": "zhuyin-endless-core.js（11-01 跑跑／小魚聽音題）",
+   "tts_text": "安"
+  },
+  {
+   "id": "sym_en_ㄣ",
+   "text": "ㄣ",
+   "cat": "word",
+   "src": "zhuyin-endless-core.js（11-01 跑跑／小魚聽音題）",
+   "tts_text": "恩"
+  },
+  {
+   "id": "sym_en_ㄤ",
+   "text": "ㄤ",
+   "cat": "word",
+   "src": "zhuyin-endless-core.js（11-01 跑跑／小魚聽音題）",
+   "tts_text": "骯"
   },
   {
    "id": "bubble_zone4",
@@ -1494,6 +1612,24 @@
    "text": "收集更多貼紙，就能去彩虹島囉！",
    "cat": "guide",
    "src": "zhuyin.js 彩虹島（10-12）"
+  },
+  {
+   "id": "mu_open",
+   "text": "音樂島開放囉！快去看看！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent 音樂島（11-01 v8）"
+  },
+  {
+   "id": "mu_here",
+   "text": "這裡是音樂島！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent 音樂島（11-01 v8）"
+  },
+  {
+   "id": "mu_locked",
+   "text": "收集更多貼紙，就能去音樂島囉！",
+   "cat": "guide",
+   "src": "zhuyin.js civicEvent 音樂島（11-01 v8）"
   },
   {
    "id": "dlv_want_hat",
@@ -3070,6 +3206,12 @@
    "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
   },
   {
+   "id": "pick_catch",
+   "text": "音符接接樂！",
+   "cat": "guide",
+   "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
+  },
+  {
    "id": "pick_gacha",
    "text": "扭蛋機！",
    "cat": "guide",
@@ -3078,6 +3220,12 @@
   {
    "id": "pick_dress",
    "text": "寵物服裝店！",
+   "cat": "guide",
+   "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
+  },
+  {
+   "id": "pick_records",
+   "text": "音符唱片行！",
    "cat": "guide",
    "src": "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）"
   },
@@ -3295,6 +3443,30 @@
   {
    "id": "lv_new_frog_5",
    "text": "荷葉最多，要跳得更快！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_catch_2",
+   "text": "接結尾一樣的音符！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_catch_3",
+   "text": "音符會飄來飄去！還有金星沙漏！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_catch_4",
+   "text": "聽聲音，接跟它押韻的音符！",
+   "cat": "guide",
+   "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
+  },
+  {
+   "id": "lv_new_catch_5",
+   "text": "接到一半會換目標喔！",
    "cat": "guide",
    "src": "zhuyin.js LV_NEW（v6 解鎖畫面的新東西說明）"
   },
@@ -4367,6 +4539,78 @@
    "src": "zhuyin.js homeMenu 升級演出（HM.upLine）"
   },
   {
+   "id": "rc_hello",
+   "text": "歡迎光臨音符唱片行！",
+   "cat": "guide",
+   "src": "zhuyin-records.js LINES.hello（v8 音符唱片行）"
+  },
+  {
+   "id": "rc_pick",
+   "text": "點一張唱片聽聽看！",
+   "cat": "guide",
+   "src": "zhuyin-records.js LINES.pick（v8 音符唱片行）"
+  },
+  {
+   "id": "rc_got",
+   "text": "拿到新唱片了！",
+   "cat": "guide",
+   "src": "zhuyin-records.js LINES.got（v8 音符唱片行）"
+  },
+  {
+   "id": "rc_set",
+   "text": "回小島就會放這首歌喔！",
+   "cat": "guide",
+   "src": "zhuyin-records.js LINES.set（v8 音符唱片行）"
+  },
+  {
+   "id": "rc_rand",
+   "text": "回小島會隨機放一首喔！",
+   "cat": "guide",
+   "src": "zhuyin-records.js LINES.rand（v8 音符唱片行）"
+  },
+  {
+   "id": "rc_orig",
+   "text": "回小島放原本的音樂喔！",
+   "cat": "guide",
+   "src": "zhuyin-records.js LINES.orig（v8 音符唱片行）"
+  },
+  {
+   "id": "rc_poor",
+   "text": "再玩一下遊戲，就能買囉！",
+   "cat": "guide",
+   "src": "zhuyin-records.js LINES.poor（v8 音符唱片行）"
+  },
+  {
+   "id": "rc_memo",
+   "text": "做到上面寫的事情，就會送你喔！",
+   "cat": "guide",
+   "src": "zhuyin-records.js LINES.memo（v8 音符唱片行）"
+  },
+  {
+   "id": "rc_gift",
+   "text": "送你一張唱片！點留聲機就能聽歌喔！",
+   "cat": "guide",
+   "src": "zhuyin-records.js LINES.gift（v8 音符唱片行）"
+  },
+  {
+   "id": "catch_fail",
+   "text": "音樂台現在打不開，等一下再試試看！",
+   "cat": "guide",
+   "src": "zhuyin.js 音符接接樂接線（11-01 v8：打不開、結算）"
+  },
+  {
+   "id": "catch_win3",
+   "text": "接得好準，好厲害！",
+   "cat": "result",
+   "src": "zhuyin.js 音符接接樂接線（11-01 v8：打不開、結算）"
+  },
+  {
+   "id": "catch_win",
+   "text": "旋律完成了，好厲害！",
+   "cat": "result",
+   "src": "zhuyin.js 音符接接樂接線（11-01 v8：打不開、結算）"
+  },
+  {
    "id": "unlock_need_1",
    "text": "再收集 1 張貼紙就可以玩囉！",
    "cat": "dynamic",
@@ -4605,6 +4849,86 @@
    "src": "zhuyin.js:295",
    "tts_text": "再收集三十張貼紙就可以玩囉！",
    "n": 30
+  },
+  {
+   "id": "unlock_need_31",
+   "text": "再收集 31 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集三十一張貼紙就可以玩囉！",
+   "n": 31
+  },
+  {
+   "id": "unlock_need_32",
+   "text": "再收集 32 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集三十二張貼紙就可以玩囉！",
+   "n": 32
+  },
+  {
+   "id": "unlock_need_33",
+   "text": "再收集 33 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集三十三張貼紙就可以玩囉！",
+   "n": 33
+  },
+  {
+   "id": "unlock_need_34",
+   "text": "再收集 34 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集三十四張貼紙就可以玩囉！",
+   "n": 34
+  },
+  {
+   "id": "unlock_need_35",
+   "text": "再收集 35 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集三十五張貼紙就可以玩囉！",
+   "n": 35
+  },
+  {
+   "id": "unlock_need_36",
+   "text": "再收集 36 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集三十六張貼紙就可以玩囉！",
+   "n": 36
+  },
+  {
+   "id": "unlock_need_37",
+   "text": "再收集 37 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集三十七張貼紙就可以玩囉！",
+   "n": 37
+  },
+  {
+   "id": "unlock_need_38",
+   "text": "再收集 38 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集三十八張貼紙就可以玩囉！",
+   "n": 38
+  },
+  {
+   "id": "unlock_need_39",
+   "text": "再收集 39 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集三十九張貼紙就可以玩囉！",
+   "n": 39
+  },
+  {
+   "id": "unlock_need_40",
+   "text": "再收集 40 張貼紙就可以玩囉！",
+   "cat": "dynamic",
+   "src": "zhuyin.js:295",
+   "tts_text": "再收集四十張貼紙就可以玩囉！",
+   "n": 40
   },
   {
    "id": "result_stickers_1",

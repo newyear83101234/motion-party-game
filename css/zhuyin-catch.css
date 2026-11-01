@@ -1,0 +1,84 @@
+/* 注音小島：音符接接樂（js/zhuyin-catch.js；v8 音樂島露天音樂台） */
+#catch { padding: 0; }
+.cg-stage { position: absolute; inset: 0; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none;
+  background: linear-gradient(#ffe9c7 0%, #ffd9e6 45%, #c9e7ff 78%, #8ec8a0 78.4%, #79b98c 100%); }
+.cg-stage::before { content: ""; position: absolute; left: 0; right: 0; top: 78%; height: 1.2vmin; background: repeating-linear-gradient(90deg, #ffffff 0 6vmin, #2b2b33 6vmin 9vmin); opacity: 0.85; }   /* 舞台邊：琴鍵 */
+/* 上方旗子：目標符號放很大；左邊「開頭是／結尾是」下面一個小圖示（ㄉ＿＿／＿＿ㄠ），不識字也看得出要看哪一邊 */
+.cg-flag { position: absolute; top: max(2vmin, env(safe-area-inset-top, 0px)); left: 50%; translate: -50% 0; display: flex; align-items: center; gap: 2.4vmin;
+  background: #fff; border: 0.8vmin solid #ff8fb1; border-radius: 4vmin; padding: 1vmin 3.4vmin; box-shadow: 0 1vmin 0 rgba(36,81,92,0.18); z-index: 3; transform-origin: 50% 50%; }
+.cg-flag.cg-big { z-index: 8; box-shadow: 0 1vmin 0 rgba(36,81,92,0.18), 0 2vmin 6vmin rgba(36,81,92,0.28); }   /* 開局／換目標：在畫面中間放大 1 秒（程式寫 transform） */
+.cg-flag-k { display: flex; flex-direction: column; align-items: center; gap: 0.3vmin; }
+.cg-flag-t { font-size: 5vmin; font-weight: 900; color: #24515c; line-height: 1.15; white-space: nowrap; }
+.cg-pos { display: flex; gap: 0.5vmin; }
+.cg-pos i { display: block; width: 3.6vmin; height: 3.6vmin; border-bottom: 0.55vmin solid #9aaab4; font-style: normal; font-size: 3.1vmin; line-height: 3.6vmin; text-align: center; font-weight: 900; color: #c2410c; }
+.cg-pos i.on { background: #ffe1cc; border-bottom-color: #c2410c; border-radius: 0.9vmin 0.9vmin 0 0; }
+.cg-flag-sym { display: inline-block; font-size: 11vmin; line-height: 1; color: #c2410c; font-weight: 900; }
+.cg-flag.cg-cmp .cg-flag-sym { animation: cgFlashF 0.8s ease-in-out 2; }   /* Lv2 示範：旗子的符號跟示範泡泡的最後一個符號一起閃 */
+@keyframes cgFlashF { 0%, 100% { scale: 1; } 50% { scale: 1.25; text-shadow: 0 0 1.4vmin #ffe08a; } }
+.cg-flag-pic { display: flex; align-items: center; gap: 1vmin; background: #fff6d6; border: 0.6vmin solid var(--yellow); border-radius: 3vmin; padding: 0.4vmin 1.6vmin; touch-action: manipulation; }
+.cg-pic { font-size: 10vmin; line-height: 1; } .cg-say { font-size: 6vmin; }
+/* 進度：10 個音符（橫式：右上角兩排各 5 個——排一排 50vmin 寬會碰到中間的旗子，Lv4 的圖旗最寬） */
+.cg-prog { position: absolute; top: max(2.4vmin, env(safe-area-inset-top, 0px)); right: max(2.4vmin, env(safe-area-inset-right, 0px)); display: flex; flex-wrap: wrap; justify-content: flex-end; width: 25vmin; gap: 0 0.6vmin; z-index: 3; }
+.cg-prog i { font-style: normal; font-size: 4.4vmin; line-height: 1.2; color: rgba(36,81,92,0.25); }
+.cg-prog i.on { color: #ff6f86; animation: cgPop 0.35s cubic-bezier(.2,1.6,.4,1); }
+@keyframes cgPop { 0% { scale: 0.4; } 100% { scale: 1; } }
+/* 落下的音符泡泡（位置由程式寫 transform；泡泡大小 19vmin 不變）：國字放大（一個字 7.4vmin、兩個字 5.8vmin，旁注音約 0.38 倍）、圖縮小 */
+.cg-note { position: absolute; left: 0; top: 0; width: 19vmin; height: 19vmin; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 35% 30%, #ffffff 0%, #f3f8ff 55%, #d8e8fb 100%); border: 0.6vmin solid #9bc5ef; box-shadow: 0 0.8vmin 2vmin rgba(20,50,80,0.18); z-index: 2; pointer-events: none;
+  animation: cgIn 0.3s ease-out; }
+@keyframes cgIn { 0% { scale: 0.4; opacity: 0; } 100% { scale: 1; opacity: 1; } }   /* 從旗子下面冒出來 */
+.cg-note::after { content: "♪"; position: absolute; top: -2.4vmin; right: 0.6vmin; font-size: 5vmin; color: #ff8fb1; }
+.cg-em { font-size: 5.5vmin; line-height: 1; }
+.cg-han { font-size: 7.4vmin; font-weight: 900; color: #24515c; line-height: 1.1; white-space: nowrap; }
+.cg-han .ac { margin-right: 0.5em; } .cg-han .ac:last-child { margin-right: 0.56em; }   /* 字距收一點（注音＋聲調約 0.58em 寬），兩個字的詞才塞得進泡泡 */
+.cg-note.l2 .cg-em { font-size: 5vmin; }
+.cg-note.l2 .cg-han { font-size: 5.8vmin; margin-bottom: 4vmin; }   /* 兩個字的詞：放在泡泡最寬的中線附近（底下留空把它往上推） */
+.cg-note.cg-glow { border-color: #ffc93c; animation: cgIn 0.3s ease-out, cgGlow 0.8s ease-in-out 0.3s infinite alternate; }   /* 連續漏掉 3 顆對的：對的發光 */
+@keyframes cgGlow { from { box-shadow: 0 0 0 0.6vmin rgba(255,201,60,0.55), 0 0 2vmin rgba(255,180,0,0.5); } to { box-shadow: 0 0 0 1.4vmin rgba(255,201,60,0.9), 0 0 6vmin rgba(255,180,0,0.95); } }
+.cg-note.cg-got { border-color: #ffc93c; background: #fff6c2; }
+.cg-note.cg-miss { filter: grayscale(1); z-index: 4; }   /* 錯接：變灰、往上彈開（動畫由程式做） */
+.cg-note.cg-past { opacity: 0.7; transition: opacity 0.3s; }   /* 掉過鼓面：接不到了，從鼓後面掉下去 */
+.cg-note.cg-fade { opacity: 0; transition: opacity 0.35s; }
+.cg-real { position: absolute; left: 50%; bottom: calc(100% + 1.2vmin); translate: -50% 0; font-size: 10vmin; font-weight: 900; line-height: 1.1; color: #66727f;
+  background: rgba(255,255,255,0.95); border: 0.5vmin solid #b8c2cc; border-radius: 2.6vmin; padding: 0 1.8vmin; animation: cgReal 0.3s cubic-bezier(.2,1.6,.4,1); }   /* 錯接：它真正的開頭／結尾符號 */
+@keyframes cgReal { 0% { scale: 0.3; } 100% { scale: 1; } }
+.cg-fly { position: absolute; left: 0; top: 0; z-index: 9; font-size: 9vmin; font-weight: 900; line-height: 1; color: #ffb300; pointer-events: none;
+  text-shadow: 0 0 0.5vmin #fff, 0 0 0.5vmin #fff, 0 0.45vmin 0 #c2410c; }   /* 接到對的：目標符號金色飛到旗子上 */
+/* 大鼓（跟著手指的左右）；壓扁／跳在裡面那層 */
+.cg-drum { position: absolute; top: 78%; left: 50%; translate: -50% -88%; width: 22vmin; z-index: 3; pointer-events: none; transition: left 0.06s linear; }
+.cg-drum-in { display: flex; flex-direction: column; align-items: center; transform-origin: 50% 100%; }
+.cg-drum-top { width: 100%; height: 3vmin; border-radius: 50%; background: #fff6e8; border: 0.6vmin solid #c2410c; }
+.cg-drum-body { font-size: 15vmin; line-height: 0.9; margin-top: -1vmin; }
+.cg-strip { position: absolute; left: 0; right: 0; bottom: 0; height: 20%; display: flex; align-items: center; justify-content: center; font-size: 4.2vmin; font-weight: 800; color: rgba(255,255,255,0.92); text-shadow: 0 0.3vmin 0.8vmin rgba(0,0,0,0.25); z-index: 1; }
+/* Lv3 起：整局一個金星沙漏（金色長條慢慢被沙蓋滿；蓋滿＝變銀色，遊戲照玩、只是最多 2 星） */
+.cg-hg { position: absolute; top: calc(max(2.4vmin, env(safe-area-inset-top, 0px)) + 12vmin); right: max(2.4vmin, env(safe-area-inset-right, 0px)); display: flex; align-items: center; gap: 1vmin; z-index: 3; --p: 0; }
+.cg-hg-ico { font-size: 4.4vmin; line-height: 1; }
+.cg-hg-bar { position: relative; width: 20vmin; height: 3vmin; border-radius: 2vmin; background: linear-gradient(90deg, #ffd54a, #ffb300); border: 0.5vmin solid #fff; box-shadow: 0 0.4vmin 0 rgba(36,81,92,0.2); overflow: hidden; }
+.cg-hg-bar b { position: absolute; inset: 0 auto 0 0; width: calc(var(--p) * 100%); background: #d9c08a; }   /* 沙子：從左邊慢慢蓋過去 */
+.cg-hg.late .cg-hg-bar { background: #c9d2dc; } .cg-hg.late .cg-hg-bar b { background: #aab4c0; }
+/* Lv2 示範泡泡：整個詞的注音排開，最後一個符號閃 2 次 */
+.cg-demo { position: absolute; left: 50%; top: 43%; translate: -50% -50%; display: flex; flex-direction: column; align-items: center; gap: 2vmin; z-index: 5; pointer-events: none; animation: cgReal 0.35s cubic-bezier(.2,1.4,.4,1); }
+.cg-demo .cg-note { position: relative; left: auto; top: auto; animation: none; }
+.cg-demo-z { display: flex; gap: 3.2vmin; background: rgba(255,255,255,0.95); border: 0.6vmin solid #9bc5ef; border-radius: 3vmin; padding: 0.4vmin 2.6vmin; }
+.cg-demo-syl { display: flex; gap: 0.3vmin; }
+.cg-demo-syl span { display: inline-block; font-size: 8vmin; font-weight: 900; line-height: 1.15; color: #24515c; }
+.cg-demo-syl .cg-demo-last { color: #ff4f7a; }
+.cg-demo.cg-flash .cg-demo-last { animation: cgFlash 0.8s ease-in-out 2; }
+@keyframes cgFlash { 0%, 100% { scale: 1; } 50% { scale: 1.6; color: #ff2d6a; text-shadow: 0 0 1.6vmin #ffe08a; } }
+.cg-demo.cg-out .cg-note { filter: grayscale(1); translate: 0 -6vmin; opacity: 0; transition: translate 0.55s ease-out, opacity 0.45s 0.1s, filter 0.15s; }   /* 結尾不一樣：跟錯接一樣變灰飄走 */
+.cg-demo.cg-ok .cg-note { border-color: #ffc93c; background: #fff6c2; translate: 0 8vmin; opacity: 0; transition: translate 0.5s ease-in, opacity 0.4s 0.15s; }
+.cg-demo.cg-out .cg-demo-z, .cg-demo.cg-ok .cg-demo-z { opacity: 0; transition: opacity 0.4s 0.15s; }
+/* 結算前：接到的 10 個詞排兩排各 5 個（橫直式都一樣整齊），跟著旋律一個一個跳 */
+.cg-row { position: absolute; left: 50%; top: 40%; translate: -50% -50%; display: grid; grid-template-columns: repeat(5, auto); justify-items: center; gap: 1.4vmin; max-width: 96%; z-index: 5; pointer-events: none; animation: cgReal 0.35s cubic-bezier(.2,1.4,.4,1); }
+.cg-row-w { display: flex; flex-direction: column; align-items: center; background: #fff; border: 0.5vmin solid #ffc93c; border-radius: 2.4vmin; padding: 0.8vmin 1.2vmin 0.6vmin; box-shadow: 0 0.6vmin 0 rgba(36,81,92,0.15); }
+.cg-row-em { font-size: 6vmin; line-height: 1; }
+.cg-row-han { font-size: 4vmin; font-weight: 900; color: #24515c; line-height: 1.2; white-space: nowrap; }
+.cg-row-han .ac { margin-right: 0.5em; } .cg-row-han .ac:last-child { margin-right: 0.56em; }
+/* 直式：畫面窄——旗子靠右（左上有 🏠🎵，置中會碰到 🎵），十個音符的進度放到旗子下面（不然會疊到旗子），沙漏接在它下面 */
+@media (orientation: portrait) {
+  .cg-flag { left: auto; right: max(2.4vmin, env(safe-area-inset-right, 0px)); translate: none; gap: 1.4vmin; padding: 1vmin 2.2vmin; }   /* Lv4（圖＋🔊＋「跟它押韻」）最寬：收一點才不會碰到 🎵 */
+  .cg-flag-pic { gap: 0.6vmin; padding: 0.4vmin 1.2vmin; } .cg-pic { font-size: 9vmin; }
+  .cg-prog { top: calc(max(2vmin, env(safe-area-inset-top, 0px)) + 17vmin); right: auto; left: 50%; translate: -50% 0; width: auto; flex-wrap: nowrap; }
+  .cg-hg { top: calc(max(2vmin, env(safe-area-inset-top, 0px)) + 23.6vmin); right: auto; left: 50%; translate: -50% 0; }
+}
+@media (prefers-reduced-motion: reduce) { .cg-prog i.on, .cg-note, .cg-real, .cg-demo, .cg-row { animation: none; } .cg-demo.cg-flash .cg-demo-last, .cg-flag.cg-cmp .cg-flag-sym { animation-duration: 1.2s; } }

@@ -17,7 +17,8 @@ WSRC = (ROOT / "js" / "zhuyin-words.js").read_text(encoding="utf-8")
 OUT = Path(__file__).resolve().parent / "lines.json"
 
 CN_NUM = ["零", "一", "兩", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二", "十三", "十四", "十五",
-          "十六", "十七", "十八", "十九", "二十", "二十一", "二十二", "二十三", "二十四", "二十五", "二十六", "二十七", "二十八", "二十九", "三十"]
+          "十六", "十七", "十八", "十九", "二十", "二十一", "二十二", "二十三", "二十四", "二十五", "二十六", "二十七", "二十八", "二十九", "三十",
+          "三十一", "三十二", "三十三", "三十四", "三十五", "三十六", "三十七", "三十八", "三十九", "四十"]   # 11-01 音樂島／接接樂 40 張開：「再收集 N 張」展開到 40
 
 
 def block(name):
@@ -137,6 +138,12 @@ SYM_READ_V6 = {"ㄐ": "機", "ㄑ": "欺", "ㄒ": "希", "ㄓ": "知", "ㄔ": "�
 assert BSYMS[len(SYM_READ):] == list(SYM_READ_V6), f"v6 SYMS 跟讀音表不一致：{BSYMS[len(SYM_READ):]}"
 for i, sym in enumerate(BSYMS[len(SYM_READ):]):
     add(f"sym_{len(SYM_READ) + i + 1}", sym, "word", "zhuyin-bubble.js SYMS（v6）", tts=SYM_READ_V6[sym])
+# 11-01 跑跑／小魚（js/zhuyin-endless-core.js）第 1–3 級聽音題：其餘 4 個聲母＋韻母單念（台灣念法，tts 用同音讀音字；鑰匙＝符號本身）
+# ㄝ ㄟ ㄥ ㄦ 沒有好念的同音常用字 → 不錄、核心的 NO_ASK 也不拿它們當答案；錄好後若盲聽沒過，核心照樣會退回系統語音念 ALT 的字
+SYM_READ_EN = {"ㄈ": "佛", "ㄗ": "資", "ㄘ": "疵", "ㄙ": "思", "ㄧ": "衣", "ㄨ": "屋", "ㄩ": "迂", "ㄚ": "啊", "ㄛ": "喔", "ㄜ": "婀",
+               "ㄞ": "哀", "ㄠ": "凹", "ㄡ": "歐", "ㄢ": "安", "ㄣ": "恩", "ㄤ": "骯"}
+for sym, rd in SYM_READ_EN.items():
+    add(f"sym_en_{sym}", sym, "word", "zhuyin-endless-core.js（11-01 跑跑／小魚聽音題）", tts=rd)
 for i, t in [("bubble_zone4", "這次要救小象喔！天花板會慢慢降下來喔！"),
              ("bubble_zone5", "這次要救小獅子喔！灰色的石頭打不破，要讓它掉下來！"),
              ("bubble_drop_tip", "天花板降下來了！小燈都熄掉，就會往下降喔！")]:
@@ -200,6 +207,9 @@ for i, t in [("dress_load_fail", "服裝店現在打不開，等一下再試試�
 for i, t in [("rb_open", "彩虹橋接好了！彩虹島開放囉！"), ("rb_here", "這裡是彩虹島！"), ("rb_locked", "收集更多貼紙，就能去彩虹島囉！"),
              ]:   # 10-12 服裝店、配送站都接上真的畫面了，「…快要開張囉！」兩句暫代句拿掉
     must(t); add(i, t, "guide", "zhuyin.js 彩虹島（10-12）")
+# ---- 11-01 v8 第二批 音樂島（照彩虹島：開放宣告、到了音樂島、還沒開；「再收集 N 張貼紙，音樂島就開放囉！」只顯示字不唸）----
+for i, t in [("mu_open", "音樂島開放囉！快去看看！"), ("mu_here", "這裡是音樂島！"), ("mu_locked", "收集更多貼紙，就能去音樂島囉！")]:
+    must(t); add(i, t, "guide", "zhuyin.js civicEvent 音樂島（11-01 v8）")
 
 # ---- 10-12 彩虹配送站 ----
 # 台詞都在 js/zhuyin-deliver.js 的 LINES 與 TASKS[].intro；商品名在 GOODS、禮物名在 GIFTS（跟 zhuyin-rewards.js 的 WEAR 同名）。
@@ -394,7 +404,7 @@ for t in ["仔細聽，選出你聽到的那一句！", "用注音拼出五個�
 must('talk(g.name + "！")')
 GI_BLOCK = SRC.split("const GAME_INFO = {")[1].split("\n};")[0]
 GAME_INFO = re.findall(r'^\s+(\w+): \{ name: "([^"]+)"', GI_BLOCK, re.M)
-assert len(GAME_INFO) == 17, f"GAME_INFO 解析失敗：{len(GAME_INFO)}"   # 12 個遊戲＋扭蛋機＋寵物服裝店＋10-13 挑戰燈塔＋11-01 跑跑大冒險、小魚長大記
+assert len(GAME_INFO) == 19, f"GAME_INFO 解析失敗：{len(GAME_INFO)}"   # 12 個遊戲＋扭蛋機＋寵物服裝店＋10-13 挑戰燈塔＋11-01 跑跑大冒險、小魚長大記＋11-01 v8 音符接接樂、音符唱片行
 for m, nm in GAME_INFO:
     add(f"pick_{m}", nm + "！", "guide", "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）")
 
@@ -408,7 +418,7 @@ for i, t in enumerate(LV_SAY):
     add(f"lv_up_{i + 2}", t, "guide", "zhuyin.js LV_SAY（v6 結算：開了新的一級）")
 LV_NEW_BLOCK = SRC.split("const LV_NEW = {")[1].split("\n};")[0]
 LV_NEW = re.findall(r'^\s+(\w+):\s+\{ 2: "([^"]+)", 3: "([^"]+)", 4: "([^"]+)", 5: "([^"]+)" \}', LV_NEW_BLOCK, re.M)
-assert len(LV_NEW) == 8, f"LV_NEW 解析失敗：{len(LV_NEW)}"   # 主程式 7 個遊戲＋翻牌
+assert len(LV_NEW) == 9, f"LV_NEW 解析失敗：{len(LV_NEW)}"   # 主程式 7 個遊戲＋翻牌＋11-01 v8 音符接接樂
 seen_new = {}
 for m, *ts in LV_NEW:
     for n, t in zip(range(2, 6), ts):
@@ -476,6 +486,23 @@ if "export const upLine = lv => `你的家變成${HOME_NAME[lv]}了！`;" not in
     sys.exit("js/zhuyin-home.js 的 upLine 改了，請更新 build_lines.py")
 for lv in range(2, 7):
     add(f"hm_up_{lv}", f"你的家變成{HM_NAMES[lv]}了！", "guide", "zhuyin.js homeMenu 升級演出（HM.upLine）")
+
+# ---- 11-01 v8 第二批：音符唱片行（js/zhuyin-records.js 的 LINES，全部 talk；LINES.gift＝花園小舖第一次買到留聲機送唱片）、音符接接樂（主程式接線的話）----
+# 接接樂開場語＝MODES.catch.intro（上面「1. 開場語」自動收）；五級新東西說明＝LV_NEW.catch（v6 段自動收）；介紹卡名字＝GAME_INFO（pick_catch、pick_records）。
+# 接接樂模組本身不說話（看注音的遊戲，詞不出聲）；Lv4 聽音題唸的是詞庫的詞（沿用詞庫音檔）。唱片名字只顯示不唸。
+RCSRC = (ROOT / "js" / "zhuyin-records.js").read_text(encoding="utf-8")
+RC_LINES = re.findall(r'(\w+): "([^"]+)"', RCSRC.split("export const LINES = {")[1].split("\n};")[0])
+assert len(RC_LINES) == 11, f"唱片行台詞解析失敗：{len(RC_LINES)}"
+for key, t in RC_LINES:
+    if key in ("now", "stop"): continue          # 「正在放／停止播放」是膠囊上的字，不唸
+    if key == "poor":                             # 「還差 N 顆星星！」：N 換成數字（店裡的唱片 ⭐8 → 最多差 8 顆）
+        for n in range(1, 9): add(f"rc_poor{n}", t.replace("N", str(n)), "guide", "zhuyin-records.js LINES.poor（錢不夠，N＝還差幾顆）")
+        continue
+    add(f"rc_{key}", t, "guide", f"zhuyin-records.js LINES.{key}（v8 音符唱片行）")
+if "return REC.LINES.gift" not in SRC:
+    sys.exit("zhuyin.js 的留聲機送唱片（homeUI onBuy → REC.LINES.gift）改了，請更新 build_lines.py")
+for i, t in [("catch_fail", "音樂台現在打不開，等一下再試試看！"), ("catch_win3", "接得好準，好厲害！"), ("catch_win", "旋律完成了，好厲害！")]:
+    must(t); add(i, t, "guide" if i == "catch_fail" else "result", "zhuyin.js 音符接接樂接線（11-01 v8：打不開、結算）")
 
 # ---- 5. 動態句：全部展開成完整句子 ----
 DYNAMIC = []

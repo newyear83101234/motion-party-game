@@ -37,8 +37,11 @@ const fits = p => p.evaluate(() => { const d = document.querySelector("#games .d
     await openList(p);
     ok("點 🗺️ → 打開全部遊戲清單", await listOn(p));
     const L = await listInfo(p);
-    ok("清單分三組：主島、歸仁區、彩虹島（照這個順序）", L.map(g => g.isle).join() === "main,town,rainbow" && L.map(g => g.name).join() === "主島,歸仁區,彩虹島", JSON.stringify(L.map(g => [g.isle, g.name])));
+    const hasMu = await p.evaluate(() => window.__zy.hub.games().list.some(x => x.isle === "music"));   // 11-01 v8 音樂島：3D 那邊接好（DEFS 有音樂島的建築）才會多一組
+    ok(`清單分組：主島、歸仁區、彩虹島${hasMu ? "、音樂島" : ""}（照這個順序）`, L.map(g => g.isle).join() === (hasMu ? "main,town,rainbow,music" : "main,town,rainbow") && L.map(g => g.name).join() === (hasMu ? "主島,歸仁區,彩虹島,音樂島" : "主島,歸仁區,彩虹島"), JSON.stringify(L.map(g => [g.isle, g.name])));
     const main = L[0], town = L[1], rb = L[2];
+    if (hasMu) { const mu = L[3]; ok("音樂島（20 張 < 40）：整組鎖著、標題寫「🔒 40」、唱片行／接接樂兩張都有 🔒", mu.locked && mu.lock === "🔒 40" && mu.cards.map(c => c.m).sort().join() === "catch,records" && mu.cards.every(c => c.locked), JSON.stringify(mu)); }
+    else out.push("NOTE  3D 還沒有音樂島的建築：🗺️ 清單沒有音樂島那組（3D 接好後這支會自動驗）");
     ok("主島：11 張卡（9 個遊戲＋10-13 挑戰燈塔＋扭蛋機），釣魚排第一、燈塔在扭蛋機前、扭蛋機排最後", main.cards.length === 11 && main.cards[0].m === "fish" && main.cards[9].m === "tower" && main.cards[10].m === "gacha", JSON.stringify(main.cards.map(c => c.m)));
     ok("主島：卡片寫短名字（≤ 3 個字一行放得下：打地鼠、跳跳蛙、泡泡、氣球、扭蛋機…）", ["打地鼠", "跳跳蛙", "泡泡", "氣球", "扭蛋機"].every(n => main.cards.some(c => c.name === n)) && main.cards.every(c => c.name.length <= 3), JSON.stringify(main.cards.map(c => c.name)));
     const oneLine = await p.evaluate(() => [...document.querySelectorAll("#gamesList .gl-name")].filter(e => e.getBoundingClientRect().height > parseFloat(getComputedStyle(e).fontSize) * 2).map(e => e.parentNode.dataset.mode));
@@ -100,14 +103,14 @@ const fits = p => p.evaluate(() => { const d = document.querySelector("#games .d
   for (const [w, h, st] of [[1024, 768, 40], [768, 1024, 40], [1873, 1014, 64], [390, 844, 40]]) {
     const { ctx, p, errs } = await openGame(browser, { w, h, stickers: st, stars: 25, query: Q });
     await ready(p); await p.evaluate(() => window.__hub3d.events(false));
-    const mb = await p.evaluate(() => { const b = document.getElementById("mapBtn"), r = b.getBoundingClientRect(), ids = ["hudLBtn", "hudRBtn", "townBtn", "townTag", "rainbowBtn", "rainbowTag", "homeBtn", "musicBtn", "playerBtn", "playerTag", "settingsBtn", "plazaBtn", "resumeBtn"];
+    const mb = await p.evaluate(() => { const b = document.getElementById("mapBtn"), r = b.getBoundingClientRect(), ids = ["hudLBtn", "hudRBtn", "townBtn", "townTag", "rainbowBtn", "rainbowTag", "muIsleBtn", "muIsleTag", "homeBtn", "musicBtn", "playerBtn", "playerTag", "settingsBtn", "plazaBtn", "resumeBtn"];
       const hit = ids.filter(id => { const e = document.getElementById(id); if (!e || getComputedStyle(e).display === "none") return false; const q = e.getBoundingClientRect(); return q.width && r.left < q.right && r.right > q.left && r.top < q.bottom && r.bottom > q.top; });
       const pills = document.querySelector("#menu > .menu-bottom").getBoundingClientRect(); if (r.left < pills.right && r.right > pills.left && r.top < pills.bottom && r.bottom > pills.top) hit.push("膠囊");
       return { parent: b.parentNode.id, r: [r.left, r.top, r.right, r.bottom].map(Math.round), hit, inV: r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight, size: Math.round(r.width) }; });
     ok(`${w}×${h}：🗺️ 在畫面內、≥ 44px、不跟其他按鈕／膠囊重疊（${w < h ? "直式在左上第三排" : "橫式在 🌈 下面"}）`, mb.inV && mb.size >= 44 && mb.hit.length === 0 && mb.parent === "hudL", JSON.stringify(mb));
     await openList(p);
     const fl = await fits(p), L = await listInfo(p);
-    ok(`${w}×${h}：清單在畫面內${w < h ? "（直式可以上下捲）" : "、不用捲"}、三組都在（${st} 張）`, fl.inV && (w < h || fl.scroll <= 2) && L.length === 3, JSON.stringify({ fl, groups: L.map(g => g.isle + (g.locked ? "🔒" : "")) }));
+    ok(`${w}×${h}：清單在畫面內${w < h ? "（直式可以上下捲）" : "、不用捲"}、每座島一組都在（${st} 張）`, fl.inV && (w < h || fl.scroll <= 2) && L.length === (await p.evaluate(() => window.__zy.hub.games().list.some(x => x.isle === "music")) ? 4 : 3), JSON.stringify({ fl, groups: L.map(g => g.isle + (g.locked ? "🔒" : "")) }));
     if (w !== 390) await shot(p, `gamelist-${w}x${h}`);
     await clickCard(p, "build");
     ok(`${w}×${h}：點「積木」→ 積木的介紹卡`, await pickOn(p, "build"));

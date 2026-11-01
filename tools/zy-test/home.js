@@ -60,7 +60,7 @@ const slot = (p, i) => p.evaluate(i => window.__hub3d.tapHome({ k: "slot", i }),
     ok("格子白圈 6 個", h.marks === 6, String(h.marks));
     ok("第一次送一個紅色花圃", s.own.fl_red === 1 && s.gift === 1, JSON.stringify(s.own));
     ok("上面的按鈕、貓頭鷹藏起來", !(await vis(p, "#hudL")) && !(await vis(p, ".menu-bottom")));
-    ok("貨架 15 件", await p.evaluate(() => document.querySelectorAll(".hg-item").length === 15));
+    ok("貨架 16 件（11-01 加留聲機）", await p.evaluate(() => document.querySelectorAll(".hg-item").length === 16));
     await shelf(p, "fl_red"); await sleep(250);
     ok("點倉庫裡有的＝直接拿起來（不跳買）", await p.evaluate(() => window.__zy.homeUI.debug.held === "fl_red" && document.querySelector(".hg-buy").classList.contains("hidden")));
     h = await H(p); ok("拿著東西：空格子一閃一閃", h.placing === true && h.marks === 6, JSON.stringify({ placing: h.placing, marks: h.marks }));

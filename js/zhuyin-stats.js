@@ -9,6 +9,7 @@ export const MODE_INFO = {
   whack: ["🔨", "地鼠"], frog: ["🐸", "青蛙"], bubble: ["🐧", "泡泡"], deliver: ["🚚", "彩虹配送站"], detective: ["🕵️", "偵探"], tops: ["🌀", "陀螺"],
   tower: ["🗼", "燈塔"],   // 10-13 挑戰燈塔
   run: ["🏃", "跑跑"], grow: ["🐟", "小魚"],   // 11-01 無限玩的兩款
+  catch: ["🥁", "接接樂"],   // 11-01 v8 音符接接樂（音樂島）
 };
 export const MODE_IDS = Object.keys(MODE_INFO);
 

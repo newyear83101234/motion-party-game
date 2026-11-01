@@ -158,20 +158,20 @@ const opened = (p, m) => p.waitForFunction(m => { const t = document.querySelect
     await p.evaluate(() => document.getElementById("homeBtn").click()); await sleep(400);   // 選單上按 🏠＝重畫選單（繼續玩出現）
     await ready(p);
     const r = await p.evaluate(() => {
-      const ids = ["#hudLBtn", "#hudRBtn", "#townBtn", "#townTag", "#rainbowBtn", "#rainbowTag", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn", "#resumeBtn", "#menu > .menu-bottom", "#guide > img", "#guideText", "#owlPeek", "#mapBtn", "#plazaBtn"];
+      const ids = ["#hudLBtn", "#hudRBtn", "#townBtn", "#townTag", "#rainbowBtn", "#rainbowTag", "#muIsleBtn", "#muIsleTag", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn", "#resumeBtn", "#menu > .menu-bottom", "#guide > img", "#guideText", "#owlPeek", "#mapBtn", "#plazaBtn"];
       const box = ids.map(s => { const e = document.querySelector(s); const q = e.getBoundingClientRect(); return { s, q, on: getComputedStyle(e).display !== "none" && q.width > 0 }; }).filter(x => x.on);
       const bad = [], out = [];
       for (let i = 0; i < box.length; i++) {
         const a = box[i].q; if (a.left < -1 || a.top < -1 || a.right > innerWidth + 1 || a.bottom > innerHeight + 1) out.push(box[i].s);
         for (let j = i + 1; j < box.length; j++) { const b = box[j].q;
-          if ((box[i].s === "#townBtn" && box[j].s === "#townTag") || (box[i].s === "#rainbowBtn" && box[j].s === "#rainbowTag") || (box[i].s.startsWith("#guide") && box[j].s === "#owlPeek") || (box[i].s === "#guideText" && box[j].s === "#owlPeek")) continue;   // 新市區小字故意黏在圓鈕後面；探頭就在貓頭鷹的位置
+          if ((box[i].s === "#townBtn" && box[j].s === "#townTag") || (box[i].s === "#rainbowBtn" && box[j].s === "#rainbowTag") || (box[i].s === "#muIsleBtn" && box[j].s === "#muIsleTag") || (box[i].s.startsWith("#guide") && box[j].s === "#owlPeek") || (box[i].s === "#guideText" && box[j].s === "#owlPeek")) continue;   // 新市區小字故意黏在圓鈕後面；探頭就在貓頭鷹的位置
           if (box[i].s === "#menu > .menu-bottom" && box[j].s === "#plazaBtn") continue;   // 橫式 🎪 本來就在膠囊那排裡面
           if (a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1) bad.push(box[i].s + "×" + box[j].s); }
       }
-      const tags = []; for (const tg of document.querySelectorAll(".hub-tag:not(.civic):not(.rb)")) { const q = tg.getBoundingClientRect(); for (const x of box) { const b = x.q; if (q.left < b.right && q.right > b.left && q.top < b.bottom && q.bottom > b.top) tags.push(tg.dataset.mode + "×" + x.s); } }
+      const tags = []; for (const tg of document.querySelectorAll(".hub-tag:not(.civic):not(.rb):not(.mu)")) { const q = tg.getBoundingClientRect(); for (const x of box) { const b = x.q; if (q.left < b.right && q.right > b.left && q.top < b.bottom && q.bottom > b.top) tags.push(tg.dataset.mode + "×" + x.s); } }
       for (const sg of document.querySelectorAll(".hub-sign")) { const q = sg.getBoundingClientRect(); if (!q.width || getComputedStyle(sg).visibility === "hidden") continue; if (q.left < 0 || q.top < 0 || q.right > innerWidth || q.bottom > innerHeight) tags.push("路牌" + sg.dataset.go + "×出畫面"); for (const x of box) { if (x.s === "#guideText" || x.s === "#owlPeek") continue; const b = x.q; if (q.left < b.right && q.right > b.left && q.top < b.bottom && q.bottom > b.top) tags.push("路牌" + sg.dataset.go + "×" + x.s); } }   // 路牌（10-12）：不被按鈕、膠囊擋到（貓頭鷹對話框會收起來，不算）
       const rb = document.getElementById("resumeBtn").getBoundingClientRect(), mp = document.getElementById("mapBtn").getBoundingClientRect();
-      return { bad, out, tags, resume: !document.getElementById("resumeBtn").classList.contains("hidden"), resumeRect: [rb.left, rb.top, rb.right, rb.bottom].map(Math.round), map: [mp.left, mp.top, mp.right, mp.bottom].map(Math.round), shut: [...document.querySelectorAll(".hub-tag:not(.civic):not(.rb)")].filter(t => !t.classList.contains("open")).length };
+      return { bad, out, tags, resume: !document.getElementById("resumeBtn").classList.contains("hidden"), resumeRect: [rb.left, rb.top, rb.right, rb.bottom].map(Math.round), map: [mp.left, mp.top, mp.right, mp.bottom].map(Math.round), shut: [...document.querySelectorAll(".hub-tag:not(.civic):not(.rb):not(.mu)")].filter(t => !t.classList.contains("open")).length };
     });
     ok(`${t} ${w}×${h}：繼續玩有出現`, r.resume);
     ok(`${t} ${w}×${h}：上方兩排／繼續玩／膠囊／換人小字／貓頭鷹互不重疊、都在畫面內`, r.bad.length === 0 && r.out.length === 0, JSON.stringify(r));
@@ -184,7 +184,7 @@ const opened = (p, m) => p.waitForFunction(m => { const t = document.querySelect
       for (const m of ["fish", "order", "build", "hunt", "match", "tone", "whack", "frog", "bubble", "gacha"]) {
         await p.evaluate(m => window.__hub3d.openOne(m), m); await opened(p, m);
         const c = await p.evaluate(m => {
-          const ids = ["#hudLBtn", "#hudRBtn", "#townBtn", "#townTag", "#rainbowBtn", "#rainbowTag", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn", "#resumeBtn", "#mapBtn"];
+          const ids = ["#hudLBtn", "#hudRBtn", "#townBtn", "#townTag", "#rainbowBtn", "#rainbowTag", "#muIsleBtn", "#muIsleTag", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn", "#resumeBtn", "#mapBtn"];
           const tg = document.querySelector(`.hub-tag[data-mode=${m}]`), q = tg.getBoundingClientRect(), bad = [];
           if (!tg.classList.contains("open")) bad.push("沒展開");
           if (q.left < 0 || q.top < 0 || q.right > innerWidth || q.bottom > innerHeight) bad.push("出畫面");

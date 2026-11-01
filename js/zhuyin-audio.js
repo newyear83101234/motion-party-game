@@ -8,6 +8,8 @@
 //
 // 為什麼不用 <audio>：iPad Safari 的 HTMLMediaElement.volume 沒有作用（音樂 0.3、講話壓低全部失效）、loop 有接縫、
 // 同一個音效 currentTime=0 會被切斷。這裡全部走同一個 AudioContext（配音也是，不要開第二個）。
+// 例外（v8 唱片行「我的歌」）：3–4 分鐘的整首歌解碼成 AudioBuffer 要 70–80MB，改用 <audio> 串流，但一樣接進 Web Audio（MediaElementSource → 自己的 GainNode → duck），
+// 音量、講話壓低、音樂開關照舊有效；見下面「整首歌」段（addStream）。
 //
 // iOS：AudioContext 只在第一次點擊（unlock()）才建立並 resume；之前只先下載。切到背景 suspend、回來 resume（只在原本有在播時）。
 // iPad 記憶體：64 秒立體聲 BGM 解碼後約 23MB → 解碼好的 BGM 最多同時留 2 首（目前＋淡出中；效能體檢 10-12 從 3 首減下來，保留立體聲音質），
@@ -99,6 +101,7 @@ export function unlock() {
   if (c.state !== "running" && !document.hidden) { resumeAt = performance.now(); hidSuspended = false; try { const r = c.resume(); if (r && r.catch) r.catch(() => {}); } catch (e) {} }
   if (unlocked) return; unlocked = true;
   try { const s = c.createBufferSource(); s.buffer = c.createBuffer(1, 1, 22050); s.connect(c.destination); s.start(0); } catch (e) {}   // iOS：1 個 sample 的靜音打開音訊路徑
+  blessPlayers();                                 // 整首歌的 <audio>：要在手指點擊當下先播一次，之後程式換歌才放得出來（iOS）
   if (want && musicOn) startWant();
   for (const e of SFX.values()) if (e.raw) load(e).catch(() => {});
 }
@@ -106,8 +109,8 @@ export function unlock() {
 // 切到背景：暫停整個 context（BGM、天氣聲都停，也不耗電）；回前景：原本有在播才恢復
 document.addEventListener("visibilitychange", () => {
   if (!ac) return;
-  if (document.hidden) { if (ac.state === "running") { hidSuspended = true; try { ac.suspend().catch(() => {}); } catch (e) {} } }
-  else if (hidSuspended) { hidSuspended = false; resumeAt = performance.now(); try { ac.resume().catch(() => {}); } catch (e) {} }
+  if (document.hidden) { if (ac.state === "running") { hidSuspended = true; try { ac.suspend().catch(() => {}); } catch (e) {} } if (cur && cur.pl) { remember(cur); try { cur.pl.el.pause(); } catch (e) {} } }   // 整首歌也要停（<audio> 不跟著 context 暫停）；記住放到哪
+  else if (hidSuspended) { hidSuspended = false; resumeAt = performance.now(); try { ac.resume().catch(() => {}); } catch (e) {} if (cur && cur.pl && musicOn) { const p = cur.pl.el.play(); if (p && p.catch) p.catch(() => {}); } }
 });
 
 // ---------- 清單與載入 ----------
@@ -262,7 +265,7 @@ export function duck(on, src = "voice") {
 let pend = null;                                  // 正在載入、載好就要播的那首
 export function playBgm(key, { fade = XFADE } = {}) {
   if (!key) { stopBgm(); return; }
-  if (man && (!man.bgm[key] || isJingle(key))) { warnOnce("bgmkey:" + key, `沒有這首背景音樂「${key}」，改播 island`); key = "island"; }   // 一次性曲子（loop:false）要用 sfx() 播
+  if (man && !STREAMS.has(key) && (!man.bgm[key] || isJingle(key))) { warnOnce("bgmkey:" + key, `沒有這首背景音樂「${key}」，改播 island`); key = "island"; }   // 一次性曲子（loop:false）要用 sfx() 播
   if (want === key && (cur && cur.key === key || pend === key)) return;
   want = key;
   if (!musicOn) return;
@@ -272,6 +275,7 @@ function startWant(fade = XFADE) {
   const key = want, tok = ++bgTok;
   if (!key || (cur && cur.key === key)) { pend = null; return; }
   pend = key;
+  if (STREAMS.has(key)) { startStream(key, tok, fade); return; }
   loadMan().then(() => (!ac && hold ? hold : null)).then(() => {
     if (tok !== bgTok) return;
     const e = bgmEntry(key);
@@ -313,12 +317,88 @@ function killTrack(t) {                           // 立刻收掉（50 ms 淡出
   t.auto = { t0: ac.currentTime, dur: 0.05, c: new Float32Array([0, 0]) };
   fading.delete(t); clearTimeout(t.timer);
 }
+// ---------- 整首歌（v8 唱片行「我的歌」）----------
+// addStream(key, get, { loop })：登記一首整首歌；get() 回 Promise<網址>（js/zhuyin-mysongs.js 下載＋解密成 blob 網址）。之後 playBgm(key) 就會放它，
+// 跟一般 BGM 一樣交叉淡化、壓低、開關；loop＝放完從頭再放（false＝放完呼叫 onSongEnd 設的函式）。
+// 兩個 <audio> 輪流用（交叉淡化時一首淡出、一首淡入）；iOS 規定 <audio> 第一次 play() 要在點擊當下 → unlock() 先各播一下靜音（blessPlayers）。
+// 11-01 櫻木：每首記住上次放到哪（淡出／暫停／切到背景時記 currentTime；只記在記憶體，重開網頁從頭），下次同一首從那裡接著放（離結尾不到 5 秒＝從頭）。
+// bgmOnce(key)：唱片牆「▶ 聽整首」＝這首放完就停（不循環）、呼叫 onSongEnd 設的函式；bgmOnce(null)＝恢復循環（當小島音樂時一直放）。
+// loading(key)：這首「還沒開始出聲」（下載＋解密中、<audio> 還在緩衝）＝true，唱片牆的唱盤中間顯示 ⏳。
+const STREAMS = new Map();
+const players = [];                               // { el, src（MediaElementSource）, owner（正在用它的曲目） }
+let playerIx = 0, songEnd = null, onceKey = null;
+const streamPos = new Map();                      // 整首歌 key → { t 放到第幾秒, dur 全長 }
+const RESTART_SEC = 5;                            // 離結尾不到 5 秒：下次從頭放
+const SILENT = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAACAgICA";   // 4 個 sample 的靜音
+export function addStream(key, get, { loop = true } = {}) { STREAMS.set(key, { get, loop }); }
+export function onSongEnd(fn) { songEnd = fn; }
+const loopOf = key => { const S = STREAMS.get(key); return !!(S && S.loop) && key !== onceKey; };
+export function bgmOnce(key) { onceKey = key || null; for (const p of players) if (p.owner) { try { p.el.loop = loopOf(p.owner.key); } catch (e) {} } }   // 正在放的那首馬上改（小島音樂剛好就是這首也算）
+function remember(t) {                            // 記住這首放到哪（播放器已經換人用就不記）
+  if (!t || !t.pl || t.pl.owner !== t) return;
+  const el = t.pl.el, d = el.duration, prev = streamPos.get(t.key);
+  if (el.currentTime > 0 || !prev) streamPos.set(t.key, { t: +el.currentTime || 0, dur: isFinite(d) && d > 0 ? d : prev ? prev.dur : 0 });   // 還沒讀到長度就被收掉：沿用上次記的長度
+}
+function startAt(key) { const p = streamPos.get(key); return p && p.dur && p.dur - p.t >= RESTART_SEC ? p.t : 0; }
+export function loading(key) {
+  if (!key || want !== key || !musicOn) return false;
+  if (pend === key) return true;                  // 下載＋解密中（一般 BGM：下載＋解碼中）
+  if (cur && cur.key === key && cur.pl) { const el = cur.pl.el; return el.paused || el.readyState < 3; }   // <audio> 還沒真的開始放
+  return false;
+}
+function streamEnded(t) {                         // 整首歌放完（不循環時才會來）：放開播放器、通知唱片行（回到原本的小島音樂）
+  const pl = t.pl; if (cur !== t || pl.el.loop) return;
+  remember(t); cur = null; pl.owner = null;
+  try { pl.src.disconnect(); t.g.disconnect(); } catch (e) {}
+  if (songEnd) { try { songEnd(t.key); } catch (e) { warnOnce("songend", "onSongEnd 出錯", e && e.message); } }
+}
+export function streamEl() { return cur && cur.pl ? cur.pl.el : null; }   // 測試用：現在在放的整首歌 <audio>（tools/zy-test/records.js 拉到快結尾驗「放完」）
+function blessPlayers() {
+  if (players.length || !ac || !ac.createMediaElementSource) return;
+  for (let i = 0; i < 2; i++) {
+    try {
+      const el = new Audio(); el.preload = "auto";
+      const src = ac.createMediaElementSource(el);
+      el.src = SILENT; const p = el.play(); if (p && p.then) p.then(() => el.pause(), () => {});
+      players.push({ el, src, owner: null });
+    } catch (e) { warnOnce("bless", "整首歌的播放器建不起來", e && e.message); }
+  }
+}
+function startStream(key, tok, fade) {
+  const S = STREAMS.get(key);
+  Promise.resolve().then(() => S.get()).then(url => {
+    if (tok !== bgTok || want !== key || !musicOn) return;
+    if (!ac || !players.length) return;           // 還沒解鎖：unlock() 時再播
+    pend = null;
+    const pl = players[playerIx = (playerIx + 1) % players.length];
+    for (const t of [...fading]) if (t.pl === pl) killTrack(t);   // 這個播放器還在淡出上一首：直接收掉
+    if (cur) fadeOutTrack(cur, fade);
+    while (fading.size > MAX_BGM - 1) killTrack([...fading].sort((a, b) => a.auto.t0 - b.auto.t0)[0]);
+    const g = ac.createGain(); g.gain.value = 0;
+    try { pl.src.disconnect(); } catch (e) {}
+    pl.src.connect(g); g.connect(N.duck);
+    const t = { key, e: null, g, pl, auto: null }, el = pl.el;
+    t.s = {                                        // 跟 AudioBufferSourceNode 一樣的介面，讓淡出／收掉／變速共用同一套
+      onended: null, playbackRate: { setTargetAtTime(v) { try { el.playbackRate = v; } catch (e) {} } },
+      stop(at) { remember(t); clearTimeout(t.stopT); t.stopT = setTimeout(() => { if (pl.owner === t) { remember(t); try { el.pause(); } catch (e) {} pl.owner = null; } if (t.s.onended) t.s.onended(); }, Math.max(0, ((at || 0) - ac.currentTime) * 1000)); },   // 淡出開始先記一次（被直接收掉也有）、淡完停下來再記一次
+      disconnect() { if (pl.owner === t || !pl.owner) { try { pl.src.disconnect(); } catch (e) {} } },
+    };
+    pl.owner = t; el.loop = loopOf(key); el.onended = () => streamEnded(t);
+    const at = startAt(key);                       // 上次放到哪就從哪接著放（每次回小島都從頭＝家長一直聽同一段前奏）
+    if (el.src !== url) el.src = url; try { el.currentTime = at; el.playbackRate = rate; } catch (e) {}
+    if (at > 0) el.addEventListener("loadedmetadata", () => { if (pl.owner === t && el.currentTime < 1) { try { el.currentTime = at; } catch (e) {} } }, { once: true });   // 換了檔：有的瀏覽器在讀到長度前設的位置不算數，讀到再設一次
+    applyCurve(t, 0, 1, Math.max(0.05, fade));
+    const p = el.play(); if (p && p.catch) p.catch(err => warnOnce("streamplay", "整首歌播不出來：", err && err.name));
+    cur = t; stats.bgmStarts++;
+  }).catch(err => { if (tok === bgTok) { pend = null; warnOnce("stream:" + key, "整首歌載入失敗，略過：", key, err && (err.message || err)); } });
+}
 // 開頁（效能體檢 10-12）：還沒解鎖聲音時，BGM 的下載等 p（3D 小島建築長好；zhuyin.js 自己加逾時）；p 結束前就解鎖（第一次點擊）→ 不等、馬上抓
 export function holdUntil(p) { const h = hold = Promise.resolve(p).catch(() => {}).then(() => { if (hold === h) hold = null; }); }
 export function stopBgm({ fade = XFADE } = {}) { want = null; pend = null; bgTok++; if (cur && ac) fadeOutTrack(cur, fade); cur = null; }
 // 閒置時先把「最可能的下一首」下載＋解碼：只在沒有在換曲（沒有淡出中的）、只有目前這首在用時才做（效能體檢 10-12；不會超過 MAX_BGM）
 export function prefetchBgm(key) {
   if (!key) return;
+  if (STREAMS.has(key)) { try { Promise.resolve(STREAMS.get(key).get()).catch(() => {}); } catch (e) {} return; }   // 整首歌：只下載＋解密成 blob 網址（不播；唱片牆點唱片時先預載）
   const go = () => {
     const e = bgmEntry(key); if (!e || e.buf || e.dp) { if (e) e.used = Math.max(e.used, performance.now() - 1); return; }
     if (!ac) { if (!e.raw) load(e, true).catch(() => {}); return; }
@@ -356,8 +436,10 @@ export function debug() {
     limiter: N ? { threshold: N.limiter.threshold.value, ratio: N.limiter.ratio.value, attack: +N.limiter.attack.value.toFixed(4), knee: N.limiter.knee.value } : null,
     ducks: [...ducks], duckOn, liveSfx: live.size, bgmDecoded: [...BGM.values()].filter(e => e.buf).map(e => e.name),
     sfxDecoded: [...SFX.values()].filter(e => e.buf).length, stats: { ...stats }, time: +at.toFixed(3),
+    stream: players.map(p => ({ key: p.owner && p.owner.key, t: +p.el.currentTime.toFixed(2), paused: p.el.paused, loop: p.el.loop, ready: p.el.readyState })),   // 整首歌的兩個播放器
+    loading: loading(want), once: onceKey, pos: Object.fromEntries([...streamPos].map(([k, v]) => [k, +v.t.toFixed(2)])),   // 還沒出聲、「聽整首」放完就停的那首、每首整首歌記到第幾秒
   };
 }
-const api = { unlock, ctx, busFor, sfx, stopSfx, preloadSfx, duck, playBgm, stopBgm, prefetchBgm, holdUntil, bgmRate, setMusic, musicEnabled, debug, stats, LEVEL };
+const api = { unlock, ctx, busFor, sfx, stopSfx, preloadSfx, duck, playBgm, stopBgm, prefetchBgm, holdUntil, bgmRate, setMusic, musicEnabled, addStream, onSongEnd, bgmOnce, loading, streamEl, debug, stats, LEVEL };
 if (DEBUG) window.__zyAudio = api;
 export default api;

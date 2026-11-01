@@ -21,8 +21,10 @@ export const GARDEN = [
   { id: "lamp", name: "路燈", e: "💡", price: 8 }, { id: "scarecrow", name: "稻草人", e: "👒", price: 8 },
   { id: "pond", name: "小池塘", e: "🦆", price: 12 }, { id: "fountain", name: "噴水池", e: "⛲", price: 12 },
   { id: "arch", name: "彩虹門", e: "🌈", price: 20 },
+  { id: "gramophone", name: "留聲機", e: "📻", price: 12, max: 1 },   // v8 第二批：點了打開唱片牆（主程式 onHomeItem）；第一次買到送一張唱片（api.onBuy）；一個存檔只能有 1 台
 ];
 export const GARDEN_BY_ID = Object.fromEntries(GARDEN.map(g => [g.id, g]));
+export const maxOf = id => (GARDEN_BY_ID[id] && GARDEN_BY_ID[id].max) || 9;   // 一樣東西最多幾個（留聲機 1 台，其他 9 個）
 export const GIFT = "fl_red";                            // 第一次打開花園小舖送的
 // 貓頭鷹的信（每天一封，照日期輪流；固定句子＝之後可以預錄配音）
 export const LETTERS = [
@@ -55,7 +57,7 @@ export function cleanHome(d, stars) {
   const num = (v, lo, hi) => Math.min(hi, Math.max(lo, Math.floor(+v) || 0));
   out.base = Number.isFinite(+d.base) && d.base !== null && d.base !== "" ? num(d.base, 0, S) : S;   // 比現在的累積星星還多／沒有這欄＝壞資料：當作今天開工（不然老玩家一開就是金色城堡）
   out.lv = num(d.lv, 1, 6);
-  if (d.own && typeof d.own === "object") for (const g of GARDEN) { const n = num(d.own[g.id], 0, 9); if (n) out.own[g.id] = n; }
+  if (d.own && typeof d.own === "object") for (const g of GARDEN) { const n = num(d.own[g.id], 0, maxOf(g.id)); if (n) out.own[g.id] = n; }
   if (Array.isArray(d.yard)) { const used = {}; for (let i = 0; i < YARD_N; i++) { const id = d.yard[i]; if (typeof id === "string" && out.own[id] && (used[id] || 0) < out.own[id]) { out.yard[i] = id; used[id] = (used[id] || 0) + 1; } } }
   if (d.today && typeof d.today === "object" && typeof d.today.day === "string" && /^\d{4}-\d\d-\d\d$/.test(d.today.day)) {
     out.today.day = d.today.day; if (d.today.n && typeof d.today.n === "object") for (const g of GARDEN) { const n = Math.min(num(d.today.n[g.id], 0, 9), out.own[g.id] || 0); if (n) out.today.n[g.id] = n; }
@@ -77,7 +79,7 @@ export const spare = (h, id) => (h.own[id] || 0) - placed(h, id);   // 倉庫裡
 export const refundable = (h, id, day) => h.today.day === day && (h.today.n[id] || 0) > 0 && spare(h, id) > 0;
 function buyItem(h, id, day) {
   if (h.today.day !== day) h.today = { day, n: {} };
-  h.own[id] = Math.min(9, (h.own[id] || 0) + 1); h.today.n[id] = (h.today.n[id] || 0) + 1;
+  h.own[id] = Math.min(maxOf(id), (h.own[id] || 0) + 1); h.today.n[id] = (h.today.n[id] || 0) + 1;
 }
 function refundItem(h, id, day) {
   if (!refundable(h, id, day)) return 0;
@@ -100,7 +102,7 @@ export function setBricks(b, frac) {
 
 // ---------- 畫面 ----------
 // api：{ hub(), home() 存檔物件, stars() 累積星星, wallet() 我的星星, pay(n) / earn(n), save(), day(), talk(text), say(text), play(name),
-//        topsOpen() 陀螺競技場開了沒, petGlb() 夥伴 { id, glb }, onClose() }
+//        topsOpen() 陀螺競技場開了沒, petGlb() 夥伴 { id, glb }, onClose(), onBuy(id)?（買到了：回傳一句要說的話或空，例如留聲機送唱片） }
 export function createHome(api) {
   const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
   let icons = {};                                        // 3D 渲染的小圖（hub.homeIcons）；沒有就用 emoji
@@ -157,9 +159,11 @@ export function createHome(api) {
   panel.querySelector(".hg-buy-x").onclick = () => { api.play("tap"); buying = null; renderBuy(); };
   panel.querySelector(".hg-buy-go").onclick = () => {
     if (!buying || performance.now() - buyAt < 400) return;   // 防連點：跟第一下隔 0.4 秒以上才算
-    const g = GARDEN_BY_ID[buying], h = api.home(); if (api.wallet() < g.price || (h.own[g.id] || 0) >= 9) { buying = null; renderBuy(); return; }
+    const g = GARDEN_BY_ID[buying], h = api.home(); if (api.wallet() < g.price || (h.own[g.id] || 0) >= maxOf(g.id)) { buying = null; renderBuy(); return; }
     api.pay(g.price); buyItem(h, g.id, api.day()); api.play("coin"); buying = null;
+    let extra = ""; try { extra = (api.onBuy && api.onBuy(g.id)) || ""; } catch (e) { console.warn("[home] onBuy", e); }   // 例：第一次買到留聲機＝送一張唱片
     if (h.yard.slice(0, cap()).some(x => !x)) { held = g.id; from = "buy"; api.play("pop"); } else say(LINES.full);   // 買完直接拿在手上擺；前院滿了＝先放倉庫
+    if (extra) say(extra);
     api.save(); sync();
   };
   function renderBuy() {
@@ -175,7 +179,7 @@ export function createHome(api) {
     const h = api.home();
     panel.querySelector(".hg-wallet b").textContent = String(api.wallet());
     for (const it of shelf.querySelectorAll(".hg-item")) {
-      const g = GARDEN_BY_ID[it.dataset.id], sp = spare(h, g.id), pl = placed(h, g.id), max = (h.own[g.id] || 0) >= 9, poor = !sp && !max && api.wallet() < g.price;
+      const g = GARDEN_BY_ID[it.dataset.id], sp = spare(h, g.id), pl = placed(h, g.id), max = (h.own[g.id] || 0) >= maxOf(g.id), poor = !sp && !max && api.wallet() < g.price;
       it.classList.toggle("poor", poor || (!sp && max)); it.classList.toggle("have", sp > 0); it.classList.toggle("held", held === g.id);
       it.querySelector(".hg-price").textContent = sp > 0 ? `可以放 ${sp}` : max ? "買滿了" : poor ? `還差 ${g.price - api.wallet()} 顆⭐` : pl ? `⭐${g.price}・有 ${pl}` : `⭐${g.price}`;
     }
@@ -204,7 +208,7 @@ export function createHome(api) {
     if (!buying) sync();                                // 錢包可能在別處變過（陀螺、退貨）：先把價錢／還差幾顆刷新
     api.say(g.name);                                    // 點貨架唸名字（不是作答，順便聽注音）
     if (spare(h, id) > 0) { api.play("pop"); buying = null; held = id; from = "store"; sync(); return; }   // 倉庫裡有：直接拿起來擺（不用再付）
-    if ((h.own[id] || 0) >= 9) { api.play("tap"); return; }   // 一樣東西最多 9 個（再買不會多，星星不能白扣）
+    if ((h.own[id] || 0) >= maxOf(id)) { api.play("tap"); return; }   // 一樣東西最多 9 個（留聲機 1 台；再買不會多，星星不能白扣）
     if (api.wallet() < g.price) { api.play("tap"); it.classList.remove("shake"); void it.offsetWidth; it.classList.add("shake"); say(LINES.poor); sync(); return; }
     api.play("select"); buying = id; buyAt = performance.now(); sync();
   }
