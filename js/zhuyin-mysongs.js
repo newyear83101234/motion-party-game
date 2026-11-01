@@ -25,4 +25,5 @@ function songUrl(s) {
   return urls.get(s.id);
 }
 // 主程式開頁時呼叫一次：每首登記成可以 playBgm("my:xxx") 的整首歌
-export function registerSongs(A) { if (A && A.addStream) for (const s of MY_SONGS) A.addStream(s.bgm, () => songUrl(s)); }
+// loop:false：阿葉 11-01「放完之後就變成原本遊戲的背景音樂」→ 整首歌放一次，放完由主程式換回原本的小島音樂（zhuyin.js islandSongEnded）
+export function registerSongs(A) { if (A && A.addStream) for (const s of MY_SONGS) A.addStream(s.bgm, () => songUrl(s), { loop: false }); }

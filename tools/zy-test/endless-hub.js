@@ -23,24 +23,24 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       ok(`${m}：建築在畫面上（飛到歸仁區後）`, sc.x > 0 && sc.x < 1180 && sc.y > 0 && sc.y < 820, JSON.stringify(sc));
       await p.evaluate(mm => { const t = document.querySelector(`.hub-tag[data-mode="${mm}"]`); t && t.click(); }, m); await sleep(1600);
       const pk = await p.evaluate(() => ({ open: !document.getElementById("pick").classList.contains("hidden"), name: document.getElementById("pkName").textContent, meta: document.getElementById("pkMeta").textContent, locked: document.getElementById("pick").classList.contains("locked") }));
-      ok(`${m}：點浮標開介紹卡`, pk.open && !pk.locked && /跑跑大冒險|小魚長大記/.test(pk.name) && /8 區/.test(pk.meta), JSON.stringify(pk));
+      ok(`${m}：點浮標開介紹卡`, pk.open && !pk.locked && /跑跑大冒險|小魚長大記/.test(pk.name) && (m === "run" ? /30 題/ : /8 區/).test(pk.meta), JSON.stringify(pk));
       await p.screenshot({ path: path.join(OUT, `pick-${m}.png`) });
       await p.click("#pkClose").catch(() => {}); await sleep(600);
     }
     console.log("measure", await p.evaluate(() => { const j = JSON.parse(window.__hub3d.measure()); return JSON.stringify({ run: j.run, grow: j.grow }); }));
-    // 打卡點：存檔有 at＝3 → 介紹卡多「🚩 從❄️雪山繼續 ✓」，點一下關掉
-    await p.evaluate(() => { localStorage.setItem("zy1_endless", JSON.stringify({ run: { best: 820, zone: 3, reach: 3, plays: 2, at: 3, go: 1 } })); });
+    // 打卡點（小魚；跑跑 v2 一局 30 題沒有打卡點）：存檔有 at＝3 → 介紹卡多「🚩 從🐢海龜繼續 ✓」，點一下關掉
+    await p.evaluate(() => { localStorage.setItem("zy1_endless", JSON.stringify({ grow: { best: 820, zone: 3, reach: 3, plays: 2, at: 3, go: 1 } })); });
     await p.reload(); await p.waitForFunction(() => document.getElementById("loading").classList.contains("hidden"), null, { timeout: 15000 });
     await p.evaluate(() => { const g = document.getElementById("startGate"); if (g && !g.classList.contains("hidden")) document.getElementById("startBtn").click(); });
-    await p.waitForFunction(() => document.querySelector('.hub-tag[data-mode="run"]'), null, { timeout: 30000 }); await sleep(800);
+    await p.waitForFunction(() => document.querySelector('.hub-tag[data-mode="grow"]'), null, { timeout: 30000 }); await sleep(800);
     await p.click("#townBtn"); await sleep(2000);
-    await p.evaluate(() => document.querySelector('.hub-tag[data-mode="run"]').click()); await sleep(1500);
+    await p.evaluate(() => document.querySelector('.hub-tag[data-mode="grow"]').click()); await sleep(1500);
     const ch = await p.evaluate(() => { const b2 = document.querySelector("#pkMeta .pk-from"); return b2 ? b2.textContent : null; });
-    ok("打卡點：介紹卡有「從❄️雪山繼續 ✓」", ch && /雪山繼續/.test(ch) && /✓/.test(ch), String(ch));
+    ok("打卡點：小魚介紹卡有「從🐢海龜繼續 ✓」", ch && /海龜繼續/.test(ch) && /✓/.test(ch), String(ch));
     await p.evaluate(() => document.querySelector("#pkMeta .pk-from").click()); await sleep(200);
-    const go = await p.evaluate(() => JSON.parse(localStorage.getItem("zy1_endless")).run.go);
+    const go = await p.evaluate(() => JSON.parse(localStorage.getItem("zy1_endless")).grow.go);
     ok("打卡點：點一下＝關掉（存 go=0）", go === 0, String(go));
-    await p.screenshot({ path: path.join(OUT, "pick-run-checkpoint.png") });
+    await p.screenshot({ path: path.join(OUT, "pick-grow-checkpoint.png") });
     ok("沒有主控台錯誤", errs.length === 0, errs.slice(0, 3).join(" | "));
     await p.context().close();
     // ② 20 張貼紙（歸仁區還沒開）：卡片鎖著

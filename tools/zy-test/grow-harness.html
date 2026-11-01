@@ -39,7 +39,7 @@
   const speed = Math.max(0.1, +Q.get("speed") || 1);
   const clean = Q.get("clean") === "1";
   if (clean) document.body.classList.add("clean");
-  if (Q.get("ann") === "1") import("../../js/zhuyin-ann.js?v=14").then(m => { m.startAnnotate(); window.__lab.ann = m; });
+  if (Q.get("ann") === "1") import("../../js/zhuyin-ann.js?v=16").then(m => { m.startAnnotate(); window.__lab.ann = m; });
   const lines = [], calls = { say: [], talk: [], play: [], answer: [], zone: [], end: [], stopVoice: 0, laterAfterStop: 0 };
   const log = (k, t) => { lines.push(`${k}: ${t}`); while (lines.length > 7) lines.shift(); document.getElementById("labLog").textContent = lines.join("\n"); console.log("[grow]", k, t); };
   let paused = false;

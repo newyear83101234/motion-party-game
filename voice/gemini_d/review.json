@@ -1,7 +1,7 @@
 {
  "how": "每句由 Gemini 3.8 Flash 盲聽寫（不給答案），拼音跟正確讀音比對；詞庫詞以遊戲注音為準。AI 聽寫本身也會錯，所以這份是『請人耳確認』清單，不代表一定唸錯。",
- "count": 109,
- "suspicious": 109,
+ "count": 142,
+ "suspicious": 142,
  "items": [
   {
    "text": "第一聲不用加符號，按這個空白格就好",
@@ -376,6 +376,78 @@
      "pinyin": "le4",
      "why": [
       "勒 應 lei1 聽到 le4"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "ㄈ",
+   "file": "word_0ee3e6c1.mp3",
+   "level": "可疑",
+   "why": [
+    "佛 應 fu2 聽到 fo2"
+   ],
+   "heard": "佛",
+   "pinyin": "fo2",
+   "correct": "fu2",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "佛",
+     "pinyin": "fo2",
+     "why": [
+      "佛 應 fu2 聽到 fo2"
+     ]
+    },
+    {
+     "sent": "佛",
+     "pinyin": "fou3",
+     "why": [
+      "佛 應 fu2 聽到 fou3"
+     ]
+    },
+    {
+     "sent": "佛",
+     "pinyin": "fo2",
+     "why": [
+      "佛 應 fu2 聽到 fo2"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "ㄜ",
+   "file": "word_a4d5b531.mp3",
+   "level": "可疑",
+   "why": [
+    "婀 應 e1 聽到 e2"
+   ],
+   "heard": "呃？",
+   "pinyin": "e2",
+   "correct": "e1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "婀",
+     "pinyin": "e2",
+     "why": [
+      "婀 應 e1 聽到 e2"
+     ]
+    },
+    {
+     "sent": "婀",
+     "pinyin": "e2",
+     "why": [
+      "婀 應 e1 聽到 e2"
+     ]
+    },
+    {
+     "sent": "婀",
+     "pinyin": "er2",
+     "why": [
+      "婀 應 e1 聽到 er2"
      ]
     }
    ]
@@ -1844,6 +1916,118 @@
    ]
   },
   {
+   "text": "音樂島開放囉！快去看看！",
+   "file": "guide_30df7f7c.mp3",
+   "level": "可疑",
+   "why": [
+    "樂 應 le4 聽到 yue4",
+    "看 應 kan4 唸成輕聲"
+   ],
+   "heard": "音樂島開放囉！快去看看！",
+   "pinyin": "yin1 yue4 dao3 kai1 fang4 luo5 kuai4 qu4 kan4 kan5",
+   "correct": "yin1 le4 dao3 kai1 fang4 luo5 kuai4 qu4 kan4 kan4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "音樂島開放囉！快去看看！",
+     "pinyin": "yin1 yue4 dao3 kai1 fang4 luo5 kuai4 qu4 kan4 kan5",
+     "why": [
+      "樂 應 le4 聽到 yue4",
+      "看 應 kan4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "音樂島開放囉！快去看看！",
+     "pinyin": "yin1 yue4 dao3 kai1 fang4 luo5 kuai4 qu4 kan4 kan5",
+     "why": [
+      "樂 應 le4 聽到 yue4",
+      "看 應 kan4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "音樂島開放囉！快去看看！",
+     "pinyin": "yin1 yue4 dao3 kai1 fang4 luo5 kuai4 qu4 kan4 kan5",
+     "why": [
+      "樂 應 le4 聽到 yue4",
+      "看 應 kan4 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "這裡是音樂島！",
+   "file": "guide_eeeb4ec4.mp3",
+   "level": "可疑",
+   "why": [
+    "樂 應 le4 聽到 yue4"
+   ],
+   "heard": "這裡是音樂島",
+   "pinyin": "zhe4 li3 shi4 yin1 yue4 dao3",
+   "correct": "zhe4 li3 shi4 yin1 le4 dao3",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "這裡是音樂島！",
+     "pinyin": "zhe4 li3 shi4 yin1 yue4 dao3",
+     "why": [
+      "樂 應 le4 聽到 yue4"
+     ]
+    },
+    {
+     "sent": "這裡是音樂島！",
+     "pinyin": "zhe4 li3 shi4 yin1 yue4 dao3",
+     "why": [
+      "樂 應 le4 聽到 yue4"
+     ]
+    },
+    {
+     "sent": "這裡是音樂島！",
+     "pinyin": "zhe4 li3 shi4 yin1 yue4 dao3",
+     "why": [
+      "樂 應 le4 聽到 yue4"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "收集更多貼紙，就能去音樂島囉！",
+   "file": "guide_76b347e6.mp3",
+   "level": "可疑",
+   "why": [
+    "樂 應 le4 聽到 yue4"
+   ],
+   "heard": "收集更多貼紙，就能去音樂島囉！",
+   "pinyin": "shou1 ji2 geng4 duo1 tie1 zhi3 jiu4 neng2 qu4 yin1 yue4 dao3 luo5",
+   "correct": "shou1 ji2 geng4 duo1 tie1 zhi3 jiu4 neng2 qu4 yin1 le4 dao3 luo5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "收集更多貼紙，就能去音樂島囉！",
+     "pinyin": "shou1 ji2 geng4 duo1 tie1 zhi3 jiu4 neng2 qu4 yin1 yue4 dao3 luo5",
+     "why": [
+      "樂 應 le4 聽到 yue4"
+     ]
+    },
+    {
+     "sent": "收集更多貼紙，就能去音樂島囉！",
+     "pinyin": "shou1 ji2 geng4 duo1 tie1 zhi3 jiu4 neng2 qu4 yin1 yue4 dao3 lou5",
+     "why": [
+      "樂 應 le4 聽到 yue4"
+     ]
+    },
+    {
+     "sent": "收集更多貼紙，就能去音樂島囉！",
+     "pinyin": "shou1 ji2 geng4 duo1 tie1 zhi3 jiu4 neng2 qu4 yin1 yue4 dao3 luo5",
+     "why": [
+      "樂 應 le4 聽到 yue4"
+     ]
+    }
+   ]
+  },
+  {
    "text": "這是帽子，不是我要的喔！",
    "file": "order_d80ad668.mp3",
    "level": "可疑",
@@ -2902,6 +3086,347 @@
    ]
   },
   {
+   "text": "跑完了，好厲害！",
+   "file": "result_c8d34e69.mp3",
+   "level": "可疑",
+   "why": [
+    "了 應 le5 聽到 la5"
+   ],
+   "heard": "跑完啦，好厲害！",
+   "pinyin": "pao3 wan2 la5 hao3 li4 hai4",
+   "correct": "pao3 wan2 le5 hao3 li4 hai4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "跑完了，好厲害！",
+     "pinyin": "pao3 wan2 la5 hao3 li4 hai4",
+     "why": [
+      "了 應 le5 聽到 la5"
+     ]
+    },
+    {
+     "sent": "跑完了，好厲害！",
+     "pinyin": "hao3 wan2 la5 hao3 li4 hai4",
+     "why": [
+      "跑 應 pao3 聽到 hao3",
+      "了 應 le5 聽到 la5"
+     ]
+    },
+    {
+     "sent": "跑完了，好厲害！",
+     "pinyin": "tai4 wan2 la5 hao3 li4 hai4",
+     "why": [
+      "跑 應 pao3 聽到 tai4",
+      "了 應 le5 聽到 la5"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "長得好大，好厲害！",
+   "file": "result_0227131b.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "長得好大，好厲害",
+   "pinyin": "zhang3 de5 hao3 da4 hao3 li4 hai4",
+   "correct": "chang2 de5 hao3 da4 hao3 li4 hai4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "長得好大，好厲害！",
+     "pinyin": "zhang3 de5 hao3 da4 hao3 li4 hai4",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "長得好大，好厲害！",
+     "pinyin": "zhang3 de5 hao3 da4 hao3 li4 hai4",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "長得好大，好厲害！",
+     "pinyin": "zhang3 de5 hao3 da4 hao3 li4 hai4",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "長成魚王了，好厲害！",
+   "file": "result_91a4d554.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "長成魚王了，好厲害",
+   "pinyin": "zhang3 cheng2 yu2 wang2 le5 hao3 li4 hai4",
+   "correct": "chang2 cheng2 yu2 wang2 le5 hao3 li4 hai4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "長成魚王了，好厲害！",
+     "pinyin": "zhang3 cheng2 yu2 wang2 le5 hao3 li4 hai4",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "長成魚王了，好厲害！",
+     "pinyin": "jiang4 cheng2 yu2 wang2 le5 hao3 li4 hai4",
+     "why": [
+      "長 應 chang2 聽到 jiang4"
+     ]
+    },
+    {
+     "sent": "長成魚王了，好厲害！",
+     "pinyin": "zhang1 yu2 wan2 le5 hao3 li4 hai4",
+     "why": [
+      "音節數不同：應 8（chang2 cheng2 yu2 wang2 le5 hao3 li4 hai4），聽到 7（zhang1 yu2 wan2 le5 hao3 li4 hai4）"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "接住開頭是這個注音的音符！",
+   "file": "guide_87fad1f6.mp3",
+   "level": "可疑",
+   "why": [
+    "接 應 jie1 聽到 jie2",
+    "個 應 ge4 唸成輕聲"
+   ],
+   "heard": "截住開頭是這個注音的音符",
+   "pinyin": "jie2 zhu4 kai1 tou2 shi4 zhe4 ge5 zhu4 yin1 de5 yin1 fu2",
+   "correct": "jie1 zhu4 kai1 tou2 shi4 zhe4 ge4 zhu4 yin1 de5 yin1 fu2",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "接住開頭是這個注音的音符！",
+     "pinyin": "jie2 zhu4 kai1 tou2 shi4 zhe4 ge5 zhu4 yin1 de5 yin1 fu2",
+     "why": [
+      "接 應 jie1 聽到 jie2",
+      "個 應 ge4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "接住開頭是這個注音的音符！",
+     "pinyin": "jie2 zhu4 kai1 tou2 shi4 zhe4 ge5 zhu4 yin1 de5 yin1 fu2",
+     "why": [
+      "接 應 jie1 聽到 jie2",
+      "個 應 ge4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "接住開頭是這個注音的音符！",
+     "pinyin": "jie2 qu3 kai1 tou2 shi4 zhe4 ge5 zhu4 yin1 de5 yin1 fu2",
+     "why": [
+      "接 應 jie1 聽到 jie2",
+      "住 應 zhu4 聽到 qu3",
+      "個 應 ge4 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "用手指帶著小魚游！吃掉身上有對的注音的小魚，就會長大喔！",
+   "file": "guide_e77db825.mp3",
+   "level": "可疑",
+   "why": [
+    "著 應 zhu4 聽到 zhe5",
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "用手指帶著小魚游，吃掉身上有對的注音的小魚，就會長大喔！",
+   "pinyin": "yong4 shou3 zhi3 dai4 zhe5 xiao3 yu2 you2 chi1 diao4 shen1 shang4 you3 dui4 de5 zhu4 yin1 de5 xiao3 yu2 jiu4 hui4 zhang3 da4 o1",
+   "correct": "yong4 shou3 zhi3 dai4 zhu4 xiao3 yu2 you2 chi1 diao4 shen1 shang4 you3 dui4 de5 zhu4 yin1 de5 xiao3 yu2 jiu4 hui4 chang2 da4 o1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "用手指帶著小魚游！吃掉身上有對的注音的小魚，就會長大喔！",
+     "pinyin": "yong4 shou3 zhi3 dai4 zhe5 xiao3 yu2 you2 o5 chi1 diao4 shen1 shang4 you3 dui4 de5 zhu4 yin1 de5 xiao3 yu2 jiu4 hui4 zhang3 da4 o1",
+     "why": [
+      "音節數不同：應 25（yong4 shou3 zhi3 dai4 zhu4 xiao3 yu2 you2 chi1 diao4 shen1 shang4 you3 dui4 de5 zhu4 yin1 de5 xiao3 yu2 jiu4 hui4 chang2 da4 o1），聽到 26（yong4 shou3 zhi3 dai4 zhe5 xiao3 yu2 you2 o5 chi1 diao4 shen1 shang4 you3 dui4 de5 zhu4 yin1 de5 xiao3 yu2 jiu4 hui4 zhang3 da4 o1）"
+     ]
+    },
+    {
+     "sent": "用手指帶著小魚游！吃掉身上有對的注音的小魚，就會長大喔！",
+     "pinyin": "yong4 shou3 zhi3 dai4 zhe5 xiao3 yu2 you2 chi1 diao4 shen1 shang4 you3 dui4 de5 zhu4 yin1 de5 xiao3 yu2 jiu4 hui4 zhang3 da4 o1",
+     "why": [
+      "著 應 zhu4 聽到 zhe5",
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "用手指帶著小魚游！吃掉身上有對的注音的小魚，就會長大喔！",
+     "pinyin": "yong4 shou3 zhi3 dai4 zhe5 xiao3 yu2 you2 chi1 diao4 shen1 shang5 you3 dui4 de5 zhu4 yin1 de5 xiao3 yu2 jiu4 hui4 zhang3 da4 o1",
+     "why": [
+      "著 應 zhu4 聽到 zhe5",
+      "長 應 chang2 聽到 zhang3",
+      "上 應 shang4 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "變成河豚了！大魚碰到你，你會鼓起來嚇跑牠！",
+   "file": "guide_59fad87e.mp3",
+   "level": "可疑",
+   "why": [
+    "了 應 le5 聽到 la5"
+   ],
+   "heard": "變成河豚啦，大魚碰到你，你會鼓起來嚇跑牠！",
+   "pinyin": "bian4 cheng2 he2 tun2 la5 da4 yu2 peng4 dao4 ni3 ni3 hui4 gu3 qi3 lai2 xia4 pao3 ta1",
+   "correct": "bian4 cheng2 he2 tun2 le5 da4 yu2 peng4 dao4 ni3 ni3 hui4 gu3 qi3 lai2 xia4 pao3 ta1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "變成河豚了！大魚碰到你，你會鼓起來嚇跑牠！",
+     "pinyin": "xi1 xi1 bian4 cheng2 he2 tun2 le5 da4 yu2 peng4 dao4 ni3 ni3 hui4 gu3 qi3 lai2 xia4 pao3 ta1",
+     "why": [
+      "音節數不同：應 18（bian4 cheng2 he2 tun2 le5 da4 yu2 peng4 dao4 ni3 ni3 hui4 gu3 qi3 lai2 xia4 pao3 ta1），聽到 20（xi1 xi1 bian4 cheng2 he2 tun2 le5 da4 yu2 peng4 dao4 ni3 ni3 hui4 gu3 qi3 lai2 xia4 pao3 ta1）"
+     ]
+    },
+    {
+     "sent": "變成河豚了！大魚碰到你，你會鼓起來嚇跑牠！",
+     "pinyin": "bian4 cheng2 he2 tun2 la5 da4 yu2 peng4 dao4 ni3 ni3 hui4 gu3 qi3 lai2 xia4 pao3 ta1",
+     "why": [
+      "了 應 le5 聽到 la5"
+     ]
+    },
+    {
+     "sent": "變成河豚了！大魚碰到你，你會鼓起來嚇跑牠！",
+     "pinyin": "bian4 cheng2 he2 tun2 la5 heng1 da4 yu2 peng4 dao4 ni3 ni3 hui4 gu3 qi3 lai2 xia4 pao3 ta1",
+     "why": [
+      "音節數不同：應 18（bian4 cheng2 he2 tun2 le5 da4 yu2 peng4 dao4 ni3 ni3 hui4 gu3 qi3 lai2 xia4 pao3 ta1），聽到 19（bian4 cheng2 he2 tun2 la5 heng1 da4 yu2 peng4 dao4 ni3 ni3 hui4 gu3 qi3 lai2 xia4 pao3 ta1）"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "變成魚王了！歡迎來到寶藏宮殿！",
+   "file": "guide_14aaf65e.mp3",
+   "level": "可疑",
+   "why": [
+    "藏 應 cang2 聽到 zang4"
+   ],
+   "heard": "變成魚王了！歡迎來到寶藏宮殿",
+   "pinyin": "bian4 cheng2 yu2 wang2 le5 huan1 ying2 lai2 dao4 bao3 zang4 gong1 dian4",
+   "correct": "bian4 cheng2 yu2 wang2 le5 huan1 ying2 lai2 dao4 bao3 cang2 gong1 dian4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "變成魚王了！歡迎來到寶藏宮殿！",
+     "pinyin": "bian4 cheng2 yu2 wang2 la5 huan1 ying2 lai2 dao4 bao3 zang4 gong1 dian4",
+     "why": [
+      "了 應 le5 聽到 la5",
+      "藏 應 cang2 聽到 zang4"
+     ]
+    },
+    {
+     "sent": "變成魚王了！歡迎來到寶藏宮殿！",
+     "pinyin": "bian4 cheng2 yu2 wang2 le5 huan1 ying2 lai2 dao4 bao3 zang4 gong1 dian4",
+     "why": [
+      "藏 應 cang2 聽到 zang4"
+     ]
+    },
+    {
+     "sent": "變成魚王了！歡迎來到寶藏宮殿！",
+     "pinyin": "bian4 cheng2 yu2 wang2 la5 huan1 ying2 lai2 dao4 bao3 zang4 gong1 dian4",
+     "why": [
+      "了 應 le5 聽到 la5",
+      "藏 應 cang2 聽到 zang4"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "游回家休息囉！",
+   "file": "guide_c5dd845a.mp3",
+   "level": "可疑",
+   "why": [
+    "油 應 you2 聽到 yao4",
+    "息 應 xi1 唸成輕聲"
+   ],
+   "heard": "要回家休息咯",
+   "pinyin": "yao4 hui2 jia1 xiu1 xi5 lou5",
+   "correct": "you2 hui2 jia1 xiu1 xi1 luo5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "油回家休息囉！",
+     "pinyin": "yao4 hui2 jia1 xiu1 xi5 lou5",
+     "why": [
+      "油 應 you2 聽到 yao4",
+      "息 應 xi1 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "油回家休息囉！",
+     "pinyin": "ou4 hui2 jia1 xiu1 xi5 lou5",
+     "why": [
+      "油 應 you2 聽到 ou4",
+      "息 應 xi1 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "油回家休息囉！",
+     "pinyin": "you3 hui2 jia1 xiu1 xi5 luo5",
+     "why": [
+      "油 應 you2 聽到 you3",
+      "息 應 xi1 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "破紀錄了！",
+   "file": "praise_1a0f6b1e.mp3",
+   "level": "可疑",
+   "why": [
+    "了 應 le5 聽到 la5"
+   ],
+   "heard": "破紀錄啦",
+   "pinyin": "po4 ji4 lu4 la5",
+   "correct": "po4 ji4 lu4 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "破紀錄了！",
+     "pinyin": "po4 ji4 lu4 la5",
+     "why": [
+      "了 應 le5 聽到 la5"
+     ]
+    },
+    {
+     "sent": "破紀錄了！",
+     "pinyin": "po4 ji4 lu4 la5",
+     "why": [
+      "了 應 le5 聽到 la5"
+     ]
+    },
+    {
+     "sent": "破紀錄了！",
+     "pinyin": "po4 ji4 lu4 la5",
+     "why": [
+      "了 應 le5 聽到 la5"
+     ]
+    }
+   ]
+  },
+  {
    "text": "挑戰燈塔！",
    "file": "guide_f1cbe7e4.mp3",
    "level": "可疑",
@@ -2933,6 +3458,78 @@
      "pinyin": "tiao3 zhan4 deng1 ta3",
      "why": [
       "挑 應 tiao1 聽到 tiao3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "小魚長大記！",
+   "file": "guide_d16494f5.mp3",
+   "level": "可疑",
+   "why": [
+    "長 應 chang2 聽到 zhang3"
+   ],
+   "heard": "小魚長大記",
+   "pinyin": "xiao3 yu2 zhang3 da4 ji4",
+   "correct": "xiao3 yu2 chang2 da4 ji4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "小魚長大記！",
+     "pinyin": "xiao3 yu2 zhang3 da4 ji4",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小魚長大記！",
+     "pinyin": "xiao3 yu2 zhang3 da4 ji4",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    },
+    {
+     "sent": "小魚長大記！",
+     "pinyin": "xiao3 yu2 zhang3 da4 ji4",
+     "why": [
+      "長 應 chang2 聽到 zhang3"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "音符唱片行！",
+   "file": "guide_c904aa0a.mp3",
+   "level": "可疑",
+   "why": [
+    "行 應 xing2 聽到 hang2"
+   ],
+   "heard": "音符唱片行",
+   "pinyin": "yin1 fu2 chang4 pian4 hang2",
+   "correct": "yin1 fu2 chang4 pian4 xing2",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "音符唱片行！",
+     "pinyin": "yin1 fu2 chang4 pian4 hang2",
+     "why": [
+      "行 應 xing2 聽到 hang2"
+     ]
+    },
+    {
+     "sent": "音符唱片行！",
+     "pinyin": "yin1 fu2 chang4 pian4 hang2",
+     "why": [
+      "行 應 xing2 聽到 hang2"
+     ]
+    },
+    {
+     "sent": "音符唱片行！",
+     "pinyin": "yin1 fu2 chang4 pian4 hang2",
+     "why": [
+      "行 應 xing2 聽到 hang2"
      ]
     }
    ]
@@ -3821,6 +4418,679 @@
      "pinyin": "xiao3 jin1 yu2 hao3 xiang4 yao4 jin4 hua4 le5",
      "why": [
       "鯨 應 jing1 聽到 jin1"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "退回去了，星星還給你！",
+   "file": "guide_eb1dfa84.mp3",
+   "level": "可疑",
+   "why": [
+    "還 應 hai2 聽到 huan2"
+   ],
+   "heard": "退回去了，星星還給你",
+   "pinyin": "tui4 hui2 qu4 le5 xing1 xing1 huan2 gei3 ni3",
+   "correct": "tui4 hui2 qu4 le5 xing1 xing1 hai2 gei3 ni3",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "退回去了，星星還給你！",
+     "pinyin": "tai4 yang5 hui2 qu4 le5 xing1 xing1 huan2 gei3 ni3",
+     "why": [
+      "音節數不同：應 9（tui4 hui2 qu4 le5 xing1 xing1 hai2 gei3 ni3），聽到 10（tai4 yang5 hui2 qu4 le5 xing1 xing1 huan2 gei3 ni3）"
+     ]
+    },
+    {
+     "sent": "退回去了，星星還給你！",
+     "pinyin": "tui4 hui2 qu4 le5 xing1 xing1 huan2 gei3 ni3",
+     "why": [
+      "還 應 hai2 聽到 huan2"
+     ]
+    },
+    {
+     "sent": "退回去了，星星還給你！",
+     "pinyin": "tai4 yang2 hui2 qu4 la5 xing1 xing5 huan2 gei3 ni3",
+     "why": [
+      "音節數不同：應 9（tui4 hui2 qu4 le5 xing1 xing1 hai2 gei3 ni3），聽到 10（tai4 yang2 hui2 qu4 la5 xing1 xing5 huan2 gei3 ni3）"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "你的家越來越漂亮了，大家都好羨慕！",
+   "file": "guide_16cf4889.mp3",
+   "level": "可疑",
+   "why": [
+    "漂 應 piao1 聽到 piao4"
+   ],
+   "heard": "你的家越來越漂亮了，大家都好羨慕。",
+   "pinyin": "ni3 de5 jia1 yue4 lai2 yue4 piao4 liang4 le5 da4 jia1 dou1 hao3 xian4 mu4",
+   "correct": "ni3 de5 jia1 yue4 lai2 yue4 piao1 liang4 le5 da4 jia1 dou1 hao3 xian4 mu4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "你的家越來越漂亮了，大家都好羨慕！",
+     "pinyin": "ni3 de5 jia1 yue4 lai2 yue4 piao4 liang5 le5 da4 jia1 dou1 hao3 xian4 mu4",
+     "why": [
+      "漂 應 piao1 聽到 piao4",
+      "亮 應 liang4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "你的家越來越漂亮了，大家都好羨慕！",
+     "pinyin": "ni3 de5 jia1 yue4 lai2 yue4 piao4 liang5 le5 da4 jia1 dou1 hao3 xian4 mu4",
+     "why": [
+      "漂 應 piao1 聽到 piao4",
+      "亮 應 liang4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "你的家越來越漂亮了，大家都好羨慕！",
+     "pinyin": "ni3 de5 jia1 yue4 lai2 yue4 piao4 liang4 le5 da4 jia1 dou1 hao3 xian4 mu4",
+     "why": [
+      "漂 應 piao1 聽到 piao4"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "貓頭鷹老師說：你今天也很棒！",
+   "file": "guide_64351302.mp3",
+   "level": "可疑",
+   "why": [
+    "音節數不同：應 13（mao1 tou2 ying1 lao3 shi1 shuo1 ： ni3 jin1 tian1 ye3 hen3 bang4），聽到 12（mao1 tou2 ying1 lao3 shi1 shuo1 ni3 jin1 tian1 ye3 hen3 bang4）"
+   ],
+   "heard": "貓頭鷹老師說，你今天也很棒！",
+   "pinyin": "mao1 tou2 ying1 lao3 shi1 shuo1 ni3 jin1 tian1 ye3 hen3 bang4",
+   "correct": "mao1 tou2 ying1 lao3 shi1 shuo1 ： ni3 jin1 tian1 ye3 hen3 bang4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "貓頭鷹老師說：你今天也很棒！",
+     "pinyin": "mao1 tou2 ying1 lao3 shi1 shuo1 ni3 jin1 tian1 ye3 hen3 bang4",
+     "why": [
+      "音節數不同：應 13（mao1 tou2 ying1 lao3 shi1 shuo1 ： ni3 jin1 tian1 ye3 hen3 bang4），聽到 12（mao1 tou2 ying1 lao3 shi1 shuo1 ni3 jin1 tian1 ye3 hen3 bang4）"
+     ]
+    },
+    {
+     "sent": "貓頭鷹老師說：你今天也很棒！",
+     "pinyin": "mao1 tou2 ying1 lao3 shi1 shuo1 ni3 jin1 tian1 ye3 hen3 bang4",
+     "why": [
+      "音節數不同：應 13（mao1 tou2 ying1 lao3 shi1 shuo1 ： ni3 jin1 tian1 ye3 hen3 bang4），聽到 12（mao1 tou2 ying1 lao3 shi1 shuo1 ni3 jin1 tian1 ye3 hen3 bang4）"
+     ]
+    },
+    {
+     "sent": "貓頭鷹老師說：你今天也很棒！",
+     "pinyin": "mao1 tou2 ying1 lao3 shi1 shuo1 ni3 jin1 tian1 ye3 hen3 bang4",
+     "why": [
+      "音節數不同：應 13（mao1 tou2 ying1 lao3 shi1 shuo1 ： ni3 jin1 tian1 ye3 hen3 bang4），聽到 12（mao1 tou2 ying1 lao3 shi1 shuo1 ni3 jin1 tian1 ye3 hen3 bang4）"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "你的夥伴說：最喜歡你了！",
+   "file": "guide_ec3424f9.mp3",
+   "level": "可疑",
+   "why": [
+    "你 應 ni3 聽到 ei4",
+    "的 應 de5 聽到 ni3",
+    "夥 應 huo3 聽到 de5",
+    "伴 應 ban4 聽到 huo3",
+    "說 應 shuo1 聽到 ban4",
+    "： 應 ： 聽到 shuo1"
+   ],
+   "heard": "欸，你的夥伴說最喜歡你了！",
+   "pinyin": "ei4 ni3 de5 huo3 ban4 shuo1 zui4 xi3 huan1 ni3 le5",
+   "correct": "ni3 de5 huo3 ban4 shuo1 ： zui4 xi3 huan1 ni3 le5",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "你的夥伴說：最喜歡你了！",
+     "pinyin": "ni3 de5 huo3 ban4 shuo1 zui4 xi3 huan1 ni3 le5",
+     "why": [
+      "音節數不同：應 11（ni3 de5 huo3 ban4 shuo1 ： zui4 xi3 huan1 ni3 le5），聽到 10（ni3 de5 huo3 ban4 shuo1 zui4 xi3 huan1 ni3 le5）"
+     ]
+    },
+    {
+     "sent": "你的夥伴說：最喜歡你了！",
+     "pinyin": "ni3 de5 huo3 ban4 shuo1 zui4 xi3 huan1 ni3 le5",
+     "why": [
+      "音節數不同：應 11（ni3 de5 huo3 ban4 shuo1 ： zui4 xi3 huan1 ni3 le5），聽到 10（ni3 de5 huo3 ban4 shuo1 zui4 xi3 huan1 ni3 le5）"
+     ]
+    },
+    {
+     "sent": "你的夥伴說：最喜歡你了！",
+     "pinyin": "ei4 ni3 de5 huo3 ban4 shuo1 zui4 xi3 huan1 ni3 le5",
+     "why": [
+      "你 應 ni3 聽到 ei4",
+      "的 應 de5 聽到 ni3",
+      "夥 應 huo3 聽到 de5",
+      "伴 應 ban4 聽到 huo3",
+      "說 應 shuo1 聽到 ban4",
+      "： 應 ： 聽到 shuo1"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "歡迎光臨音符唱片行！",
+   "file": "guide_5fb0f6b1.mp3",
+   "level": "可疑",
+   "why": [
+    "行 應 xing2 聽到 hang2"
+   ],
+   "heard": "歡迎光臨，音符唱片行",
+   "pinyin": "huan1 ying2 guang1 lin2 yin1 fu2 chang4 pian4 hang2",
+   "correct": "huan1 ying2 guang1 lin2 yin1 fu2 chang4 pian4 xing2",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "歡迎光臨音符唱片行！",
+     "pinyin": "huan1 ying2 guang1 lin2 yin1 fu2 chang4 pian4 hang2",
+     "why": [
+      "行 應 xing2 聽到 hang2"
+     ]
+    },
+    {
+     "sent": "歡迎光臨音符唱片行！",
+     "pinyin": "huan1 ying2 guang1 lin2 yin1 fu2 chang4 pian4 hang2",
+     "why": [
+      "行 應 xing2 聽到 hang2"
+     ]
+    },
+    {
+     "sent": "歡迎光臨音符唱片行！",
+     "pinyin": "huan1 ying2 guang1 lin2 yin1 fu2 chang4 pian4 hang2",
+     "why": [
+      "行 應 xing2 聽到 hang2"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "回小島會隨機放一首喔！",
+   "file": "guide_8922276d.mp3",
+   "level": "可疑",
+   "why": [
+    "小 應 xiao3 聽到 sha3"
+   ],
+   "heard": "回傻島會隨機放一首喔",
+   "pinyin": "hui2 sha3 dao3 hui4 sui2 ji1 fang4 yi4 shou3 o5",
+   "correct": "hui2 xiao3 dao3 hui4 sui2 ji1 fang4 yi1 shou3 o1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "回小島會隨機放一首喔！",
+     "pinyin": "hui2 sha3 dao3 hui4 sui2 ji1 fang4 yi4 shou3 o5",
+     "why": [
+      "小 應 xiao3 聽到 sha3"
+     ]
+    },
+    {
+     "sent": "回小島會隨機放一首喔！",
+     "pinyin": "hui1 xiao3 dao3 hui4 sui2 ji1 fang4 yi4 zhong3 o5",
+     "why": [
+      "回 應 hui2 聽到 hui1",
+      "首 應 shou3 聽到 zhong3"
+     ]
+    },
+    {
+     "sent": "回小島會隨機放一首喔！",
+     "pinyin": "hui2 da2 de5 hua4 hui4 sui2 ji1 fang4 yi4 shou3 o1",
+     "why": [
+      "音節數不同：應 10（hui2 xiao3 dao3 hui4 sui2 ji1 fang4 yi1 shou3 o1），聽到 11（hui2 da2 de5 hua4 hui4 sui2 ji1 fang4 yi4 shou3 o1）"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "回小島放原本的音樂喔！",
+   "file": "guide_c419d9de.mp3",
+   "level": "可疑",
+   "why": [
+    "樂 應 le4 聽到 yue4"
+   ],
+   "heard": "回小島放原本的音樂喔",
+   "pinyin": "hui2 xiao3 dao3 fang4 yuan2 ben3 de5 yin1 yue4 o1",
+   "correct": "hui2 xiao3 dao3 fang4 yuan2 ben3 de5 yin1 le4 o1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "回小島放原本的音樂喔！",
+     "pinyin": "hui2 xiao3 dao3 fang4 yuan2 ben3 de5 yin1 yue4 o1",
+     "why": [
+      "樂 應 le4 聽到 yue4"
+     ]
+    },
+    {
+     "sent": "回小島放原本的音樂喔！",
+     "pinyin": "hui2 xiao3 dao3 fang4 yuan2 ben3 de5 yin1 yue4 o5",
+     "why": [
+      "樂 應 le4 聽到 yue4"
+     ]
+    },
+    {
+     "sent": "回小島放原本的音樂喔！",
+     "pinyin": "hui2 xiao3 dao4 fang4 yuan2 ben3 de5 yin1 yue4 o1",
+     "why": [
+      "島 應 dao3 聽到 dao4",
+      "樂 應 le4 聽到 yue4"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "還差 1 顆星星！",
+   "file": "guide_baa43b51.mp3",
+   "level": "可疑",
+   "why": [
+    "1 應 1 聽到 yi4",
+    "星 應 xing1 唸成輕聲"
+   ],
+   "heard": "還差一顆星星",
+   "pinyin": "hai2 cha4 yi4 ke1 xing1 xing5",
+   "correct": "hai2 cha4 1 ke1 xing1 xing1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "還差 1 顆星星！",
+     "pinyin": "hai2 cha1 yi4 ke1 xing1 xing5",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "1 應 1 聽到 yi4",
+      "星 應 xing1 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "還差 1 顆星星！",
+     "pinyin": "hai2 cha1 yi4 ke1 xing1 xing1",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "1 應 1 聽到 yi4"
+     ]
+    },
+    {
+     "sent": "還差 1 顆星星！",
+     "pinyin": "hai2 cha4 yi4 ke1 xing1 xing5",
+     "why": [
+      "1 應 1 聽到 yi4",
+      "星 應 xing1 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "還差 2 顆星星！",
+   "file": "guide_b233e740.mp3",
+   "level": "可疑",
+   "why": [
+    "差 應 cha4 聽到 cha1",
+    "2 應 2 聽到 liang3",
+    "星 應 xing1 唸成輕聲"
+   ],
+   "heard": "還差兩顆星星",
+   "pinyin": "hai2 cha1 liang3 ke1 xing1 xing5",
+   "correct": "hai2 cha4 2 ke1 xing1 xing1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "還差 2 顆星星！",
+     "pinyin": "hai2 cha1 liang3 ke1 xing1 xing5",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "2 應 2 聽到 liang3",
+      "星 應 xing1 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "還差 2 顆星星！",
+     "pinyin": "hai2 cha1 liang3 ke1 xing1 xing5",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "2 應 2 聽到 liang3",
+      "星 應 xing1 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "還差 2 顆星星！",
+     "pinyin": "hai2 cha1 liang3 ke1 xing1 xing5",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "2 應 2 聽到 liang3",
+      "星 應 xing1 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "還差 3 顆星星！",
+   "file": "guide_b3cd8c09.mp3",
+   "level": "可疑",
+   "why": [
+    "差 應 cha4 聽到 cha1",
+    "3 應 3 聽到 san1"
+   ],
+   "heard": "還差三顆星星",
+   "pinyin": "hai2 cha1 san1 ke1 xing1 xing1",
+   "correct": "hai2 cha4 3 ke1 xing1 xing1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "還差 3 顆星星！",
+     "pinyin": "hai2 cha1 san1 ke1 xing1 xing5",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "3 應 3 聽到 san1",
+      "星 應 xing1 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "還差 3 顆星星！",
+     "pinyin": "hai2 cha1 san1 ke1 xing1 xing1",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "3 應 3 聽到 san1"
+     ]
+    },
+    {
+     "sent": "還差 3 顆星星！",
+     "pinyin": "hai2 cha1 san1 ke1 xing1 xing1",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "3 應 3 聽到 san1"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "還差 4 顆星星！",
+   "file": "guide_548fefe9.mp3",
+   "level": "可疑",
+   "why": [
+    "4 應 4 聽到 si4"
+   ],
+   "heard": "還差四顆星星",
+   "pinyin": "hai2 cha4 si4 ke1 xing1 xing1",
+   "correct": "hai2 cha4 4 ke1 xing1 xing1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "還差 4 顆星星！",
+     "pinyin": "hai2 cha1 si4 ke1 xing1 xing5",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "4 應 4 聽到 si4",
+      "星 應 xing1 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "還差 4 顆星星！",
+     "pinyin": "hai2 cha4 si4 ke1 xing1 xing1",
+     "why": [
+      "4 應 4 聽到 si4"
+     ]
+    },
+    {
+     "sent": "還差 4 顆星星！",
+     "pinyin": "hai2 cha4 si4 ke1 xing1 xing5",
+     "why": [
+      "4 應 4 聽到 si4",
+      "星 應 xing1 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "還差 5 顆星星！",
+   "file": "guide_b73de29c.mp3",
+   "level": "可疑",
+   "why": [
+    "差 應 cha4 聽到 cha1",
+    "5 應 5 聽到 wu3"
+   ],
+   "heard": "還差五顆星星",
+   "pinyin": "hai2 cha1 wu3 ke1 xing1 xing1",
+   "correct": "hai2 cha4 5 ke1 xing1 xing1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "還差 5 顆星星！",
+     "pinyin": "hai2 cha1 wu3 ke1 xing1 xing1",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "5 應 5 聽到 wu3"
+     ]
+    },
+    {
+     "sent": "還差 5 顆星星！",
+     "pinyin": "hai2 cha1 wu3 ke1 xing1 xing5",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "5 應 5 聽到 wu3",
+      "星 應 xing1 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "還差 5 顆星星！",
+     "pinyin": "hai2 cha1 wu3 ke1 xing1 xing5",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "5 應 5 聽到 wu3",
+      "星 應 xing1 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "還差 6 顆星星！",
+   "file": "guide_9f2f479e.mp3",
+   "level": "可疑",
+   "why": [
+    "差 應 cha4 聽到 cha1",
+    "6 應 6 聽到 liu4"
+   ],
+   "heard": "還差六顆星星",
+   "pinyin": "hai2 cha1 liu4 ke1 xing1 xing1",
+   "correct": "hai2 cha4 6 ke1 xing1 xing1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "還差 6 顆星星！",
+     "pinyin": "hai2 cha1 liu4 ke1 xing1 xing1",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "6 應 6 聽到 liu4"
+     ]
+    },
+    {
+     "sent": "還差 6 顆星星！",
+     "pinyin": "hai2 cha1 liu4 ke1 xing1 xing5",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "6 應 6 聽到 liu4",
+      "星 應 xing1 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "還差 6 顆星星！",
+     "pinyin": "hai2 cha1 liu4 ke1 xing1 xing5",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "6 應 6 聽到 liu4",
+      "星 應 xing1 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "還差 7 顆星星！",
+   "file": "guide_cd81d799.mp3",
+   "level": "可疑",
+   "why": [
+    "7 應 7 聽到 qi1"
+   ],
+   "heard": "還差七顆星星",
+   "pinyin": "hai2 cha4 qi1 ke1 xing1 xing1",
+   "correct": "hai2 cha4 7 ke1 xing1 xing1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "還差 7 顆星星！",
+     "pinyin": "hai2 cha1 qi1 ke1 xing1 xing1",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "7 應 7 聽到 qi1"
+     ]
+    },
+    {
+     "sent": "還差 7 顆星星！",
+     "pinyin": "hai2 cha4 qi1 ke1 xing1 xing1",
+     "why": [
+      "7 應 7 聽到 qi1"
+     ]
+    },
+    {
+     "sent": "還差 7 顆星星！",
+     "pinyin": "hai2 cha1 qi1 ke1 xing1 xing5",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "7 應 7 聽到 qi1",
+      "星 應 xing1 唸成輕聲"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "還差 8 顆星星！",
+   "file": "guide_16d44d75.mp3",
+   "level": "可疑",
+   "why": [
+    "8 應 8 聽到 ba1"
+   ],
+   "heard": "還差八顆星星",
+   "pinyin": "hai2 cha4 ba1 ke1 xing1 xing1",
+   "correct": "hai2 cha4 8 ke1 xing1 xing1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "還差 8 顆星星！",
+     "pinyin": "hai2 cha1 ba1 ke1 xing1 xing1",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "8 應 8 聽到 ba1"
+     ]
+    },
+    {
+     "sent": "還差 8 顆星星！",
+     "pinyin": "hai2 cha1 ba1 ke1 xing1 xing1",
+     "why": [
+      "差 應 cha4 聽到 cha1",
+      "8 應 8 聽到 ba1"
+     ]
+    },
+    {
+     "sent": "還差 8 顆星星！",
+     "pinyin": "hai2 cha4 ba1 ke1 xing1 xing1",
+     "why": [
+      "8 應 8 聽到 ba1"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "音樂關著喔，請大人到設定打開！",
+   "file": "guide_dac803b8.mp3",
+   "level": "可疑",
+   "why": [
+    "樂 應 le4 聽到 yue4",
+    "著 應 zhu4 聽到 zhe5"
+   ],
+   "heard": "音樂關著喔，請大人到設定打開",
+   "pinyin": "yin1 yue4 guan1 zhe5 o1 qing3 da4 ren2 dao4 she4 ding4 da3 kai1",
+   "correct": "yin1 le4 guan1 zhu4 o1 qing3 da4 ren2 dao4 she4 ding4 da3 kai1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "音樂關著喔，請大人到設定打開！",
+     "pinyin": "yin1 yue4 guan1 zhe5 o1 qing3 da4 ren2 dao4 she4 ding4 da3 kai1",
+     "why": [
+      "樂 應 le4 聽到 yue4",
+      "著 應 zhu4 聽到 zhe5"
+     ]
+    },
+    {
+     "sent": "音樂關著喔，請大人到設定打開！",
+     "pinyin": "yin1 yue4 guan1 zhe5 o1 qing3 da4 ren2 dao4 she4 ding4 da3 kai1",
+     "why": [
+      "樂 應 le4 聽到 yue4",
+      "著 應 zhu4 聽到 zhe5"
+     ]
+    },
+    {
+     "sent": "音樂關著喔，請大人到設定打開！",
+     "pinyin": "yin1 yue4 guan1 zhe5 o1 qing3 da4 ren2 dao4 she4 ding4 da3 kai1",
+     "why": [
+      "樂 應 le4 聽到 yue4",
+      "著 應 zhu4 聽到 zhe5"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "音樂台現在打不開，等一下再試試看！",
+   "file": "guide_2c7f66eb.mp3",
+   "level": "可疑",
+   "why": [
+    "樂 應 le4 聽到 yue4",
+    "試 應 shi4 唸成輕聲"
+   ],
+   "heard": "音樂台現在打不開，等一下再試試看",
+   "pinyin": "yin1 yue4 tai2 xian4 zai4 da3 bu4 kai1 deng3 yi2 xia4 zai4 shi4 shi5 kan4",
+   "correct": "yin1 le4 tai2 xian4 zai4 da3 bu4 kai1 deng3 yi1 xia4 zai4 shi4 shi4 kan4",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "音樂台現在打不開，等一下再試試看！",
+     "pinyin": "yin1 yue4 tai2 xian4 zai4 da3 bu5 kai1 deng3 yi2 xia4 zai4 shi4 shi5 kan4",
+     "why": [
+      "樂 應 le4 聽到 yue4",
+      "不 應 bu4 唸成輕聲",
+      "試 應 shi4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "音樂台現在打不開，等一下再試試看！",
+     "pinyin": "yin1 yue4 tai2 xian4 zai4 da3 bu4 kai1 deng3 yi2 xia4 zai4 shi4 shi5 kan4",
+     "why": [
+      "樂 應 le4 聽到 yue4",
+      "試 應 shi4 唸成輕聲"
+     ]
+    },
+    {
+     "sent": "音樂台現在打不開，等一下再試試看！",
+     "pinyin": "yin1 yue4 ta1 xian4 zai4 da3 bu4 kai1 deng3 yi2 xia4 zai4 shi4 shi4 kan4",
+     "why": [
+      "樂 應 le4 聽到 yue4",
+      "台 應 tai2 聽到 ta1"
      ]
     }
    ]

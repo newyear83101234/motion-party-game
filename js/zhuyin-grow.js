@@ -27,7 +27,7 @@
 // 時間：模擬用「遊戲秒」（真實秒 × api.speed）；一格最多算 0.05 真實秒（切到背景回來不會暴衝），太長的一格切成小步（不會穿過魚）。
 // 畫布上不寫國字（國字要有主程式的自動注音，一律放在 DOM：任務牌、大字、小地圖）；魚身上的注音泡泡是畫布畫的（直排、聲調畫在右上）。
 // 測試掛鉤：window.__zyGrow（只給 tools/zy-test/grow-unit.js 用）
-import { createAsker, ZONES_N, TIER_NAME, loopName } from "./zhuyin-endless-core.js?v=1";   // 兩款同一個網址（只載一次）；改了核心要一起升
+import { createAsker, ZONES_N, TIER_NAME, loopName } from "./zhuyin-endless-core.js?v=2";   // 兩款同一個網址（只載一次）；改了核心要一起升
 
 // 模組會用 api.talk 念的固定台詞（tools/voice/build_lines.py 會收；別的地方不要寫死台詞）
 export const LINES = {

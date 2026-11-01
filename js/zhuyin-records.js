@@ -6,7 +6,7 @@
 // 11-01 櫻木：「▶ 聽整首」＝收起唱片牆、回小島放這首、寵物跟著跳（看得到才有意思）；小島上出現「♪ 正在放《歌名》 ⏹」膠囊（#recNow，可以按停）。
 //   放完（整首歌＝<audio> ended；一般曲＝放一輪約 60 秒）、進遊戲（nav）、換島、再開唱片牆＝回到原本該放的小島音樂。正在放哪首：nowKey()（主程式 menuBgmKey 先看這個）。
 
-import { MY_SONGS, registerSongs } from "./zhuyin-mysongs.js?v=1";   // 🎧 我的歌（阿葉 11-01 指定的整首歌；主程式開頁 REC.registerSongs(A) 登記給音訊引擎）
+import { MY_SONGS, registerSongs } from "./zhuyin-mysongs.js?v=2";   // 🎧 我的歌（阿葉 11-01 指定的整首歌；主程式開頁 REC.registerSongs(A) 登記給音訊引擎）
 export { registerSongs };
 
 // bgm＝audio/bgm 的鍵（我的歌是 "my:id"＝整首歌串流）；memo＝紀念唱片要做到的事（主程式 conds() 給 true/false）；how＝還沒拿到時唱片牆寫的小字；by＝我的歌的歌手

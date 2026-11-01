@@ -272,6 +272,15 @@ const topCheck = () => { const ids = ["#hudLBtn", "#hudRBtn", "#townBtn", "#town
     await p.evaluate(() => window.__zy.openRecords()); await sleep(200); await pickRec(p, "my_jay"); await playing(); await sleep(200);
     s = await S();
     ok("上次放到最後不到 5 秒：這次從頭放", s.play && s.play.t < 3, JSON.stringify(s.play));
+    // 阿葉 11-01「放完之後就變成原本遊戲的背景音樂」：我的歌當小島音樂＝放一次，放完換回原本的（唱片設定還在，從遊戲回來再放一次）
+    await click(p, ".rc-set"); await sleep(200); await p.evaluate(() => window.__zy.recUI.close()); await sleep(400); await playing(); await sleep(300);
+    s = await S();
+    ok("我的歌當小島音樂：回小島放這首、不循環", s.bgm === "my:my_jay" && s.play && s.play.loop === false, JSON.stringify(s));
+    await p.evaluate(() => { const e = window.__zyAudio.streamEl(); e.currentTime = e.duration - 1.2; });
+    await p.waitForFunction(() => window.__zy.bgmNow() !== "my:my_jay", null, { timeout: 8000 }).catch(() => {}); await sleep(300);
+    s = await S();
+    ok("我的歌當小島音樂放完：換回原本的小島音樂、唱片設定還在", s.bgm === "island" && s.menuKey === "island" && (await rec(p)).pick === "my_jay", JSON.stringify(s));
+    await p.evaluate(() => window.__zy.openRecords()); await sleep(200); await click(p, ".rc-orig"); await sleep(200);
     // 一般曲（60 秒循環）：跳 30 秒、放一輪就回原本的
     await pickRec(p, "r_rainbow"); await sleep(300); await click(p, ".rc-play"); await sleep(400);
     s = await S();

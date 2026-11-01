@@ -120,5 +120,95 @@ export function createAsker({ rnd = Math.random, opts = () => 3 } = {}) {
   return api;
 }
 
+// ===================== 看圖選注音（跑跑大冒險 v2，阿葉 11-01）=====================
+// 阿葉原話：「不要用聽聲音的，要用一個動作或物品，來去看說兩邊哪個才是正確的注音，接著速度要越來越快，總共先設定 30 個」
+// 只出有圖（表情符號）的詞，不念題；兩個選項（左右兩邊）。難度跟著「第幾題／共幾題」走：
+//   第 1 級（前 27%）一個字、錯的選項是別的字（聲母韻母都不一樣，差很多）
+//   第 2 級（到 54%）一個字、錯的選項只差一個符號（盡量挑長得像的）
+//   第 3 級（到 74%）一個字、錯的選項只差聲調
+//   第 4 級（最後）  兩個字的詞（動作多在這裡：跑步、游泳、睡覺、唱歌、跳舞）、錯的選項只差一個地方
+// 連錯 2 題 → 接下來 3 題降一級（不會低於第 1 級）。q 的格式跟 createAsker 一樣（answer／options／pic／word／say＝國字）。
+export const PIC_LEVEL_NAME = ["", "差很多", "像的注音", "聲調", "兩個字"];
+// 跑跑用的 30 張圖（阿葉 11-01「顯示的大圖也用 GPT 生成，預設圖示都太醜了」）：國字 → IMAGE/zhuyin/pic/<檔名>.webp（ChatGPT 洋紅底整張生、tools/draw-art/cut_sheet.py 切）
+// 22 個一個字（第 1–3 級）＋8 個兩個字（第 4 級）＝一局 30 道門剛好每張各出一次；圖還沒好或載不到＝模組退回表情符號
+export const PIC_DIR = "IMAGE/zhuyin/pic/";
+export const PIC_WORDS = { 貓: "cat", 狗: "dog", 魚: "fish", 鳥: "bird", 牛: "cow", 豬: "pig", 蛋: "egg", 麵: "noodles", 碗: "bowl", 船: "boat", 球: "ball", 書: "book",
+  床: "bed", 門: "door", 手: "hand", 花: "flower", 樹: "tree", 雨: "rain", 火: "fire", 山: "mountain", 笑: "laugh", 哭: "cry",
+  跑步: "run", 游泳: "swim", 睡覺: "sleep", 唱歌: "sing", 跳舞: "dance", 蘋果: "apple", 雨傘: "umbrella", 飛機: "airplane" };
+// 阿葉自己加的題目（11-01「題目我想自己增加幾個，你穿插在其中」；放公開網站是阿葉選的；原本還有一個地名，阿葉後來說拿掉）：不在貼紙詞庫裡（不給貼紙），每局一定出、穿插在 CUSTOM_AT 這幾題（0 起算）
+// 圖不畫真人長相、不畫商標：周杰倫＝戴墨鏡彈琴的卡通歌手、清心福全＝一杯珍珠飲料
+export const PIC_CUSTOM = [
+  { h: "周杰倫", z: "ㄓㄡ ㄐㄧㄝˊ ㄌㄨㄣˊ", e: "🎹", img: "jay" },
+  { h: "清心福全", z: "ㄑㄧㄥ ㄒㄧㄣ ㄈㄨˊ ㄑㄩㄢˊ", e: "🧋", img: "bubbletea" },
+  { h: "鯨魚家", z: "ㄐㄧㄥ ㄩˊ ㄐㄧㄚ", e: "🐳", img: "whalehome" },
+];
+const CUSTOM_AT = [6, 15, 24];                        // 第 7、16、25 題
+export function createPicAsker({ rnd = Math.random, pics = PIC_WORDS, custom = PIC_CUSTOM } = {}) {
+  const st = { recent: [], ngRun: 0, easy: 0, asked: 0, right: 0, level: 1 };
+  const pick = a => a[Math.floor(rnd() * a.length)];
+  const fresh = list => { const ok = list.filter(w => !st.recent.includes(w.h)); return ok.length ? ok : list; };
+  // 一局裡每張圖先各出一次（不重複），用完才重抽
+  const inSet = w => !pics || Object.prototype.hasOwnProperty.call(pics, w.h);
+  const POOL1 = ONE.filter(w => w.e && inSet(w)), POOL2 = TWO.filter(w => w.e && inSet(w));
+  const left = { 1: [...POOL1], 2: [...POOL2] };
+  const draw = two => { const k = two ? 2 : 1, src = left[k].length ? left[k] : fresh(two ? POOL2 : POOL1), w = pick(src); left[k] = left[k].filter(x => x !== w); return w; };
+  const levelOf = (i, n) => { const p = n > 1 ? i / (n - 1) : 0; return p < 0.27 ? 1 : p < 0.54 ? 2 : p < 0.74 ? 3 : 4; };
+  function wrongFor(lv, w) {
+    const a = w.z;
+    if (lv === 1) {                                     // 別的字：聲母、韻母都不一樣
+      const { sym } = splitSyl(a), ini = initOf(sym), fin = sym.slice(ini.length);
+      const far = ONE.filter(x => { const s = splitSyl(x.z).sym, i2 = initOf(s); return x.h !== w.h && i2 !== ini && s.slice(i2.length) !== fin; });
+      return far.length ? pick(far).z : null;
+    }
+    if (lv === 2) { for (let k = 0; k < 8; k++) { const m = mutate(a, rnd, k % 2 ? "fin" : "ini"); if (m && m !== a) return m; } return null; }
+    if (lv === 3) { const { sym, tone } = splitSyl(a); return joinSyl({ sym, tone: pick([0, 1, 2, 3].filter(t => t !== tone)) }); }
+    const syls = a.split(" ");
+    for (let k = 0; k < 12; k++) {
+      const i = Math.floor(rnd() * syls.length), s = [...syls], r = rnd();
+      if (r < 0.3) { const { sym, tone } = splitSyl(s[i]); s[i] = joinSyl({ sym, tone: pick([0, 1, 2, 3].filter(t => t !== tone)) }); }
+      else { const m = mutate(s[i], rnd, r < 0.65 ? "ini" : "fin"); if (!m) continue; s[i] = m; }
+      const c = s.join(" "); if (c !== a) return c;
+    }
+    return null;
+  }
+  return {
+    // 第 i 題（0 起算）／共 n 題
+    next(i, n) {
+      const lv = Math.max(1, levelOf(i, n) - (st.easy > 0 ? 1 : 0)); if (st.easy > 0) st.easy--;
+      let q = null;
+      const ci = custom && n >= 20 ? CUSTOM_AT.indexOf(i) : -1;   // 自訂題（局太短就不出）
+      if (ci >= 0 && custom[ci]) {
+        const w = custom[ci], syls = w.z.split(" ");
+        for (let k = 0; k < 16 && !q; k++) {              // 錯的選項：第 1 級改兩個字的聲母（差很多）、第 2 級改一個地方、第 3 級改一個聲調、第 4 級三選一
+          const s = [...syls], idx = shuffle(syls.map((_, j) => j), rnd);
+          const nChange = lv === 1 ? Math.min(2, syls.length) : 1;
+          for (let c = 0; c < nChange; c++) {
+            const j = idx[c], how = lv === 3 ? "tone" : lv === 4 ? pick(["tone", "ini", "fin"]) : lv === 1 ? "ini" : pick(["ini", "fin"]);
+            if (how === "tone") { const { sym, tone } = splitSyl(s[j]); s[j] = joinSyl({ sym, tone: pick([0, 1, 2, 3].filter(t => t !== tone)) }); }
+            else { const m = mutate(s[j], rnd, how); if (m) s[j] = m; }
+          }
+          const bad = s.join(" ");
+          if (bad !== w.z) q = { kind: "pic", tier: lv, answer: w.z, options: shuffle([w.z, bad], rnd), say: w.h, alt: w.h, pic: w.e, word: null, id: w.h, custom: true,
+            img: w.img ? PIC_DIR + w.img + ".webp" : null };
+        }
+        if (q) { st.level = q.tier; st.asked++; return q; }
+      }
+      for (let k = 0; k < 8 && !q; k++) {
+        const w = draw(lv === 4), bad = wrongFor(lv, w);
+        if (bad && bad !== w.z) q = { kind: "pic", tier: lv, answer: w.z, options: shuffle([w.z, bad], rnd), say: w.h, alt: w.h, pic: w.e, word: w, id: w.h,
+          img: pics && pics[w.h] ? PIC_DIR + pics[w.h] + ".webp" : null };
+      }
+      if (!q) {                                           // 保底（目前詞庫不會走到）：8 次都湊不出錯的選項 → 第一個字＋換聲調，遊戲才不會卡住
+        const w = POOL1[0] || ONE[0], { sym, tone } = splitSyl(w.z), bad = joinSyl({ sym, tone: (tone + 1) % 4 });
+        q = { kind: "pic", tier: 1, answer: w.z, options: shuffle([w.z, bad], rnd), say: w.h, alt: w.h, pic: w.e, word: w, id: w.h, img: pics && pics[w.h] ? PIC_DIR + pics[w.h] + ".webp" : null };
+      }
+      st.level = q.tier; st.recent.push(q.id); if (st.recent.length > 8) st.recent.shift(); st.asked++;
+      return q;
+    },
+    report(ok) { if (ok) { st.right++; st.ngRun = 0; } else if (++st.ngRun >= 2) { st.easy = 3; st.ngRun = 0; } return { easy: st.easy }; },
+    stats() { return { asked: st.asked, right: st.right, level: st.level, easy: st.easy }; },
+  };
+}
+
 // 區域名稱／表情（兩款遊戲各自用自己的主題，這裡只放共用的「第幾圈」說法）
 export const loopName = loop => (loop > 0 ? `第 ${loop + 1} 圈` : "");

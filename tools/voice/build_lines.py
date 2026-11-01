@@ -44,6 +44,9 @@ lines = []
 
 # 整句送 TTS 的替換寫法（畫面/manifest 的 key 仍是原字；10-12 實測原字 TTS 一再唸糊，換寫法 2/2 清楚）
 TTS_SUB = {"撞出場了！": "壯出場了！",          # 撞 3 次聽成 zheng/qiao/zhan；同音「壯」2/2 zhuang4
+           "你變大了！戴皇冠的金色大魚，可以吃掉喔！": "你變大了！戴皇關的金色大魚，可以吃掉喔！",   # 11-01 小魚：冠 3 次聽成 guan4（皇冠＝guan1）
+           "游回家休息囉！": "油回家休息囉！",                                                       # 11-01 小魚：游 3 次聽成 yao4
+           "你長成魚王了！好厲害！": "你漲成魚王了！好厲害！",                                       # 11-01 小魚：長成 3 次聽成 jiang3 cheng2
            "這關好好玩！": "這關，好好玩！",   # 批次 3 次都糊；加逗號 2/2 清楚
            "積木！": "雞木！",                 # 10-13 介紹卡遊戲名：批次 3 次都聽成 ji2 mo4；同音「雞」
            # 10-13 v6 第一輪 3 次都唸偏的（盲聽：牛→niao2、虎→hu2、狗→gao3；長→xiang4、金星→jing1 xin1；沙→xia1；層→ci4；爬→pa1；字→ci4）：
@@ -367,24 +370,26 @@ for i, t in [("dt_fail", "偵探社現在打不開，等一下再試試看！"),
     must(t); add(i, t, "guide", "zhuyin.js 詞句小偵探／陀螺接線（10-12）")
 # 11-01 跑跑／小魚接線：打不開、結算唸的話（模組自己的台詞在下面「跑跑／小魚」段）
 for i, t in [("rn_fail", "運動場現在打不開，等一下再試試看！"), ("gw_fail", "海洋館現在打不開，等一下再試試看！"), ("en_record", "破紀錄了，好厲害！"),
-             ("rn_win", "跑得好遠，好厲害！"), ("gw_win", "長得好大，好厲害！"), ("rn_done", "全部的路都跑完了，好厲害！"), ("gw_done", "長成魚王了，好厲害！")]:
-    must(t); add(i, t, "result" if i not in ("rn_fail", "gw_fail") else "guide", "zhuyin.js 跑跑／小魚接線（11-01）")
-# 11-01 跑跑大冒險：js/zhuyin-run.js 的 LINES（talk）；zone／reach 是「區名」帶進去的句子 → 8 區各錄一句
+             ("rn_win", "跑完了，好厲害！"), ("gw_win", "長得好大，好厲害！"), ("gw_done", "長成魚王了，好厲害！")]:
+    must(t); add(i, t, "result" if i not in ("rn_fail", "gw_fail") else "guide", "zhuyin.js 跑跑／小魚接線（11-01；跑跑 v2 結算＝跑完了）")
+# 11-01 跑跑大冒險 v2（看圖選注音、一局 30 題）：js/zhuyin-run.js 的 LINES（talk）；開題不念題，答對才念詞（詞庫的詞已有 word_ 錄音）
 RNSRC = (ROOT / "js" / "zhuyin-run.js").read_text(encoding="utf-8")
-RN_ZONES = ["沙灘", "森林", "花田", "雪山", "糖果城", "火山", "夜空", "彩虹橋"]
-for snip in ['intro: "聽一聽，點下面的注音卡，帶夥伴跑進對的門！"', 'pick: "點一張注音卡，跑進門裡喔！"', 'zone: n => `來到${n}了！`', 'tunnel: "金幣隧道！"',
-             'easy: "沒關係，慢慢來。"', 'reach: n => `你跑到${n}了！`', 'rest: "休息一下，下次接著跑！"', 'finish: "跑完全部八區了，好厲害！"']:
-    if snip not in RNSRC:
-        sys.exit(f"zhuyin-run.js 找不到：{snip}（台詞改過了，請更新 build_lines.py）")
-for k, z in enumerate(RN_ZONES):
-    if f'name: "{z}"' not in RNSRC:
-        sys.exit(f"zhuyin-run.js 的 ZONES 找不到 {z}")
-for i, t in [("rn_intro", "聽一聽，點下面的注音卡，帶夥伴跑進對的門！"), ("rn_pick", "點一張注音卡，跑進門裡喔！"), ("rn_tunnel", "金幣隧道！"),
-             ("rn_easy", "沒關係，慢慢來。"), ("rn_rest", "休息一下，下次接著跑！"), ("rn_finish", "跑完全部八區了，好厲害！")]:
-    add(i, t, "guide", "zhuyin-run.js LINES（11-01 跑跑大冒險，talk）")
-for k, z in enumerate(RN_ZONES):
-    add(f"rn_zone_{k + 1}", f"來到{z}了！", "guide", "zhuyin-run.js LINES.zone（過區，talk）")
-    add(f"rn_reach_{k + 1}", f"你跑到{z}了！", "result", "zhuyin-run.js LINES.reach（挑戰模式收尾，talk）")
+RN = [("rn_intro", "intro", "看圖片，跑進對的注音門！"), ("rn_pick", "pick", "點一張注音卡，跑進門裡喔！"),
+      ("rn_easy", "easy", "沒關係，慢慢來。"), ("rn_finish", "finish", "跑到終點了！好厲害！")]
+for i, k, t in RN:
+    if f'{k}: "{t}"' not in RNSRC:
+        sys.exit(f"zhuyin-run.js 找不到：{k}: \"{t}\"（台詞改過了，請更新 build_lines.py）")
+    add(i, t, "guide", "zhuyin-run.js LINES（11-01 跑跑大冒險 v2，talk）")
+# 阿葉自己加的題目（js/zhuyin-endless-core.js PIC_CUSTOM）：答對後念這個詞（say）
+CORESRC = (ROOT / "js" / "zhuyin-endless-core.js").read_text(encoding="utf-8")
+for k, h in enumerate(re.findall(r'\{ h: "([^"]+)", z: "[^"]+", e: "[^"]*", img: "\w+" \}', CORESRC)):
+    add(f"rn_custom_{k + 1}", h, "word", "zhuyin-endless-core.js PIC_CUSTOM（阿葉自訂題目，答對後 say）")
+# 音符接接樂模組直接 api.talk 的句子（js/zhuyin-catch.js；第二批分頁 11-01 提醒還沒登記）
+CTSRC = (ROOT / "js" / "zhuyin-catch.js").read_text(encoding="utf-8")
+for i, t in [("catch_rule_first", "接住開頭是這個注音的音符！"), ("catch_rule_last", "接住結尾是這個注音的音符！"), ("catch_next", "換題目囉！")]:
+    if t not in CTSRC:
+        sys.exit(f"zhuyin-catch.js 找不到：{t}")
+    add(i, t, "guide", "zhuyin-catch.js（api.talk）")
 # 11-01 小魚長大記：js/zhuyin-grow.js 的 LINES（全部 talk）
 GWSRC = (ROOT / "js" / "zhuyin-grow.js").read_text(encoding="utf-8")
 GW = [("intro", "用手指帶著小魚游！吃掉身上有對的注音的小魚，就會長大喔！"), ("oneBite", "一口就對！"), ("crown", "你變大了！戴皇冠的金色大魚，可以吃掉喔！"),

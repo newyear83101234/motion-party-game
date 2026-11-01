@@ -1,5 +1,6 @@
-// 11-01 跑跑大冒險／小魚長大記：從主程式真的進遊戲玩（不用 stub）——開局、答題記貼紙與容易搞混、過區存打卡點、
-// 休息一下＝結算（星星進罐子、存檔）、再玩從打卡點接著、跑完第 1 圈＝大結局＋下次介紹卡變「🔥 挑戰第 2 圈」、離開回小島動畫收乾淨
+// 11-01 跑跑大冒險／小魚長大記：從主程式真的進遊戲玩（不用 stub）
+// 小魚：開局、答題記練過的詞、過區存打卡點、休息一下＝結算（星星進罐子、存檔）、再玩從打卡點接著、第 1 圈大結局＋「🔥 挑戰第 2 圈」、離開回小島動畫收乾淨
+// 跑跑 v2（看圖選左右兩邊的注音、一局 30 題）：開局、答題、跑完 30 題＝結算「答對 N／30 題！」、存最佳答對題數、再玩從第 1 題開始、離開回小島停乾淨
 // 跑法：node tools/zy-test/endless-game.js [run|grow]（預設兩款都跑；要先開本機伺服器）；截圖存 %TEMP%\zy-endless-game\
 // 兩款模組的測試掛鉤不一樣（跑跑 window.__zyRun、小魚 window.__zyGrow），下面 AD 把差異包起來
 const path = require("path"), fs = require("fs");
@@ -26,7 +27,41 @@ const st = (p, m) => p.evaluate(h => window[h] && window[h].state(), AD[m].hook)
 const sv = p => p.evaluate(() => JSON.parse(localStorage.getItem("zy1_endless") || "null"));
 const until = (p, m, cond, ms = 60000) => p.waitForFunction(([h, c]) => { const s = window[h] && window[h].state(); return !!s && new Function("s", "return " + c)(s); }, [AD[m].hook, cond], { timeout: ms, polling: 250 });
 
+async function runV2(b) {
+  const H = "__zyRun", m = "run";
+  const { p, errs, ctx } = await openGame(b, { w: 1180, h: 820, stickers: 40, stars: 0, query: "debug&no3d&endlessspeed=6" });
+  await enterMode(p, m);
+  await until(p, m, AD.run.live, 30000);
+  const ui = await p.evaluate(() => ({ sec: !document.getElementById("run").classList.contains("hidden"), speak: document.getElementById("speakBtn").classList.contains("hidden"), home: !!document.getElementById("homeBtn").offsetParent }));
+  ok("run：進得去（畫面、主程式「再聽」鈕藏起來、🏠 在）", ui.sec && ui.speak && ui.home, JSON.stringify(ui));
+  for (let k = 0; k < 3; k++) { await p.evaluate(() => window.__zyRun.answer(true)); await sleep(1500); }
+  await p.evaluate(() => window.__zyRun.answer(false)); await sleep(1800);
+  const s1 = await st(p, m), run1 = await p.evaluate(() => window.__zy.endlessRun);
+  ok("run：答題有回報主程式（答對 ≥3、答錯 ≥1）", s1.right >= 3 && s1.wrong >= 1, JSON.stringify({ right: s1.right, wrong: s1.wrong }));
+  ok("run：答對的詞記成練過的詞（結算用）", (run1.words || []).length >= 1, JSON.stringify((run1.words || []).map(w => w.h)));
+  await p.evaluate(() => { window.__zyRun.setGate(26); window.__zyRun.auto(1, [0.2, 0.3]); });
+  await p.waitForFunction(() => !document.getElementById("result").classList.contains("hidden"), null, { timeout: 180000 }).catch(() => {});
+  await sleep(3500);
+  const res = await p.evaluate(() => ({ shown: !document.getElementById("result").classList.contains("hidden"), text: document.getElementById("resultText").textContent, stars: +localStorage.getItem("zy1_stars"), on: document.querySelectorAll("#resultStars .star.on").length }));
+  const z = (await sv(p)).run;
+  ok(`run：跑完 30 題 → 結算（${res.text}）`, res.shown && /^答對 \d+／30 題！$/.test(res.text), JSON.stringify(res));
+  ok("run：星星進罐子 1–4 顆、三格星星至少 1 顆亮", res.stars >= 1 && res.stars <= 4 && res.on >= 1, JSON.stringify(res));
+  ok("run：存檔 plays=1、best＝答對題數（1–30）、沒有打卡點（at=0、go=0）", z.plays === 1 && z.best >= 1 && z.best <= 30 && z.at === 0 && z.go === 0, JSON.stringify(z));
+  await p.screenshot({ path: path.join(OUT, "run-result.png") });
+  await p.evaluate(() => document.getElementById("againBtn").click());
+  await until(p, m, AD.run.live, 30000).catch(() => {}); await sleep(600);
+  const s2 = await st(p, m);
+  ok("run：再玩＝從第 1 題重新開始", s2 && s2.passed === 0 && s2.right === 0, JSON.stringify({ passed: s2 && s2.passed, right: s2 && s2.right }));
+  await p.evaluate(() => document.getElementById("homeBtn").click()); await sleep(400);
+  await p.evaluate(() => document.getElementById("confirmYes")?.click()); await sleep(1200);
+  const c1 = await st(p, m); await sleep(800); const c2 = await st(p, m);
+  ok("run：回小島後引擎停了", !c1 || !c2 || c1.clock === c2.clock, JSON.stringify([c1 && c1.clock, c2 && c2.clock]));
+  const bad = errs.filter(e => !/favicon/.test(e));
+  ok("run：沒有主控台錯誤", bad.length === 0, bad.slice(0, 3).join(" | "));
+  await ctx.close();
+}
 async function one(b, m) {
+  if (m === "run") return runV2(b);
   const A = AD[m], H = A.hook;
   const { p, errs, ctx } = await openGame(b, { w: 1180, h: 820, stickers: 40, stars: 0, query: "debug&no3d&endlessspeed=6" });
   // ① 進遊戲

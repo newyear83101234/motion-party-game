@@ -1,15 +1,15 @@
 {
  "meta": {
   "generated_by": "tools/voice/build_lines.py",
-  "total_lines": 1029,
-  "total_chars": 6751,
+  "total_lines": 1023,
+  "total_chars": 6700,
   "by_cat": {
    "intro": 11,
    "praise": 10,
    "guide": 522,
    "system": 4,
-   "result": 22,
-   "word": 179,
+   "result": 13,
+   "word": 182,
    "hatch": 28,
    "friend": 19,
    "order": 76,
@@ -2854,175 +2854,97 @@
    "id": "rn_fail",
    "text": "運動場現在打不開，等一下再試試看！",
    "cat": "guide",
-   "src": "zhuyin.js 跑跑／小魚接線（11-01）"
+   "src": "zhuyin.js 跑跑／小魚接線（11-01；跑跑 v2 結算＝跑完了）"
   },
   {
    "id": "gw_fail",
    "text": "海洋館現在打不開，等一下再試試看！",
    "cat": "guide",
-   "src": "zhuyin.js 跑跑／小魚接線（11-01）"
+   "src": "zhuyin.js 跑跑／小魚接線（11-01；跑跑 v2 結算＝跑完了）"
   },
   {
    "id": "en_record",
    "text": "破紀錄了，好厲害！",
    "cat": "result",
-   "src": "zhuyin.js 跑跑／小魚接線（11-01）"
+   "src": "zhuyin.js 跑跑／小魚接線（11-01；跑跑 v2 結算＝跑完了）"
   },
   {
    "id": "rn_win",
-   "text": "跑得好遠，好厲害！",
+   "text": "跑完了，好厲害！",
    "cat": "result",
-   "src": "zhuyin.js 跑跑／小魚接線（11-01）"
+   "src": "zhuyin.js 跑跑／小魚接線（11-01；跑跑 v2 結算＝跑完了）"
   },
   {
    "id": "gw_win",
    "text": "長得好大，好厲害！",
    "cat": "result",
-   "src": "zhuyin.js 跑跑／小魚接線（11-01）"
-  },
-  {
-   "id": "rn_done",
-   "text": "全部的路都跑完了，好厲害！",
-   "cat": "result",
-   "src": "zhuyin.js 跑跑／小魚接線（11-01）"
+   "src": "zhuyin.js 跑跑／小魚接線（11-01；跑跑 v2 結算＝跑完了）"
   },
   {
    "id": "gw_done",
    "text": "長成魚王了，好厲害！",
    "cat": "result",
-   "src": "zhuyin.js 跑跑／小魚接線（11-01）"
+   "src": "zhuyin.js 跑跑／小魚接線（11-01；跑跑 v2 結算＝跑完了）"
   },
   {
    "id": "rn_intro",
-   "text": "聽一聽，點下面的注音卡，帶夥伴跑進對的門！",
+   "text": "看圖片，跑進對的注音門！",
    "cat": "guide",
-   "src": "zhuyin-run.js LINES（11-01 跑跑大冒險，talk）"
+   "src": "zhuyin-run.js LINES（11-01 跑跑大冒險 v2，talk）"
   },
   {
    "id": "rn_pick",
    "text": "點一張注音卡，跑進門裡喔！",
    "cat": "guide",
-   "src": "zhuyin-run.js LINES（11-01 跑跑大冒險，talk）"
-  },
-  {
-   "id": "rn_tunnel",
-   "text": "金幣隧道！",
-   "cat": "guide",
-   "src": "zhuyin-run.js LINES（11-01 跑跑大冒險，talk）"
+   "src": "zhuyin-run.js LINES（11-01 跑跑大冒險 v2，talk）"
   },
   {
    "id": "rn_easy",
    "text": "沒關係，慢慢來。",
    "cat": "guide",
-   "src": "zhuyin-run.js LINES（11-01 跑跑大冒險，talk）"
-  },
-  {
-   "id": "rn_rest",
-   "text": "休息一下，下次接著跑！",
-   "cat": "guide",
-   "src": "zhuyin-run.js LINES（11-01 跑跑大冒險，talk）"
+   "src": "zhuyin-run.js LINES（11-01 跑跑大冒險 v2，talk）"
   },
   {
    "id": "rn_finish",
-   "text": "跑完全部八區了，好厲害！",
+   "text": "跑到終點了！好厲害！",
    "cat": "guide",
-   "src": "zhuyin-run.js LINES（11-01 跑跑大冒險，talk）"
+   "src": "zhuyin-run.js LINES（11-01 跑跑大冒險 v2，talk）"
   },
   {
-   "id": "rn_zone_1",
-   "text": "來到沙灘了！",
+   "id": "rn_custom_1",
+   "text": "周杰倫",
+   "cat": "word",
+   "src": "zhuyin-endless-core.js PIC_CUSTOM（阿葉自訂題目，答對後 say）"
+  },
+  {
+   "id": "rn_custom_2",
+   "text": "清心福全",
+   "cat": "word",
+   "src": "zhuyin-endless-core.js PIC_CUSTOM（阿葉自訂題目，答對後 say）"
+  },
+  {
+   "id": "rn_custom_3",
+   "text": "鯨魚家",
+   "cat": "word",
+   "src": "zhuyin-endless-core.js PIC_CUSTOM（阿葉自訂題目，答對後 say）"
+  },
+  {
+   "id": "catch_rule_first",
+   "text": "接住開頭是這個注音的音符！",
    "cat": "guide",
-   "src": "zhuyin-run.js LINES.zone（過區，talk）"
+   "src": "zhuyin-catch.js（api.talk）"
   },
   {
-   "id": "rn_reach_1",
-   "text": "你跑到沙灘了！",
-   "cat": "result",
-   "src": "zhuyin-run.js LINES.reach（挑戰模式收尾，talk）"
-  },
-  {
-   "id": "rn_zone_2",
-   "text": "來到森林了！",
+   "id": "catch_rule_last",
+   "text": "接住結尾是這個注音的音符！",
    "cat": "guide",
-   "src": "zhuyin-run.js LINES.zone（過區，talk）"
+   "src": "zhuyin-catch.js（api.talk）"
   },
   {
-   "id": "rn_reach_2",
-   "text": "你跑到森林了！",
-   "cat": "result",
-   "src": "zhuyin-run.js LINES.reach（挑戰模式收尾，talk）"
-  },
-  {
-   "id": "rn_zone_3",
-   "text": "來到花田了！",
+   "id": "catch_next",
+   "text": "換題目囉！",
    "cat": "guide",
-   "src": "zhuyin-run.js LINES.zone（過區，talk）"
-  },
-  {
-   "id": "rn_reach_3",
-   "text": "你跑到花田了！",
-   "cat": "result",
-   "src": "zhuyin-run.js LINES.reach（挑戰模式收尾，talk）"
-  },
-  {
-   "id": "rn_zone_4",
-   "text": "來到雪山了！",
-   "cat": "guide",
-   "src": "zhuyin-run.js LINES.zone（過區，talk）"
-  },
-  {
-   "id": "rn_reach_4",
-   "text": "你跑到雪山了！",
-   "cat": "result",
-   "src": "zhuyin-run.js LINES.reach（挑戰模式收尾，talk）"
-  },
-  {
-   "id": "rn_zone_5",
-   "text": "來到糖果城了！",
-   "cat": "guide",
-   "src": "zhuyin-run.js LINES.zone（過區，talk）"
-  },
-  {
-   "id": "rn_reach_5",
-   "text": "你跑到糖果城了！",
-   "cat": "result",
-   "src": "zhuyin-run.js LINES.reach（挑戰模式收尾，talk）"
-  },
-  {
-   "id": "rn_zone_6",
-   "text": "來到火山了！",
-   "cat": "guide",
-   "src": "zhuyin-run.js LINES.zone（過區，talk）"
-  },
-  {
-   "id": "rn_reach_6",
-   "text": "你跑到火山了！",
-   "cat": "result",
-   "src": "zhuyin-run.js LINES.reach（挑戰模式收尾，talk）"
-  },
-  {
-   "id": "rn_zone_7",
-   "text": "來到夜空了！",
-   "cat": "guide",
-   "src": "zhuyin-run.js LINES.zone（過區，talk）"
-  },
-  {
-   "id": "rn_reach_7",
-   "text": "你跑到夜空了！",
-   "cat": "result",
-   "src": "zhuyin-run.js LINES.reach（挑戰模式收尾，talk）"
-  },
-  {
-   "id": "rn_zone_8",
-   "text": "來到彩虹橋了！",
-   "cat": "guide",
-   "src": "zhuyin-run.js LINES.zone（過區，talk）"
-  },
-  {
-   "id": "rn_reach_8",
-   "text": "你跑到彩虹橋了！",
-   "cat": "result",
-   "src": "zhuyin-run.js LINES.reach（挑戰模式收尾，talk）"
+   "src": "zhuyin-catch.js（api.talk）"
   },
   {
    "id": "gw_intro",
@@ -3040,7 +2962,8 @@
    "id": "gw_crown",
    "text": "你變大了！戴皇冠的金色大魚，可以吃掉喔！",
    "cat": "guide",
-   "src": "zhuyin-grow.js LINES（11-01 小魚長大記，talk）"
+   "src": "zhuyin-grow.js LINES（11-01 小魚長大記，talk）",
+   "tts_text": "你變大了！戴皇關的金色大魚，可以吃掉喔！"
   },
   {
    "id": "gw_bite",
@@ -3100,13 +3023,15 @@
    "id": "gw_finale",
    "text": "你長成魚王了！好厲害！",
    "cat": "guide",
-   "src": "zhuyin-grow.js LINES（11-01 小魚長大記，talk）"
+   "src": "zhuyin-grow.js LINES（11-01 小魚長大記，talk）",
+   "tts_text": "你漲成魚王了！好厲害！"
   },
   {
    "id": "gw_home",
    "text": "游回家休息囉！",
    "cat": "guide",
-   "src": "zhuyin-grow.js LINES（11-01 小魚長大記，talk）"
+   "src": "zhuyin-grow.js LINES（11-01 小魚長大記，talk）",
+   "tts_text": "油回家休息囉！"
   },
   {
    "id": "gw_record",
@@ -4575,22 +4500,64 @@
    "src": "zhuyin-records.js LINES.orig（v8 音符唱片行）"
   },
   {
-   "id": "rc_poor",
-   "text": "再玩一下遊戲，就能買囉！",
+   "id": "rc_poor1",
+   "text": "還差 1 顆星星！",
    "cat": "guide",
-   "src": "zhuyin-records.js LINES.poor（v8 音符唱片行）"
+   "src": "zhuyin-records.js LINES.poor（錢不夠，N＝還差幾顆）"
   },
   {
-   "id": "rc_memo",
-   "text": "做到上面寫的事情，就會送你喔！",
+   "id": "rc_poor2",
+   "text": "還差 2 顆星星！",
    "cat": "guide",
-   "src": "zhuyin-records.js LINES.memo（v8 音符唱片行）"
+   "src": "zhuyin-records.js LINES.poor（錢不夠，N＝還差幾顆）"
+  },
+  {
+   "id": "rc_poor3",
+   "text": "還差 3 顆星星！",
+   "cat": "guide",
+   "src": "zhuyin-records.js LINES.poor（錢不夠，N＝還差幾顆）"
+  },
+  {
+   "id": "rc_poor4",
+   "text": "還差 4 顆星星！",
+   "cat": "guide",
+   "src": "zhuyin-records.js LINES.poor（錢不夠，N＝還差幾顆）"
+  },
+  {
+   "id": "rc_poor5",
+   "text": "還差 5 顆星星！",
+   "cat": "guide",
+   "src": "zhuyin-records.js LINES.poor（錢不夠，N＝還差幾顆）"
+  },
+  {
+   "id": "rc_poor6",
+   "text": "還差 6 顆星星！",
+   "cat": "guide",
+   "src": "zhuyin-records.js LINES.poor（錢不夠，N＝還差幾顆）"
+  },
+  {
+   "id": "rc_poor7",
+   "text": "還差 7 顆星星！",
+   "cat": "guide",
+   "src": "zhuyin-records.js LINES.poor（錢不夠，N＝還差幾顆）"
+  },
+  {
+   "id": "rc_poor8",
+   "text": "還差 8 顆星星！",
+   "cat": "guide",
+   "src": "zhuyin-records.js LINES.poor（錢不夠，N＝還差幾顆）"
   },
   {
    "id": "rc_gift",
    "text": "送你一張唱片！點留聲機就能聽歌喔！",
    "cat": "guide",
    "src": "zhuyin-records.js LINES.gift（v8 音符唱片行）"
+  },
+  {
+   "id": "rc_mute",
+   "text": "音樂關著喔，請大人到設定打開！",
+   "cat": "guide",
+   "src": "zhuyin-records.js LINES.mute（v8 音符唱片行）"
   },
   {
    "id": "catch_fail",
