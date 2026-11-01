@@ -1,18 +1,18 @@
 // 畫畫遊戲主程式：首頁、畫畫頁（工具列、彈出選單、手勢）、完成、作品牆
-import { Board } from "./draw-canvas.js?v=11";
-import { cutoutMask } from "./draw-core.js?v=11";
-import { Painter, previewMat, previewBrush } from "./draw-paint.js?v=11";
-import { Fx } from "./draw-fx.js?v=11";
-import * as G from "./draw-gallery.js?v=11";
-import { STICKERS, stickerImage } from "./draw-stickers.js?v=11";
-import * as A from "./draw-audio.js?v=11";
-import { Particles } from "./draw-particles.js?v=11";
-import { play as playMusic } from "./draw-music.js?v=11";
-import { mountMirror } from "./draw-mirror.js?v=11";
-import { mountRewards } from "./draw-rewards.js?v=11";
-import { mountWorld } from "./draw-world.js?v=11";
-import { mountPuzzle } from "./draw-puzzle.js?v=11";
-import { mountSeek } from "./draw-seek.js?v=11";
+import { Board } from "./draw-canvas.js?v=12";
+import { cutoutMask } from "./draw-core.js?v=12";
+import { Painter, previewMat, previewBrush } from "./draw-paint.js?v=12";
+import { Fx } from "./draw-fx.js?v=12";
+import * as G from "./draw-gallery.js?v=12";
+import { STICKERS, stickerImage } from "./draw-stickers.js?v=12";
+import * as A from "./draw-audio.js?v=12";
+import { Particles } from "./draw-particles.js?v=12";
+import { play as playMusic } from "./draw-music.js?v=12";
+import { mountMirror } from "./draw-mirror.js?v=12";
+import { mountRewards } from "./draw-rewards.js?v=12";
+import { mountWorld } from "./draw-world.js?v=12";
+import { mountPuzzle } from "./draw-puzzle.js?v=12";
+import { mountSeek } from "./draw-seek.js?v=12";
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -40,7 +40,7 @@ const parts = new Particles($("#stage"));
 let INDEX = { themes: [], arts: [] };
 let rewards = null, world = null;   // 扭蛋貼紙本、我的世界：線稿清單載入後才掛上（mountModes）
 // 哪些線稿有魔法筆配色表（palette/list.json，tools/draw-art/palette.js 產生）；先問清單，不存在的不去抓（免得一堆 404）
-const palList = fetch(ART_DIR + "palette/list.json?v=11").then(r => (r.ok ? r.json() : [])).then(l => (Array.isArray(l) ? l : [])).catch(() => []);
+const palList = fetch(ART_DIR + "palette/list.json?v=12").then(r => (r.ok ? r.json() : [])).then(l => (Array.isArray(l) ? l : [])).catch(() => []);
 
 function show(id) {
   closePick(); closeSnap();
@@ -103,7 +103,7 @@ function renderHome(theme) {
   $("#themes").replaceChildren(...INDEX.themes.map(t => {
     const b = button("theme" + (t.id === theme ? " on" : ""), "", () => { if (t.id !== theme) renderHome(t.id); }, t.name);
     b.style.setProperty("--c", t.color || "#ffc93c");
-    b.append(t.img ? Object.assign(new Image(), { src: ART_DIR.replace("lineart/", "ui/") + t.img + "?v=11", alt: "", className: "ico" }) : el("span", "emo", t.icon),
+    b.append(t.img ? Object.assign(new Image(), { src: ART_DIR.replace("lineart/", "ui/") + t.img + "?v=12", alt: "", className: "ico" }) : el("span", "emo", t.icon),
       el("span", "name", t.name));
     b.dataset.sfx = "pick";
     return b;
@@ -116,7 +116,7 @@ function renderHome(theme) {
     return h;
   });
   $("#arts").replaceChildren(...heads, ...arts.map((a, i) => {
-    const c = card(ART_DIR + (a.thumb || a.file) + "?v=11", () => openCard(a, c));
+    const c = card(ART_DIR + (a.thumb || a.file) + "?v=12", () => openCard(a, c));
     c.dataset.id = a.id; c.dataset.sfx = "open";
     const lv = Math.min(3, a.level || 1);
     nth[lv] = (nth[lv] || 0) + 1;
@@ -153,7 +153,7 @@ function openCard(a, c) {
   if (!c._work) return startArt(a);
   const w = c._work;
   $("#pickMine .art").src = c.querySelector("img").src;
-  $("#pickNew .art").src = ART_DIR + (a.thumb || a.file) + "?v=11";
+  $("#pickNew .art").src = ART_DIR + (a.thumb || a.file) + "?v=12";
   $("#pickMine").onclick = () => { closePick(); startArt(a, w); };
   $("#pickNew").onclick = () => { closePick(); startArt(a); };
   $("#pick").classList.add("on");
@@ -176,8 +176,8 @@ async function startArt(a, work = null) {
   try {
     let ok;
     // 魔法筆的配色表（有就用：ChatGPT 上色參考圖算出來的每塊顏色；沒有或讀不到就隨機配色）跟線稿一起下載
-    const pal = palList.then(l => (l.includes(a.id) ? fetch(ART_DIR + "palette/" + a.id + ".json?v=11").then(r => (r.ok ? r.json() : null)) : null)).catch(() => null);
-    try { ok = await board.load(a.url || ART_DIR + a.file + "?v=11"); }
+    const pal = palList.then(l => (l.includes(a.id) ? fetch(ART_DIR + "palette/" + a.id + ".json?v=12").then(r => (r.ok ? r.json() : null)) : null)).catch(() => null);
+    try { ok = await board.load(a.url || ART_DIR + a.file + "?v=12"); }
     catch (e) {
       if (my !== loadSeq) return false;   // 已經被更新的請求取代，不要動畫面
       console.warn("線稿載入失敗：" + (e && e.message));   // 不用 console.error：測試把它當頁面錯誤
@@ -451,7 +451,7 @@ function crownMoment(theme) {
 }
 // 完成的大章：畫面中央吉祥物＋三顆大星星依序蹦出來，停 1.5 秒再收到右邊的慶祝欄（最開心的那一刻要夠大）
 function bigCheer() {
-  const d = el("div", "big-cheer", '<img src="IMAGE/draw/ui/mascot.png?v=11" alt="" onerror="this.remove()"><p><span>★</span><span>★</span><span>★</span></p>');
+  const d = el("div", "big-cheer", '<img src="IMAGE/draw/ui/mascot.png?v=12" alt="" onerror="this.remove()"><p><span>★</span><span>★</span><span>★</span></p>');
   $("#paint").append(d);
   [0, 180, 360].forEach((t, i) => setTimeout(() => A.note(10 + i * 2, { gain: 0.22, dur: 0.7 }), 350 + t));   // 一顆星一個音
   return new Promise(ok => {
@@ -485,7 +485,7 @@ $("#rStop").onclick = stopReplay;
 // 存相簿要用 iPad 的分享選單，只能在小孩「點下去的那一刻」打開，所以先把照片做好，點 📥 時直接交出去
 // snapTok：拍到一半離開（回首頁、關掉）就作廢這次，照片不會在別的畫面跳出來；snapping／saving：連按只算一次
 let snapBlob = null, snapUrl = null, snapTok = 0, snapping = false, saving = false;
-const mascotImg = new Promise(ok => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = "IMAGE/draw/ui/mascot.png?v=11"; });
+const mascotImg = new Promise(ok => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = "IMAGE/draw/ui/mascot.png?v=12"; });
 async function polaroid() {
   const c = board.composite(), k = Math.min(1, 1500 / c.width), w = Math.round(c.width * k), h = Math.round(c.height * k);
   const M = 48, B = 190, out = document.createElement("canvas");
@@ -690,7 +690,7 @@ function renderPop(kind, from = popFrom) {
   };
   const clip = () => {
     const b = button("opt clip" + (S.clip ? " yes" : ""), "", () => { S.clip = !S.clip; again(); }, "不出線");
-    b.append(Object.assign(new Image(), { src: "IMAGE/draw/ui/btn-clip.png?v=11", alt: "", className: "ico" }));
+    b.append(Object.assign(new Image(), { src: "IMAGE/draw/ui/btn-clip.png?v=12", alt: "", className: "ico" }));
     return b;
   };
   if (kind === "color") {   // 上面 30 色（每個顏色一個音，從左到右往上爬），下面一排材質
@@ -996,7 +996,7 @@ async function renderGallery() {
     return card(u, () => openWork(w), "", w.done ? "" : "✏️");
   }).filter(Boolean);
   const blanks = Array.from({ length: Math.max(0, 6 - cards.length) }, (_, i) => {   // 作品少的時候補虛線空畫框：等你來畫，點了回首頁
-    const b = button("card blank", '<img class="ico" src="IMAGE/draw/ui/btn-edit.png?v=11" alt="" onerror="this.remove()">', () => { show("home"); renderHome(); }, "去畫畫");
+    const b = button("card blank", '<img class="ico" src="IMAGE/draw/ui/btn-edit.png?v=12" alt="" onerror="this.remove()">', () => { show("home"); renderHome(); }, "去畫畫");
     b.style.setProperty("--i", cards.length + i);
     return b;
   });
@@ -1163,7 +1163,7 @@ function applyIcons() {
       const t = [...b.childNodes].find(n => n.nodeType === 3 && n.textContent.trim()) || b.querySelector("span:not(.dot)");
       if (t) t.replaceWith(img);
     };
-    img.src = "IMAGE/draw/ui/" + name + ".png?v=11";
+    img.src = "IMAGE/draw/ui/" + name + ".png?v=12";
   }
 }
 
@@ -1175,7 +1175,7 @@ window.__draw = { S, board, painter, fx, G, A, show, renderHome, startArt, rende
   G.persist();
   refreshBar(); refreshTools(); refreshUndo(); refreshToggles(); applyIcons();
   try {
-    const res = await fetch(ART_DIR + "index.json?v=11");
+    const res = await fetch(ART_DIR + "index.json?v=12");
     if (!res.ok) throw new Error("HTTP " + res.status);
     INDEX = await res.json();
   } catch (e) {

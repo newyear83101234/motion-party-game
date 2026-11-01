@@ -34,6 +34,9 @@
   radial-gradient(circle at 10% 30%, #ff9ccc 0 4%, #fff 4.3% 5%, transparent 5.3%),
   radial-gradient(circle at 88% 28%, #9fd8ff 0 4%, #fff 4.3% 5%, transparent 5.3%),
   linear-gradient(#ffc3e1 0%, #ffe4f1 39%, #ffd0e6 40%, #ffb7d8 100%); }
+#world[data-theme="kpop"] .w-bg { background:
+  radial-gradient(circle at 50% 18%, rgba(255, 220, 120, .55) 0 6%, transparent 14%),
+  linear-gradient(#3b2a7a 0%, #b86bd6 40%, #4a2f8f 40.3%, #2e1d63 100%); }
 
 /* 角色：絕對定位，每幀只改 transform；白色描邊像貼紙，在什麼背景上都跳得出來 */
 #world .w-mob { position: absolute; left: 0; top: 0; transform-origin: 50% 100%; will-change: transform; pointer-events: none; transform: scale(0); }

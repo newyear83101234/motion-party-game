@@ -1,6 +1,6 @@
 // 畫畫遊戲特效：填色水波、亮粉閃爍、完成動畫（跳一下＋零件動作＋彩帶）。全部沒有聲音
-import { regionAt, regionMask } from "./draw-core.js?v=11";
-import { makeCanvas as mk } from "./draw-canvas.js?v=11";
+import { regionAt, regionMask } from "./draw-core.js?v=12";
+import { makeCanvas as mk } from "./draw-canvas.js?v=12";
 
 export class Fx {
   constructor(board) { this.b = board; this.pending = null; this.sparkOn = false; this.parts = []; this.cells = []; }

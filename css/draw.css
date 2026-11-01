@@ -20,7 +20,7 @@
   font-size: 24px; font-weight: 800; color: #fff; text-shadow: 0 2px 4px rgba(0, 0, 0, .45); }
 
 /* 字型：jf open 粉圓（OFL），只收畫面用到的字（tools/draw-font.mjs 產生），沒收到的字退回蘋方 */
-@font-face { font-family: "Huninn"; src: url("../fonts/huninn-draw.woff2?v=11") format("woff2"); font-display: swap; }
+@font-face { font-family: "Huninn"; src: url("../fonts/huninn-draw.woff2?v=12") format("woff2"); font-display: swap; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); overflow: hidden; touch-action: none;
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
@@ -38,7 +38,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 
 /* 首頁與作品牆 */
 .top { display: flex; align-items: center; gap: 16px; padding: 16px 20px 8px; }
-#home { background: var(--bg) url("../IMAGE/draw/ui/home-bg.jpg?v=11") center / cover; }
+#home { background: var(--bg) url("../IMAGE/draw/ui/home-bg.jpg?v=12") center / cover; }
 .hero { padding: 12px 24px 22px; gap: 14px; }   /* 下面留位置給玩法鈕的小字 */
 .mascot { height: clamp(70px, 8vw, 92px); width: auto; animation: bob 2.6s ease-in-out infinite; filter: drop-shadow(0 6px 6px rgba(60, 30, 0, .2)); }
 @keyframes bob { 50% { transform: translateY(-6px) rotate(-3deg); } }
@@ -52,10 +52,10 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .logo span:nth-child(4) { color: var(--sky); animation-delay: .45s; transform: rotate(5deg); }
 @keyframes hop { 0%, 40%, 100% { translate: 0 0; } 60% { translate: 0 -12px; } 80% { translate: 0 2px; } }
 /* 主題：膠囊鈕（圖示＋名字），選中的換成主題色 */
-.themes { display: flex; gap: 14px; padding: 6px 24px 10px; overflow-x: auto; touch-action: pan-x; flex: 0 0 auto; }
+.themes { display: flex; gap: 10px; padding: 6px 24px 10px; overflow-x: auto; touch-action: pan-x; flex: 0 0 auto; }
 .theme:first-child { margin-left: auto; }
 .theme:last-child { margin-right: auto; }   /* 放得下時置中，放不下時照樣可以橫捲 */
-.theme { height: 74px; padding: 0 24px 0 8px; border-radius: 40px; display: flex; align-items: center; gap: 6px; flex: 0 0 auto;
+.theme { height: 74px; padding: 0 20px 0 8px; border-radius: 40px; display: flex; align-items: center; gap: 6px; flex: 0 0 auto;
   background: linear-gradient(#fff, #fbf5ea); box-shadow: var(--lift); font-size: 22px; font-weight: 800; color: var(--ink);
   transition: transform .16s var(--spring), background .2s, box-shadow .16s; }
 .theme .ico { width: 60px; height: 60px; }

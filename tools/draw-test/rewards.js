@@ -41,9 +41,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const sets = await SETS();
 
   // ── 1. 掛上 ──
-  check("模組掛上：#book、#bookHome、#bookCount、6 個主題分頁鈕都有固定 id",
+  check("模組掛上：#book、#bookHome、#bookCount、7 個主題分頁鈕（含獵魔女團）都有固定 id",
     await ev(() => !!(document.querySelector("section#book.screen") && document.getElementById("bookHome") && document.getElementById("bookCount")
-      && ["animal", "vehicle", "dino", "fairy", "ocean", "sweets"].every(t => document.getElementById("bookTab-" + t)))));
+      && ["animal", "vehicle", "dino", "fairy", "ocean", "sweets", "kpop"].every(t => document.getElementById("bookTab-" + t)))));
   check("CSS 自己插入且有生效（draw-rewards.css?v=7）",
     await ev(() => !!document.querySelector('link[href="css/draw-rewards.css?v=7"]') && getComputedStyle(document.getElementById("bookBody")).perspective === "2400px"));
   check("全新存檔：0 張、今天可以領每日扭蛋", await ev(() => __R.count() === 0 && __R.owned().length === 0 && __R.dailyReady() === true && __R.doneCount() === 0));
@@ -120,9 +120,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("連點＋同時兩個 grant：排隊一顆一顆開、都 resolve、張數 +2、遮罩不重疊",
     ab[0] && ab[1] && ab[0].length === 1 && ab[1].length === 1 && await ev(() => __R.count()) === c6 + 2 && maxOv === 1 && await gachaGone(), `maxOv=${maxOv} ${JSON.stringify(ab)}`);
 
-  // ── 7. 36 張全滿 → 金蛋、金色版 ──
+  // ── 7. 42 張全滿 → 金蛋、金色版 ──
   await ev(ids => __rewards.grantNow(ids), await ev(() => __rewards.ids));
-  check("grantNow 收集全部 36 張", await ev(() => __R.count()) === 36);
+  check("grantNow 收集全部 42 張", await ev(() => __R.count()) === 42);
   await startGrant({ theme: "dino" });
   await p.waitForSelector("#gacha .g-egg.gold.wait", { timeout: 6000 });
   await sleep(300);
@@ -132,7 +132,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await shot("g4-gold-open");
   const r7 = await waitRes();
   const st7 = await ev(() => ({ n: __R.count(), gold: __rewards.state.gold.slice() }));
-  check("全滿後給金色版：金蛋、記在 state.gold、張數維持 36、優先同主題", st7.n === 36 && st7.gold.length === 1 && st7.gold[0] === r7[0] && sets.dino.includes(r7[0]), JSON.stringify(st7));
+  check("全滿後給金色版：金蛋、記在 state.gold、張數維持 42、優先同主題", st7.n === 42 && st7.gold.length === 1 && st7.gold[0] === r7[0] && sets.dino.includes(r7[0]), JSON.stringify(st7));
 
   // ── 8. 貼紙本 ──
   await ev(() => __rewards.reset());
@@ -154,7 +154,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("openBook('dino')：呼叫 show('book')、翻到恐龍＋公主那頁、分頁鈕亮", (await calls()).some(c => c[0] === "show" && c[1] === "book") && b1.on && b1.left && b1.right
     && b1.tabs.join() === "bookTab-dino,bookTab-fairy", JSON.stringify(b1.tabs));
   check("已收集顯示貼紙、沒收集是剪影＋問號（每頁 6 格）", b1.own === 7 && b1.empty === 5 && b1.q === 5 && b1.sil.includes("brightness(0)"), `own=${b1.own} empty=${b1.empty} filter=${b1.sil}`);
-  check("進度「🌟 n / 36」跟 count() 一致", await ev(() => document.getElementById("bookN").textContent === String(__R.count()) && document.getElementById("bookCount").textContent.includes("/ 36")));
+  check("進度「🌟 n / 42」跟 count() 一致", await ev(() => document.getElementById("bookN").textContent === String(__R.count()) && document.getElementById("bookCount").textContent.includes("/ 42")));
   await clearCalls();
   await tapEl("#slot-trex");
   await sleep(200);
@@ -195,7 +195,13 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await touch("touchEnd", [[520, 475]]);
   await sleep(800);
   check("往左滑 → 下一頁（海洋＋甜點）", await ev(() => !!document.querySelector(".bk-pg.l #slot-whale")));
+  await tapEl("#bookNext");
+  await sleep(800);
+  check("按下一頁 → 最後一頁是獵魔女團", await ev(() => !!document.querySelector(".bk-pg.l #slot-rumi")));
   check("最後一頁沒有「下一頁」鈕、有「上一頁」鈕", await ev(() => document.getElementById("bookNext").classList.contains("off") && !document.getElementById("bookPrev").classList.contains("off")));
+  await tapEl("#bookPrev");
+  await sleep(800);
+  check("按上一頁 → 回到海洋＋甜點", await ev(() => !!document.querySelector(".bk-pg.l #slot-whale")));
   await tapEl("#bookPrev");
   await sleep(800);
   check("按上一頁 → 回到恐龍＋公主", await ev(() => !!document.querySelector(".bk-pg.l #slot-trex")));
@@ -274,7 +280,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const emoG = await ev(() => !!document.querySelector("#gacha .g-stk .emo") && !document.querySelector("#gacha .g-stk img"));
   await shot("g6-emoji-fallback");
   await waitRes();
-  check("36 張圖都不在時扭蛋用 emoji、動畫完整跑完", emoG && await gachaGone());
+  check("42 張圖都不在時扭蛋用 emoji、動畫完整跑完", emoG && await gachaGone());
   await p.unroute("**/IMAGE/draw/stickers/*");
 
   // ── 13. 視窗大小改變 ──

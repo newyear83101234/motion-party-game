@@ -1,5 +1,5 @@
 // 畫畫遊戲畫布：開圖切塊、四層 canvas（顏色／即時筆畫／線稿／特效）＋看不見的亮粉遮罩、縮放平移、座標換算、合成輸出
-import { lineMask, labelRegions } from "./draw-core.js?v=11";
+import { lineMask, labelRegions } from "./draw-core.js?v=12";
 
 export function makeCanvas(w, h) { const c = document.createElement("canvas"); c.width = w; c.height = h; return c; }
 

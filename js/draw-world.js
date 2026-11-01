@@ -19,6 +19,7 @@ const SCENES = {
   // 馬路 46%～100%、中央虛線約 59%：遠車道（往左）輪子踩 56～58%，近車道（往右）踩 78～93%
   vehicle: { move: "drive", snack: "⛽", feet: [.56, .93], horizon: .47, size: .17, speed: .2, lanes: [[0, .06], [.6, 1]] },
   ocean: { move: "swim", snack: "🫧", feet: [.34, .8], horizon: .53, size: .18, speed: .06 },
+  kpop: { move: "hop", snack: "🍜", feet: [.5, .96], horizon: .42, size: .22, speed: .08 },   // 演唱會舞台：一跳一跳像在跳舞；HUNTR/X 愛吃泡麵
 };
 const SLOTS = [[.1, 0], [.9, 0], [.05, 1], [.95, 1], [.3, 0], [.7, 0]];   // 貼紙位置：[橫向比例, 0=地平線 1=下方角落]
 

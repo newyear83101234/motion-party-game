@@ -5,7 +5,8 @@
     {"id": "dino", "name": "恐龍", "icon": "🦖", "img": "theme-dino.png", "color": "#3fc58a"},
     {"id": "fairy", "name": "公主", "icon": "👑", "img": "theme-fairy.png", "color": "#ff7eb6"},
     {"id": "ocean", "name": "海洋", "icon": "🐠", "img": "theme-ocean.png", "color": "#20bfd6"},
-    {"id": "sweets", "name": "甜點", "icon": "🧁", "img": "theme-sweets.png", "color": "#a77bff"}
+    {"id": "sweets", "name": "甜點", "icon": "🧁", "img": "theme-sweets.png", "color": "#a77bff"},
+    {"id": "kpop", "name": "獵魔女團", "icon": "🎤", "img": "theme-kpop.png", "color": "#8f5cff"}
   ],
   "arts": [
     {"id": "animal-1", "file": "animal-1.png", "thumb": "thumbs/animal-1.jpg", "theme": "animal", "level": 1, "parts": [{"type": "wag", "at": [[1475, 922]], "pivot": [1331, 1126], "deg": 12}]},
@@ -44,6 +45,16 @@
     {"id": "sweets-4", "file": "sweets-4.png", "thumb": "thumbs/sweets-4.jpg", "theme": "sweets", "level": 3, "parts": [{"type": "sway", "box": [175, 20, 440, 295], "pivot": [307, 315], "deg": 8}, {"type": "sway", "box": [75, 185, 335, 450], "pivot": [205, 470], "deg": -7}, {"type": "sway", "box": [355, 125, 610, 390], "pivot": [482, 410], "deg": 6}, {"type": "sway", "box": [1610, 10, 1870, 275], "pivot": [1740, 295], "deg": -8}, {"type": "sway", "box": [1420, 155, 1680, 420], "pivot": [1550, 440], "deg": 7}, {"type": "sway", "box": [1715, 185, 1975, 450], "pivot": [1845, 470], "deg": -6}]},
     {"id": "sweets-5", "file": "sweets-5.png", "thumb": "thumbs/sweets-5.jpg", "theme": "sweets", "level": 2, "parts": [{"type": "sway", "box": [1150, 400, 1510, 700], "pivot": [1330, 690], "deg": 10}, {"type": "wag", "box": [660, 30, 1060, 395], "pivot": [840, 380], "deg": 6}]},
     {"id": "sweets-6", "file": "sweets-6.png", "thumb": "thumbs/sweets-6.jpg", "theme": "sweets", "level": 2, "parts": [{"type": "sway", "box": [1460, 360, 1600, 520], "pivot": [1529, 520], "deg": 12}, {"type": "wag", "box": [340, 260, 600, 810], "pivot": [520, 300], "deg": 6}]},
+    {"id": "kpop-8", "file": "kpop-8.png", "thumb": "thumbs/kpop-8.jpg", "theme": "kpop", "level": 1, "parts": []},
+    {"id": "kpop-9", "file": "kpop-9.png", "thumb": "thumbs/kpop-9.jpg", "theme": "kpop", "level": 1, "parts": []},
+    {"id": "kpop-10", "file": "kpop-10.png", "thumb": "thumbs/kpop-10.jpg", "theme": "kpop", "level": 1, "parts": []},
+    {"id": "kpop-1", "file": "kpop-1.png", "thumb": "thumbs/kpop-1.jpg", "theme": "kpop", "level": 2, "parts": []},
+    {"id": "kpop-2", "file": "kpop-2.png", "thumb": "thumbs/kpop-2.jpg", "theme": "kpop", "level": 2, "parts": []},
+    {"id": "kpop-3", "file": "kpop-3.png", "thumb": "thumbs/kpop-3.jpg", "theme": "kpop", "level": 2, "parts": []},
+    {"id": "kpop-7", "file": "kpop-7.png", "thumb": "thumbs/kpop-7.jpg", "theme": "kpop", "level": 3, "parts": []},
+    {"id": "kpop-4", "file": "kpop-4.png", "thumb": "thumbs/kpop-4.jpg", "theme": "kpop", "level": 3, "parts": []},
+    {"id": "kpop-5", "file": "kpop-5.png", "thumb": "thumbs/kpop-5.jpg", "theme": "kpop", "level": 3, "parts": []},
+    {"id": "kpop-6", "file": "kpop-6.png", "thumb": "thumbs/kpop-6.jpg", "theme": "kpop", "level": 3, "parts": []},
     {"id": "test-shapes", "file": "test-shapes.svg", "theme": "animal", "level": 1, "test": true, "parts": [{"type": "spin", "at": [[1550, 1100]]}, {"type": "wag", "at": [[700, 500]], "pivot": [500, 800], "deg": 15}]}
   ]
 }

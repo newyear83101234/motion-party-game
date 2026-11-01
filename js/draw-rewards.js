@@ -12,8 +12,9 @@ const SETS = {
   fairy: [["crown", "👑"], ["wand", "🪄"], ["unicorn", "🦄"], ["castle", "🏰"], ["fairy", "🧚"], ["rainbow", "🌈"]],
   ocean: [["whale", "🐳"], ["clownfish", "🐠"], ["octopus", "🐙"], ["turtle", "🐢"], ["starfish", "⭐"], ["shell", "🐚"]],
   sweets: [["cupcake", "🧁"], ["icecream", "🍦"], ["donut", "🍩"], ["lollipop", "🍭"], ["cake", "🎂"], ["strawberry", "🍓"]],
+  kpop: [["rumi", "💜"], ["mira", "💃"], ["zoey", "😆"], ["derpy", "🐯"], ["sussie", "🐦"], ["goldmic", "🎤"]],   // 獵魔女團（阿葉 11-01 加，自己家玩）
 };
-const COLOR = { animal: "#ffa63d", vehicle: "#4fb3ff", dino: "#3fc58a", fairy: "#ff7eb6", ocean: "#20bfd6", sweets: "#a77bff" };
+const COLOR = { animal: "#ffa63d", vehicle: "#4fb3ff", dino: "#3fc58a", fairy: "#ff7eb6", ocean: "#20bfd6", sweets: "#a77bff", kpop: "#8f5cff" };
 // 扭蛋殼的顏色（r,g,b 兩段：亮→暗），每顆隨機挑；金蛋固定金色
 const EGGS = [["255,143,184", "255,84,140"], ["127,208,255", "40,150,255"], ["155,227,122", "70,185,60"],
   ["255,212,92", "255,160,20"], ["199,162,255", "150,100,255"], ["120,232,214", "20,185,170"]];
@@ -53,7 +54,7 @@ function load() {
 const TIMING = { autoOpen: 3500, hint: 1500 };   // 蛋幾毫秒沒點自己開、幾毫秒出現手指（測試可調長）
 export function mountRewards(deps) {
   const A = deps.A, v = deps.v || "1";
-  // 主題順序照主程式給的；主程式沒列到的主題接在後面（36 張一定都看得到）
+  // 主題順序照主程式給的；主程式沒列到的主題接在後面（每張貼紙一定都看得到）
   const given = Array.isArray(deps.themes) ? deps.themes.filter(t => t && SETS[t.id]) : [];
   const THEMES = [...new Set([...given.map(t => t.id), ...Object.keys(SETS)])].map(id => {
     const t = given.find(g => g.id === id) || {};
@@ -108,7 +109,7 @@ export function mountRewards(deps) {
     });
   }
 
-  // ── 挑貼紙：先給這個主題還沒有的 → 別的主題還沒有的 → 36 張全滿了給金色版 ──
+  // ── 挑貼紙：先給這個主題還沒有的 → 別的主題還沒有的 → 全部集滿了給金色版 ──
   function pick(theme, goldEgg) {
     const got = new Set(state.got), shiny = new Set(state.gold), mine = s => s.theme === theme;
     const pools = [ALL.filter(s => mine(s) && !got.has(s.id)), ALL.filter(s => !got.has(s.id)),

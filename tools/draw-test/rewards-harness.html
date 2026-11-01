@@ -6,7 +6,7 @@
 <title>貼紙本／扭蛋 測試台</title>
 <!-- 模組用相對路徑（css/…、IMAGE/…），把基準指回專案根目錄，跟 draw.html 一樣 -->
 <base href="../../">
-<link rel="stylesheet" href="css/draw.css?v=11">
+<link rel="stylesheet" href="css/draw.css?v=12">
 <style>
   .hbar { display: flex; gap: 14px; padding: 16px 20px; align-items: center; }
   .hbar .grow { flex: 1; }
@@ -73,7 +73,7 @@
     const t = $("#toast"); t.textContent = text; t.classList.add("on");
     clearTimeout(tt); tt = setTimeout(() => t.classList.remove("on"), ms);
   }
-  const themes = ["animal", "vehicle", "dino", "fairy", "ocean", "sweets"].map(id => ({ id, img: "IMAGE/draw/ui/theme-" + id + ".png" }));
+  const themes = ["animal", "vehicle", "dino", "fairy", "ocean", "sweets", "kpop"].map(id => ({ id, img: "IMAGE/draw/ui/theme-" + id + ".png" }));
   const R = window.__R = mountRewards({
     v: new URLSearchParams(location.search).get("v") || "7", show, A, Particles, toast, themes,   // ?v= 讓測試避開圖片快取
     onHome: () => { calls.push(["onHome"]); show("home"); },
