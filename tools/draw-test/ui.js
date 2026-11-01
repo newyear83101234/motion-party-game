@@ -111,7 +111,7 @@ function versionCheck() {
 
   // Task 6：貼紙
   const st = await p.evaluate(async () => {
-    const M = await import("./js/draw-stickers.js?v=8");
+    const M = await import("./js/draw-stickers.js?v=9");
     const ids = M.STICKERS.map(s => s.id);
     const img = await M.stickerImage("star");
     __draw.painter.sticker(img, 1000, 1200, 200);
@@ -124,7 +124,7 @@ function versionCheck() {
 
   // Task 7：特效
   await p.evaluate(async () => {
-    const M = await import("./js/draw-fx.js?v=8");
+    const M = await import("./js/draw-fx.js?v=9");
     window.__fx = __draw.fx || new M.Fx(__draw.board);   // Task 9 之後用遊戲自己的那一個，免得兩組亮粉互相干擾
     __draw.painter.clearAll();
   });
@@ -212,7 +212,7 @@ function versionCheck() {
 
   // Task 8：作品牆
   const gal = await p.evaluate(async () => {
-    const G = await import("./js/draw-gallery.js?v=8");
+    const G = await import("./js/draw-gallery.js?v=9");
     await G.wipe();
     const c = __draw.board.composite();
     const w = { id: G.newId(), art: "test-shapes", done: true, thumb: await G.thumbOf(c), image: await G.toBlob(c),
@@ -458,7 +458,7 @@ function versionCheck() {
   check("第一次選貼紙 → 自動打開選單", await on("#pop"));
   await p.tap('#pop .opt[aria-label="heart"]');
   const stk = await p.evaluate(async () => {
-    const M = await import("./js/draw-stickers.js?v=8");
+    const M = await import("./js/draw-stickers.js?v=9");
     const want = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(M.STICKERS.find(s => s.id === "heart").svg);
     const im = document.querySelector('[data-tool="sticker"] img');
     return { has: !!im, same: !!im && im.getAttribute("src") === want };
@@ -541,6 +541,7 @@ function versionCheck() {
     for (const br of ["crayon", "watercolor", "spray", "neon", "sparkle", "pencil", "chalk", "magic"]) for (const size of [10, 22, 40]) for (let t = 0; t < 3; t++) {
       P.strokeStart(400, 400, { brush: br, size, mat: { kind: "solid" }, color: "#e53935", clip: false });
       for (let i = 1; i <= 6; i++) P.strokeMove(400 + i * 40 * (i % 2 ? 1 : -0.5), 400 + i * 13);
+      P.stopFlush(); P.flushLive();   // 即時層一幀才重畫一次：測試直接把這一幀畫掉再比
       const L = b.lctx.getImageData(200, 200, 600, 400).data, sc = P.scratch.getContext("2d").getImageData(200, 200, 600, 400).data;
       let k = 0; for (let i = 3; i < sc.length; i += 4) if (sc[i] > 8 && L[i] <= 2) k++;
       if (k) out.push(`${br}${size}:${k}`);

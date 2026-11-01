@@ -4,7 +4,7 @@
   --press: 0 1px 0 var(--wood-d), 0 2px 4px rgba(90, 60, 20, .12);
   --spring: cubic-bezier(.3, 1.6, .5, 1); }
 /* 字型：jf open 粉圓（OFL），只收畫面用到的字（tools/draw-font.mjs 產生），沒收到的字退回蘋方 */
-@font-face { font-family: "Huninn"; src: url("../fonts/huninn-draw.woff2?v=8") format("woff2"); font-display: swap; }
+@font-face { font-family: "Huninn"; src: url("../fonts/huninn-draw.woff2?v=9") format("woff2"); font-display: swap; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); overflow: hidden; touch-action: none;
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
@@ -22,7 +22,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 
 /* 首頁與作品牆 */
 .top { display: flex; align-items: center; gap: 16px; padding: 16px 20px 8px; }
-#home { background: var(--bg) url("../IMAGE/draw/ui/home-bg.jpg?v=8") center / cover; }
+#home { background: var(--bg) url("../IMAGE/draw/ui/home-bg.jpg?v=9") center / cover; }
 .hero { padding: 12px 24px 22px; gap: 14px; }   /* 下面留位置給玩法鈕的小字 */
 .mascot { height: clamp(70px, 8vw, 92px); width: auto; animation: bob 2.6s ease-in-out infinite; filter: drop-shadow(0 6px 6px rgba(60, 30, 0, .2)); }
 @keyframes bob { 50% { transform: translateY(-6px) rotate(-3deg); } }
@@ -117,7 +117,9 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 /* 桌面：淡淡的點點紋，圖像一張紙擺在上面 */
 #stage { position: relative; flex: 1; overflow: hidden; margin: 12px; border-radius: 22px;
   background: #f1e6d1 radial-gradient(rgba(170, 130, 80, .13) 1.6px, transparent 1.8px) 0 0 / 22px 22px; box-shadow: inset 0 2px 8px rgba(90, 60, 20, .12); }
-.board { position: absolute; left: 0; top: 0; transform-origin: 0 0; overflow: hidden; background: #fff; }
+.board { position: absolute; left: 0; top: 0; transform-origin: 0 0; background: #fff; }
+.paper { position: absolute; pointer-events: none; border-radius: 4px; background: #fff; box-shadow: 0 6px 0 #e2d3b4, 0 12px 26px rgba(90, 60, 20, .2); }
+#paint.full .paper { box-shadow: none; }
 .layer { position: absolute; inset: 0; width: 100%; height: 100%; }
 #bar { width: var(--bar-w); background: linear-gradient(90deg, #f6e3bd, #f1d9aa); box-shadow: inset 6px 0 10px -6px rgba(90, 60, 20, .25);
   display: flex; flex-direction: column; align-items: center;

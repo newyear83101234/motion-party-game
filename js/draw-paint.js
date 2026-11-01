@@ -1,6 +1,6 @@
 // 畫畫遊戲塗色：先在暫存畫布做好、用區塊遮罩裁切後才合進顏色層；復原只存被改到的長方形範圍
-import { regionMask, regionAt, rectClamp, rectUnion, History } from "./draw-core.js?v=8";
-import { makeCanvas as mk } from "./draw-canvas.js?v=8";
+import { regionMask, regionAt, rectClamp, rectUnion, History } from "./draw-core.js?v=9";
+import { makeCanvas as mk } from "./draw-canvas.js?v=9";
 
 // 每種筆的筆跡最遠會離中心線幾倍半徑（即時層的重畫範圍要涵蓋到）；沒列的是 1 倍
 const REACH = { crayon: 1.3, watercolor: 1.25, spray: 1.75, neon: 1.7, sparkle: 1.75, pencil: 0.5, chalk: 1.2 };
@@ -148,7 +148,17 @@ export class Painter {
       w: Math.abs(x - a.x) + 2 * m, h: Math.abs(y - a.y) + 2 * m }, this.b.W, this.b.H);
     if (!seg) return;
     st.rect = rectUnion(st.rect, seg);
-    const L = this.b.lctx;
+    // 2) 即時層一幀只重畫一次：iPad 一次觸控事件會帶好幾個點、觸控又是每秒 120 次，
+    //    每個點都在大畫布上做一次裁切＋合成太重（Safari 尤其慢，畫面會跟不上手指）；先把範圍記下來，下一幀一起畫
+    st.dirty = rectUnion(st.dirty, seg);
+    if (!this.raf) this.raf = requestAnimationFrame(() => { this.raf = 0; this.flushLive(); });
+  }
+  // 把累積的範圍從暫存畫布合到即時層（整筆都在暫存畫布裡，重畫哪一塊結果都一樣）
+  flushLive() {
+    const st = this.st;
+    if (!st || !st.dirty) return;
+    const seg = st.dirty, o = st.o, L = this.b.lctx;
+    st.dirty = null;
     L.save();
     L.beginPath(); L.rect(seg.x, seg.y, seg.w, seg.h); L.clip();
     L.clearRect(seg.x, seg.y, seg.w, seg.h);
@@ -156,8 +166,10 @@ export class Painter {
     if (st.mask) { L.globalCompositeOperation = "destination-in"; L.drawImage(st.mask.canvas, st.mask.x, st.mask.y); }
     L.restore();
   }
+  stopFlush() { if (this.raf) { cancelAnimationFrame(this.raf); this.raf = 0; } }
 
   strokeEnd() {
+    this.stopFlush(); this.flushLive();   // 還沒畫上去的最後幾個點先補上
     const st = this.st;
     this.st = null;
     if (!st || !st.rect) return;
@@ -169,6 +181,7 @@ export class Painter {
 
   // 第二根手指放上來時取消剛開始的那一筆（不記復原）
   strokeCancel() {
+    this.stopFlush();
     const st = this.st;
     this.st = null;
     if (st && st.rect) this.b.lctx.clearRect(st.rect.x, st.rect.y, st.rect.w, st.rect.h);

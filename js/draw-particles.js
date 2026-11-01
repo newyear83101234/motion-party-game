@@ -14,7 +14,7 @@ export class Particles {
     this.ring = [];
   }
   fit() {
-    const r = this.stage.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+    const r = this.stage.getBoundingClientRect(), dpr = 1;   // 小亮點不需要高解析度；全螢幕畫布每幀重畫，像素少四倍 iPad 才跟得上
     const w = Math.round(r.width * dpr), h = Math.round(r.height * dpr);
     if (this.c.width !== w || this.c.height !== h) { this.c.width = w; this.c.height = h; }
     this.r = r; this.dpr = dpr;
