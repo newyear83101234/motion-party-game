@@ -7,7 +7,7 @@
 //     ⑥再點配送站＝選關對話框（12 格：第 1 關 3 星、第 2 關黃框、其他鎖著）⑦重玩第 1 關不再送禮
 //     ⑧換裝畫面：小花可以穿 ⑨存檔重開仍在 ⑩備份碼帶配送站進度 ⑪最後一關過了＝「選關」鈕、all＝1、彩虹披風進衣櫃
 //     ⑫全程 0 個 console error、新字都有注音 ⑬WebGL 要不到＝回小島 ⑭送完最後一件馬上按 🏠：存檔已更新（onSave）
-const { launch, openGame } = require("./lib");
+const { launch, openGame, goIsle } = require("./lib");
 const path = require("path"), fs = require("fs"), os = require("os");
 const SHOTS = process.env.DELIVER_GAME_SHOTS || path.join(os.tmpdir(), "zy-deliver-game");
 fs.mkdirSync(SHOTS, { recursive: true });
@@ -54,7 +54,7 @@ async function reopen(p) {
   const had帽子 = await p.evaluate(() => !!JSON.parse(localStorage.getItem("zy1_stickers"))["帽子"]);
 
   // ① 小島 → 彩虹島 → 配送站
-  await p.evaluate(() => document.getElementById("rainbowBtn").click()); await sleep(3600);
+  await goIsle(p, "rainbow"); await sleep(3600);
   await p.evaluate(() => { window.__spoken = []; });
   const sd = await tap3d(p, "deliver");
   const in1 = await inDeliver(p);

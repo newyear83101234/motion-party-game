@@ -213,6 +213,9 @@ for i, t in [("rb_open", "彩虹橋接好了！彩虹島開放囉！"), ("rb_her
 # ---- 11-01 v8 第二批 音樂島（照彩虹島：開放宣告、到了音樂島、還沒開；「再收集 N 張貼紙，音樂島就開放囉！」只顯示字不唸）----
 for i, t in [("mu_open", "音樂島開放囉！快去看看！"), ("mu_here", "這裡是音樂島！"), ("mu_locked", "收集更多貼紙，就能去音樂島囉！")]:
     must(t); add(i, t, "guide", "zhuyin.js civicEvent 音樂島（11-01 v8）")
+# ---- 11-03 首頁第二輪：每個存檔位第一次打開 🧭 地點面板，貓頭鷹教怎麼用（NAV_HI）----
+for i, t in [("nav_hi", "點一座島，就可以飛過去喔！")]:
+    must(t); add(i, t, "guide", "zhuyin.js NAV_HI（11-03）")
 
 # ---- 10-12 彩虹配送站 ----
 # 台詞都在 js/zhuyin-deliver.js 的 LINES 與 TASKS[].intro；商品名在 GOODS、禮物名在 GIFTS（跟 zhuyin-rewards.js 的 WEAR 同名）。

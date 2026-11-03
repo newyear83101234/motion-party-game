@@ -6,7 +6,7 @@
 //     ⑤卡片右上角 👗 開那一隻 ⑥回小島：寵物身上真的掛著剛穿的 ⑦彩虹島服裝店（貼紙 ≥20）→ 換裝 → 關掉還在彩虹島、身上換好
 //     ⑧扭蛋抽到配件：顯示配件圖＋「拿到X了！」、不會變成點心、存進衣櫃 ⑨家長頁機率＝RW.oddsText()（跟 GACHA_ODDS 一致）
 //     ⑩重開頁面穿著還在 ⑪備份碼還原後穿著還在 ⑫?no3d 也能從圖鑑換裝 ⑬全程 0 個 console error、新字都有注音
-const { launch, openGame } = require("./lib");
+const { launch, openGame, goIsle } = require("./lib");
 const path = require("path"), fs = require("fs"), os = require("os");
 const SHOTS = process.env.DRESS_GAME_SHOTS || path.join(os.tmpdir(), "zy-dress-game");
 fs.mkdirSync(SHOTS, { recursive: true });
@@ -132,7 +132,7 @@ const glCount = () => { window.__gl = { made: 0, lost: 0 }; const g = HTMLCanvas
     ok("⑥ 回小島：3D 小島上的小熊穿著花圈＋翅膀（場景裡掛在牠身上）", w6 && (await p.evaluate(() => window.__hub3d.running)), J(await worn(p, "bear")));
 
     // ⑦ 彩虹島服裝店
-    await p.evaluate(() => document.getElementById("rainbowBtn").click()); await sleep(3600);
+    await goIsle(p, "rainbow"); await sleep(3600);
     ok("⑦ 飛到彩虹島", (await p.evaluate(() => window.__hub3d.rainbow().place)) === "rainbow");
     const sr = await tap3d(p, "dress");
     const op7 = await dressOpen(p); await dReady(p);
@@ -141,7 +141,7 @@ const glCount = () => { window.__gl = { made: 0, lost: 0 }; const g = HTMLCanvas
     await p.click('.dr-pet[data-id="fox"]'); await dReady(p);
     await p.click('.dr-item[data-id="bow"]'); await dReady(p);  // 小狐狸：蝴蝶結
     await p.click(".dr-done"); await sleep(1200);
-    const st7 = await p.evaluate(() => ({ menu: !document.getElementById("menu").classList.contains("hidden"), place: window.__hub3d.rainbow().place, run: window.__hub3d.running, guide: !document.getElementById("guide").classList.contains("hidden"), rb: !document.getElementById("rainbowBtn").classList.contains("hidden") }));
+    const st7 = await p.evaluate(() => ({ menu: !document.getElementById("menu").classList.contains("hidden"), place: window.__hub3d.rainbow().place, run: window.__hub3d.running, guide: !document.getElementById("guide").classList.contains("hidden"), rb: getComputedStyle(document.getElementById("navBtn")).display !== "none" }));   // 11-01：地點鈕收進 🧭
     ok("⑦ 穿好了：回到小島選單、還在彩虹島（沒有被送回主島）、小島繼續渲染", st7.menu && st7.place === "rainbow" && st7.run && st7.guide && st7.rb, J(st7));
     ok("⑦ 音樂換回彩虹島的", (await want(p)) === "rainbow", await want(p));
     const w7 = await Promise.all([waitWorn(p, "bear", ["hat", "wings"]), waitWorn(p, "fox", ["bow"])]);

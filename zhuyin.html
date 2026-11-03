@@ -22,12 +22,12 @@
   </script>
   <!-- 自己的程式一開頁就同時抓（高優先）：不然要等 zhuyin.js 下載完才知道要抓 ann/words/ui，再等它跑起來才抓 hub3d，
        一層等一層，線上 4Mbps 實測多卡約 3 秒（tools/zy-test/loadprofile.js）。網址要跟實際 import 的完全一樣（含 ?v=） -->
-  <link rel="modulepreload" href="js/zhuyin.js?v=39" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin.js?v=41" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-words.js" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-ann.js?v=16" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-ui.js?v=16" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-ann.js?v=18" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-ui.js?v=18" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-voice.js?v=8" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=16" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=18" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-weather.js?v=5">
   <link rel="modulepreload" href="js/zhuyin-clock.js?v=1">
   <link rel="modulepreload" href="js/zhuyin-ocean.js?v=4">
@@ -51,7 +51,7 @@
     })();
   </script>
   <!-- 樣式表放在上面兩段 script 後面：classic script 會等前面的樣式表下載完才執行，放前面會卡住整頁解析 -->
-  <link rel="stylesheet" href="css/zhuyin.css?v=28">
+  <link rel="stylesheet" href="css/zhuyin.css?v=30">
   <link rel="stylesheet" href="css/zhuyin-bubble.css?v=3">
   <link rel="stylesheet" href="css/zhuyin-dress.css?v=1">
   <link rel="stylesheet" href="css/zhuyin-deliver.css?v=1">
@@ -64,7 +64,7 @@
   <link rel="stylesheet" href="css/zhuyin-home.css?v=1">   <!-- 10-31 v8 我的家：房子卡片、花園小舖、信件、錢包 -->
   <link rel="stylesheet" href="css/zhuyin-catch.css?v=1">   <!-- 11-01 v8 音符接接樂 -->
   <link rel="stylesheet" href="css/zhuyin-records.css?v=1">   <!-- 11-01 v8 音符唱片行：唱片牆 -->
-  <link rel="stylesheet" href="css/zhuyin-music.css?v=1">   <!-- 11-01 v8 音樂島：第三顆地點鈕 🎵、🗺️ 清單的音樂島那組（要排在 zhuyin.css 後面） -->
+  <link rel="stylesheet" href="css/zhuyin-music.css?v=2">   <!-- 11-01 v8 音樂島：🗺️ 清單的音樂島那組（要排在 zhuyin.css 後面） -->
 </head>
 <body class="gate-on">
   <!-- body.gate-on：開始畫面還沒按「開始玩」→ CSS 藏起小島浮標、嚮導、圓鈕（開始畫面只留一個標題、一顆按鈕） -->
@@ -82,22 +82,23 @@
     <button id="startBtn" class="big-btn sg-btn">▶️ 開始玩</button>
   </div>
 
-  <!-- 常駐按鈕（10-11 阿葉「上面左邊跟右邊的選項可以做收放」）：左上一排＝🏙️歸仁區（小孩用）＋「⋯」把手＋🏠🎵；右上一排＝🐻換人／⚙️家長設定＋「⋯」把手。
-       選單上 🏠🎵🐻⚙️（.fold）收在把手裡；遊戲裡把手不見、🏠🎵 跟以前一樣在左上 -->
+  <!-- 常駐按鈕（10-11 阿葉「上面左邊跟右邊的選項可以做收放」）：
+       左上＝小孩用的兩顆小圓鈕——🧭 去哪裡（地點面板 #navPanel，js/zhuyin.js navOpen）在最上面、🗺️ 全部遊戲在它下面（11-01 阿葉「一進來的畫面太複雜了」：
+       以前左上一欄的 🏙️歸仁區／🌈彩虹島／🎵音樂島收進 🧭）。
+       右上＝一顆「⋯」把手（11-01 第二輪：兩個「⋯」合成一顆），點了往下展開 🐻換人、⚙️家長設定（按住 2 秒）、🏠回首頁、🎵音樂（.fold；8 秒沒碰自動收）。
+       🏠🎵 平常放在左上（遊戲裡照舊在左上 2／16vmin）；回到選單時 js 把它們搬進右上「⋯」（showScreen） -->
   <div id="hudL" class="hud hud-l">
-    <button id="townBtn" class="round-btn hidden" title="歸仁區" aria-label="歸仁區"><span class="nav-ico">🏙️</span><span class="nav-new" aria-hidden="true">新</span></button>
-    <div id="townTag" class="player-tag town-tag hidden"><span class="nav-word">歸仁區</span></div>
-    <!-- 10-12 第二顆地點鈕：🌈 彩虹島（在 🏙️ 下面一排；人在彩虹島時變 🏝️ 回小島） -->
-    <button id="rainbowBtn" class="round-btn hidden" title="彩虹島" aria-label="彩虹島"><span class="nav-ico">🌈</span><span class="nav-new" aria-hidden="true">新</span></button>
-    <div id="rainbowTag" class="player-tag town-tag hidden"><span class="nav-word">彩虹島</span></div>
-    <!-- 11-01 第三顆地點鈕：🎵 音樂島（id 不能用 musicBtn：那是背景音樂開關）；橫式在 🌈 下面一排、直式跟另外兩顆同一排（css/zhuyin-music.css） -->
-    <button id="muIsleBtn" class="round-btn hidden" title="音樂島" aria-label="音樂島"><span class="nav-ico">🎵</span><span class="nav-new" aria-hidden="true">新</span></button>
-    <div id="muIsleTag" class="player-tag town-tag hidden"><span class="nav-word">音樂島</span></div>
-    <!-- 10-12 🗺️ 全部遊戲（小孩用）：跟地點鈕同一欄——橫式在 🌈 下面、直式在第三排最左邊 -->
+    <button id="navBtn" class="round-btn" title="去哪裡" aria-label="去哪裡" aria-expanded="false" aria-controls="navPanel"><span class="nav-ico">🧭</span><span class="nav-dot" aria-hidden="true"></span></button>
     <button id="mapBtn" class="round-btn" title="全部遊戲" aria-label="全部遊戲"><span class="nav-ico">🗺️</span></button>
-    <button id="hudLBtn" class="hud-handle" aria-label="更多按鈕" aria-expanded="false"><i></i><i></i><i></i></button>
     <button id="homeBtn" class="round-btn fold" title="回首頁">🏠</button>
     <button id="musicBtn" class="round-btn fold" title="音樂">🎵</button>
+    <!-- 地點面板：一行一座島（大按鈕）。.nav-rs＝「你在這裡」／「🔒 還差 N 張」（js 寫）；剛開的島那一行有「新」（🧭 上只有小紅點） -->
+    <div id="navPanel" class="nav-panel hidden" role="menu" aria-label="去哪裡">
+      <button class="nav-row" data-isle="main" role="menuitem"><span class="nav-ri">🏝️</span><span class="nav-rn">小島</span><span class="nav-rs"></span><span class="nav-new" aria-hidden="true">新</span></button>
+      <button class="nav-row" data-isle="town" role="menuitem"><span class="nav-ri">🏙️</span><span class="nav-rn">歸仁區</span><span class="nav-rs"></span><span class="nav-new" aria-hidden="true">新</span></button>
+      <button class="nav-row" data-isle="rainbow" role="menuitem"><span class="nav-ri">🌈</span><span class="nav-rn">彩虹島</span><span class="nav-rs"></span><span class="nav-new" aria-hidden="true">新</span></button>
+      <button class="nav-row" data-isle="music" role="menuitem"><span class="nav-ri">🎵</span><span class="nav-rn">音樂島</span><span class="nav-rs"></span><span class="nav-new" aria-hidden="true">新</span></button>
+    </div>
   </div>
   <button id="speakBtn" class="hint-btn hidden" title="提示"><span class="ic">🔊</span><span id="speakLabel">提示</span></button>
   <div id="hudR" class="hud hud-r">
@@ -105,7 +106,7 @@
     <div id="playerTag" class="player-tag fold">換人</div>
     <!-- 家長鎖：⚙️ 要按住 2 秒（進度環跑滿）才開；小孩點一下只會晃 -->
     <button id="settingsBtn" class="round-btn hidden fold" title="家長設定（按住 2 秒）"><span class="ic">⚙️</span><i class="lock-ring"></i></button>
-    <button id="hudRBtn" class="hud-handle" aria-label="家長按鈕" aria-expanded="false"><i></i><i></i><i></i></button>
+    <button id="hudRBtn" class="hud-handle" aria-label="更多按鈕" aria-expanded="false"><i></i><i></i><i></i></button>
   </div>
   <div id="lockTip" class="lock-tip noann hidden">家長請按住 2 秒</div>
 
@@ -145,15 +146,21 @@
       <!-- 11-01 v8 音符接接樂（音樂島露天音樂台）；音符唱片行不是遊戲，沒有卡片（從唱片行、DJ、留聲機開唱片牆） -->
       <button class="mode-card" data-mode="catch"><span class="big">🥁</span><span class="label">接接樂</span><span class="lock"></span></button>
     </div>
-    <div class="menu-bottom">
-      <button id="albumBtn" class="pill"><span>📒 貼紙</span><b id="menuStickers">0</b></button>
-      <button class="pill jarBtn"><span class="jar"><span class="jarFill"></span></span><span class="jarStar">⭐ <span class="jarText">0/10</span></span><span class="egg"><i class="eg-ico">🪙</i></span></button>
+    <!-- 11-01 頂端狀態列（阿葉「貼紙那排的數字可以列在最上方用比較小的圖示表示」；以前是左下一排大膠囊）：只有圖示＋數字（不用加注音的字）。
+         3D 小島：橫式在上面第一排正中間、直式在第二排 🧭🗺️ 右邊；卡片選單（沒有 3D）排在卡片下面（css/zhuyin.css .sb-bar） -->
+    <div id="statusBar" class="sb-bar">
+      <button id="albumBtn" class="sb-chip" aria-label="貼紙"><span class="sb-ico">📒</span><b id="menuStickers">0</b></button>
+      <!-- 星星罐：有扭蛋幣才出現（黃底 .ready）＝罐子水位＋🪙 幾枚；沒幣整格藏起來（11-01 第二輪：⭐ 只留給「我的星星」）。沒有 id：js 的 updateJar 用「沒有 id」分辨它跟結算畫面那顆 #hatchHint -->
+      <button class="sb-chip jarBtn" aria-label="星星罐"><span class="jar"><span class="jarFill"></span></span><span class="jarStar">⭐<span class="jarText">0/10</span></span><span class="egg"><i class="eg-ico">🪙</i></span></button>
       <!-- 10-31 v8「我的星星」錢包（陀螺、花園小舖共用；js/zhuyin.js walletSync）：花園小舖或陀螺競技場開了才出現；出現時星星罐不寫⭐數字（.no-star） -->
-      <button id="walletBtn" class="pill wallet hidden" aria-label="我的星星"><span>⭐</span><b id="walletN">0</b></button>
+      <button id="walletBtn" class="sb-chip wallet hidden" aria-label="我的星星"><span class="sb-ico">⭐</span><b id="walletN">0</b></button>
+      <!-- 10-12 小島同樂廣場（全島合作目標）：🎪；換週、新的一段還沒看＝格子右上角小紅點（閃 3 下就停） -->
+      <button id="plazaBtn" class="sb-chip" title="同樂廣場" aria-label="同樂廣場"><span class="nav-ico">🎪</span><span class="nav-dot" aria-hidden="true"></span></button>
+    </div>
+    <!-- 下面中間：偶爾才出現的提醒膠囊（✨ 進化！；唱片「▶ 聽整首」時 js/zhuyin-records.js 也把「♪ 正在放」膠囊放在這裡） -->
+    <div class="menu-bottom">
       <!-- v7 寵物進化：夥伴的進化能量集滿才出現（js/zhuyin.js evoSync）；點了看進化演出（js/zhuyin-evolve.js）。3D 小島上那隻頭上也會有發光的 ✨ -->
       <button id="evoBtn" class="pill evo-call hidden" aria-label="進化"><span class="ec-pet"><img alt=""></span><span class="ec-t">✨ 進化！</span></button>
-      <!-- 10-12 小島同樂廣場（全島合作目標）：🎪 圓鈕；直式 3D 小島時 zhuyin.js 會把它搬到上面第二排（歸仁區／彩虹島右邊） -->
-      <button id="plazaBtn" class="round-btn" title="同樂廣場" aria-label="同樂廣場"><span class="nav-ico">🎪</span><span class="nav-new" aria-hidden="true">新</span></button>
     </div>
   </section>
 
@@ -406,6 +413,6 @@
   <div id="flash" class="flash"></div>
 
   <div id="fx" class="fx"></div>
-  <script type="module" src="js/zhuyin.js?v=39"></script>
+  <script type="module" src="js/zhuyin.js?v=41"></script>
 </body>
 </html>

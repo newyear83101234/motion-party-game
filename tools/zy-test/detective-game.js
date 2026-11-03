@@ -8,7 +8,7 @@
 //     ⑥玩到一半按 🏠 回小島：畫面收乾淨、之後沒有殘留語音／延遲回呼（fired 不再增加）
 //     ⑦結算畫面版面（10-12 bug）：獎勵膠囊在左上（不是跑到最下面）、一顆一顆膠囊（國字不是各自一顆泡泡）、1024×768／768×1024／844×390 都在畫面裡、按鈕不被擋
 //     ⑧0 個 console error、新字都有注音
-const { launch, openGame } = require("./lib");
+const { launch, openGame, goIsle } = require("./lib");
 const path = require("path"), fs = require("fs"), os = require("os");
 const SHOTS = process.env.DETECTIVE_GAME_SHOTS || path.join(os.tmpdir(), "zy-detective-game");
 fs.mkdirSync(SHOTS, { recursive: true });
@@ -85,7 +85,7 @@ const resultLayout = p => p.evaluate(() => {
   await hubReady(p);
 
   // ① 小島 → 彩虹島 → 偵探社
-  await p.evaluate(() => document.getElementById("rainbowBtn").click()); await sleep(3800);
+  await goIsle(p, "rainbow"); await sleep(3800);
   const tag = await p.evaluate(() => { const t = document.querySelector(".hub-tag[data-mode=detective]"); return t && { rb: t.classList.contains("rb"), fresh: t.classList.contains("fresh"), open: t.classList.contains("open"), ico: t.querySelector(".ht-ico").textContent, word: t.querySelector(".ht-word").textContent.replace(/[ㄅ-ㄩˊˇˋ˙\s]/g, ""), disp: getComputedStyle(t).display, locked: t.classList.contains("locked") }; });
   ok("① 彩虹島上有偵探社浮標：🕵️「偵探社」、沒鎖、平常收成圓形圖示（10-12 晚起沒有「新」）", tag && tag.rb && !tag.fresh && !tag.open && tag.ico === "🕵️" && tag.word === "偵探社" && tag.disp !== "none" && !tag.locked, J(tag));
   const rbInfo = await p.evaluate(() => window.__hub3d.rainbow()), g = await p.evaluate(() => window.__hub3d.graph());

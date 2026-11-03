@@ -1,5 +1,5 @@
 // 🗺️ 全部遊戲清單測試（10-12 阿葉：「打開後原本的關卡名字都不見了，這樣會不知道還有哪些關卡」）：node tools/zy-test/gamelist.js
-// 驗：小島選單有 🗺️ 圓鈕（左上地點鈕那欄：橫式 🌈 下面、直式第三排；不跟其他按鈕打架）；點開＝全畫面清單，依「主島／歸仁區／彩虹島」分組、每張卡＝圖示＋名字（旁注音）＋星星或鎖；
+// 驗：小島選單有 🗺️ 圓鈕（左上 🧭 去哪裡那組：橫式 🧭 下面、直式第二排 🧭 右邊；不跟其他按鈕打架）；點開＝全畫面清單，依「主島／歸仁區／彩虹島」分組、每張卡＝圖示＋名字（旁注音）＋星星或鎖；
 //     點主島的卡＝清單關掉、鏡頭移到那棟、開它的介紹卡；點彩虹島的卡＝飛到彩虹島＋開介紹卡；還沒開的島（歸仁區 20 張時）：標題寫還差幾張、
 //     點了晃一下＋貓頭鷹說上鎖台詞、不飛過去；右上角 ✕／點暗處關掉；橫式（iPad 4:3、1180×820、1873×1014）清單不用捲就看得完、直式可以捲；
 //     卡片名字一行（短名字）；?no3d 沒有 🗺️；沒有錯誤、旁注音沒漏字
@@ -32,8 +32,8 @@ const fits = p => p.evaluate(() => { const d = document.querySelector("#games .d
   {
     const { ctx, p, errs } = await openGame(browser, { stickers: 20, stars: 25, eggs: 2, query: Q });
     await ready(p); await p.evaluate(() => { window.__hub3d.events(false); window.__zyB.best.fish = 3; window.__zyB.best.order = 1; }); await sleep(300);
-    const mb = await p.evaluate(() => { const b = document.getElementById("mapBtn"), r = b.getBoundingClientRect(), s = getComputedStyle(b), rb = document.getElementById("rainbowBtn").getBoundingClientRect(); return { parent: b.parentNode.id, shown: s.display !== "none" && s.visibility !== "hidden", r: [r.left, r.top, r.right, r.bottom].map(Math.round), rb: Math.round(rb.bottom), rbl: Math.round(rb.left) }; });
-    ok("橫式：🗺️ 圓鈕在左邊那欄 🌈 下面（跟地點鈕一起）、看得到", mb.parent === "hudL" && mb.shown && Math.abs(mb.r[0] - mb.rbl) <= 1 && mb.r[1] > mb.rb, JSON.stringify(mb));
+    const mb = await p.evaluate(() => { const b = document.getElementById("mapBtn"), r = b.getBoundingClientRect(), s = getComputedStyle(b), rb = document.getElementById("navBtn").getBoundingClientRect(); return { parent: b.parentNode.id, shown: s.display !== "none" && s.visibility !== "hidden", r: [r.left, r.top, r.right, r.bottom].map(Math.round), rb: Math.round(rb.bottom), rbl: Math.round(rb.left) }; });
+    ok("橫式：🗺️ 圓鈕在左邊那欄 🧭 下面（11-01 地點鈕收進 🧭）、看得到", mb.parent === "hudL" && mb.shown && Math.abs(mb.r[0] - mb.rbl) <= 1 && mb.r[1] > mb.rb, JSON.stringify(mb));
     await openList(p);
     ok("點 🗺️ → 打開全部遊戲清單", await listOn(p));
     const L = await listInfo(p);
@@ -72,8 +72,8 @@ const fits = p => p.evaluate(() => { const d = document.querySelector("#games .d
     await openList(p); await clickCard(p, "deliver");
     const on2 = await pickOn(p, "deliver"); await sleep(2800);
     const v2 = await p.evaluate(() => { const c = document.getElementById("pick").getBoundingClientRect(), s = window.__hub3d.screenOf("deliver"), t = window.__hub3d.tagRect("deliver");
-      return { place: window.__hub3d.place(), name: document.getElementById("pkName").textContent, top: Math.round(c.top), b: [Math.round(s.x), Math.round(s.y)], tag: [Math.round(t.x0), Math.round(t.y0), Math.round(t.x1), Math.round(t.y1)], btn: document.querySelector("#rainbowBtn .nav-ico").textContent }; });
-    ok("清單點「彩虹配送站」→ 飛到彩虹島、開配送站的介紹卡（🌈 鈕變 🏝️）", on2 && v2.place === "rainbow" && v2.name === "彩虹配送站" && v2.btn === "🏝️", JSON.stringify(v2));
+      return { place: window.__hub3d.place(), name: document.getElementById("pkName").textContent, top: Math.round(c.top), b: [Math.round(s.x), Math.round(s.y)], tag: [Math.round(t.x0), Math.round(t.y0), Math.round(t.x1), Math.round(t.y1)], btn: document.querySelector("#navPanel .nav-row.here").dataset.isle }; });
+    ok("清單點「彩虹配送站」→ 飛到彩虹島、開配送站的介紹卡（🧭 地點面板裡彩虹島變「你在這裡」）", on2 && v2.place === "rainbow" && v2.name === "彩虹配送站" && v2.btn === "rainbow", JSON.stringify(v2));
     ok("飛到彩虹島後：配送站（建築＋浮標）在卡片上面、畫面內", v2.b[1] < v2.top && v2.tag[3] < v2.top && v2.tag[1] > 0 && v2.tag[0] >= 0 && v2.tag[2] <= 1180 && v2.b[0] > 0 && v2.b[0] < 1180, JSON.stringify(v2));
     await shot(p, "gamelist-to-rainbow-1180x820");
     // 在彩虹島開清單點主島的釣魚 → 飛回主島＋釣魚的卡
@@ -103,11 +103,11 @@ const fits = p => p.evaluate(() => { const d = document.querySelector("#games .d
   for (const [w, h, st] of [[1024, 768, 40], [768, 1024, 40], [1873, 1014, 64], [390, 844, 40]]) {
     const { ctx, p, errs } = await openGame(browser, { w, h, stickers: st, stars: 25, query: Q });
     await ready(p); await p.evaluate(() => window.__hub3d.events(false));
-    const mb = await p.evaluate(() => { const b = document.getElementById("mapBtn"), r = b.getBoundingClientRect(), ids = ["hudLBtn", "hudRBtn", "townBtn", "townTag", "rainbowBtn", "rainbowTag", "muIsleBtn", "muIsleTag", "homeBtn", "musicBtn", "playerBtn", "playerTag", "settingsBtn", "plazaBtn", "resumeBtn"];
+    const mb = await p.evaluate(() => { const b = document.getElementById("mapBtn"), r = b.getBoundingClientRect(), ids = ["hudLBtn", "hudRBtn", "navBtn", "homeBtn", "musicBtn", "playerBtn", "playerTag", "settingsBtn", "statusBar", "resumeBtn"];
       const hit = ids.filter(id => { const e = document.getElementById(id); if (!e || getComputedStyle(e).display === "none") return false; const q = e.getBoundingClientRect(); return q.width && r.left < q.right && r.right > q.left && r.top < q.bottom && r.bottom > q.top; });
-      const pills = document.querySelector("#menu > .menu-bottom").getBoundingClientRect(); if (r.left < pills.right && r.right > pills.left && r.top < pills.bottom && r.bottom > pills.top) hit.push("膠囊");
+      const pills = document.querySelector("#menu > .menu-bottom").getBoundingClientRect(); if (pills.width && r.left < pills.right && r.right > pills.left && r.top < pills.bottom && r.bottom > pills.top) hit.push("進化膠囊");
       return { parent: b.parentNode.id, r: [r.left, r.top, r.right, r.bottom].map(Math.round), hit, inV: r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight, size: Math.round(r.width) }; });
-    ok(`${w}×${h}：🗺️ 在畫面內、≥ 44px、不跟其他按鈕／膠囊重疊（${w < h ? "直式在左上第三排" : "橫式在 🌈 下面"}）`, mb.inV && mb.size >= 44 && mb.hit.length === 0 && mb.parent === "hudL", JSON.stringify(mb));
+    ok(`${w}×${h}：🗺️ 在畫面內、≥ 44px、不跟其他按鈕／膠囊重疊（${w < h ? "直式在左上第二排 🧭 右邊" : "橫式在 🧭 下面"}）`, mb.inV && mb.size >= 44 && mb.hit.length === 0 && mb.parent === "hudL", JSON.stringify(mb));
     await openList(p);
     const fl = await fits(p), L = await listInfo(p);
     ok(`${w}×${h}：清單在畫面內${w < h ? "（直式可以上下捲）" : "、不用捲"}、每座島一組都在（${st} 張）`, fl.inV && (w < h || fl.scroll <= 2) && L.length === (await p.evaluate(() => window.__zy.hub.games().list.some(x => x.isle === "music")) ? 4 : 3), JSON.stringify({ fl, groups: L.map(g => g.isle + (g.locked ? "🔒" : "")) }));

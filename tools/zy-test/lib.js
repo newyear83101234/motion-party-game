@@ -63,9 +63,12 @@ async function enterMode(p, m, opt) {
   await p.waitForFunction(mm => !document.getElementById(mm).classList.contains("hidden") && document.getElementById("loading").classList.contains("hidden"), m, { timeout: 15000 });
   await p.waitForTimeout(500);
 }
-// 選單上方的家長按鈕（左＝🏠🎵、右＝🐻換人⚙️）平常收在「⋯」把手裡（10-11）：要量它們、用滑鼠點它們之前先展開（已展開就不動）
-async function hudOpen(p, side) {
-  await p.evaluate(s => { const b = document.getElementById("hud" + s); if (b && !b.classList.contains("open")) document.getElementById("hud" + s + "Btn").click(); }, side);
+// 選單上的家長按鈕（🐻換人⚙️🏠🎵）平常收在右上「⋯」把手裡（10-11；11-01 第二輪兩個「⋯」合成右上一顆，side 不用了）：要量它們、用滑鼠點它們之前先展開（已展開就不動）
+async function hudOpen(p) {
+  await p.evaluate(() => { const b = document.getElementById("hudR"); if (b && !b.classList.contains("open")) document.getElementById("hudRBtn").click(); });
   await p.waitForTimeout(300);   // 淡入 0.2 秒
 }
-module.exports = { launch, openGame, enterMode, hudOpen, URL, STICK20 };
+// 11-01 換島：以前是左上的 🏙️／🌈／🎵 地點鈕，現在收進 🧭「去哪裡」的地點面板（#navPanel）——這裡直接點那一行（面板收著也點得到）。
+// k＝main｜town｜rainbow｜music；點「你在這裡」那一行＝只收起面板、不動；還沒開的島＝晃一下＋貓頭鷹說上鎖台詞（不飛過去：要看上鎖的島用 window.__hub3d.goPlace）
+const goIsle = (p, k) => p.evaluate(k => document.querySelector(`#navPanel .nav-row[data-isle=${k}]`).click(), k);
+module.exports = { launch, openGame, enterMode, hudOpen, goIsle, URL, STICK20 };

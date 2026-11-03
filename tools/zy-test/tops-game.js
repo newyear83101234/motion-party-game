@@ -9,7 +9,7 @@
 //   ⑤b 下場扣了星星就重新整理頁面（iPad 分頁被回收）＝重開時退回（一般、免費那次都是；10-12 里維必修 2）；舊存檔（tickets／starsBank）自動換算成 stars
 //   ⑥送榜（攔截假後端）：全島榜＝後端公開前 5（不足用島上傳說補）；POST 只送 {k:"top", p}（text/plain）；pending／public（名次）／失敗安靜；家長關掉同樂廣場＝不送也不讀
 //   ⑦存檔重開仍在、備份碼還原仍在 ⑧新字都有注音、0 個 console error
-const { launch, URL } = require("./lib");
+const { launch, URL, goIsle } = require("./lib");
 const path = require("path"), fs = require("fs"), os = require("os");
 const SHOTS = process.env.TOPS_GAME_SHOTS || path.join(os.tmpdir(), "zy-tops-game");
 fs.mkdirSync(SHOTS, { recursive: true });
@@ -126,12 +126,12 @@ function mock(PZ) {
   {
     const { ctx, p, errs, net } = await openT(browser, { stickers: 40 });
     await hubReady(p);
-    await p.evaluate(() => document.getElementById("townBtn").click()); await sleep(3800);
+    await goIsle(p, "town"); await sleep(3800);
     const tag = await p.evaluate(() => { const t = document.querySelector(".hub-tag[data-mode=tops]"); return t && { civic: t.classList.contains("civic"), tw: t.classList.contains("tw"), fresh: t.classList.contains("fresh"), open: t.classList.contains("open"), ico: t.querySelector(".ht-ico").textContent, word: t.querySelector(".ht-word").textContent.replace(/[ㄅ-ㄩˊˇˋ˙\s]/g, ""), disp: getComputedStyle(t).display, vis: getComputedStyle(t).visibility, locked: t.classList.contains("locked") }; });
     ok("① 歸仁區有陀螺競技場浮標：🌀「陀螺競技場」、沒鎖、平常收成圓形圖示（10-12 晚起沒有「新」）", tag && tag.civic && tag.tw && !tag.fresh && !tag.open && tag.ico === "🌀" && tag.word === "陀螺競技場" && tag.disp !== "none" && tag.vis !== "hidden" && !tag.locked, J(tag));
     const tw = await p.evaluate(() => window.__hub3d.town()), g = await p.evaluate(() => window.__hub3d.graph());
     ok("① 競技場蓋好了、門口接到路網（整個路網連通、門口有 31 個：11-01 多了跑跑運動場、海洋館，再多音樂島的唱片行、音樂台）", J(tw.games) === J(["tops", "run", "grow"].map(mode => ({ mode, ready: true, locked: false, door: true }))) && g.components === 1 && g.doors.includes("tops") && g.doors.length === 31, J({ games: tw.games, comp: g.components, doors: g.doors.length }));
-    const vis = await p.evaluate(() => { const t = document.querySelector(".hub-tag[data-mode=tops]").getBoundingClientRect(); const ob = ["townBtn", "rainbowBtn", "plazaBtn", "hudLBtn", "hudRBtn"].map(id => document.getElementById(id).getBoundingClientRect()).concat([document.querySelector("#menu > .menu-bottom").getBoundingClientRect()]);
+    const vis = await p.evaluate(() => { const t = document.querySelector(".hub-tag[data-mode=tops]").getBoundingClientRect(); const ob = ["navBtn", "mapBtn", "statusBar", "hudRBtn"].map(id => document.getElementById(id).getBoundingClientRect());   // 11-01：🧭／🗺️、頂端狀態列（貼紙、星星罐、🎪）
       return { inV: t.left >= 0 && t.top >= 0 && t.right <= innerWidth && t.bottom <= innerHeight, hit: ob.some(o => t.left < o.right && t.right > o.left && t.top < o.bottom && t.bottom > o.top) }; });
     ok("① 競技場浮標在畫面裡、沒被按鈕擋到", vis.inV && !vis.hit, J(vis));
     await shot(p, "tops-town-fresh");
@@ -168,7 +168,7 @@ function mock(PZ) {
     await p.evaluate(() => { const b = document.querySelector(".tp-rbtns .tp-home"); if (b) b.click(); }); await sleep(1200);
     ok("② 結算按 🏝️ → 回小島", await p.evaluate(() => window.__zy.mode === null && !document.getElementById("menu").classList.contains("hidden")));
     // 剛玩過：歸仁區的浮標收成圖示；按住展開
-    await p.evaluate(() => document.getElementById("townBtn").click()); await sleep(3800);
+    await goIsle(p, "town"); await sleep(3800);
     const lod = await p.evaluate(() => window.__hub3d.lod());
     ok("② 玩過之後：競技場浮標還是圓形圖示", !lod.open.includes("tops") && !lod.sel, J(lod));
     await shot(p, "tops-town-icons");

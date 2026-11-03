@@ -3,7 +3,7 @@
 // 八個模式：釣魚 / 點餐 / 積木 / 尋寶 / 翻牌 / 聲調氣球 / 打地鼠 / 跳跳蛙（後兩個 2026-10-10 加）。長期動力：貼紙圖鑑（每個詞一張貼紙）＋星星罐孵蛋（解鎖朋友）。
 // 設計依據：櫻木花道（遊戲設計）＋寧次（UI/UX）2026-09-09 審查報告；規格見 memory project-zhuyin-game.md
 import { WORDS, PHRASES, CATS, FRIENDS } from "./zhuyin-words.js";
-import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js?v=16";
+import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js?v=18";
 import { voiceUnlock, voiceSay, voiceStop, voiceSpeaking, voicePreload, voiceCtx, voiceBind, voiceHas } from "./zhuyin-voice.js?v=8";
 import A from "./zhuyin-audio.js?v=5";               // 音訊引擎：一個 AudioContext、music／sfx／voice／ambience 四條 bus（docs/zhuyin-v5-plan.md §5）
 import * as RW from "./zhuyin-rewards.js?v=3";   // 獎勵系統（扭蛋機）純邏輯
@@ -800,7 +800,7 @@ const recUI = REC.createRecords({
 function openRecords() {
   if (mode || dressFrom || evoBusy || recUI.isOpen() || homeShowBusy || !$("menu") || $("menu").classList.contains("hidden")) return false;   // 只在小島選單開；升級演出／進化演出中不開
   PZ(() => { closeGames(); if (hub) hub.deselect(); hidePick(); homeUI.hideCard(); });   // 介紹卡、我的家卡片、🗺️ 清單收起來（一次只開一樣）
-  hudOpen("L", false); hudOpen("R", false); play("select");
+  hudOpen(false); play("select");
   recUI.open(); return true;
 }
 function homeItemTap(id) { if (id === "gramophone" && !homeUI.isOpen() && openRecords()) return; play(HOME_ITEM_SFX[id] || "pop"); }   // hub opts.onHomeItem（前院的裝飾被點）
@@ -850,21 +850,22 @@ function hasWebGL() {                                 // Three.js r163 起只支
   try { const gl = document.createElement("canvas").getContext("webgl2"); if (!gl) return false; const x = gl.getExtension("WEBGL_lose_context"); if (x) x.loseContext(); return true; } catch (e) { return false; }
 }
 function importHub() {
-  const url = "./zhuyin-hub3d.js?v=16";
+  const url = "./zhuyin-hub3d.js?v=18";
   if (window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports("importmap")) return import(url);
   return new Promise((ok, no) => {                    // 舊 iPad（iOS 16.3 以前）不支援 importmap → 補 es-module-shims 再載
     const s = document.createElement("script"); s.src = "IMAGE/zy3d/vendor/es-module-shims/es-module-shims.js";
     s.onload = () => window.importShim ? window.importShim(new URL(url, import.meta.url).href).then(ok, no) : no(new Error("no importShim")); s.onerror = no; document.head.appendChild(s);
   });
 }
-function hubFail(why) { console.warn("[hub3d] 退回卡片選單：", why); hub = null; document.body.classList.remove("hub3d"); document.body.classList.add("hub-off"); for (const id of PLACE_IDS) $(id).classList.add("hidden");
+function hubFail(why) { console.warn("[hub3d] 退回卡片選單：", why); hub = null; document.body.classList.remove("hub3d"); document.body.classList.add("hub-off"); navOpen(false);
   clearTimeout(wxTimer); weather = null; ocean = null; wxKind = null; if (wxSound) { try { wxSound.stop(); } catch (e) {} wxSound = null; wxAudioOn = false; } }   // 天氣跟著 3D 小島一起收（卡片選單不報天氣）
 function initHub() {
   if (/[?&]no3d\b/.test(location.search) || !hasWebGL()) { document.body.classList.add("hub-off"); return Promise.resolve(null); }   // hub-off：卡片選單才顯示背景圖
   let settled = false;                                 // （Three.js 已由 zhuyin.html 的 modulepreload 跟頁面一起開始抓）
   const ready = importHub().then(m => m.createHub({ host: $("menu"), onFriend: f => { play("tap"); say(f.name); }, onFail: hubFail, newbie: () => stickerCount() === 0,
     onGacha: () => { play("select"); openGacha(); },   // 獎勵系統（docs/zhuyin-rewards-spec.md）
-    stickers: stickerCount, onCivic: (k, info) => PZ(() => civicEvent(k, info)), onPlace: (p, open, st) => PZ(() => { placeButtons(p, st || { town: open }); if (!mode) { recUI.atPlace(p); playBgm(menuBgmKey(p)); } }),   // 換島＝換選單音樂（唱片「▶ 聽整首」放到一半換島＝結束、放那座島的）
+    played: m => { const d = save.stats && save.stats.days && save.stats.days[statsDay()]; return !!(d && d.plays && d.plays[m]); },   // 11-01 第二輪：今天玩過的遊戲，浮標不再輪流輕跳（家長頁的遊玩紀錄）
+    stickers: stickerCount, onCivic: (k, info) => PZ(() => civicEvent(k, info)), onPlace: (p, open, st) => PZ(() => { navSync(p, st || { town: open }); if (!mode) { recUI.atPlace(p); playBgm(menuBgmKey(p)); } }),   // 換島＝換選單音樂（唱片「▶ 聽整首」放到一半換島＝結束、放那座島的）
     onDress: () => PZ(() => { play("select"); openDress(save.rw.partner, "menu"); }),   // 10-12 寵物服裝店（彩虹島）→ 換裝畫面（先選夥伴）
     onEvolve: id => PZ(() => startEvolve(id)),          // v7 點頭上發光的 ✨（或點那隻寵物）＝看進化演出
     onPick: (m, info) => PZ(() => (m ? showPick(m, info) : hidePick())),   // 10-12 點一下建築＝介紹卡；收起來＝null
@@ -953,30 +954,51 @@ document.addEventListener("pointerdown", () => setTimeout(wxAudio, 50), { captur
   }, 28000 + Math.random() * 30000);
 })();
 
-// 地點鈕（10-12 起兩顆）：🏙️歸仁區、🌈彩虹島；人在哪座島，那顆就變 🏝️「回小島」（hub3d 的 opts.onPlace 通知）；還沒開的島名字後面加 🔒
-// 11-01 第三顆 🎵音樂島（id 用 muIsleBtn／muIsleTag：#musicBtn 已經是「背景音樂開關」）；新 CSS 在 css/zhuyin-music.css
-const PLACE_IDS = ["townBtn", "townTag", "rainbowBtn", "rainbowTag", "muIsleBtn", "muIsleTag"];
-const PLACE_BTN = { town: ["townBtn", "townTag", "🏙️", "歸仁區"], rainbow: ["rainbowBtn", "rainbowTag", "🌈", "彩虹島"], music: ["muIsleBtn", "muIsleTag", "🎵", "音樂島"] };
-function placeButtons(p, st = {}) {
-  for (const [k, [b, tg, ico, word]] of Object.entries(PLACE_BTN)) {
-    const here = p === k, open = st[k] !== undefined ? st[k] !== false : k === "music" ? stickerCount() >= musicNeed() : true;   // 3D 沒報音樂島（還沒接好）＝看貼紙張數
-    $(b).querySelector(".nav-ico").textContent = here ? "🏝️" : ico;
-    $(tg).querySelector(".nav-word").textContent = here ? "回小島" : open ? word : word + " 🔒";
-    $(b).setAttribute("aria-label", here ? "回小島" : word); $(b).title = here ? "回小島" : word; $(b).classList.toggle("back", here);
+// 11-01 地點收進 🧭「去哪裡」（阿葉「一進來的畫面太複雜了，歸仁區 彩虹島 音樂到那些可以縮起來」；以前是左上一欄 🏙️／🌈／🎵 三組「圓鈕＋小字」）：
+// 點 🧭 展開地點面板（#navPanel，一行一座島：🏝️小島、🏙️歸仁區、🌈彩虹島、🎵音樂島）——現在在的那座寫「你在這裡」（點了只收起來）；
+// 還沒開的寫「🔒 還差 N 張」（點了晃一下＋貓頭鷹說上鎖台詞，不飛過去，跟點遠方那座島一樣）；剛開的島那一行標「新」、🧭 上也有一個（到過那座島才拿掉）。
+// 點一座開了的島＝飛過去並收起；8 秒沒碰、點畫面其他地方、換畫面＝收起。現在在哪、哪些島開了＝hub3d 的 opts.onPlace 通知（navSync）
+const NAV_IDLE = 8000, NAV_LOCK = { town: "townLocked", rainbow: "rainbowLocked", music: "musicLocked" };
+const navSt = { place: "main", open: { main: true }, news: new Set(), t: 0 };
+const navNeed = k => (hub && hub.games && hub.games().need[k]) || { town: MODES.tops.need, rainbow: MODES.deliver.need, music: musicNeed() }[k] || 0;   // 3D 的 DIST_NEED／RAINBOW_NEED／MUSIC_NEED（3D 還沒接好＝那座島第一個遊戲要幾張）
+function navSync(p, st) { navSt.place = p || "main"; navSt.open = { main: true, ...st }; navPaint(); }
+function navPaint() {
+  const n = stickerCount();
+  for (const r of document.querySelectorAll("#navPanel .nav-row")) {
+    const k = r.dataset.isle, here = k === navSt.place, open = !!navSt.open[k], s = r.querySelector(".nav-rs");
+    const t = here ? "你在這裡" : open ? "" : `🔒 還差 ${Math.max(1, navNeed(k) - n)} 張`;
+    if (s.textContent !== t) s.textContent = t;          // 字一樣就不重寫（注音會重排）
+    r.classList.toggle("here", here); r.classList.toggle("locked", !open && !here); r.classList.toggle("news", navSt.news.has(k));
   }
+  $("navBtn").classList.toggle("news", navSt.news.size > 0);
 }
-// 「繼續玩」出現時 body 加 has-resume：橫式它放在 🌈 圓鈕右邊，「彩虹島」小字收起來（css/zhuyin.css）
-new MutationObserver(() => document.body.classList.toggle("has-resume", !$("resumeBtn").classList.contains("hidden"))).observe($("resumeBtn"), { attributes: true, attributeFilter: ["class"] });
-const goIsle = k => {
+function navNews(k, on) { if (on) navSt.news.add(k); else navSt.news.delete(k); navPaint(); }
+const navIsOpen = () => !$("navPanel").classList.contains("hidden");
+function navOpen(on) {
+  if (on && (!hub || mode)) on = false;
+  if (on) navPaint();                                  // 打開時重畫：貼紙張數可能變了（還差幾張）
+  $("navPanel").classList.toggle("hidden", !on); $("navBtn").setAttribute("aria-expanded", on ? "true" : "false");
+  clearTimeout(navSt.t); if (on) navSt.t = setTimeout(() => navOpen(false), NAV_IDLE);
+  requestAnimationFrame(navDodge);                     // 面板開／收：貓頭鷹對話框讓位或回原位
+}
+function navGo(k, row) {
   if (!hub) return;
-  if (k === "music" && !(hub.games && hub.games().open && "music" in hub.games().open)) { if (stickerCount() < musicNeed()) civicEvent("musicLocked", { need: musicNeed() }); return; }   // 3D 還沒有音樂島：只說還差幾張（不飛）
-  play("whoosh"); hub.goPlace(hub.place() === k ? "main" : k);   // 再按一次（變成 🏝️ 的那顆）＝回主島
-};
+  if (k === navSt.place) { play("tap"); navOpen(false); return; }
+  if (!navSt.open[k]) { row.classList.remove("shake"); void row.offsetWidth; row.classList.add("shake"); civicEvent(NAV_LOCK[k], { need: navNeed(k) }); if (navIsOpen()) navOpen(true); return; }   // 還沒開：面板留著（重新算 8 秒）
+  navOpen(false); play("whoosh"); hub.goPlace(k);
+}
+// 11-01 第二輪：每個存檔位第一次打開地點面板，貓頭鷹教一句怎麼用（記在 zy{存檔位}_navhi）
+const NAV_HI = "點一座島，就可以飛過去喔！";
+$("navBtn").onclick = () => { play("tap"); navOpen(!navIsOpen()); if (navIsOpen() && !lsGet(K("navhi"), 0)) { lsSet(K("navhi"), 1); guideSay(NAV_HI); } };
+for (const r of document.querySelectorAll("#navPanel .nav-row")) r.onclick = () => navGo(r.dataset.isle, r);
+$("navPanel").addEventListener("pointerdown", () => { if (navIsOpen()) navOpen(true); }, { capture: true, passive: true });   // 有在用：重新算 8 秒
+document.addEventListener("pointerdown", e => { if (navIsOpen() && !e.target.closest?.("#navPanel, #navBtn")) navOpen(false); }, { capture: true, passive: true });   // 點畫面其他地方（小島、狀態列、貓頭鷹）＝收起來
+if (location.search.includes("debug")) setTimeout(() => { if (window.__zy) Object.assign(window.__zy, { civicEvent, navOpen, navDodge }); }, 0);   // 測試用（tools/zy-test/hud.js：島剛開的「新」）
 
 // ---------- 小島介紹卡（10-12 阿葉：「點下去想看是哪些關卡時就直接進入了，沒辦法決定是不是要玩這關」）----------
 // 點一下建築／浮標（hub3d opts.onPick）→ 下面彈出介紹卡：大圖示、名字、一句「這裡玩什麼」、最佳星星（或關卡進度、扭蛋幣、陀螺星星）、
 // 鎖著＝「再收集 N 張貼紙」沒有開始鈕；「▶️ 開始玩」＝hub.start（跟同一棟再點一次一樣）；✕＝收起來。貓頭鷹唸名字。
-// 介紹卡開著：貓頭鷹（直式在下面）、左下膠囊（橫式在下面）先淡出（body.pick-on；位置照樣佔著，小島不重擺）
+// 介紹卡開著：貓頭鷹（直式在下面）、下面中間的「✨ 進化！」膠囊（橫式）先淡出（body.pick-on；位置照樣佔著，小島不重擺）
 let pickMode = null;
 const modeIco = m => (GAME_INFO[m] && GAME_INFO[m].ico) || document.querySelector(`.mode-card[data-mode=${m}] .big`)?.textContent || "🎮";
 const starRow = n => { const w = el("span", "pk-stars"); for (let i = 0; i < 3; i++) w.appendChild(el("i", i < n ? "on" : "", "⭐")); return w; };
@@ -1093,7 +1115,7 @@ function pickFromList(m, isle, open) {
 $("mapBtn").onclick = openGames;
 $("gamesClose").onclick = () => { play("select"); closeGames(); };
 $("games").addEventListener("click", e => { if (e.target === $("games")) closeGames(); });   // 點清單外面的暗處＝關
-// 🗺️ 在左上那組（#hudL，跟 🏙️／🌈 地點鈕同一欄）：橫式在 🌈 下面、直式在第三排最左邊（css/zhuyin.css）。
+// 🗺️ 在左上那組（#hudL，跟 🧭 去哪裡一起）：橫式在 🧭 下面、直式第二排 🧭 右邊（css/zhuyin.css）。
 // （試過放右上「⋯」旁邊：🐻 被擠往左，4:3 的「換人」小字會碰到「繼續玩」）
 // 彩虹配送站（mode "deliver"，10-12）：真的遊戲在「泡泡救援灣」段後面的 buildDeliver（卡片 .mode-card[data-mode=deliver]、畫面 #deliver／#deliverRoot）
 // 歸仁區（hub3d 的城市設施與事件）：唸設施名字、警笛／鐘聲、救火、救護；還沒蓋好 → 說還差幾張貼紙（阿葉 10-11）
@@ -1105,14 +1127,14 @@ function civicEvent(k, info = {}) {
     sick: who + "不舒服，救護車來了！", healed: who + "好了，謝謝醫生！" };
   if (k === "locked" || k === "townLocked") { play("select"); guideSay(`再收集 ${Math.max(1, info.need - stickerCount())} 張貼紙，${k === "locked" ? info.name : "歸仁區"}就蓋好囉！`, false); talk("收集更多貼紙，就能蓋好囉！"); return; }
   if (k === "rainbowLocked") { play("select"); guideSay(`再收集 ${Math.max(1, info.need - stickerCount())} 張貼紙，彩虹島就開放囉！`, false); talk("收集更多貼紙，就能去彩虹島囉！"); return; }   // 10-12 彩虹島還沒開（點橋、點島上的建築、按 🌈）
-  if (k === "rainbowOpen") { play("unlock"); $("rainbowBtn").classList.add("news"); guideSay("彩虹橋接好了！彩虹島開放囉！"); return; }
-  if (k === "rainbow") $("rainbowBtn").classList.remove("news");
+  if (k === "rainbowOpen") { play("unlock"); navNews("rainbow", true); guideSay("彩虹橋接好了！彩虹島開放囉！"); return; }   // 🧭 和地點面板那一行標「新」（到過才拿掉）
+  if (k === "rainbow") navNews("rainbow", false);
   if (k === "musicLocked") { play("select"); guideSay(`再收集 ${Math.max(1, (info.need || musicNeed()) - stickerCount())} 張貼紙，音樂島就開放囉！`, false); talk("收集更多貼紙，就能去音樂島囉！"); return; }   // 11-01 音樂島還沒開（點琴鍵橋、島上的建築、按 🎵）
-  if (k === "musicOpen") { play("unlock"); $("muIsleBtn").classList.add("news"); guideSay("音樂島開放囉！快去看看！"); return; }
-  if (k === "music") $("muIsleBtn").classList.remove("news");
+  if (k === "musicOpen") { play("unlock"); navNews("music", true); guideSay("音樂島開放囉！快去看看！"); return; }
+  if (k === "music") navNews("music", false);
   if (k === "spray") { play("pop", 0.7); return; }
-  if (k === "built" || k === "townOpen") { play("unlock"); $("townBtn").classList.add("news"); guideSay(k === "townOpen" ? "橋蓋好了！歸仁區開放囉！" : `歸仁區的${info.name}蓋好了！`); return; }
-  if (k === "town") $("townBtn").classList.remove("news");
+  if (k === "built" || k === "townOpen") { play("unlock"); navNews("town", true); guideSay(k === "townOpen" ? "橋蓋好了！歸仁區開放囉！" : `歸仁區的${info.name}蓋好了！`); return; }
+  if (k === "town") navNews("town", false);
   const line = LINES[k]; if (line === undefined) return;
   if (k === "police" || k === "fire" || k === "hospital" || k === "fireTap" || k === "sick") siren(k === "fireTap" ? "fire" : k === "sick" ? "hospital" : k);
   else if (k === "school") { bell(); PZ(schoolCard); }
@@ -1165,55 +1187,81 @@ function showScreen(id, keepIsle = false) {          // keepIsle：回選單但�
   const inGame = id in MODES; $("speakBtn").classList.toggle("hidden", !inGame || id === "match" || id === "deliver" || id === "detective" || id === "tops" || id === "tower" || id === "run" || id === "grow" || id === "catch");   // 接接樂：看注音的遊戲（不出聲）；Lv4 聽音題旗子上自己有 🔊（右上是音符進度）   // 泡泡：「再聽」＝再唸一次目前這顆的符號；配送站右上自己有 💡／🔊；偵探上面自己有「🔊 再聽一次」；陀螺不唸小孩打的字（沒有提示鈕）
   $("speakLabel").textContent = READING.has(id) ? "提示" : "再聽"; $("speakBtn").classList.remove("pulse");
   $("settingsBtn").classList.toggle("hidden", id !== "menu"); $("playerBtn").classList.toggle("hidden", id !== "menu");
-  for (const pid of PLACE_IDS) $(pid).classList.toggle("hidden", id !== "menu" || !hub);   // 地點鈕（歸仁區、彩虹島）：只在 3D 小島選單
+  navOpen(false);                                      // 🧭 地點面板：換畫面一律收起來（🧭 本身只在 3D 小島選單出現：css/zhuyin.css）
   $("progress").classList.toggle("hidden", !inGame || BOARD(id));
   $("guide").classList.toggle("hidden", id !== "menu");
-  document.body.classList.toggle("on-menu", id === "menu"); hudOpen("L", false); hudOpen("R", false);   // 換畫面：上方家長按鈕一律收起來（遊戲裡 🏠🎵 照常顯示）
+  document.body.classList.toggle("on-menu", id === "menu"); hudOpen(false);   // 換畫面：右上「⋯」一律收起來
+  { const host = id === "menu" ? $("hudR") : $("hudL"), ref = id === "menu" ? null : $("navPanel");   // 11-01 第二輪：🏠🎵 選單上收進右上「⋯」（排在 🐻⚙️ 後面）；遊戲裡回到左上（2／16vmin，跟以前一樣）
+    for (const b of [$("homeBtn"), $("musicBtn")]) if (b.parentNode !== host) host.insertBefore(b, ref); }
   if (hub) { if (id !== "menu") hub.hide(); else if (keepIsle && hub.resume) hub.resume(); else hub.show(); }   // 3D 小島只在選單畫面渲染（省電；換裝畫面開著也停）
   setTimeout(wxAudio, 0);                              // 天氣聲：只有選單有
 }
 function guideSay(text, speak = true) { owl.selfText = text; $("guideText").textContent = text; owlShow(speak); if (speak) talk(text); setTimeout(() => { owl.selfText = null; }, 0); }   // 標記只管這一次（下次別處寫一樣的字也要彈出）
 
-// ---------- 選單上方按鈕收合（阿葉 10-11「上面左邊跟右邊的選項可以做收放，不然畫面太雜亂了」）----------
-// 家長用的 🏠🎵（左）、🐻換人⚙️（右）收在兩個「⋯」把手裡：點把手展開，8 秒沒碰自動收回；開始玩後第一次進選單先展開 4 秒，讓家長知道在哪。
-// 收起來只是 visibility:hidden（位置還在）→ 3D 小島擺鏡頭時照樣避開它們：展開時不會蓋到浮標，小島也不會因為收放而跳動。
-const HUD_IDLE = 8000, HUD_TOUR = 4000, hudT = { L: 0, R: 0 };
-let hudToured = false;
-function hudOpen(side, on, ms = HUD_IDLE) {
-  const box = $("hud" + side), btn = $("hud" + side + "Btn"); if (!box) return;
-  box.classList.toggle("open", on); btn.setAttribute("aria-expanded", on ? "true" : "false");
-  clearTimeout(hudT[side]); if (on) hudT[side] = setTimeout(() => hudIdle(side), ms);
+// ---------- 選單上方按鈕收合（阿葉 10-11「上面左邊跟右邊的選項可以做收放，不然畫面太雜亂了」；11-01 第二輪兩個「⋯」合成右上一顆）----------
+// 家長用的 🐻換人、⚙️設定、🏠回首頁、🎵音樂收在右上「⋯」：點了往下展開一欄，8 秒沒碰自動收回；開始玩後第一次進選單先展開 4 秒，讓家長知道在哪。
+// 收起來＝看不到也點不到；展開時暫時蓋在小島上（跟 🧭 地點面板一樣，3D 擺鏡頭不用替它們留位子）。🏠🎵 只有選單上在這裡（showScreen 搬家）
+const HUD_IDLE = 8000, HUD_TOUR = 4000;
+let hudToured = false, hudT = 0;
+function hudOpen(on, ms = HUD_IDLE) {
+  $("hudR").classList.toggle("open", on); $("hudRBtn").setAttribute("aria-expanded", on ? "true" : "false");
+  clearTimeout(hudT); if (on) hudT = setTimeout(hudIdle, ms);
 }
-function hudIdle(side) {                               // 閒置時間到：家長還按著 ⚙️（2 秒家長鎖）就再等一下
-  if (lockHold) { hudT[side] = setTimeout(() => hudIdle(side), 1000); return; }
-  hudOpen(side, false);
+function hudIdle() {                                   // 閒置時間到：家長還按著 ⚙️（2 秒家長鎖）就再等一下
+  if (lockHold) { hudT = setTimeout(hudIdle, 1000); return; }
+  hudOpen(false);
 }
-function hudTour() { if (hudToured || !document.body.classList.contains("on-menu")) return; hudToured = true; hudOpen("L", true, HUD_TOUR); hudOpen("R", true, HUD_TOUR); }
-for (const side of ["L", "R"]) {
-  $("hud" + side + "Btn").onclick = () => { play("tap"); hudOpen(side, !$("hud" + side).classList.contains("open")); };
-  $("hud" + side).addEventListener("pointerdown", () => { if ($("hud" + side).classList.contains("open")) hudOpen(side, true); }, { capture: true, passive: true });   // 有在用：重新算 8 秒
-}
-document.addEventListener("pointerdown", e => {        // 點畫面其他地方（小島、膠囊、貓頭鷹）＝收起來；彈窗裡的點擊不算
+function hudTour() { if (hudToured || !document.body.classList.contains("on-menu")) return; hudToured = true; hudOpen(true, HUD_TOUR); }
+$("hudRBtn").onclick = () => { play("tap"); hudOpen(!$("hudR").classList.contains("open")); };
+$("hudR").addEventListener("pointerdown", () => { if ($("hudR").classList.contains("open")) hudOpen(true); }, { capture: true, passive: true });   // 有在用：重新算 8 秒
+document.addEventListener("pointerdown", e => {        // 點畫面其他地方（小島、狀態列、貓頭鷹）＝收起來；彈窗裡的點擊不算
   if (!document.body.classList.contains("on-menu") || e.target.closest?.(".overlay")) return;
-  for (const side of ["L", "R"]) if ($("hud" + side).classList.contains("open") && !$("hud" + side).contains(e.target)) hudOpen(side, false);
+  if ($("hudR").classList.contains("open") && !$("hudR").contains(e.target)) hudOpen(false);
 }, { capture: true, passive: true });
 
 // ---------- 貓頭鷹收起來（阿葉 10-11「貓頭鷹可以點選隱藏，或者提示完多久就消失，或者點一下就消失」）----------
-// 有新的話 → 彈出來；唸完再 4 秒（不出聲的話＝看字 4 秒＋每字 0.15 秒，再 4 秒）→ 對話框淡出、貓頭鷹縮成右下角的探頭。
+// 11-01 阿葉「貓頭鷹說完話的文字過2-3秒就會逐漸淡出消失」：有新的話 → 彈出來；講完（語音唸完；不出聲的話＝照字數估一句要講多久：1 秒＋每字 0.25 秒）
+// 再 2.5 秒 → 對話框的字花 0.8 秒淡出（.guide.owl-fade）→ 接著貓頭鷹縮成右下角的探頭（.fold）。淡出中又開口（排隊的下一句）、有新的話＝字馬上回來、重新計時。
 // 顯示中點貓頭鷹或對話框＝馬上收；點探頭＝彈出來再講一次。#guideText 的字一直留著（只用 class 藏），測試和重講都讀它。
 // 看不到的時候（開始畫面、遊戲中、彈窗開著）不算時間。
-const owl = { t0: 0, read: 0, quiet: 0, last: performance.now(), selfText: null };
+const OWL_HOLD = 2500, OWL_FADE = 800, owlEst = t => 1000 + 250 * t.length;   // owlEst：不出聲時估一句要講多久（預錄語音大約每秒 4 個字）
+const owl = { t0: 0, read: 0, quiet: 0, fade: 0, last: performance.now(), selfText: null };   // fade：開始淡出的時間（0＝還沒）
 function owlShow(speak) {
-  $("guide").classList.remove("fold"); owl.t0 = owl.quiet = performance.now();
-  owl.read = speak && save.talk ? 0 : 4000 + 150 * $("guideText").textContent.length;
+  $("guide").classList.remove("fold", "owl-fade"); owl.t0 = owl.quiet = performance.now(); owl.fade = 0;
+  owl.read = speak && save.talk ? 0 : owlEst($("guideText").textContent); owlFitSoon();
 }
-function owlFold() { $("guide").classList.add("fold"); }
+function owlFold() { $("guide").classList.remove("owl-fade"); $("guide").classList.add("fold"); owl.fade = 0; }
+// 11-01 第二輪：對話框縮到剛好包住字——換行後的框寬度＝最長那一行（不然 max-width 撐滿、右邊空一大塊）。
+// 做法：先用 max-width 自然換行量高度，再找「不會多換一行」的最窄寬度（注音是畫在字旁邊的，量字的範圍會漏掉它，所以直接試寬度）。
+// 換句話時在注音模組把字拆成小 span 之後（同一輪的 microtask）就量好，3D 擺鏡頭量到的是縮好的框；轉向時重量
+function owlFit() {
+  const t = $("guideText"); if (!t || $("guide").classList.contains("hidden")) return;
+  t.style.width = ""; const h0 = t.offsetHeight, w0 = t.offsetWidth; if (!h0 || !w0) return;
+  let lo = Math.min(w0, 40), hi = w0;
+  while (hi - lo > 3) { const mid = (lo + hi) / 2; t.style.width = mid + "px"; if (t.offsetHeight > h0 + 1) lo = mid; else hi = mid; }
+  t.style.width = hi < w0 - 3 ? Math.ceil(hi + 1) + "px" : "";
+}
+const owlFitSoon = () => { queueMicrotask(owlFit); requestAnimationFrame(() => { owlFit(); navDodge(); }); };   // rAF：字型晚到、第一次排版
+// 11-03 寧次：🧭 地點面板開著時貓頭鷹講話（第一次點 🧭 的教學、點上鎖的島），新手的面板每行都有「🔒 還差 N 張」比較寬，會蓋住對話框上半
+// → 量到有疊才把對話框往下讓到面板底下（最多讓到畫面底）；面板收起、換一句話都重算。用 style.translate：不改大小，3D 擺鏡頭量位置時扣回來（hub3d obstacles）
+function navDodge() {
+  const t = $("guideText"); if (!t) return;
+  t.style.translate = "";
+  if (!navIsOpen() || $("guide").classList.contains("hidden") || $("guide").classList.contains("fold")) return;
+  const P = $("navPanel"), o = P.offsetParent ? P.offsetParent.getBoundingClientRect() : { left: 0, top: 0 }, g = t.getBoundingClientRect();
+  const p = { left: o.left + P.offsetLeft, right: o.left + P.offsetLeft + P.offsetWidth, bottom: o.top + P.offsetTop + P.offsetHeight };   // 量排版大小：面板展開有 0.2 秒放大動畫，getBoundingClientRect 會量到還沒長大的
+  if (!g.width || g.left >= p.right || g.right <= p.left || g.top >= p.bottom + 6) return;
+  const dy = Math.min(p.bottom + 8 - g.top, innerHeight - 6 - g.bottom);
+  if (dy > 0) t.style.translate = `0 ${Math.round(dy)}px`;
+}
+addEventListener("resize", () => requestAnimationFrame(owlFit));
 setInterval(() => {
   const now = performance.now(), dt = Math.min(1000, now - owl.last), g = $("guide"); owl.last = now;
   if (g.classList.contains("fold")) return;
-  if (document.hidden || document.body.classList.contains("gate-on") || g.classList.contains("hidden") || document.querySelector(".overlay:not(.hidden)")) { owl.t0 += dt; owl.quiet += dt; return; }
-  if (talking()) owl.quiet = now;
-  if (now - owl.t0 >= owl.read + 4000 && now - owl.quiet >= 4000) owlFold();
+  if (document.hidden || document.body.classList.contains("gate-on") || g.classList.contains("hidden") || document.querySelector(".overlay:not(.hidden)")) { owl.t0 += dt; owl.quiet += dt; if (owl.fade) owl.fade += dt; return; }
+  if (talking()) { owl.quiet = now; if (owl.fade) { owl.fade = 0; g.classList.remove("owl-fade"); } }
+  if (owl.fade) { if (now - owl.fade >= OWL_FADE) owlFold(); return; }
+  if (now - owl.t0 >= owl.read + OWL_HOLD && now - owl.quiet >= OWL_HOLD) { owl.fade = now; g.classList.add("owl-fade"); }
 }, 250);
 // 別的地方直接改 #guideText（天氣播報、開場自我介紹）也算新的話；guideSay 自己寫的那次跳過（它已經處理過了）
 new MutationObserver(ms => { for (const m of ms) {
@@ -2397,7 +2445,7 @@ function renderDeliverPick() {
 // 第一次玩：教學交給模組唸（start({ intro:true })：卡片等教學講完才出來）；之後 intro:false（主程式本來就不唸開場語，見 SELF_INTRO）。
 // 答對一題（模組的 onCorrect）＝點心 +1、同樂廣場讀字週 +1；演出完（onWin）存檔 save.detective＝{ seen, best }，結算走共用 showResult（星星＝模組算的、點心再 +2、唸 WIN_TALK）。
 let detectiveMod = null, detectiveGame = null, detectiveRun = null, detectiveWinTalk = "", detectiveAdv = null;
-const importDetective = () => detectiveMod || (detectiveMod = import("./zhuyin-detective.js?v=10").catch(e => { detectiveMod = null; throw e; }));
+const importDetective = () => detectiveMod || (detectiveMod = import("./zhuyin-detective.js?v=12").catch(e => { detectiveMod = null; throw e; }));
 const DETECTIVE_FAIL = "偵探社現在打不開，等一下再試試看！";
 async function buildDetective() {
   const tok = navToken; let m;
@@ -3218,12 +3266,10 @@ function pzNews() {
   $("guideText").textContent = news[news.length - 1].text || news[news.length - 1].line;   // 對話框放短版（一句約兩行，不擋浮標）；改字＝貓頭鷹自動彈出來
   news.forEach((n, k) => setTimeout(() => { if (!mode) queueTalk(n.line); }, 700 + k * 50));   // 排隊：不切斷正在講的話（天氣／時段的那句先講）
 }
-// 🎪 放哪裡：橫式（或沒有 3D 的卡片選單）＝左下「貼紙／星星罐」那排第三顆；直式 3D 小島＝上面第二排（歸仁區／彩虹島右邊；左下那排已經滿了）
-function placePlazaBtn() {
-  const b = $("plazaBtn"), host = matchMedia("(orientation: portrait)").matches && document.body.classList.contains("hub3d") ? $("hudL") : document.querySelector("#menu > .menu-bottom");
-  if (host && b.parentNode !== host) host.appendChild(b);
-}
-{ const mq = matchMedia("(orientation: portrait)"), f = () => PZ(placePlazaBtn); if (mq.addEventListener) mq.addEventListener("change", f); else if (mq.addListener) mq.addListener(f); }
+// 🎪 在頂端狀態列（#statusBar）最後一格（11-01 起；以前橫式在左下膠囊那排、直式搬到上面第二排）
+// 11-01 下面中間的停靠列（#menu > .menu-bottom：✨進化膠囊、js/zhuyin-records.js 的「正在放」膠囊／迷你播放器）：量它的高度放進 CSS 變數 --zy-dock，
+// 橫式貓頭鷹對話框的底至少高過它（css/zhuyin.css .guideText），播放器出現時兩個不會疊在一起
+if (window.ResizeObserver) new ResizeObserver(es => { for (const e of es) document.documentElement.style.setProperty("--zy-dock", Math.round(e.target.getBoundingClientRect().height) + "px"); }).observe(document.querySelector("#menu > .menu-bottom"));
 function openPlaza() { if (!plaza.isOn()) return; play("select"); stopSpeech(); plaza.open(); }
 
 // ---------- 選單 ----------
@@ -3243,7 +3289,6 @@ function renderMenu() {
   if (wxFrom && wxFrom !== wxKind) { phasePending = ""; const t = wxLine(wxFrom); $("guideText").textContent = t; setTimeout(() => { if (!mode) queueTalk(t); }, 600); }   // 玩遊戲時天氣變了：回小島先說天氣（變回原樣就不說；同時換了時段只說天氣）
   else if (phFrom) { phasePending = ""; const t = pick(PHASE_LINES[phFrom]); $("guideText").textContent = t; setTimeout(() => { if (!mode) queueTalk(t); }, 600); }   // 玩遊戲時天黑了／天亮了：回小島說一句
   else { const total = stickerCount(); guideSay(total === 0 ? "你好！快來選遊戲玩吧！" : total < 5 ? "再收集幾張貼紙，就能開新遊戲喔！" : pick(["今天要玩哪個呢？", "貼紙越來越多了！", "來釣魚還是去尋寶？", ...(wxKind ? [WX_LINES[wxKind]] : [])]), false); }
-  PZ(placePlazaBtn);                                   // 🎪（10-12 同樂廣場）先放好位置，3D 小島擺鏡頭才會避開它
   if (hub) { hub.refresh(); hub.setPets(hubPets()); hub.setDecor(hubDecor()); }   // 3D 小島跟著更新：鎖頭、鏡頭擺位、島上走的寵物、扭蛋抽到的裝飾
   PZ(() => { pzSync(); if (!document.body.classList.contains("gate-on")) plaza.refresh(); });   // 同樂廣場：慶祝裝飾、小紅標、遊戲中累積的新消息（貓頭鷹）；回小島順便讀一次（30 秒內讀過就不讀）
   PZ(evoMenu);                                         // v7 寵物進化：能量滿＝選單的「✨ 進化！」膠囊＋貓頭鷹提醒（小島上那隻頭上的 ✨ 由 hubPets 的 ready 帶過去）
@@ -3294,9 +3339,6 @@ $("confirmRestart").onclick = () => { $("confirm").classList.add("hidden"); gRes
 $("resumeBtn").onclick = () => { const r = getResume(); if (!r) return; play("select"); if (r.mode === "match") startMode("match"); else startMode(r.mode, r); };
 $("playerBtn").onclick = () => { play("select"); openPlayers(); };
 $("playerTag").onclick = () => { play("select"); openPlayers(); };
-$("townBtn").onclick = $("townTag").onclick = () => goIsle("town");
-$("rainbowBtn").onclick = $("rainbowTag").onclick = () => goIsle("rainbow");   // 10-12 彩虹島
-$("muIsleBtn").onclick = $("muIsleTag").onclick = () => goIsle("music");      // 11-01 音樂島
 $("plazaBtn").onclick = openPlaza;                     // 10-12 小島同樂廣場
 $("matchPickClose").onclick = () => { play("select"); $("matchPick").classList.add("hidden"); };
 $("bubblePickClose").onclick = () => { play("select"); $("bubblePick").classList.add("hidden"); };

@@ -1,34 +1,6 @@
-/* 注音小島 v8 第二批：🎵 音樂島（docs/zhuyin-v8-plan.md §2）——主程式這一側的介面：第三顆地點鈕、🗺️ 清單的音樂島那組。
-   排在 css/zhuyin.css 後面載入（同樣權重時這裡的規則蓋過去）；css/zhuyin.css 本身不動（3D 那邊在改它的 hub-tag 規則）。
-   id 用 muIsleBtn／muIsleTag：#musicBtn 已經是「背景音樂開關」。 */
-
-/* 跟 🏙️／🌈 一樣：白底圓鈕＋右邊黏著小字；有新東西（.news）才出現「新」小紅標＋圖示輕跳 */
-#muIsleBtn { z-index: 2; }
-#muIsleBtn .nav-ico { display: inline-block; }
-#muIsleBtn.news .nav-ico { animation: navNudge 2.8s ease-in-out infinite; }
-#muIsleBtn.news .nav-new { display: block; }
-
-/* 橫式：地點鈕排成左邊一直欄——🏙️（第一排）、🌈（第二排）、🎵（第三排），🗺️ 往下挪到第四排。
-   「繼續玩」膠囊在第二排 🌈 右邊（left 16vmin），第三排沒有東西會碰到；🎪 在左下膠囊那排 */
-.hud-l > #muIsleBtn { position: absolute; left: 0; top: calc(100% + 16vmin); }
-.hud-l > #muIsleTag { position: absolute; left: 6vmin; top: calc(100% + 22vmin); transform: translateY(-50%); margin-left: 0; }
-.hud-l > #mapBtn { top: calc(100% + 30vmin); }   /* 原本在 🌈 下面一格（100%＋16vmin）→ 讓給 🎵 */
-
-/* 直式：第二排（🏙️歸仁區 🌈彩虹島 🎪）已經滿了（三組「圓鈕＋小字」加 🎪 要 115vmin 寬）→ 🎵音樂島放第三排、🗺️ 右邊；
-   「繼續玩」膠囊（原本跟 🗺️ 同一排）和貼紙那排一起往下讓一排 */
-@media (orientation: portrait) {
-  body.hub3d .hud-l > #muIsleBtn, body.hub3d .hud-l > #muIsleTag { order: 5; margin-top: 1.2vmin; }   /* 🗺️ 是 order 4（第三排最左邊） */
-  body.hub3d .hud-l > #muIsleBtn { position: relative; left: auto; top: auto; width: max(10vmin, 44px); height: max(10vmin, 44px); font-size: 5vmin; }
-  body.hub3d .hud-l > #muIsleTag { position: relative; left: auto; top: auto; transform: none; margin-left: -6vmin; padding: 1.3vmin 1.8vmin 1.3vmin 6.4vmin; }
-  body.hub3d #menu { padding-top: calc(19.4vmin + 2 * max(10vmin, 44px)); }   /* 原本 18.2vmin＋一排圓鈕（繼續玩在第三排）→ 多讓一排（＋1.2vmin 排距）：繼續玩在第四排 */
-  body.hub3d:not(.has-resume) #menu > .menu-bottom { margin-top: 2vmin; }   /* 第三排已經讓出來了，貼紙那排不用再往下讓 */
-}
-
-/* 11-01 櫻木：手機直式（窄）🎪 從第二排搬到第三排（🗺️🎵音樂島 右邊）——第二排「歸仁區 🔒」「彩虹島 🔒」帶鎖頭變長時，390 寬放不下三組，
-   🎪 擠到下一排、🗺️🎵 被推到第四排蓋到貼紙那排（「繼續玩」也被蓋）。iPad 直式（768／820 寬）第二排放得下，維持原樣（第三排變寬會讓 3D 小島擺位變差，hud.js P34 實測） */
-@media (orientation: portrait) and (max-width: 600px) {
-  body.hub3d #hudL > #plazaBtn { order: 6; }
-}
+/* 注音小島 v8 第二批：🎵 音樂島（docs/zhuyin-v8-plan.md §2）——主程式這一側的介面：🗺️ 清單的音樂島那組。
+   排在 css/zhuyin.css 後面載入（同樣權重時這裡的規則蓋過去）。
+   （11-01 晚：原本這裡的第三顆地點鈕 #muIsleBtn 跟 🏙️／🌈 一起收進 🧭「去哪裡」的地點面板，樣式在 css/zhuyin.css .nav-panel） */
 
 /* 🗺️ 全部遊戲清單：音樂島那組（唱片行、音符接接樂）跟歸仁區、彩虹島一樣 3 欄 */
 .gl-group[data-isle=music] .gl-grid { grid-template-columns: repeat(3, 1fr); }

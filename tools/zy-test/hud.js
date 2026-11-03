@@ -1,6 +1,6 @@
 // 選單介面清爽化測試（10-11）：node tools/zy-test/hud.js
-// 驗：上方家長按鈕（🏠🎵／🐻換人⚙️）收在「⋯」把手裡——開始玩先展開 4 秒再收、點把手展開、8 秒沒碰自動收回、有在按會重新計時、點別的地方收起、
-//     收起來位置照樣佔著（3D 小島避開）、⚙️ 按住 2 秒照樣開、🐻 換人照樣開；遊戲裡 🏠🎵 跟以前一樣（左上 2／16vmin、沒有把手）；
+// 驗：家長按鈕（🐻換人⚙️🏠🎵）收在右上一顆「⋯」裡（11-01 第二輪兩個合成一顆）——開始玩先展開 4 秒再收、點「⋯」往下展開、8 秒沒碰自動收回、有在按會重新計時、點別的地方收起、
+//     收起來看不到（3D 不替它們留位子）、⚙️ 按住 2 秒照樣開、🐻 換人照樣開；遊戲裡 🏠🎵 跟以前一樣（左上 2／16vmin、沒有把手）；
 //     貓頭鷹：不出聲的話看字時間＋4 秒收起、點一下馬上收、點探頭彈出來再講一次、唸完 4 秒收、有新的話（guideSay／天氣直接改字）自動彈出；
 //     星星罐有幣：整顆膠囊沒有動畫（不放大）、只有幣圖示在跳、星星和數字不動；🏙️ 白底、圖示不晃，有新東西才有加注音的「新」小紅標＋輕跳；
 //     橫式／直式／手機直式：上方兩排、繼續玩、膠囊、換人小字互不重疊也都在畫面內；
@@ -14,7 +14,7 @@ const Q = "debug&novoice&night=0&weather=sunny";
 const ready = p => p.waitForFunction(() => window.__hub3d && window.__hub3d.ready, null, { timeout: 20000 }).then(() => sleep(500), () => {});
 // 看得到＝visibility 不是 hidden、opacity > 0.9（收放動畫 0.2 秒，量之前都有等）
 const shown = (p, id) => p.evaluate(id => { const e = document.getElementById(id), s = getComputedStyle(e); return s.display !== "none" && s.visibility !== "hidden" && +s.opacity > 0.9; }, id);
-const isOpen = (p, side) => p.evaluate(s => document.getElementById("hud" + s).classList.contains("open"), side);
+const isOpen = p => p.evaluate(() => document.getElementById("hudR").classList.contains("open"));   // 11-01 第二輪：只剩右上一顆「⋯」
 const folded = p => p.evaluate(() => document.getElementById("guide").classList.contains("fold"));
 const center = (p, sel) => p.evaluate(s => { const r = document.querySelector(s).getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, sel);
 const FOLD = ["homeBtn", "musicBtn", "playerBtn", "playerTag", "settingsBtn"];
@@ -25,82 +25,118 @@ const opened = (p, m) => p.waitForFunction(m => { const t = document.querySelect
 
 (async () => {
   const browser = await launch();
-  // ===== 1. 橫式 iPad：把手收放、閒置自動收、家長鎖、換人 =====
+  // ===== 1. 橫式 iPad：右上「⋯」收放（11-01 第二輪：兩個「⋯」合成右上一顆、🏠🎵 搬進來）、閒置自動收、家長鎖、換人；左上 🧭／🗺️；🧭 地點面板 =====
   {
     const { ctx, p, errs } = await openGame(browser, { stickers: 64, stars: 47, query: Q });
     const t0 = Date.now();   // 開始玩之後約 0.3 秒
     await sleep(250);
-    const tour = await p.evaluate(() => ({ L: document.getElementById("hudL").classList.contains("open"), R: document.getElementById("hudR").classList.contains("open") }));
-    ok("開始玩後第一次進選單：左右兩組先展開", tour.L && tour.R, JSON.stringify(tour));
-    ok("展開時 🏠🎵🐻換人⚙️ 都看得到", (await Promise.all(FOLD.map(id => shown(p, id)))).every(Boolean));
-    let closedAt = 0; while (Date.now() - t0 < 8000) { if (!(await isOpen(p, "L")) && !(await isOpen(p, "R"))) { closedAt = Date.now() - t0 + 300; break; } await sleep(150); }
-    ok("約 4 秒後自己收起來（只剩把手）", closedAt > 3500 && closedAt < 5000, closedAt + "ms");
+    ok("開始玩後第一次進選單：右上「⋯」先展開", await isOpen(p));
+    ok("展開時 🐻換人⚙️🏠🎵 都看得到（選單上 🏠🎵 在右上這一欄）", (await Promise.all(FOLD.map(id => shown(p, id)))).every(Boolean) && await p.evaluate(() => ["homeBtn", "musicBtn"].every(id => document.getElementById(id).parentNode.id === "hudR")));
+    const col = await p.evaluate(() => { const R = id => document.getElementById(id).getBoundingClientRect(), ids = ["hudRBtn", "playerBtn", "settingsBtn", "homeBtn", "musicBtn"], rs = ids.map(R), tg = R("playerTag"), pb = R("playerBtn"), lt = document.getElementById("lockTip");
+      return { down: rs.every((r, i) => !i || r.top >= rs[i - 1].bottom - 1), right: rs.every(r => Math.abs(r.right - rs[0].right) < 2), tagLeft: tg.right <= pb.left + 1 && tg.top < pb.bottom && tg.bottom > pb.top, inView: rs.every(r => r.bottom <= innerHeight && r.left >= 0) }; });
+    ok("右上「⋯」往下展開一欄：⋯、🐻、⚙️、🏠、🎵 由上往下、右邊對齊、都在畫面內；「換人」小字在 🐻 左邊", col.down && col.right && col.tagLeft && col.inView, JSON.stringify(col));
+    let closedAt = 0; while (Date.now() - t0 < 8000) { if (!(await isOpen(p))) { closedAt = Date.now() - t0 + 300; break; } await sleep(150); }
+    ok("約 4 秒後自己收起來（只剩「⋯」）", closedAt > 3500 && closedAt < 5000, closedAt + "ms");
     await ready(p); await sleep(300);
-    const st = await p.evaluate(ids => ids.map(id => { const e = document.getElementById(id), s = getComputedStyle(e), r = e.getBoundingClientRect(); return { id, vis: s.visibility, w: Math.round(r.width) }; }), FOLD);
-    ok("收起來：家長按鈕看不到，但位置還佔著（3D 小島擺浮標照樣避開）", st.every(x => x.vis === "hidden" && x.w > 10), JSON.stringify(st));
-    ok("收起來：🏙️ 新市區、🌈 彩虹島、兩個把手、🗺️ 全部遊戲、貼紙、星星罐看得到", (await shown(p, "townBtn")) && (await shown(p, "townTag")) && (await shown(p, "rainbowBtn")) && (await shown(p, "rainbowTag")) && (await shown(p, "hudLBtn")) && (await shown(p, "hudRBtn")) && (await shown(p, "mapBtn")) && (await shown(p, "albumBtn")) && await p.evaluate(() => getComputedStyle(document.querySelector("#menu .jarBtn")).visibility === "visible"));
-    // 點把手展開（真的用滑鼠點）
-    let c = await center(p, "#hudLBtn"); await p.mouse.click(c.x, c.y); await sleep(300);
-    ok("點左邊把手：左邊展開（🏠🎵 出現）、右邊不動", (await isOpen(p, "L")) && !(await isOpen(p, "R")) && (await shown(p, "homeBtn")) && (await shown(p, "musicBtn")));
-    ok("展開時把手 aria-expanded=true", await p.evaluate(() => document.getElementById("hudLBtn").getAttribute("aria-expanded") === "true"));
+    const st = await p.evaluate(ids => ids.map(id => { const e = document.getElementById(id), s = getComputedStyle(e); return { id, disp: s.display }; }), FOLD);
+    ok("收起來：家長按鈕不顯示、不佔位置（展開時暫時蓋在小島上，3D 不替它們留位子）", st.every(x => x.disp === "none"), JSON.stringify(st));
+    ok("收起來：🧭 去哪裡、🗺️ 全部遊戲、右上「⋯」、頂端狀態列（貼紙、有幣的星星罐）看得到；左上的「⋯」拿掉了", (await shown(p, "navBtn")) && (await shown(p, "hudRBtn")) && (await shown(p, "mapBtn")) && (await shown(p, "statusBar")) && (await shown(p, "albumBtn")) && await p.evaluate(() => getComputedStyle(document.querySelector("#menu .jarBtn")).display !== "none" && !document.getElementById("hudLBtn")));
+    // 左上：🧭 在最左上（2vmin）、🗺️ 在它下面；兩顆 10vmin 小圓鈕、跟地點面板一樣的淡藍底＋藍框（跟島上的白色浮標分得出來）
+    const left = await p.evaluate(() => { const v = Math.min(innerWidth, innerHeight) / 100, n = document.getElementById("navBtn").getBoundingClientRect(), m = document.getElementById("mapBtn").getBoundingClientRect(), s = getComputedStyle(document.getElementById("navBtn"));
+      return { ids: [...document.querySelectorAll("#hudL > button")].filter(b => getComputedStyle(b).display !== "none" && getComputedStyle(b).visibility !== "hidden").map(b => b.id), nav: [n.left / v, n.top / v].map(x => +x.toFixed(1)), mapBelow: m.top >= n.bottom && Math.abs(m.left - n.left) < 1, size: [n.width / v, m.width / v].map(x => +x.toFixed(1)), bg: s.backgroundColor, border: s.borderTopColor, old: ["townBtn", "rainbowBtn", "muIsleBtn", "townTag", "hudLBtn"].filter(id => document.getElementById(id)) }; });
+    ok("左上只剩 🧭（在 2,2vmin）＋下面的 🗺️（10vmin 小圓鈕、淡藍底 #f3faff＋藍框 #9fcdf5）；舊的地點鈕、左邊的「⋯」都拿掉了", JSON.stringify(left.ids) === '["navBtn","mapBtn"]' && Math.abs(left.nav[0] - 2) < 0.3 && Math.abs(left.nav[1] - 2) < 0.3 && left.mapBelow && left.size.every(s => s > 9.5 && s < 10.5) && left.bg === "rgb(243, 250, 255)" && left.border === "rgb(159, 205, 245)" && left.old.length === 0, JSON.stringify(left));
+    // 點「⋯」展開（真的用滑鼠點）
+    let c = await center(p, "#hudRBtn"); await p.mouse.click(c.x, c.y); await sleep(300);
+    ok("點右上「⋯」：展開（🐻⚙️🏠🎵 出現）、aria-expanded=true", (await isOpen(p)) && (await shown(p, "homeBtn")) && (await shown(p, "musicBtn")) && (await shown(p, "settingsBtn")) && await p.evaluate(() => document.getElementById("hudRBtn").getAttribute("aria-expanded") === "true"));
     await sleep(6200);
-    ok("展開 6.5 秒還開著", await isOpen(p, "L"));
+    ok("展開 6.5 秒還開著", await isOpen(p));
     await sleep(2200);
-    ok("閒置約 8 秒自動收回", !(await isOpen(p, "L")), "");
+    ok("閒置約 8 秒自動收回", !(await isOpen(p)), "");
     // 有在按：重新計 8 秒
-    c = await center(p, "#hudLBtn"); await p.mouse.click(c.x, c.y); await sleep(5000);
+    c = await center(p, "#hudRBtn"); await p.mouse.click(c.x, c.y); await sleep(5000);
     await p.evaluate(() => document.getElementById("musicBtn").dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })));
     await sleep(5000);
-    ok("展開中有碰按鈕：重新計時（碰完 5 秒還開著）", await isOpen(p, "L"));
-    // 再點一次把手＝收起來
-    c = await center(p, "#hudLBtn"); await p.mouse.click(c.x, c.y); await sleep(300);
-    ok("再點一次把手：收起來", !(await isOpen(p, "L")));
+    ok("展開中有碰按鈕：重新計時（碰完 5 秒還開著）", await isOpen(p));
+    // 再點一次「⋯」＝收起來
+    c = await center(p, "#hudRBtn"); await p.mouse.click(c.x, c.y); await sleep(300);
+    ok("再點一次「⋯」：收起來", !(await isOpen(p)));
     // 點畫面別的地方＝收起來
     c = await center(p, "#hudRBtn"); await p.mouse.click(c.x, c.y); await sleep(300);
     await p.evaluate(() => document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })));
-    ok("點畫面其他地方：收起來", !(await isOpen(p, "R")));
-    // 家長鎖照舊：展開 → 按住 ⚙️ 2 秒才開
+    ok("點畫面其他地方：收起來", !(await isOpen(p)));
+    // 家長鎖照舊：展開 → 點一下只晃＋「家長請按住 2 秒」在 ⚙️ 左邊；按住 ⚙️ 2 秒才開
     c = await center(p, "#hudRBtn"); await p.mouse.click(c.x, c.y); await sleep(300);
     const g = await center(p, "#settingsBtn");
+    await p.evaluate(() => { const b = document.getElementById("settingsBtn"); b.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 })); b.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0 })); }); await sleep(250);   // 點一下（不送 click：debug 模式 click 會直接開設定）
+    const tip = await p.evaluate(() => { const t = document.getElementById("lockTip"), q = t.getBoundingClientRect(), s = document.getElementById("settingsBtn").getBoundingClientRect(), col = ["playerBtn", "settingsBtn", "homeBtn", "musicBtn"].map(id => document.getElementById(id).getBoundingClientRect());
+      return { shown: !t.classList.contains("hidden"), left: q.right <= s.left + 1, mid: Math.abs((q.top + q.bottom) / 2 - (s.top + s.bottom) / 2) < 6, clear: !col.some(r => q.left < r.right && q.right > r.left && q.top < r.bottom && q.bottom > r.top), settings: !document.getElementById("settings").classList.contains("hidden") }; });
+    ok("點一下 ⚙️：沒開設定、「家長請按住 2 秒」出現在 ⚙️ 左邊（不蓋到那一欄）", tip.shown && tip.left && tip.mid && tip.clear && !tip.settings, JSON.stringify(tip));
+    if (!(await isOpen(p))) { c = await center(p, "#hudRBtn"); await p.mouse.click(c.x, c.y); await sleep(300); }
     await p.mouse.move(g.x, g.y); await p.mouse.down(); await sleep(1000);
     ok("⚙️ 按住 1 秒：進度環在跑、還沒開", await p.evaluate(() => document.getElementById("settingsBtn").classList.contains("holding") && document.getElementById("settings").classList.contains("hidden")));
     await sleep(1300);
     ok("⚙️ 按住 2 秒：打開家長設定", await p.evaluate(() => !document.getElementById("settings").classList.contains("hidden")));
     await p.mouse.up(); await p.evaluate(() => document.getElementById("settingsClose").click()); await sleep(300);
     // 🐻 換人照舊（滑鼠點頭像、點「換人」小字）
-    if (!(await isOpen(p, "R"))) { c = await center(p, "#hudRBtn"); await p.mouse.click(c.x, c.y); await sleep(300); }
+    if (!(await isOpen(p))) { c = await center(p, "#hudRBtn"); await p.mouse.click(c.x, c.y); await sleep(300); }
     c = await center(p, "#playerBtn"); await p.mouse.click(c.x, c.y); await sleep(300);
     ok("展開後點 🐻：開換人", await p.evaluate(() => !document.getElementById("players").classList.contains("hidden")));
     await p.evaluate(() => document.getElementById("players").classList.add("hidden"));
-    if (!(await isOpen(p, "R"))) { c = await center(p, "#hudRBtn"); await p.mouse.click(c.x, c.y); await sleep(300); }
+    if (!(await isOpen(p))) { c = await center(p, "#hudRBtn"); await p.mouse.click(c.x, c.y); await sleep(300); }
     c = await center(p, "#playerTag"); await p.mouse.click(c.x, c.y); await sleep(300);
     ok("展開後點「換人」小字：開換人", await p.evaluate(() => !document.getElementById("players").classList.contains("hidden")));
     const pl = await p.evaluate(() => { document.querySelectorAll("#playerList .player")[0].click(); return 1; }); await sleep(500);
-    ok("選人回到選單：上方兩組收起來", pl && !(await isOpen(p, "L")) && !(await isOpen(p, "R")));
-    // 星星罐（有 4 枚幣）：整顆不放大、只有幣圖示跳、星星和數字不動
+    ok("選人回到選單：右上「⋯」收起來", pl && !(await isOpen(p)));
+    // 星星罐（有 4 枚幣）：整顆不放大、只有幣圖示跳、罐子不動；不寫 ⭐ 數字（⭐ 只留給「我的星星」）
     const jar = await p.evaluate(() => { const b = document.querySelector("#menu .jarBtn"), an = e => e.getAnimations().map(a => a.animationName || "?");
-      return { ready: b.classList.contains("ready"), pill: an(b), pillTf: getComputedStyle(b).transform, scale: getComputedStyle(b).scale, coin: an(b.querySelector(".eg-ico")), text: an(b.querySelector(".jarText")), jarIco: an(b.querySelector(".jar")), egg: b.querySelector(".egg").textContent }; });
-    ok("星星罐有幣：亮起來、顯示 🪙4", jar.ready && jar.egg === "🪙4", JSON.stringify(jar));
+      return { ready: b.classList.contains("ready"), shown: getComputedStyle(b).display !== "none", star: getComputedStyle(b.querySelector(".jarStar")).display, pill: an(b), pillTf: getComputedStyle(b).transform, scale: getComputedStyle(b).scale, coin: an(b.querySelector(".eg-ico")), jarIco: an(b.querySelector(".jar")), egg: b.querySelector(".egg").textContent }; });
+    ok("星星罐有幣：出現（黃底）、顯示 🪙4、不寫 ⭐ 幾顆", jar.ready && jar.shown && jar.egg === "🪙4" && jar.star === "none", JSON.stringify(jar));
     ok("星星罐有幣：整顆膠囊沒有動畫、沒有放大", jar.pill.length === 0 && jar.pillTf === "none" && (jar.scale === "none" || jar.scale === "1"), JSON.stringify(jar));
-    ok("星星罐有幣：只有幣圖示在跳，星星／數字／罐子不動", jar.coin.join() === "softHop" && jar.text.length === 0 && jar.jarIco.length === 0, JSON.stringify(jar));
-    // 🏙️ 新市區鈕：白底、圖示不晃；有新東西才 NEW＋輕跳
-    const town = await p.evaluate(() => { const b = document.getElementById("townBtn"), i = b.querySelector(".nav-ico"); return { bg: getComputedStyle(b).backgroundColor, ico: i.getAnimations().length, badge: getComputedStyle(b.querySelector(".nav-new")).display, after: getComputedStyle(b, "::after").content }; });
-    ok("🏙️ 白底（跟其他圓鈕一樣）、圖示不晃、沒有「新」小紅標", /^rgba?\(255, 255, 255/.test(town.bg) && town.ico === 0 && town.badge === "none" && (town.after === "none" || town.after === "normal"), JSON.stringify(town));
-    const town2 = await p.evaluate(() => { const b = document.getElementById("townBtn"); b.classList.add("news"); return new Promise(r => requestAnimationFrame(() => { const n = b.querySelector(".nav-new"), s = getComputedStyle(n), q = n.getBoundingClientRect(), ac = n.querySelector(".ac");
-      r({ ico: b.querySelector(".nav-ico").getAnimations().map(a => a.animationName), shown: s.display !== "none", text: n.textContent, zhuyin: ac ? ac.dataset.z : null, fs: +(parseFloat(s.fontSize) / (Math.min(innerWidth, innerHeight) / 100)).toFixed(2), bg: s.backgroundColor, color: s.color, inView: q.top >= 0 && q.left >= 0 }); })); });
-    ok("🏙️ 有新東西：加注音的「新」小紅標（字 ≥4.6vmin、白字 #cf3030 底＝對比 5.1:1、在畫面內）＋圖示輕跳", town2.shown && town2.text === "新" && town2.zhuyin === "ㄒㄧㄣ" && town2.fs >= 4.6 && town2.bg === "rgb(207, 48, 48)" && town2.color === "rgb(255, 255, 255)" && town2.inView && town2.ico.includes("navNudge"), JSON.stringify(town2));
-    await p.evaluate(() => document.getElementById("townBtn").classList.remove("news"));
-    // 遊戲裡：🏠🎵 跟以前一樣、沒有把手
+    ok("星星罐有幣：只有幣圖示在跳，罐子不動", jar.coin.join() === "softHop" && jar.jarIco.length === 0, JSON.stringify(jar));
+    // 🧭 去哪裡：圖示不晃；剛開了一座島＝右上角內側一顆小紅點（閃 3 下就停），「新」字只在面板那一行
+    const town = await p.evaluate(() => { const b = document.getElementById("navBtn"), i = b.querySelector(".nav-ico"); return { ico: i.getAnimations().length, dot: getComputedStyle(b.querySelector(".nav-dot")).display, txt: b.textContent.includes("新") }; });
+    ok("🧭 平常：圖示不晃、沒有小紅點、上面沒有「新」字", town.ico === 0 && town.dot === "none" && !town.txt, JSON.stringify(town));
+    const town2 = await p.evaluate(() => { window.__zy.civicEvent("rainbowOpen"); const b = document.getElementById("navBtn"); return new Promise(r => requestAnimationFrame(() => { const n = b.querySelector(".nav-dot"), s = getComputedStyle(n), q = n.getBoundingClientRect(), br = b.getBoundingClientRect(), row = document.querySelector("#navPanel .nav-row[data-isle=rainbow]"), rn = row.querySelector(".nav-new"), ac = rn.querySelector(".ac");
+      r({ news: b.classList.contains("news"), row: row.classList.contains("news"), rowNew: getComputedStyle(rn).display !== "none" && rn.textContent === "新" && (!ac || ac.dataset.z === "ㄒㄧㄣ"), shown: s.display !== "none", size: +(q.width / (Math.min(innerWidth, innerHeight) / 100)).toFixed(2), inside: q.left >= br.left && q.right <= br.right && q.top >= br.top && q.bottom <= br.bottom, blink: s.animationIterationCount, bg: s.backgroundColor }); })); });
+    ok("彩虹島剛開：🧭 右上角內側一顆小紅點（約 2.2vmin、閃 3 下＝6 次來回就停），面板裡彩虹島那一行有加注音的「新」", town2.news && town2.row && town2.rowNew && town2.shown && town2.size > 1.8 && town2.size < 2.6 && town2.inside && town2.blink === "6", JSON.stringify(town2));
+    // 🧭 地點面板（真的用滑鼠點）：從 🧭 下面展開、一行一座島、現在在的寫「你在這裡」；第一次打開貓頭鷹教一句；點別的地方收起；點一座開了的島＝飛過去並收起；到過那座島紅點就拿掉
+    await p.evaluate(() => { window.__spoken = []; });
+    c = await center(p, "#navBtn"); await p.mouse.click(c.x, c.y); await sleep(400);
+    const np = await p.evaluate(() => { const P = document.getElementById("navPanel"), q = P.getBoundingClientRect(), b = document.getElementById("navBtn").getBoundingClientRect();
+      return { open: !P.classList.contains("hidden"), exp: document.getElementById("navBtn").getAttribute("aria-expanded"), rows: [...P.querySelectorAll(".nav-row")].map(r => r.dataset.isle + ":" + r.querySelector(".nav-rn").textContent.replace(/[ㄅ-ㄩˊˇˋ˙\s]/g, "") + ":" + r.querySelector(".nav-rs").textContent.replace(/[ㄅ-ㄩˊˇˋ˙\s]/g, "") + (r.classList.contains("here") ? ":here" : "")),
+        rowH: Math.min(...[...P.querySelectorAll(".nav-row")].map(r => r.getBoundingClientRect().height)), inView: q.left >= 0 && q.top >= 0 && q.right <= innerWidth && q.bottom <= innerHeight, below: q.top >= b.bottom - 1 && Math.abs(q.left - b.left) < 2,
+        hi: document.getElementById("guideText").textContent, said: (window.__spoken || []).map(s => s.text), mark: localStorage.getItem("zy1_navhi") }; });
+    ok("點 🧭：地點面板從 🧭 下面展開（小島＝你在這裡、歸仁區、彩虹島、音樂島；一行 ≥52px 的大按鈕、在畫面內）", np.open && np.exp === "true" && JSON.stringify(np.rows) === '["main:小島:你在這裡:here","town:歸仁區:","rainbow:彩虹島:","music:音樂島:"]' && np.rowH >= 52 && np.inView && np.below, JSON.stringify(np));
+    ok("第一次打開地點面板：貓頭鷹說「點一座島，就可以飛過去喔！」（記在這個存檔位）", np.hi === "點一座島，就可以飛過去喔！" && np.said.includes("點一座島，就可以飛過去喔！") && np.mark === "1", JSON.stringify({ hi: np.hi, said: np.said, mark: np.mark }));
+    await p.mouse.click(5, (await p.evaluate(() => innerHeight)) - 5); await sleep(300);
+    ok("點畫面其他地方：面板收起來", await p.evaluate(() => document.getElementById("navPanel").classList.contains("hidden") && document.getElementById("navBtn").getAttribute("aria-expanded") === "false"));
+    await p.evaluate(() => { window.__spoken = []; });
+    c = await center(p, "#navBtn"); await p.mouse.click(c.x, c.y); await sleep(6800);
+    ok("第二次打開：貓頭鷹不再教", !(await p.evaluate(() => (window.__spoken || []).some(s => s.text.includes("點一座島")))));
+    ok("面板開著 7 秒還在", await p.evaluate(() => !document.getElementById("navPanel").classList.contains("hidden")));
+    await sleep(1800);
+    ok("8 秒沒碰：面板自己收起來", await p.evaluate(() => document.getElementById("navPanel").classList.contains("hidden")));
+    c = await center(p, "#navBtn"); await p.mouse.click(c.x, c.y); await sleep(400);
+    c = await center(p, "#navPanel .nav-row[data-isle=rainbow]"); await p.mouse.click(c.x, c.y); await sleep(3600);
+    const went = await p.evaluate(() => ({ place: window.__hub3d.place(), closed: document.getElementById("navPanel").classList.contains("hidden"), news: document.getElementById("navBtn").classList.contains("news"), row: document.querySelector("#navPanel .nav-row[data-isle=rainbow]").classList.contains("news"), here: document.querySelector("#navPanel .nav-row.here").dataset.isle }));
+    ok("點彩虹島那一行：飛到彩虹島、面板收起、紅點和「新」拿掉、面板裡彩虹島變「你在這裡」", went.place === "rainbow" && went.closed && !went.news && !went.row && went.here === "rainbow", JSON.stringify(went));
+    c = await center(p, "#navBtn"); await p.mouse.click(c.x, c.y); await sleep(400);
+    c = await center(p, "#navPanel .nav-row[data-isle=rainbow]"); await p.mouse.click(c.x, c.y); await sleep(500);
+    ok("點「你在這裡」那一行：只收起面板、不動", await p.evaluate(() => window.__hub3d.place() === "rainbow" && document.getElementById("navPanel").classList.contains("hidden")));
+    c = await center(p, "#navBtn"); await p.mouse.click(c.x, c.y); await sleep(400);
+    c = await center(p, "#navPanel .nav-row[data-isle=main]"); await p.mouse.click(c.x, c.y); await sleep(3600);
+    ok("點「小島」那一行：回主島", await p.evaluate(() => window.__hub3d.place() === "main" && document.querySelector("#navPanel .nav-row.here").dataset.isle === "main"));
+    // 遊戲裡：🏠🎵 回到左上（跟以前一樣）、沒有把手
     await enterMode(p, "fish");
     const gm = await p.evaluate(() => { const v = Math.min(innerWidth, innerHeight) / 100, R = id => document.getElementById(id).getBoundingClientRect(), vis = id => getComputedStyle(document.getElementById(id)).visibility;
-      return { home: [R("homeBtn").left / v, R("homeBtn").top / v].map(x => +x.toFixed(1)), music: [R("musicBtn").left / v, R("musicBtn").top / v].map(x => +x.toFixed(1)), hv: vis("homeBtn"), mv: vis("musicBtn"),
-        handles: ["hudLBtn", "hudRBtn"].map(id => getComputedStyle(document.getElementById(id)).display), speak: getComputedStyle(document.getElementById("speakBtn")).display }; });
-    ok("遊戲裡：🏠 在左上 (2,2)vmin、🎵 在 (16,2)vmin、看得到；把手不見；🔊 提示在", Math.abs(gm.home[0] - 2) < 0.2 && Math.abs(gm.home[1] - 2) < 0.2 && Math.abs(gm.music[0] - 16) < 0.2 && gm.hv === "visible" && gm.mv === "visible" && gm.handles.every(d => d === "none") && gm.speak !== "none", JSON.stringify(gm));
-    ok("遊戲裡：🗺️ 全部遊戲收起來", await p.evaluate(() => getComputedStyle(document.getElementById("mapBtn")).display === "none"));
+      return { home: [R("homeBtn").left / v, R("homeBtn").top / v].map(x => +x.toFixed(1)), music: [R("musicBtn").left / v, R("musicBtn").top / v].map(x => +x.toFixed(1)), hv: vis("homeBtn"), mv: vis("musicBtn"), parent: document.getElementById("homeBtn").parentNode.id + "," + document.getElementById("musicBtn").parentNode.id,
+        handle: getComputedStyle(document.getElementById("hudRBtn")).display, speak: getComputedStyle(document.getElementById("speakBtn")).display }; });
+    ok("遊戲裡：🏠 在左上 (2,2)vmin、🎵 在 (16,2)vmin、看得到；把手不見；🔊 提示在", Math.abs(gm.home[0] - 2) < 0.2 && Math.abs(gm.home[1] - 2) < 0.2 && Math.abs(gm.music[0] - 16) < 0.2 && gm.hv === "visible" && gm.mv === "visible" && gm.parent === "hudL,hudL" && gm.handle === "none" && gm.speak !== "none", JSON.stringify(gm));
+    ok("遊戲裡：🧭、🗺️ 收起來", await p.evaluate(() => ["navBtn", "mapBtn"].every(id => getComputedStyle(document.getElementById(id)).display === "none")));
     c = await center(p, "#homeBtn"); await p.mouse.click(c.x, c.y); await sleep(300);
     ok("遊戲裡點 🏠：跳暫停", await p.evaluate(() => !document.getElementById("confirm").classList.contains("hidden")));
     await p.evaluate(() => document.getElementById("confirmYes").click()); await sleep(800);
-    ok("回選單：家長按鈕收著", !(await isOpen(p, "L")) && !(await shown(p, "homeBtn")));
+    ok("回選單：🏠🎵 回到右上「⋯」裡、收著", !(await isOpen(p)) && !(await shown(p, "homeBtn")) && await p.evaluate(() => document.getElementById("homeBtn").parentNode.id === "hudR"));
     ok("沒有錯誤（把手段）", errs.length === 0, errs.join(" | "));
     await ctx.close();
   }
@@ -112,12 +148,18 @@ const opened = (p, m) => p.waitForFunction(m => { const t = document.querySelect
     await p.evaluate(() => window.__hub3d.events(false));   // 關掉新市區隨機失火／生病（不然貓頭鷹會突然插話「失火了」，蓋掉要驗的那句）
     await p.evaluate(() => document.getElementById("homeBtn").click()); await sleep(100);   // 選單上按 🏠＝重畫選單 → 貓頭鷹說一句不出聲的招呼（從這裡開始計時）
     const txt = await p.evaluate(() => document.getElementById("guideText").textContent);
-    const readMs = 4000 + 150 * txt.length + 4000;   // 不出聲：看字 4 秒＋每字 0.15 秒，再 4 秒
-    await sleep(readMs - 1500 - 100);
-    ok(`不出聲的話：看字時間內還在（${(readMs / 1000).toFixed(1)} 秒才收）`, !(await folded(p)), txt);
-    await sleep(1500 + 900);
+    // 11-01 阿葉「說完話的文字過2-3秒就會逐漸淡出消失」：不出聲＝照字數估講多久（1 秒＋每字 0.25 秒），再 2.5 秒字開始淡出（0.8 秒），淡完才縮成探頭
+    const fadeAt = 1000 + 250 * txt.length + 2500;
+    const ow = () => p.evaluate(() => { const g = document.getElementById("guide"), t = document.getElementById("guideText"); return { fade: g.classList.contains("owl-fade"), fold: g.classList.contains("fold"), op: +(+getComputedStyle(t).opacity).toFixed(2) }; });
+    await sleep(fadeAt - 700 - 100);
+    let o = await ow();
+    ok(`不出聲的話：估的講話時間＋2.5 秒內字還在、不透明（${(fadeAt / 1000).toFixed(1)} 秒才淡出）`, !o.fade && !o.fold && o.op === 1, txt + " " + JSON.stringify(o));
+    await sleep(700 + 450);
+    o = await ow();
+    ok("時間到：字慢慢淡出（還沒縮成探頭）", o.fade && !o.fold && o.op < 0.95, JSON.stringify(o));
+    await p.waitForFunction(() => document.getElementById("guide").classList.contains("fold"), null, { timeout: 4000 }).catch(() => {}); await sleep(500);   // 收起來的淡出 0.3 秒（visibility 晚 0.3 秒才變 hidden）；整套一起跑時機器忙，用等的不用算的
     const f = await p.evaluate(() => { const t = document.getElementById("guideText"), s = getComputedStyle(t); return { fold: document.getElementById("guide").classList.contains("fold"), text: t.textContent, vis: s.visibility, peek: getComputedStyle(document.getElementById("owlPeek")).visibility }; });
-    ok("時間到：對話框收起、縮成右下角探頭；字還留在 #guideText（用 class 藏）", f.fold && f.text === txt && f.vis === "hidden" && f.peek === "visible", JSON.stringify(f));
+    ok("淡完 0.8 秒：對話框收起、縮成右下角探頭；字還留在 #guideText（用 class 藏）", f.fold && f.text === txt && f.vis === "hidden" && f.peek === "visible", JSON.stringify(f));
     const pk = await p.evaluate(() => { const r = document.getElementById("owlPeek").getBoundingClientRect(); return { right: innerWidth - r.right, bottom: innerHeight - r.bottom, w: r.width, h: r.height }; });
     ok("探頭在右下角、夠大好點（≥44px）", Math.abs(pk.right) < 2 && Math.abs(pk.bottom) < 2 && pk.w >= 44 && pk.h >= 44, JSON.stringify(pk));
     // 點探頭：彈出來再講一次
@@ -125,11 +167,19 @@ const opened = (p, m) => p.waitForFunction(m => { const t = document.querySelect
     let c = await center(p, "#owlPeek"); await p.mouse.click(c.x, c.y); await sleep(500);
     const said = await p.evaluate(() => window.__spoken.map(s => s.text));
     ok("點探頭：貓頭鷹彈出來、再講一次最後那句", !(await folded(p)) && (await shown(p, "guideText")) && said.includes(txt), JSON.stringify(said));
-    // 講完 4 秒收（假語音 0.25 秒講完）
-    await sleep(2800);
-    ok("唸完不到 4 秒：還在", !(await folded(p)));
-    await sleep(1800);
-    ok("唸完 4 秒：收起來", await folded(p));
+    // 講完 2.5 秒開始淡出、再 0.8 秒收（假語音不算「正在講」：從彈出來開始算）
+    await sleep(1500);
+    ok("唸完不到 2.5 秒：字還在、不透明", (await ow()).op === 1 && !(await folded(p)));
+    await p.evaluate(() => { document.getElementById("guideText").textContent = "淡出前又有新的話"; }); await sleep(250);   // 有新的話＝重新計時
+    await sleep(2000);
+    o = await ow();
+    ok("又有新的話：重新計時（舊的那句的時間到了也不淡出）", !o.fade && !o.fold && o.op === 1, JSON.stringify(o));
+    await p.waitForFunction(() => document.getElementById("guide").classList.contains("owl-fade"), null, { timeout: 8000 }).catch(() => {}); await sleep(200);
+    await p.evaluate(() => { document.getElementById("guideText").textContent = "淡出中又有新的話"; }); await sleep(400);
+    o = await ow();
+    ok("淡出中有新的話：字馬上回來（不透明、沒收起來）", !o.fade && !o.fold && o.op > 0.95, JSON.stringify(o));
+    await p.waitForFunction(() => document.getElementById("guide").classList.contains("fold"), null, { timeout: 12000 }).catch(() => {});
+    ok("講完 2.5 秒＋淡出 0.8 秒：收起來", await folded(p));
     // 點探頭 → 顯示中點貓頭鷹＝馬上收
     c = await center(p, "#owlPeek"); await p.mouse.click(c.x, c.y); await sleep(400);
     c = await center(p, "#guide > img"); await p.mouse.click(c.x, c.y); await sleep(150);
@@ -158,22 +208,27 @@ const opened = (p, m) => p.waitForFunction(m => { const t = document.querySelect
     await p.evaluate(() => document.getElementById("homeBtn").click()); await sleep(400);   // 選單上按 🏠＝重畫選單（繼續玩出現）
     await ready(p);
     const r = await p.evaluate(() => {
-      const ids = ["#hudLBtn", "#hudRBtn", "#townBtn", "#townTag", "#rainbowBtn", "#rainbowTag", "#muIsleBtn", "#muIsleTag", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn", "#resumeBtn", "#menu > .menu-bottom", "#guide > img", "#guideText", "#owlPeek", "#mapBtn", "#plazaBtn"];
-      const box = ids.map(s => { const e = document.querySelector(s); const q = e.getBoundingClientRect(); return { s, q, on: getComputedStyle(e).display !== "none" && q.width > 0 }; }).filter(x => x.on);
+      const ids = ["#hudRBtn", "#navBtn", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn", "#resumeBtn", "#statusBar", "#menu > .menu-bottom", "#guide > img", "#guideText", "#owlPeek", "#mapBtn", "#plazaBtn"];   // 11-01：🧭 去哪裡、頂端狀態列（貼紙、星星罐、我的星星、🎪）
+      const box = ids.map(s => { const e = document.querySelector(s); const q = e.getBoundingClientRect(); return { s, q, on: getComputedStyle(e).display !== "none" && q.width > 0, hid: getComputedStyle(e).visibility === "hidden" }; }).filter(x => x.on);   // hid：收在右上「⋯」裡的家長按鈕（展開時暫時蓋著，浮標不用讓）
       const bad = [], out = [];
       for (let i = 0; i < box.length; i++) {
         const a = box[i].q; if (a.left < -1 || a.top < -1 || a.right > innerWidth + 1 || a.bottom > innerHeight + 1) out.push(box[i].s);
         for (let j = i + 1; j < box.length; j++) { const b = box[j].q;
-          if ((box[i].s === "#townBtn" && box[j].s === "#townTag") || (box[i].s === "#rainbowBtn" && box[j].s === "#rainbowTag") || (box[i].s === "#muIsleBtn" && box[j].s === "#muIsleTag") || (box[i].s.startsWith("#guide") && box[j].s === "#owlPeek") || (box[i].s === "#guideText" && box[j].s === "#owlPeek")) continue;   // 新市區小字故意黏在圓鈕後面；探頭就在貓頭鷹的位置
-          if (box[i].s === "#menu > .menu-bottom" && box[j].s === "#plazaBtn") continue;   // 橫式 🎪 本來就在膠囊那排裡面
+          if ((box[i].s.startsWith("#guide") && box[j].s === "#owlPeek") || (box[i].s === "#guideText" && box[j].s === "#owlPeek")) continue;   // 探頭就在貓頭鷹的位置
+          if (box[i].s === "#statusBar" && box[j].s === "#plazaBtn") continue;   // 🎪 本來就在狀態列裡面
+          if (box[i].hid || box[j].hid) continue;   // 收在右上「⋯」裡的家長按鈕：展開時暫時蓋著，不算
           if (a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1) bad.push(box[i].s + "×" + box[j].s); }
       }
-      const tags = []; for (const tg of document.querySelectorAll(".hub-tag:not(.civic):not(.rb):not(.mu)")) { const q = tg.getBoundingClientRect(); for (const x of box) { const b = x.q; if (q.left < b.right && q.right > b.left && q.top < b.bottom && q.bottom > b.top) tags.push(tg.dataset.mode + "×" + x.s); } }
-      for (const sg of document.querySelectorAll(".hub-sign")) { const q = sg.getBoundingClientRect(); if (!q.width || getComputedStyle(sg).visibility === "hidden") continue; if (q.left < 0 || q.top < 0 || q.right > innerWidth || q.bottom > innerHeight) tags.push("路牌" + sg.dataset.go + "×出畫面"); for (const x of box) { if (x.s === "#guideText" || x.s === "#owlPeek") continue; const b = x.q; if (q.left < b.right && q.right > b.left && q.top < b.bottom && q.bottom > b.top) tags.push("路牌" + sg.dataset.go + "×" + x.s); } }   // 路牌（10-12）：不被按鈕、膠囊擋到（貓頭鷹對話框會收起來，不算）
+      const tags = []; for (const tg of document.querySelectorAll(".hub-tag:not(.civic):not(.rb):not(.mu)")) { const q = tg.getBoundingClientRect(); for (const x of box) { if (x.hid) continue; const b = x.q; if (q.left < b.right && q.right > b.left && q.top < b.bottom && q.bottom > b.top) tags.push(tg.dataset.mode + "×" + x.s); } }
+      for (const sg of document.querySelectorAll(".hub-sign")) { const q = sg.getBoundingClientRect(); if (!q.width || getComputedStyle(sg).visibility === "hidden") continue; if (q.left < 0 || q.top < 0 || q.right > innerWidth || q.bottom > innerHeight) tags.push("路牌" + sg.dataset.go + "×出畫面"); for (const x of box) { if (x.s === "#guideText" || x.s === "#owlPeek" || x.hid) continue; const b = x.q; if (q.left < b.right && q.right > b.left && q.top < b.bottom && q.bottom > b.top) tags.push("路牌" + sg.dataset.go + "×" + x.s); } }   // 路牌（10-12）：不被按鈕、膠囊擋到（貓頭鷹對話框會收起來，不算）
       const rb = document.getElementById("resumeBtn").getBoundingClientRect(), mp = document.getElementById("mapBtn").getBoundingClientRect();
-      return { bad, out, tags, resume: !document.getElementById("resumeBtn").classList.contains("hidden"), resumeRect: [rb.left, rb.top, rb.right, rb.bottom].map(Math.round), map: [mp.left, mp.top, mp.right, mp.bottom].map(Math.round), shut: [...document.querySelectorAll(".hub-tag:not(.civic):not(.rb):not(.mu)")].filter(t => !t.classList.contains("open")).length };
+      const v = Math.min(innerWidth, innerHeight) / 100, sb = document.getElementById("statusBar").getBoundingClientRect(), hr = document.getElementById("hudRBtn").getBoundingClientRect(), nb = document.getElementById("navBtn").getBoundingClientRect();
+      const bar = { top: +(sb.top / v).toFixed(1), h: +(sb.height / v).toFixed(1), hpx: Math.round(sb.height), mid: Math.round((sb.left + sb.right) / 2 - innerWidth / 2), row1: sb.top < nb.bottom && sb.bottom > nb.top && sb.left >= nb.right && sb.right <= hr.left, fs: +(parseFloat(getComputedStyle(document.getElementById("statusBar")).fontSize) / v).toFixed(2) };
+      return { bad, out, tags, bar, resume: !document.getElementById("resumeBtn").classList.contains("hidden"), resumeRect: [rb.left, rb.top, rb.right, rb.bottom].map(Math.round), map: [mp.left, mp.top, mp.right, mp.bottom].map(Math.round), shut: [...document.querySelectorAll(".hub-tag:not(.civic):not(.rb):not(.mu)")].filter(t => !t.classList.contains("open")).length };
     });
     ok(`${t} ${w}×${h}：繼續玩有出現`, r.resume);
+    // 11-01 頂端狀態列：第一排正中間（🧭 和右上「⋯」中間，第二輪起直式也是）；高度約以前膠囊的一半（≤ 7vmin，手機至少 40px）、字比以前的 4.6vmin 小一號
+    ok(`${t} ${w}×${h}：狀態列在最上方第一排正中間、細（≤7vmin）、字小一號`, r.bar.row1 && Math.abs(r.bar.mid) <= 2 && r.bar.top <= 5 && (r.bar.h <= 7 || r.bar.hpx <= 41) && r.bar.fs < 4.6, JSON.stringify(r.bar));
     ok(`${t} ${w}×${h}：上方兩排／繼續玩／膠囊／換人小字／貓頭鷹互不重疊、都在畫面內`, r.bad.length === 0 && r.out.length === 0, JSON.stringify(r));
     ok(`${t} ${w}×${h}：浮標（平常收成圓形圖示；主島 12 個＝10-13 加挑戰燈塔＋v8 我的家）、橋頭路牌沒被任何按鈕／「繼續玩」膠囊擋到（收起來的也算位置）`, r.tags.length === 0 && r.shut === 12, r.tags.join(",") + ` 收著 ${r.shut} 個 繼續玩 ${JSON.stringify(r.resumeRect)} 🗺️ ${JSON.stringify(r.map)}`);
     if (["W", "169", "43", "P34"].includes(t)) await p.screenshot({ path: require("path").join(SHOTS, `resume-${w}x${h}.png`) }).catch(() => {});
@@ -184,7 +239,7 @@ const opened = (p, m) => p.waitForFunction(m => { const t = document.querySelect
       for (const m of ["fish", "order", "build", "hunt", "match", "tone", "whack", "frog", "bubble", "gacha"]) {
         await p.evaluate(m => window.__hub3d.openOne(m), m); await opened(p, m);
         const c = await p.evaluate(m => {
-          const ids = ["#hudLBtn", "#hudRBtn", "#townBtn", "#townTag", "#rainbowBtn", "#rainbowTag", "#muIsleBtn", "#muIsleTag", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn", "#resumeBtn", "#mapBtn"];
+          const ids = ["#hudRBtn", "#navBtn", "#resumeBtn", "#mapBtn", "#statusBar"];   // 收在右上「⋯」裡的家長按鈕不算（展開時暫時蓋著）
           const tg = document.querySelector(`.hub-tag[data-mode=${m}]`), q = tg.getBoundingClientRect(), bad = [];
           if (!tg.classList.contains("open")) bad.push("沒展開");
           if (q.left < 0 || q.top < 0 || q.right > innerWidth || q.bottom > innerHeight) bad.push("出畫面");
@@ -197,7 +252,37 @@ const opened = (p, m) => p.waitForFunction(m => { const t = document.querySelect
       await p.evaluate(() => window.__hub3d.openOne(null)); await sleep(300);
       ok(`${t} ${w}×${h}：一棟一棟按住展開名字，也沒被任何按鈕擋到、在畫面內`, hitOpen.length === 0, hitOpen.join(","));
     }
+    // 11-01 下面的停靠列（.menu-bottom）：塞一個 440×60 的假播放器（跟唱片行的迷你播放器一樣大、窄螢幕會縮）＋進化膠囊——
+    // 排得下、在畫面內、不壓到貓頭鷹／探頭／對話框／上面的按鈕，3D 浮標也讓開；介紹卡開著＝整列藏起來（測完拿掉假的）
+    await p.evaluate(() => { const d = document.createElement("div"); d.id = "zyFakePlayer"; d.style.cssText = "width:440px;max-width:100%;height:60px;border-radius:30px;background:#fff;border:3px solid #c79bff;box-sizing:border-box;flex:none";
+      document.querySelector("#menu > .menu-bottom").appendChild(d); const e = document.getElementById("evoBtn"); e.classList.remove("hidden"); e.querySelector("img").src = "IMAGE/zhuyin/pets/cat.webp"; document.getElementById("guide").classList.remove("fold"); });
+    await sleep(1500);
+    const dk = await p.evaluate(() => { const R = s => { const e = document.querySelector(s); if (!e || getComputedStyle(e).display === "none") return null; const q = e.getBoundingClientRect(); return q.width ? q : null; }, f = R("#zyFakePlayer"), ev = R("#evoBtn"), hit = [];
+      for (const s of ["#guide > img", "#owlPeek", "#guideText", "#hudRBtn", "#navBtn", "#mapBtn", "#statusBar", "#resumeBtn"]) { const b = R(s); if (!b) continue; for (const [n, q] of [["播放器", f], ["進化", ev]]) if (q && q.left < b.right - 1 && q.right > b.left + 1 && q.top < b.bottom - 1 && q.bottom > b.top + 1) hit.push(n + "×" + s); }
+      const tags = []; for (const tg of document.querySelectorAll(".hub-tag:not(.civic):not(.rb):not(.mu)")) { const b = tg.getBoundingClientRect(); for (const [n, q] of [["播放器", f], ["進化", ev]]) if (q && b.left < q.right && b.right > q.left && b.top < q.bottom && b.bottom > q.top) tags.push(tg.dataset.mode + "×" + n); }
+      const inV = q => q.left >= -1 && q.top >= -1 && q.right <= innerWidth + 1 && q.bottom <= innerHeight + 1;
+      return { fake: [f.left, f.top, f.width, f.height].map(Math.round), evo: [ev.left, ev.top, ev.width, ev.height].map(Math.round), inV: inV(f) && inV(ev), stack: !(f.left < ev.right - 1 && f.right > ev.left + 1 && f.top < ev.bottom - 1 && f.bottom > ev.top + 1), oneRow: Math.abs((f.top + f.bottom) / 2 - (ev.top + ev.bottom) / 2) < 3, hit, tags, dock: getComputedStyle(document.documentElement).getPropertyValue("--zy-dock") }; });
+    ok(`${t} ${w}×${h}：停靠列放得下 440×60 播放器＋進化膠囊（${w > h ? "下面、貓頭鷹左邊、排成一排" : "繼續玩下面"}；互不重疊、在畫面內、不壓到貓頭鷹／對話框／按鈕、浮標讓開）`, dk.inV && dk.stack && (w < h || dk.oneRow) && dk.fake[3] === 60 && dk.fake[2] >= Math.min(440, w - 40) && dk.hit.length === 0 && dk.tags.length === 0, JSON.stringify(dk));
+    if (["L", "43", "P", "M"].includes(t)) await p.screenshot({ path: require("path").join(SHOTS, `dock-${w}x${h}.png`) }).catch(() => {});
+    await p.evaluate(() => document.body.classList.add("pick-on")); await sleep(400);
+    ok(`${t} ${w}×${h}：介紹卡開著（body.pick-on）停靠列藏起來`, await p.evaluate(() => getComputedStyle(document.querySelector("#menu > .menu-bottom")).visibility === "hidden"));
+    await p.evaluate(() => { document.body.classList.remove("pick-on"); document.getElementById("zyFakePlayer").remove(); document.getElementById("evoBtn").classList.add("hidden"); }); await sleep(300);
     ok(`${t} 沒有錯誤`, errs.length === 0, errs.join(" | "));
+    await ctx.close();
+  }
+  // ===== 4. 11-03 寧次：新手（12 張，三座島都鎖、每行有「🔒 還差 N 張」比較寬）第一次點 🧭，貓頭鷹教學那句不能被地點面板蓋住；收起面板對話框回原位 =====
+  for (const [w, h] of [[1180, 820], [1024, 768], [1366, 1024]]) {
+    const { ctx, p, errs } = await openGame(browser, { w, h, stickers: 12, stars: 7, query: Q });
+    await ready(p); await p.evaluate(() => document.getElementById("hudR").classList.remove("open"));
+    const c = await center(p, "#navBtn"); await p.mouse.click(c.x, c.y); await sleep(700);
+    const o = await p.evaluate(() => { const q = document.getElementById("navPanel").getBoundingClientRect(), t = document.getElementById("guideText"), g = t.getBoundingClientRect();
+      return { hi: t.textContent, vis: getComputedStyle(t).visibility, over: g.left < q.right && g.right > q.left && g.top < q.bottom && g.bottom > q.top, inV: g.bottom <= innerHeight + 1, panel: [q.right, q.bottom].map(Math.round), guide: [g.left, g.top, g.bottom].map(Math.round), tr: t.style.translate }; });
+    ok(`${w}×${h} 新手第一次點 🧭：貓頭鷹「點一座島…」的對話框沒被面板蓋住、在畫面內`, o.hi === "點一座島，就可以飛過去喔！" && o.vis === "visible" && !o.over && o.inV, JSON.stringify(o));
+    await p.mouse.click(5, h - 5); await sleep(400);
+    const back = await p.evaluate(() => document.getElementById("navPanel").classList.contains("hidden") && !document.getElementById("guideText").style.translate);
+    ok(`${w}×${h} 收起面板：對話框回原位`, back);
+    if (w === 1024) await p.screenshot({ path: require("path").join(SHOTS, "nav-new-1024x768.png") }).catch(() => {});
+    ok(`${w}×${h} 沒有錯誤（新手面板）`, errs.length === 0, errs.join(" | "));
     await ctx.close();
   }
   await browser.close();

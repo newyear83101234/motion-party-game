@@ -9,7 +9,7 @@
 //     介紹卡（10-12）：點一下＝介紹卡不進遊戲（名字、說明、星星、貓頭鷹唸名字、鏡頭把那棟移到卡片上面）、再點同一棟＝進遊戲、點別棟＝換卡、
 //     拖曳／點空白／✕＝收卡、上鎖的卡沒有開始鈕、扭蛋機也走介紹卡、「新」拿掉了（每棟平常都是圓形圖示）；
 //     點遠方的島／橋頭路牌（10-12）：飛過去、上鎖＝說上鎖台詞不移動、在彩虹島點遠方主島＝回去、島上的建築照樣是介紹卡
-const { launch, openGame, enterMode } = require("./lib");
+const { launch, openGame, enterMode, goIsle } = require("./lib");
 const out = []; const ok = (name, cond, info = "") => out.push(`${cond ? "PASS" : "FAIL"}  ${name}${info !== "" ? "  — " + info : ""}`);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 // 找一個「點下去會點到這棟、而且上面沒有浮標或按鈕擋著」的螢幕座標
@@ -73,7 +73,7 @@ const backToMenu = async p => { await p.evaluate(() => { document.getElementById
       return t.classList.contains("locked") && lk === "🔒 25" && getComputedStyle(t.querySelector(".ht-word")).display === "none" && getComputedStyle(t.querySelector(".ht-lock")).display !== "none"; }), await p.evaluate(() => document.querySelector('.hub-tag[data-mode=frog] .ht-lock').textContent));
     ok("不是新玩家：沒有黃框", await p.evaluate(() => document.querySelectorAll(".hub-tag.first").length === 0));
     // 浮標不能被標題／圓鈕／膠囊／貓頭鷹擋到
-    const clash = await p.evaluate(() => { const ob = ["#menu > h1", "#menu > .menu-bottom", "#guide img", "#guideText", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn"].map(s => document.querySelector(s)).filter(Boolean).map(e => e.getBoundingClientRect());
+    const clash = await p.evaluate(() => { const ob = ["#menu > h1", "#menu > .menu-bottom", "#statusBar", "#navBtn", "#mapBtn", "#guide img", "#guideText"].map(s => document.querySelector(s)).filter(e => e && getComputedStyle(e).display !== "none" && getComputedStyle(e).visibility !== "hidden").map(e => e.getBoundingClientRect());
       const bad = []; for (const t of document.querySelectorAll(".hub-tag:not(.civic):not(.rb):not(.mu)")) { const r = t.getBoundingClientRect(); if (r.left < 0 || r.top < 0 || r.right > innerWidth || r.bottom > innerHeight || ob.some(o => r.left < o.right && r.right > o.left && r.top < o.bottom && r.bottom > o.top)) bad.push(t.dataset.mode); } return bad; });
     ok("浮標沒有被標題／按鈕／膠囊／貓頭鷹擋住", clash.length === 0, clash.join(","));
     // rAF：選單在跑
@@ -238,13 +238,13 @@ const backToMenu = async p => { await p.evaluate(() => { document.getElementById
     const { ctx, p, errs } = await openGame(browser, { stickers: 40, stars: 30, eggs: 2, query: "debug&novoice&night=0&weather=sunny" });
     await ready(p); await p.evaluate(() => window.__hub3d.events(false)); await sleep(400);
     const lod = () => p.evaluate(() => window.__hub3d.lod());
-    const shape = () => p.evaluate(() => [...document.querySelectorAll(".hub-tag:not(.civic):not(.rb):not(.mu)")].map(t => { const r = t.getBoundingClientRect(), m = t.querySelector(".ht-more").getBoundingClientRect(); return { m: t.dataset.mode, w: Math.round(r.width), h: Math.round(r.height), more: Math.round(m.width), open: t.classList.contains("open") }; }));
+    const shape = () => p.evaluate(() => [...document.querySelectorAll(".hub-tag:not(.civic):not(.rb):not(.mu)")].map(t => { const r = t.getBoundingClientRect(), m = t.querySelector(".ht-more").getBoundingClientRect(); return { m: t.dataset.mode, w: Math.round(r.width), h: Math.round(r.height), more: Math.round(m.width), open: t.classList.contains("open"), lk: t.classList.contains("locked") }; }));
     const vmin = await p.evaluate(() => Math.min(innerWidth, innerHeight) / 100), W = 1180, H = 820;
     let L = await lod(), S = await shape();
     // 10-12 晚 阿葉：「不用把新的遊戲特別標出來」→ 剛解鎖還沒玩過的（40 張的泡泡）也一樣只有圓形圖示、沒有「新」
     ok("沒有「新」：剛解鎖還沒玩過的泡泡也收成圓形圖示（頁面上沒有 .ht-new、沒有 .fresh）", !S.find(s => s.m === "bubble").open && await p.evaluate(() => !document.querySelector(".hub-tag .ht-new, .hub-tag.fresh")), JSON.stringify(S.find(s => s.m === "bubble")));
-    ok("浮標平常只有圓形圖示（寬＝高 7～8vmin、名字那段寬 0）", S.every(s => !s.open && s.more === 0 && Math.abs(s.w - s.h) <= 2 && s.w >= 7 * vmin && s.w <= 8.2 * vmin) && L.open.length === 0, JSON.stringify(S));
-    const clashAll = () => p.evaluate(() => { const ob = ["#menu > .menu-bottom", "#guide img", "#guideText", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn", "#townBtn", "#townTag", "#rainbowBtn", "#rainbowTag", "#muIsleBtn", "#muIsleTag", "#hudLBtn", "#hudRBtn"].map(s => document.querySelector(s)).filter(e => e && getComputedStyle(e).display !== "none").map(e => e.getBoundingClientRect());
+    ok("浮標平常只有圓形圖示（寬＝高約 6.4vmin、鎖住的縮成 0.8 倍；名字那段寬 0）", S.every(s => !s.open && s.more === 0 && Math.abs(s.w - s.h) <= 2 && (s.lk ? s.w >= 4.6 * vmin && s.w <= 5.8 * vmin : s.w >= 6 * vmin && s.w <= 7 * vmin)) && L.open.length === 0, JSON.stringify(S));   // 11-01 第二輪浮標減雜（7.4 → 6.4vmin）
+    const clashAll = () => p.evaluate(() => { const ob = ["#menu > .menu-bottom", "#guide img", "#guideText", "#navBtn", "#mapBtn", "#statusBar", "#hudRBtn"].map(s => document.querySelector(s)).filter(e => e && getComputedStyle(e).display !== "none" && getComputedStyle(e).visibility !== "hidden").map(e => e.getBoundingClientRect());
       const bad = []; for (const t of document.querySelectorAll(".hub-tag:not(.civic):not(.rb):not(.mu)")) { const q = t.getBoundingClientRect(); if (q.left < 0 || q.top < 0 || q.right > innerWidth || q.bottom > innerHeight || ob.some(o => q.left < o.right && q.right > o.left && q.top < o.bottom && q.bottom > o.top)) bad.push(t.dataset.mode); } return bad; });
     ok("平常的樣子：浮標在畫面內、沒被按鈕／膠囊／貓頭鷹擋到", (await clashAll()).length === 0, (await clashAll()).join(","));
     // 按住地鼠建築：名字彈出來；拖曳：收回、不進遊戲
@@ -291,7 +291,7 @@ const backToMenu = async p => { await p.evaluate(() => { document.getElementById
       return { main: ["fish", "order", "tone", "hunt"].every(m => inV(h.screenOf(m))), town: ["police", "hospital"].every(id => inV(h.civicScreen(id))), rb: ["bearHouse", "bunnyHouse", "pigHouse"].every(id => inV(h.rbScreen(id))), tagW: Math.round(r.width), tagH: Math.round(r.height) }; });
     ok("滾輪拉遠：最遠到 0.5 倍（以前 0.8）", Math.abs(L.zoom - 0.5) < 0.001 && L.far, JSON.stringify(L));
     ok("拉到最遠：主島、歸仁區、彩虹島都在畫面裡", far.main && far.town && far.rb, JSON.stringify(far));
-    ok("拉到最遠：圓形圖示縮小一點（約 0.78 倍）", far.tagW < 7 * vmin && far.tagW > 5 * vmin, JSON.stringify(far));
+    ok("拉到最遠：圓形圖示縮小一點（約 0.78 倍）", far.tagW < 5.8 * vmin && far.tagW > 4.2 * vmin, JSON.stringify(far));
     // 最遠時往一邊拖很遠：拖不到整片海（主島中間還在畫面裡）
     await p.mouse.move(200, 200); await p.mouse.down(); for (let k = 1; k <= 10; k++) { await p.mouse.move(200 + k * 80, 200 + k * 50); await sleep(30); } await p.mouse.up(); await sleep(500);
     const dragged = await p.evaluate(() => { const q = window.__hub3d.screenOf("order"); return { q, lod: window.__hub3d.lod() }; });
@@ -347,8 +347,9 @@ const backToMenu = async p => { await p.evaluate(() => { document.getElementById
     const sea = await p.evaluate(() => { for (const [x, y] of [[0.5, 0.12], [0.35, 0.1], [0.65, 0.12], [0.2, 0.3], [0.8, 0.3]]) { const X = innerWidth * x, Y = innerHeight * y, e = document.elementFromPoint(X, Y); if (e && e.tagName === "CANVAS" && window.__hub3d.hitAt(X, Y) === null) return { x: X, y: Y }; } return null; });
     if (sea) await p.mouse.click(sea.x, sea.y);
     ok("點空白處（海）→ 介紹卡收起來", !!sea && await pickOff(p), JSON.stringify(sea));
-    // ✕ → 收卡
-    sw = await spot(p, "whack"); if (sw) await p.mouse.click(sw.x, sw.y); await pickOn(p, "whack"); await sleep(700);
+    // ✕ → 收卡（剛收卡時鏡頭還在滑回去：點到的位置可能偏掉，開不了卡就再找一次）
+    for (let k = 0; k < 3; k++) { await sleep(400); sw = await spot(p, "whack"); if (sw) await p.mouse.click(sw.x, sw.y); if (await pickOn(p, "whack")) break; }
+    await sleep(700);
     const xb = await p.evaluate(() => { const r = document.getElementById("pkClose").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width }; });
     await p.mouse.click(xb.x, xb.y);
     ok("按 ✕ → 介紹卡收起來（✕ ≥ 44px）", await pickOff(p) && xb.w >= 44, JSON.stringify(xb));
@@ -359,9 +360,11 @@ const backToMenu = async p => { await p.evaluate(() => { document.getElementById
     await p.evaluate(() => document.getElementById("hudRBtn").click()); await sleep(300);
     // 換島 → 收卡
     sw = await spot(p, "whack"); if (sw) await p.mouse.click(sw.x, sw.y); await pickOn(p, "whack"); await sleep(500);
-    await p.evaluate(() => document.getElementById("rainbowBtn").click());
-    ok("介紹卡開著按 🌈 換島 → 介紹卡收起來", await pickOff(p));
-    await sleep(2200); await p.evaluate(() => document.getElementById("rainbowBtn").click()); await sleep(2200);
+    const nb = await p.evaluate(() => { const r = document.getElementById("navBtn").getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }); await p.mouse.click(nb.x, nb.y);
+    ok("介紹卡開著按 🧭 去哪裡 → 介紹卡收起來、地點面板打開", await pickOff(p) && await p.evaluate(() => !document.getElementById("navPanel").classList.contains("hidden")));
+    await goIsle(p, "rainbow"); await sleep(2200);
+    ok("地點面板點彩虹島 → 換島、面板收起來", await p.evaluate(() => window.__hub3d.place() === "rainbow" && document.getElementById("navPanel").classList.contains("hidden")));
+    await goIsle(p, "main"); await sleep(2200);
     // 介紹卡的「再點一次」要是同一棟：點地鼠、再點地鼠的浮標（同一棟）＝開始
     sw = await spot(p, "whack"); if (sw) await p.mouse.click(sw.x, sw.y); await pickOn(p, "whack"); await sleep(900);
     const tw = await p.evaluate(() => window.__hub3d.tagRect("whack")); await p.mouse.click((tw.x0 + tw.x1) / 2, (tw.y0 + tw.y1) / 2);
@@ -453,7 +456,7 @@ const backToMenu = async p => { await p.evaluate(() => { document.getElementById
   for (const [w, h] of [[820, 1180], [1024, 768]]) {
     const { ctx, p, errs } = await openGame(browser, { w, h, stickers: 20, stars: 25, eggs: 2, query: "debug" });
     await ready(p);
-    const clash = () => p.evaluate(() => { const ob = ["#menu > h1", "#menu > .menu-bottom", "#guide img", "#guideText", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn"].map(s => document.querySelector(s)).filter(Boolean).map(e => e.getBoundingClientRect());
+    const clash = () => p.evaluate(() => { const ob = ["#menu > h1", "#menu > .menu-bottom", "#statusBar", "#navBtn", "#mapBtn", "#guide img", "#guideText"].map(s => document.querySelector(s)).filter(e => e && getComputedStyle(e).display !== "none" && getComputedStyle(e).visibility !== "hidden").map(e => e.getBoundingClientRect());
       const bad = []; for (const t of document.querySelectorAll(".hub-tag:not(.civic):not(.rb):not(.mu)")) { const q = t.getBoundingClientRect(); if (q.left < 0 || q.top < 0 || q.right > innerWidth || q.bottom > innerHeight || ob.some(o => q.left < o.right && q.right > o.left && q.top < o.bottom && q.bottom > o.top)) bad.push(t.dataset.mode); }
       return { hub: document.body.classList.contains("hub3d"), bad, fit: window.__hub3d.fitOk }; });
     const r = await clash();

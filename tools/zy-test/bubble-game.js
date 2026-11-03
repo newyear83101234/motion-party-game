@@ -14,7 +14,7 @@ async function bestFire(p) {
   {
     const { ctx, p, errs } = await openGame(browser, { stickers: 40, query: "debug" });
     ok("小島上有 11 個遊戲浮標（多了泡泡、10-13 燈塔）", (await p.evaluate(() => document.querySelectorAll(".hub-tag:not(.civic):not(.rb):not(.mu):not(.home)").length)) === 11);   // .rb＝彩虹島的浮標（10-12）；.home＝v8 我的家（不是遊戲）
-    ok("🏙️ 歸仁區按鈕在選單上", await vis(p, "townBtn"));
+    ok("🧭 去哪裡在選單上（地點面板裡有歸仁區；11-01 地點鈕收進 🧭）", await p.evaluate(() => getComputedStyle(document.getElementById("navBtn")).display !== "none" && !!document.querySelector("#navPanel .nav-row[data-isle=town]")));
     await enterMode(p, "bubble");
     const ready = await p.waitForFunction(() => window.__zy.bubble && window.__zy.bubble.state() && window.__zy.bubble.state().level === 0, null, { timeout: 15000 }).then(() => true, () => false);
     ok("從選單進得去、是第 1 關", ready && await vis(p, "bubble"));
@@ -65,7 +65,7 @@ async function bestFire(p) {
     const { ctx, p, errs } = await openGame(browser, { stickers: 10, query: "debug" });
     await p.evaluate(() => document.querySelector(".mode-card[data-mode=bubble]").click()); await sleep(500);
     ok("貼紙不夠（10 張）：泡泡進不去", await p.evaluate(() => !document.getElementById("menu").classList.contains("hidden") && document.getElementById("bubble").classList.contains("hidden")));
-    ok("歸仁區沒開：按鈕寫「歸仁區 🔒」", (await p.evaluate(() => document.getElementById("townTag").textContent)).includes("🔒"));
+    ok("歸仁區沒開：地點面板那一行寫「🔒 還差幾張」", (await p.evaluate(() => document.querySelector("#navPanel .nav-row[data-isle=town] .nav-rs").textContent)).includes("🔒"));
     allErrs.push(...errs); await ctx.close();
   }
   // ===== 3 區 30 關：舊存檔升級、第 10 關 → 下一關進第 11 關、分頁切換 =====

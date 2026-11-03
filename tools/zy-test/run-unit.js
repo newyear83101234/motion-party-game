@@ -75,6 +75,7 @@ const cornerFree = p => p.evaluate(() => { const vm = Math.min(innerWidth, inner
         ok("A2 點畫面左半邊＝往左一條", s.lane === 0, `lane=${s.lane}`);
         ok("A3 第一道門出現", await rowOn(p, 20000));
         s = await S(p); let calls = await C(p); await sleep(450);
+        await until(p, () => { const s = window.__zyRun.state(); return s.row && s.clock - s.row.shownAt >= 0.45; }, null, 5000);   // 門出現 0.4 秒（遊戲時間）後點卡才算選；機器慢時每格最多走 0.05 秒，真實 450ms 不夠（11-03 每秒 13 格時穩定失敗）
         const cards = await p.evaluate(() => window.__zyRun.cards()), pic = await p.evaluate(() => window.__zyRun.pic());
         ok("A3 兩個選項、門在左右跑道（中間花叢）、注音卡 2 張", s.row.options.length === 2 && JSON.stringify(s.row.lanes) === "[0,2]" && cards.filter(c => c.on).length === 2, `options=${JSON.stringify(s.row.options)} lanes=${JSON.stringify(s.row.lanes)}`);
         ok("A3 注音卡字 ≥40px、卡在左右兩邊", cards.every(c => c.fs >= 40) && cards[0].rect.x + cards[0].rect.width / 2 < 590 && cards[1].rect.x + cards[1].rect.width / 2 > 590, cards.map(c => Math.round(c.fs)).join("/"));

@@ -2180,7 +2180,7 @@ function makeTownTags() {
     t.addEventListener("pointerdown", () => pressTag(t)); t.addEventListener("pointerup", () => releaseTag(true)); t.addEventListener("pointercancel", () => releaseTag(false));
     t.addEventListener("click", () => tapCivic(c)); tagLayer.appendChild(t); c.tag = t; if (tagRO) tagRO.observe(t);   // 大小變了（展開／鎖頭）才重量
   }
-  town.nav = true;                                    // 「新市區／回小島」按鈕在 zhuyin.html（#townBtn），狀態用 opts.onPlace 通知
+  town.nav = true;                                    // 換島的按鈕在 zhuyin.html（11-01 起是 🧭「去哪裡」的地點面板 #navPanel），狀態用 opts.onPlace 通知
   syncTownTags();
 }
 function syncTownTags() {
@@ -2211,7 +2211,7 @@ function placeTownTags() {
 // 10-12 歸仁區多了東邊小半島（陀螺競技場）：鏡頭中心往東挪、拉遠一點，新市區＋半島整片都放得進畫面
 const PLACE = { main: { x: 0, z: 0, zoom: 1 }, town: { x: DIST.x + 2.3, z: DIST.z + 0.2, zoom: 1.08, zoomL: 1.16 }, rainbow: { x: RB.x + 0.2, z: RB.z + 0.9, zoom: 1.2, zoomL: 1.05, land: 0.4 },
   music: { x: MU.x + 0.3, z: MU.z - 0.3, zoom: 1.45, zoomL: 1.45, land: 0.3 } };   // v8 音樂島（島最小：拉近一點；建築在北排、浮標在上面：中心往北挪一點）
-const placeZoom = P => innerWidth > innerHeight && P.zoomL ? P.zoomL : P.zoom;
+const placeZoom = P => { const z = innerWidth > innerHeight && P.zoomL ? P.zoomL : P.zoom; return P.cap > 0 ? Math.min(z, P.cap) : z; };   // cap：那座島的遊戲建築放得進畫面的最大倍數（fit 算；11-01 第二輪）
 function goPlace(p) {
   if (!PLACE[p]) p = "main";
   deselect();                                            // 換島＝介紹卡收起來（清單選別座島的遊戲：pickMode 飛過去之後再選）
@@ -3010,7 +3010,7 @@ function signRects(list, sc) {
   const W = innerWidth, H = innerHeight, M = 8;
   for (const s of SIGNS) {
     if (s.at !== town.place || !s.tag) continue;
-    if (tagLive() || !s.tw0) { s.tw0 = s.tag.offsetWidth; s.th0 = s.tag.offsetHeight; }
+    if (!s.mini && (tagLive() || !s.tw0)) { s.tw0 = s.tag.offsetWidth; s.th0 = s.tag.offsetHeight; }   // 縮成小牌的時候不量（量到的是小牌）
     const w = s.tw0 * sc, h = s.th0 * sc; if (!w) continue;
     _v.set(s.x, s.y, s.z).project(camera);
     const x = (_v.x + 1) / 2 * W, y = (1 - _v.y) / 2 * H;
@@ -3019,30 +3019,44 @@ function signRects(list, sc) {
   }
 }
 // 路牌浮標讓開遊戲浮標（遊戲浮標排好了才排路牌，路牌不推遊戲浮標——不然按住展開的名字會被推去撞「繼續玩」膠囊）：
-// 碰到遊戲浮標、固定介面或另一支路牌 → 在木牌附近往下／上／左／右挪一格、兩格，找第一個空的地方（先找都不碰的；找不到再找
-// 「只要不碰固定介面和別支路牌」的——跟遊戲浮標疊一點沒關係，遊戲浮標畫在路牌上面）；挪過了就沒有尾巴（不再指著木牌）。
-// 不挪太遠（挪到別座島的橋頭旁邊會指錯方向）：附近都放不下又會碰到固定介面／別支路牌＝這一格先藏起來（地點鈕還在）
+// 碰到遊戲浮標、固定介面或另一支路牌 → 在木牌附近往下／上／左／右挪一格、兩格，找第一個都不碰的地方；挪過了就沒有尾巴（不再指著木牌）。
+// 11-01 第二輪（寧次）：整支放不下 → 備案縮成只有「圖示＋箭頭」的小牌（約 8vmin 寬，.sg-mini）再找一次；路牌一律不准疊到遊戲浮標；
+// 小牌也放不下＝這一格先藏起來（換島用 🧭 地點面板）。不挪太遠（挪到別座島的橋頭旁邊會指錯方向）
 function dodgeSigns(list, tags) {
-  const W = innerWidth, M = 8, top = (view.sgTop || 0) + M, bot = (view.sgBot || innerHeight) - M, done = [];
+  const W = innerWidth, M = 8, top = (view.sgTop || 0) + M, bot = (view.sgBot || innerHeight) - M, done = [], vm = Math.min(innerWidth, innerHeight) / 100;
   const over = (r, o, gx, gy) => o && r.x0 < o.x1 + gx && r.x1 > o.x0 - gx && r.y0 < o.y1 + TAIL + gy && r.y1 + TAIL + gy > o.y0;
-  const hard = r => fitObs.some(o => over(r, o, 0, 0)) || done.some(o => over(r, o, 12, 8));
-  const soft = r => tags.some(o => over(r, o, 12, 8));
+  const bad = r => r.x0 < M || r.x1 > W - M || r.y0 < top || r.y1 > bot || fitObs.some(o => over(r, o, 0, 0)) || done.some(o => over(r, o, 12, 8)) || tags.some(o => over(r, o, 12, 8));
+  const DIRS = [[0, 1], [0, -1], [-1, 0], [1, 0], [-1, 1], [1, 1], [-1, -1], [1, -1]];
+  const find = b => { const w = b.x1 - b.x0, h = b.y1 - b.y0 + TAIL;
+    if (!bad(b)) return { ...b, moved: false };
+    for (const k of [1, 2]) for (const [dx, dy] of DIRS) { const ox = dx * k * (w * 0.6 + 12), oy = dy * k * (h + 10), c = { x0: b.x0 + ox, x1: b.x1 + ox, y0: b.y0 + oy, y1: b.y1 + oy }; if (!bad(c)) return { ...c, moved: true }; }
+    return null; };
   for (const r of list) {
-    let moved = false, hide = false;
-    if (hard(r) || soft(r)) {
-      const w = r.x1 - r.x0, h = r.y1 - r.y0 + TAIL, b = { x0: r.x0, x1: r.x1, y0: r.y0, y1: r.y1 };
-      let q = null;
-      out: for (const strict of [true, false]) for (const k of [1, 2]) for (const [dx, dy] of [[0, 1], [0, -1], [-1, 0], [1, 0], [-1, 1], [1, 1], [-1, -1], [1, -1]]) {
-        const ox = dx * k * (w * 0.6 + 12), oy = dy * k * (h + 10), c = { x0: b.x0 + ox, x1: b.x1 + ox, y0: b.y0 + oy, y1: b.y1 + oy };
-        if (c.x0 < M || c.x1 > W - M || c.y0 < top || c.y1 > bot || hard(c) || (strict && soft(c))) continue;
-        q = c; break out;
-      }
-      if (q) { Object.assign(r, q); r.ax = (q.x0 + q.x1) / 2; moved = true; } else hide = hard(r);
-    }
-    if (!hide) done.push(r);                            // 下一支路牌要讓開這一支
-    const s = r.d, e = !!(r.edge || moved); if (e !== !!s.edge) { s.edge = e; s.tag.classList.toggle("edge", e); }
-    if (hide !== !!s.hid) { s.hid = hide; s.tag.style.visibility = hide ? "hidden" : ""; }
+    const s = r.d, cx = (r.x0 + r.x1) / 2, cy = r.y1, b = { x0: r.x0, x1: r.x1, y0: r.y0, y1: r.y1 };
+    let q = find(b), mini = false;
+    if (!q) { const mw = Math.min(r.x1 - r.x0, 8 * vm); q = find({ x0: cx - mw / 2, x1: cx + mw / 2, y0: r.y0, y1: r.y1 }); mini = !!q; }
+    s.sgm = q ? { dcx: (q.x0 + q.x1) / 2 - cx, dy: q.y1 - cy, w: q.x1 - q.x0, moved: q.moved, mini, hide: false } : { dcx: 0, dy: 0, w: r.x1 - r.x0, moved: false, mini: false, hide: true };
+    signMemo(r);
+    if (!s.sgm.hide) done.push(r);                       // 下一支路牌要讓開這一支
   }
+}
+// 套用排好的位置（不重排的那幾格也用它：只跟著木牌一起動）
+function signMemo(r) {
+  const s = r.d, m = s.sgm; if (!m) return;
+  const cx = (r.x0 + r.x1) / 2 + m.dcx; r.x0 = cx - m.w / 2; r.x1 = cx + m.w / 2; r.y0 += m.dy; r.y1 += m.dy; if (m.moved || m.mini) r.ax = cx;
+  if (m.mini !== !!s.mini) { s.mini = m.mini; s.tag.classList.toggle("sg-mini", m.mini); if (m.mini) s.twMini = s.tag.offsetWidth; }
+  if (m.mini) r.w0 = s.twMini || r.w0;
+  const e = !!(r.edge || m.moved); if (e !== !!s.edge) { s.edge = e; s.tag.classList.toggle("edge", e); }
+  if (m.hide !== !!s.hid) { s.hid = m.hide; s.tag.style.visibility = m.hide ? "hidden" : ""; }
+}
+// 11-01 第二輪（寧次）：路牌只在「換島、鏡頭移動（拖、縮放、飛過去）、畫面大小或固定介面變了、按住／介紹卡」時重排；
+// 平常鏡頭輕輕晃、貓頭鷹對話框收起來都不重排（以前每格重排，邊界上會跳來跳去）
+let sgKey = "";
+function placeSigns(list, tags) {
+  const moving = !!town.zoomTgt || Math.abs(town.tgt.x - town.off.x) + Math.abs(town.tgt.y - town.off.y) > 0.02 || focus.on;
+  const key = moving ? "" : [town.place, innerWidth, innerHeight, fitSig, user.zoom.toFixed(3), user.px.toFixed(2), user.py.toFixed(2), town.off.x.toFixed(2), town.off.y.toFixed(2), LOD.far, LOD.near, LOD.press ? 1 : 0, sel ? sel.mode : "", tags.length].join("|");
+  if (key && key === sgKey && list.every(r => r.d.sgm)) { for (const r of list) signMemo(r); return; }
+  dodgeSigns(list, tags); sgKey = key;
 }
 
 // =========================================================
@@ -3435,7 +3449,7 @@ async function applyDecor() {
 // 浮標（DOM，疊在 canvas 上；國字旁的注音由 zhuyin-ann 自動加）
 // =========================================================
 const cardOf = m => document.querySelector(`.mode-card[data-mode=${m}]`);
-let tagRO = null;
+let tagRO = null, hudRO = null;   // hudRO：11-01 停靠列／頂端狀態列大小變了＝重擺鏡頭
 // 浮標內容：平常只看得到圓形圖示（.ht-ico）；名字那段（.ht-more：國字／🔒 N）收合時寬度 0，展開時 0.2 秒拉開
 // .ht-txt 永遠是自然寬度（收合時被 .ht-in 裁掉）→ 不管現在收著還是開著，都量得到「收合／展開」各多大（tagSizes）
 // （10-12 晚 阿葉：「不用把新的遊戲特別標出來，小孩玩久就知道了」→ 拿掉「新」，每棟一律平常只有圓形圖示）
@@ -3752,19 +3766,22 @@ const baseCam = new THREE.OrthographicCamera();
 function setCamDir(cam, az) { cam.position.set(Math.sin(az) * Math.cos(CAM_EL), Math.sin(CAM_EL), Math.cos(az) * Math.cos(CAM_EL)).multiplyScalar(60); cam.lookAt(0, 0, 0); cam.updateMatrixWorld(); }
 function obstacles() {
   const out = [];
-  for (const sel of ["#menu > h1", "#resumeBtn", "#townBtn", "#townTag", "#rainbowBtn", "#rainbowTag", "#menu > .menu-bottom", "#guide img", "#guideText", "#owlPeek", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#speakBtn", "#settingsBtn", "#hudLBtn", "#hudRBtn", "#mapBtn", "#plazaBtn", "#muIsleBtn", "#muIsleTag"]) {   // v8：🎵 音樂島地點鈕（#musicBtn 是音樂開關；主程式那顆用 #muIsleBtn／#muIsleTag 才會被避開）   // （10-12 加 🗺️ 全部遊戲、🎪 同樂廣場——直式 🎪 在上面第二排，以前沒算）收起來的按鈕／貓頭鷹只是 visibility:hidden，照樣量得到＝照樣避開
+  for (const sel of ["#menu > h1", "#resumeBtn", "#navBtn", "#mapBtn", "#statusBar", "#menu > .menu-bottom", "#guide img", "#guideText", "#owlPeek", "#speakBtn", "#hudRBtn"]) {   // 11-01 第二輪：🐻⚙️🏠🎵 收在右上「⋯」往下展開（暫時蓋著，不替它們留位子），左上的「⋯」拿掉   // 11-01 選單變清爽：左上只剩 🧭 去哪裡＋🗺️ 全部遊戲兩顆小圓鈕（歸仁區／彩虹島／音樂島收進 🧭 的地點面板，面板只是暫時蓋著、不算）；貼紙／星星罐／錢包／🎪 搬到頂端狀態列 #statusBar；.menu-bottom 只剩偶爾出現的「✨ 進化！」   // 收起來的按鈕／貓頭鷹只是 visibility:hidden，照樣量得到＝照樣避開
     const e = document.querySelector(sel); if (!e || !e.offsetParent) continue;
-    const r = e.getBoundingClientRect(); if (r.width < 2 || r.height < 2) continue;
+    let r = e.getBoundingClientRect(); if (r.width < 2 || r.height < 2) continue;
+    if (sel === "#guideText" && e.style.translate) { const dy = parseFloat(e.style.translate.split(" ")[1]) || 0; r = new DOMRect(r.x, r.y - dy, r.width, r.height); }   // 11-03 地點面板開著時對話框暫時往下讓（js/zhuyin.js navDodge）：量原位，鏡頭不跟著跳
     if (sel === "#resumeBtn") {                          // 繼續玩會輕跳（softHop：只往上跳 1.2vmin）：量「靜止位置」再往上多留跳的高度——
       const tf = getComputedStyle(e).transform, ty = tf && tf !== "none" ? new DOMMatrix(tf).m42 : 0, hop = Math.min(innerWidth, innerHeight) * 0.012;   // 以前上下都多留 24px（量到跳到一半的位置、鏡頭會漂），下面那 10px 白白壓縮了 4:3 的小島
       out.push({ x0: r.left - 14, x1: r.right + 14, y0: r.top - ty - hop - 14, y1: r.bottom - ty + 14, sel }); continue;
     }
     const pad = 14;                                      // （10-11 試過貼紙那排多留 2vmin：取景變擠、iPad 橫式反而碰到，撤回）
     const o = { x0: r.left - pad, x1: r.right + pad, y0: r.top - pad, y1: r.bottom + pad, owl: sel === "#guide img" || sel === "#guideText" || sel === "#owlPeek", sel };   // display:none（例如 3D 選單的標題）量不到 → 上面就略過了
-    if (sel === "#guideText") {                          // 貓頭鷹的話會換（宣告、天氣）→ 對話框最大會多大（最寬、至少兩行，靠貓頭鷹那邊不動）：按住展開的名字要避開這個（10-12 浮標精簡）
-      const cs = getComputedStyle(e), mw = parseFloat(cs.maxWidth) + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight), lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.6;
-      const im = document.querySelector("#guide img"), ir = im && im.getBoundingClientRect(), right = !!ir && ir.left >= r.right - 4;   // 貓頭鷹在對話框右邊（橫式）＝右邊固定、往左長
-      o.max = { x0: mw > 0 && right ? Math.min(o.x0, r.right - mw - pad) : o.x0, x1: mw > 0 && !right ? Math.max(o.x1, r.left + mw + pad) : o.x1, y0: Math.min(o.y0, r.bottom - 2 * lh - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - pad), y1: o.y1 };
+    if (sel === "#guideText") {                          // 11-01 第二輪：對話框縮到剛好包住字（js/zhuyin.js owlFit）→ 留的位子也縮：固定留「最寬的 3/4、兩行高」，靠貓頭鷹那邊不動
+      // （以前留整個 max-width：大部分台詞兩行不到那麼寬，主島被一個空了一半的框推去左下。固定大小＝換一句話鏡頭不會跳；特別長的一句暫時蓋到一點，講完 2.5 秒就淡掉）
+      const cs = getComputedStyle(e), lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.6, im = document.querySelector("#guide img"), ir = im && im.getBoundingClientRect(), right = !!ir && ir.left >= r.right - 4;
+      const mw = parseFloat(cs.maxWidth) + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight), rw = mw > 0 ? mw * 0.75 : r.width, rh = 2 * lh + parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+      if (right) o.x0 = r.right - rw - pad; else o.x1 = r.left + rw + pad;
+      o.y0 = r.bottom - rh - pad;
     }
     out.push(o);
   }
@@ -3814,7 +3831,7 @@ function fit() {
   const M = 6;
   const topY = Math.max(0, ...obs.filter(o => o.y1 < H * 0.35 && o.x0 < W * 0.7 && o.x1 > W * 0.3).map(o => o.y1));
   const botY = Math.min(H, ...obs.filter(o => o.y0 > H * 0.65 && o.x0 < W * 0.7 && o.x1 > W * 0.3).map(o => o.y0));
-  const pref = { x: W / 2, y: (topY + botY) / 2 };
+  const pref = { x: W / 2, y: (topY + botY) / 2 + (H > W ? Math.min(50, Math.max(0, (botY - topY) * 0.06)) : 0) };   // 11-01 第二輪（寧次）：直式島的下面到貓頭鷹對話框之間空一大片海 → 主島往下放一點（約 50px）
   const icx = (ix0 + ix1) / 2, icy = (iy0 + iy1) / 2;
   const kMax = Math.min(W / (ix1 - ix0), H / (iy1 - iy0)) * 1.35;
   const cand = [];
@@ -3865,6 +3882,20 @@ function fit() {
   view.k = best.k; view.kMax = kMax;
   view.cx = icx - (best.sx - W / 2) / best.k;
   view.cy = icy + (best.sy - H / 2) / best.k;
+  // 11-01 第二輪：別座島的倍數是「主島倍數的幾倍」——介面變少、主島變大之後，歸仁區最外面的跑跑運動場／海洋館跑出畫面 →
+  // 每座島算一個上限：那座島的遊戲建築（含浮標錨點）以島中心為準，左右、上下（上下介面之間、浮標高度另外留）都放得下
+  const tagPx = Math.min(W, H) * 0.11;
+  for (const [p, P] of Object.entries(PLACE)) {
+    if (p === "main") continue; const ds = DEFS.filter(d => d.isle === p); P.cap = 0; if (!ds.length) continue;
+    const lb = W > H ? P.land || 0 : 0; _v.set(P.x + lb, 0.8, P.z + lb).applyMatrix4(inv); const ox = _v.x, oy = _v.y;
+    let hw = 0, hu = 0, hd = 0;
+    for (const d of ds) {
+      for (const x of [d.box.min.x, d.box.max.x]) for (const z of [d.box.min.z, d.box.max.z]) { _v.set(x, 0, z).applyMatrix4(inv); hw = Math.max(hw, Math.abs(_v.x - ox)); hd = Math.max(hd, oy - _v.y); }
+      _v.copy(d.anchor).applyMatrix4(inv); hw = Math.max(hw, Math.abs(_v.x - ox)); hu = Math.max(hu, _v.y - oy);
+    }
+    const halfH = Math.max(1, (view.freeBot - view.freeTop) / 2);
+    P.cap = Math.min((W / 2 - 40) / (hw * best.k || 1), (halfH - tagPx) / (hu * best.k || 1), (halfH - 20) / (hd * best.k || 1));
+  }
   return true;
 }
 // 浮標互相重疊（含間距）：橫向只重疊一點點（< 40%）→ 左右推開；重疊很多 → 上下各讓一半
@@ -3962,15 +3993,15 @@ function placeTags(t) {
   const sgPos = []; signRects(sgPos, sc);              // 橋頭路牌（10-12）
   if (tagRO) tagDirty = false;                         // 沒有 ResizeObserver 的舊瀏覽器：每格量
   nudge(tagPos, fitObs); if (rbPos.length) nudge(rbPos, fitObs);
-  if (sgPos.length) dodgeSigns(sgPos, town.place === "main" ? tagPos : town.place === "town" ? [...rbPos, ...CIVIC.map(c => c.rect)] : rbPos);   // 遊戲浮標排好了，路牌再讓開它們（彩虹島、v8 音樂島＝那座島的遊戲浮標）
+  if (sgPos.length) placeSigns(sgPos, town.place === "main" ? tagPos : town.place === "town" ? [...rbPos, ...CIVIC.map(c => c.rect)] : rbPos);   // 遊戲浮標排好了，路牌再讓開它們（彩虹島、v8 音樂島＝那座島的遊戲浮標）
   for (const list of [tagPos, rbPos, sgPos]) for (const r of list) {
     const cx = (r.x0 + r.x1) / 2;                      // 位置放 translate（transform 留給輕跳、拉遠縮小，以浮標底部中間為準縮放）
     const tr = `${(cx - r.w0 / 2).toFixed(1)}px ${(r.y1 - r.h0).toFixed(1)}px`, zi = r.d.tag === LOD.press || r.d === sel ? 99990 : Math.round(r.y1) - (r.d.go ? 5000 : 0);   // 值沒變就不寫（效能體檢 10-12：少一次樣式失效）；按住／介紹卡開著的那棟疊在最上面、路牌（r.d.go）一律在遊戲浮標下面
     if (tr !== r.d.trW) { r.d.trW = tr; r.d.tag.style.translate = tr; } if (zi !== r.d.ziW) { r.d.ziW = zi; r.d.tag.style.zIndex = String(zi); } r.d.tagRect = r;
     const tx = Math.round((r.ax - cx) / sc); if (tx !== r.d.tx) { r.d.tx = tx; r.d.tag.style.setProperty("--tx", tx + "px"); }   // 浮標被挪開：尾巴還是指著建築
   }
-  const cyc = Math.floor(t / 4);                       // 浮標每 4 秒輪流輕跳一下（只跳能玩的、人在的那座島的）
-  if (cyc !== hopCycle) { hopCycle = cyc; DEFS.filter(d => !d.locked && isleOf(d) === town.place).forEach((d, i) => later(() => { if (!d.tag.classList.contains("pop")) { d.tag.classList.remove("hop"); void d.tag.offsetWidth; d.tag.classList.add("hop"); } }, i * 150)); }
+  const cyc = Math.floor(t / 4);                       // 浮標每 4 秒輪流輕跳一下（只跳能玩的、今天還沒玩過的、人在的那座島的；11-01 第二輪減雜）
+  if (cyc !== hopCycle) { hopCycle = cyc; DEFS.filter(d => !d.locked && isleOf(d) === town.place && !opts.played(d.mode)).forEach((d, i) => later(() => { if (!d.tag.classList.contains("pop")) { d.tag.classList.remove("hop"); void d.tag.offsetWidth; d.tag.classList.add("hop"); } }, i * 150)); }
   if (finger) { const r = DEFS.find(d => d.mode === "fish").tagRect; if (r) { finger.style.transform = `translate3d(${((r.x0 + r.x1) / 2 - 8).toFixed(1)}px, ${(r.y1 - 6).toFixed(1)}px, 0)`; finger.style.zIndex = "99999"; } }
 }
 function startLoop() { if (running || dead || lost || !shown || document.hidden) return; running = true; lastMs = lastDraw = 0; dprWin = []; raf = requestAnimationFrame(frame); }
@@ -4146,7 +4177,7 @@ function celeTick(t, dt) {
 // 對外介面
 // =========================================================
 export async function createHub(o) {
-  opts = { friends: () => [], onFriend: () => {}, onFail: () => {}, onGacha: () => {}, onDress: () => {}, onCivic: () => {}, onPlace: () => {}, stickers: () => 0, newbie: () => false, labels: {}, onPick: null, pickArea: null, onIsle: null,
+  opts = { friends: () => [], onFriend: () => {}, onFail: () => {}, onGacha: () => {}, onDress: () => {}, onCivic: () => {}, onPlace: () => {}, played: () => false, stickers: () => 0, newbie: () => false, labels: {}, onPick: null, pickArea: null, onIsle: null,
     onHome: () => {}, onMail: () => {}, onYard: () => {}, onHomeItem: () => {}, onHomeExit: () => {}, onBlank: () => {}, homeArea: null, onDJ: () => {}, onRecords: () => {}, ...o };   // v8 我的家：點房子／信箱／前院格子／裝飾、布置花園被收掉、花園小舖貨架的頂（{ top }）；onDJ：點音樂島的無尾熊 DJ
   // onPick(mode, info)｜onPick(null)：點一下遊戲建築＝開介紹卡／收起來（10-12；沒給＝點一下就開始）；pickArea()：介紹卡現在的 { top }（鏡頭把選到的那棟放在它上面）；
   // onIsle(p)：點遠方的島／路牌要飛過去（主程式出音效再呼叫 goPlace；沒給＝直接 goPlace）
@@ -4197,6 +4228,9 @@ export async function createHub(o) {
   } catch (e) { dispose(); throw e; }                 // 任何一步失敗：canvas／浮標都收掉，zhuyin.js 會退回卡片選單
   addEventListener("resize", onResizeEvt); addEventListener("orientationchange", onResizeEvt);
   document.addEventListener("visibilitychange", onVis);
+  // 11-01 會自己長大縮小的介面：下面中間的停靠列（✨進化膠囊、js/zhuyin-records.js 的「正在放」膠囊／迷你播放器）、頂端狀態列（數字變多）——
+  // 大小變了＝下一格重擺鏡頭讓開（不然要等下次 refresh 才讓；擺位只在大小真的變了才重算，fitSig 一樣就不動）
+  if ("ResizeObserver" in window) { hudRO = new ResizeObserver(() => { needFit = true; }); for (const s of ["#menu > .menu-bottom", "#statusBar"]) { const e = document.querySelector(s); if (e) hudRO.observe(e); } }
   return api;
 }
 // 建築全部長好（或失敗、被收掉）時 resolve：主程式等它才開始抓音效、語音、背景音樂（效能體檢 10-12：不跟模型、調色盤搶頻寬）
@@ -4273,6 +4307,7 @@ function dispose() {
   for (const pl of plugins.splice(0)) { try { pl.dispose && pl.dispose(); } catch (e) {} }
   clearTimeout(lostTimer); clearTimeout(resizeT); for (const id of timers) clearTimeout(id); timers.clear();
   if (tagRO) tagRO.disconnect();
+  if (hudRO) hudRO.disconnect();
   const geos = new Set(), mats = new Set();
   if (scene) scene.traverse(o => { if (o.geometry) geos.add(o.geometry); for (const m of [].concat(o.material || [])) mats.add(m); if (o.userData.mat0) for (const m of [].concat(o.userData.mat0)) mats.add(m); });
   for (const m of [...matCache.values(), ...kitMatCache.values(), ...Object.values(texMats), ...grays, vcMat, glowMat, fenceMat, ...fireM, ...(cardMats || [])]) mats.add(m);

@@ -175,9 +175,9 @@ const btnState = p => p.evaluate(() => { const b = document.getElementById("resu
     await shot(p, "L-match-lv1");
     ok("翻牌 Lv1：沒有漏注音的國字", (await bareHan(p)).length === 0, (await bareHan(p)).join("、"));
     await p.evaluate(() => { document.getElementById("homeBtn").click(); document.getElementById("confirmYes").click(); }); await sleep(1200);   // 回小島：3D 小島重新開始畫，等它順下來
-    await hudOpen(p, "R");   // 🐻／「換人」平常收在右上「⋯」裡：先展開
-    const tag = await p.evaluate(() => { const t = document.getElementById("playerTag"), b = document.getElementById("playerBtn"), r = t.getBoundingClientRect(), q = b.getBoundingClientRect(); return { shown: getComputedStyle(t).display !== "none" && getComputedStyle(t).visibility !== "hidden", below: r.top >= q.top + q.height * 0.6, cx: Math.abs((r.left + r.right) / 2 - (q.left + q.right) / 2) < 4 }; });
-    ok("換人：頭像下方有「換人」小字", tag.shown && tag.below && tag.cx, JSON.stringify(tag));
+    await hudOpen(p);   // 🐻／「換人」平常收在右上「⋯」裡：先展開
+    const tag = await p.evaluate(() => { const t = document.getElementById("playerTag"), b = document.getElementById("playerBtn"), r = t.getBoundingClientRect(), q = b.getBoundingClientRect(); return { shown: getComputedStyle(t).display !== "none" && getComputedStyle(t).visibility !== "hidden", left: r.right <= q.left + 1, cy: Math.abs((r.top + r.bottom) / 2 - (q.top + q.bottom) / 2) < 4 }; });   // 11-01 第二輪：右上「⋯」往下展開一欄，「換人」在 🐻 左邊
+    ok("換人：頭像左邊有「換人」小字（右上「⋯」展開的那一欄）", tag.shown && tag.left && tag.cy, JSON.stringify(tag));
     await p.evaluate(() => document.getElementById("playerTag").click()); await sleep(200);
     ok("換人：點「換人」小字也會開換人", await visible(p, "players"));
     await p.evaluate(() => document.getElementById("players").classList.add("hidden"));
@@ -196,7 +196,7 @@ const btnState = p => p.evaluate(() => { const b = document.getElementById("resu
     await shot(p, "P-menu");
     await p.setViewportSize({ width: 1180, height: 820 }); await sleep(600);
     // 音樂關掉看得出來
-    await hudOpen(p, "L");   // 🎵 平常收在左上「⋯」裡：先展開
+    await hudOpen(p);   // 🎵 平常收在右上「⋯」裡（11-01 第二輪）：先展開
     await p.evaluate(() => document.getElementById("musicBtn").click()); await sleep(350);
     const mu = await p.evaluate(() => { const b = document.getElementById("musicBtn"); return { off: b.classList.contains("off"), op: getComputedStyle(b).opacity, slash: getComputedStyle(b, "::after").backgroundColor, bg: getComputedStyle(b).backgroundColor }; });
     ok("音樂關掉：白底不透明＋紅斜線", mu.off && mu.op === "1" && mu.slash === "rgb(224, 80, 80)" && mu.bg === "rgb(255, 255, 255)", JSON.stringify(mu));
@@ -206,7 +206,7 @@ const btnState = p => p.evaluate(() => { const b = document.getElementById("resu
     for (const [w, h, t] of [[1180, 820, "L"], [820, 1180, "P"], [1024, 768, "43"]]) {
       await p.setViewportSize({ width: w, height: h }); await sleep(900);
       const hit = await p.evaluate(() => { const r = document.getElementById("playerTag").getBoundingClientRect(), bad = [];
-        for (const s of ["#menu > .menu-bottom", "#resumeBtn", "#homeBtn", "#musicBtn", "#playerBtn", "#settingsBtn", "#guideText", "#guide img", ".hub-tag:not(.civic)"]) for (const e of document.querySelectorAll(s)) {
+        for (const s of ["#menu > .menu-bottom", "#statusBar", "#navBtn", "#mapBtn", "#resumeBtn", "#homeBtn", "#musicBtn", "#playerBtn", "#settingsBtn", "#guideText", "#guide img"]) for (const e of document.querySelectorAll(s)) {   // 11-01 第二輪：「換人」在右上「⋯」展開的那一欄裡，暫時蓋在小島上（浮標不算）
           if (!e.offsetParent && getComputedStyle(e).position !== "fixed") continue; const q = e.getBoundingClientRect(); if (!q.width) continue;
           if (r.left < q.right - 1 && r.right > q.left + 1 && r.top < q.bottom - 1 && r.bottom > q.top + 1) bad.push(s + (e.dataset.mode ? ":" + e.dataset.mode : "")); }
         return { bad, inside: r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight }; });

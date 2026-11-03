@@ -59,7 +59,7 @@ const slot = (p, i) => p.evaluate(i => window.__hub3d.tapHome({ k: "slot", i }),
     ok("鏡頭拉近、布置模式", h.edit === true, JSON.stringify({ edit: h.edit }));
     ok("格子白圈 6 個", h.marks === 6, String(h.marks));
     ok("第一次送一個紅色花圃", s.own.fl_red === 1 && s.gift === 1, JSON.stringify(s.own));
-    ok("上面的按鈕、貓頭鷹藏起來", !(await vis(p, "#hudL")) && !(await vis(p, ".menu-bottom")));
+    ok("上面的按鈕、狀態列、貓頭鷹藏起來", !(await vis(p, "#hudL")) && !(await vis(p, "#statusBar")) && !(await vis(p, ".menu-bottom")));   // 11-01：貼紙那排搬到頂端狀態列
     ok("貨架 16 件（11-01 加留聲機）", await p.evaluate(() => document.querySelectorAll(".hg-item").length === 16));
     await shelf(p, "fl_red"); await sleep(250);
     ok("點倉庫裡有的＝直接拿起來（不跳買）", await p.evaluate(() => window.__zy.homeUI.debug.held === "fl_red" && document.querySelector(".hg-buy").classList.contains("hidden")));

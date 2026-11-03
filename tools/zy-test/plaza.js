@@ -387,9 +387,9 @@ const bodyOk = post => !!post.j && J(Object.keys(post.j).sort()) === J(["i", "k"
     const M = mock(W, "read", 20);
     const { ctx, p, errs } = await openP(browser, M, { query: "debug&plaza=on&no3d" });
     await waitFor(() => M.gets >= 1, 6000); await sleep(800);
-    const b = await p.evaluate(() => ({ inBottom: !!document.querySelector("#menu > .menu-bottom > #plazaBtn"), disp: getComputedStyle(document.getElementById("plazaBtn")).display, hub: document.body.classList.contains("hub-off") }));
+    const b = await p.evaluate(() => ({ inBottom: !!document.querySelector("#menu > #statusBar > #plazaBtn"), disp: getComputedStyle(document.getElementById("plazaBtn")).display, hub: document.body.classList.contains("hub-off") }));
     await p.evaluate(() => document.getElementById("plazaBtn").click()); await sleep(1200);
-    ok("⑧ ?no3d（卡片選單）：🎪 在下面那排、點了打開廣場", b.inBottom && b.disp !== "none" && b.hub && await vis(p, "plaza"), J(b));
+    ok("⑧ ?no3d（卡片選單）：🎪 在狀態列（卡片下面那排）、點了打開廣場", b.inBottom && b.disp !== "none" && b.hub && await vis(p, "plaza"), J(b));
     ok("⑧ ?no3d：沒有錯誤", errs.length === 0, errs.join(" | ")); allErrs.push(...errs);
     await ctx.close();
   }
@@ -402,7 +402,7 @@ const bodyOk = post => !!post.j && J(Object.keys(post.j).sort()) === J(["i", "k"
     await p.waitForFunction(() => !window.__hub3d || window.__hub3d.fitOk, null, { timeout: 8000 }).catch(() => {});
     await sleep(600);
     const r = await p.evaluate(() => {
-      const me = document.getElementById("plazaBtn"), q = me.getBoundingClientRect(), ids = ["#hudLBtn", "#hudRBtn", "#townBtn", "#townTag", "#rainbowBtn", "#rainbowTag", "#muIsleBtn", "#muIsleTag", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn", "#resumeBtn", "#albumBtn", "#menu .menu-bottom .jarBtn", "#guide > img", "#guideText", "#owlPeek"];
+      const me = document.getElementById("plazaBtn"), q = me.getBoundingClientRect(), ids = ["#hudLBtn", "#hudRBtn", "#navBtn", "#mapBtn", "#homeBtn", "#musicBtn", "#playerBtn", "#playerTag", "#settingsBtn", "#resumeBtn", "#albumBtn", "#menu .sb-bar .jarBtn", "#walletBtn", "#menu > .menu-bottom", "#guide > img", "#guideText", "#owlPeek"];   // 11-01：🎪 在頂端狀態列（貼紙、星星罐、我的星星旁邊）
       const hit = [], inView = q.left >= -1 && q.top >= -1 && q.right <= innerWidth + 1 && q.bottom <= innerHeight + 1 && q.width > 20;
       for (const s of ids) { const e = document.querySelector(s); if (!e || getComputedStyle(e).display === "none") continue; const b = e.getBoundingClientRect(); if (b.width < 1) continue; if (q.left < b.right - 1 && q.right > b.left + 1 && q.top < b.bottom - 1 && q.bottom > b.top + 1) hit.push(s); }
       const tags = []; for (const tg of document.querySelectorAll(".hub-tag:not(.civic):not(.rb):not(.mu)")) { if (getComputedStyle(tg).visibility === "hidden") continue; const b = tg.getBoundingClientRect(); if (q.left < b.right && q.right > b.left && q.top < b.bottom && q.bottom > b.top) tags.push(tg.dataset.mode); }

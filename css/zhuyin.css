@@ -64,7 +64,7 @@ button { font-family: inherit; border: 0; cursor: pointer; color: #222; }
   .guide img { height: 22vmin; }
   .guideText { max-width: 30vmin; margin-bottom: 3vmin; font-size: 4.6vmin; }
   .guideText::after { right: 5vmin; bottom: -3vmin; border: 1.6vmin solid transparent; border-top-color: #fff; }
-  #menu > h1, #menu > .resume, #menu > .mode-cards, #menu > .menu-bottom { translate: -11vmin 0; }   /* 選單內容往左挪，讓出右下角給貓頭鷹的對話框 */
+  #menu > h1, #menu > .resume, #menu > .mode-cards, #menu > .sb-bar, #menu > .menu-bottom { translate: -11vmin 0; }   /* 選單內容往左挪，讓出右下角給貓頭鷹的對話框 */
   #menu h1 { margin-top: 3vmin; }
 }
 
@@ -611,7 +611,7 @@ button { transition: scale 0.1s; }
 
 /* ===== 舊 iPad 備援（Safari 14.0 以前不認 translate 屬性；新瀏覽器不會套用這段）===== */
 @supports not (translate: 0) {
-  #menu > h1, #menu > .resume, #menu > .mode-cards, #menu > .menu-bottom { position: relative; left: -11vmin; }
+  #menu > h1, #menu > .resume, #menu > .mode-cards, #menu > .sb-bar, #menu > .menu-bottom { position: relative; left: -11vmin; }
   .whole { left: calc(50% - var(--cw, 30vmin) * 0.39); }
   .mole { left: calc(50% - var(--cw, 30vmin) * 0.3); transform: translateY(112%); transition: transform 0.2s ease-out; }
   .mole.up { transform: none; }
@@ -623,7 +623,7 @@ button { transition: scale 0.1s; }
   .pad.bloom .zlabel { transform: scale(0.4); }
   @media (orientation: portrait) {
     .whole { left: calc(50% - var(--cw, 30vmin) * 0.43); } .mole { left: calc(50% - var(--cw, 30vmin) * 0.35); }
-    #menu > h1, #menu > .resume, #menu > .mode-cards, #menu > .menu-bottom { left: 0; }
+    #menu > h1, #menu > .resume, #menu > .mode-cards, #menu > .sb-bar, #menu > .menu-bottom { left: 0; }
   }
 }
 
@@ -640,22 +640,46 @@ body.hub3d #menu > h1, body.hub3d #menu > .resume, body.hub3d #menu > .menu-bott
 body.hub3d #menu > .mode-cards { position: absolute; left: 0; top: 0; width: 1px; height: 1px; margin: 0; overflow: hidden; opacity: 0; pointer-events: none; clip-path: inset(50%); }
 body.hub3d #menu h1 { pointer-events: none; font-size: 6vmin; color: #24515c; text-shadow: none; background: #fff; border-radius: 6vmin; padding: 1vmin 3.4vmin 1vmin 3.8vmin; margin-top: 2.4vmin;
   box-shadow: 0 0.6vmin 0 rgba(36,81,92,0.18), 0 1.2vmin 3vmin rgba(20,60,90,0.25); }
-body.hub3d #menu > .menu-bottom { position: absolute; left: 50%; bottom: 2.4vmin; margin: 0; width: max-content; transform: translateX(-50%); }
+/* 11-01 下面中間的停靠列（.menu-bottom）：貼紙那排搬到頂端狀態列後，這裡只放偶爾才出現的東西——✨ 進化膠囊（#evoBtn）、js/zhuyin-records.js 塞進來的迷你播放器（#recNow，440×60，一般排版）。
+   橫式＝貼著下緣、在「左緣～貓頭鷹左邊」那段裡置中、縮成內容的寬度，東西橫著排（排不下往上換行），寬度最多到貓頭鷹左邊（不壓到右下角的貓頭鷹／探頭）；
+   對話框的底會讓到它上面（js 量停靠列高度放 --zy-dock，見下面 .guideText）。直式＝在左上 🧭🗺️ 那一欄下面（有「繼續玩」就再接在它下面；底部整排是貓頭鷹和對話框），東西直著疊。
+   3D 擺鏡頭照樣避開它（hub3d 的清單有 #menu > .menu-bottom；沒東西時高 0，不算） */
+body.hub3d #menu > .menu-bottom { position: absolute; bottom: max(2.4vmin, env(safe-area-inset-bottom, 0px)); left: max(2vmin, env(safe-area-inset-left, 0px)); right: calc(max(2vmin, env(safe-area-inset-right, 0px)) + 22vmin);
+  width: max-content; max-width: calc(100% - 26vmin); margin: 0 auto; transform: none; flex-wrap: wrap-reverse; justify-content: center; align-items: center; gap: 1.2vmin; }   /* 同一排的東西上下置中（進化膠囊比播放器高一點） */
+#menu > .menu-bottom > * { min-width: 0; }   /* 停靠列有寬度上限（窄螢幕會縮）：裡面的東西可以跟著縮（不設 max-width：唱片的「正在放」膠囊是對停靠列絕對定位的，百分比會量錯） */
 body.hub3d #menu .pill { border-color: #fff; color: #24515c; box-shadow: 0 0.6vmin 0 rgba(36,81,92,0.22), 0 1vmin 2.4vmin rgba(20,50,80,0.25); }
-body.hub3d #menu .jarBtn.ready { border-color: #ffd54a; box-shadow: 0 0 0 0.6vmin rgba(255,213,74,0.45), 0 0.6vmin 0 rgba(36,81,92,0.22), 0 0 3vmin 0.4vmin rgba(255,190,40,0.5); }   /* 有幣：固定光暈（不動） */
+
+/* ===== 11-01 頂端狀態列 #statusBar（阿葉「貼紙那排的數字可以列在最上方用比較小的圖示表示」）=====
+   📒 貼紙、星星罐（有扭蛋幣才出現：罐子水位＋🪙）、⭐ 我的星星、🎪 同樂廣場串成一條白色細長條：高度約以前膠囊的一半、字小一號，只有圖示＋數字（不用加注音的字）。
+   3D 小島＝第一排正中間（11-01 第二輪：左上只剩 🧭、右上只剩一顆「⋯」，橫式直式都放得下）；卡片選單（沒有 3D）＝排在卡片下面 */
+.sb-bar { display: flex; align-items: stretch; height: max(5.8vmin, 40px); margin-top: 2vmin; padding: 0 0.6vmin; border-radius: 99px; background: rgba(255,255,255,0.96);
+  box-shadow: 0 0.5vmin 0 rgba(36,81,92,0.2), 0 0.8vmin 2vmin rgba(20,50,80,0.22); font-size: max(3.4vmin, 15px); }
+.sb-chip { position: relative; display: inline-flex; align-items: center; gap: max(0.6vmin, 3px); padding: 0 max(1.4vmin, 7px); background: none; color: #24515c;
+  font-size: inherit; font-weight: 900; line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sb-chip + .sb-chip::before { content: ""; position: absolute; left: 0; top: 24%; bottom: 24%; width: max(0.25vmin, 1px); background: rgba(36,81,92,0.18); }   /* 格子之間的細分隔線 */
+.sb-chip:active { scale: 0.92; }
+.sb-chip .sb-ico, .sb-chip .nav-ico { line-height: 1; }
+.sb-bar .jar { width: max(2.6vmin, 12px); height: max(3.6vmin, 17px); border-width: max(0.35vmin, 1.5px); border-top-width: max(0.7vmin, 3px); border-radius: 0.4vmin 0.4vmin 1vmin 1vmin; }
+.sb-bar .jarBtn .egg { font-size: inherit; }
+.sb-bar .jarBtn.ready { margin: max(0.5vmin, 3px) 0; border-radius: 99px; background: #fff3c4; box-shadow: inset 0 0 0 max(0.35vmin, 1.5px) #ffd54a; }   /* 有扭蛋幣：那一格黃底（不動；只有幣圖示輕跳） */
+.sb-bar .jarBtn:not(.ready), .sb-bar .jarBtn .jarStar { display: none; }   /* 11-01 第二輪（寧次）：沒有扭蛋幣＝整格藏起來（淡淡的 🪙0 對比太低）；星星進度只看罐子水位，⭐＋數字只留給「我的星星」 */
+.sb-bar .jarBtn.ready::before, .sb-bar .jarBtn.ready + .sb-chip::before { display: none; }
+#walletBtn.pop { animation: hmPop 0.6s cubic-bezier(.2,1.6,.4,1); }   /* 錢包數字變多＝跳一下（keyframes 在 css/zhuyin-home.css） */
+body.garden-on #statusBar { visibility: hidden; }   /* 布置花園：跟上面的按鈕一起藏起來（css/zhuyin-home.css 藏的是 .menu-bottom） */
+body.hub3d #menu > .sb-bar { position: absolute; z-index: 2; top: calc(2vmin + (max(10vmin, 44px) - max(5.8vmin, 40px)) / 2); left: 50%; margin: 0; transform: translateX(-50%); translate: none; }   /* 跟 🧭 上下置中 */
 /* 浮標（10-12 精簡，阿葉：「關卡變多了，名字一直顯示太雜亂」）：平常只是一顆圓形圖示（7.4vmin，可以點）；
    拉近、手指按住那一棟、剛解鎖還沒玩過（＋「新」）才往右拉開名字（0.2 秒）。跟著建築在螢幕上的位置移動：
    位置放 translate（zhuyin-hub3d.js 每格寫）；transform 留給輕跳、拉遠縮小（以底部中間＝尾巴為準）；按下去彈一下用 scale */
 .hub-tag { position: absolute; left: 0; top: 0; pointer-events: auto; display: flex; flex-direction: column; align-items: center;
   background: #fff; color: #24515c; font-weight: bold; border-radius: 3.7vmin; padding: 0.7vmin; will-change: translate, transform; touch-action: none;
-  transform-origin: 50% 100%; transform: scale(var(--fs, 1)); transition: transform 0.2s ease;
+  transform-origin: 50% 100%; transform: scale(calc(var(--fs, 1) * var(--lk, 1))); transition: transform 0.2s ease, opacity 0.2s ease;   /* --lk：鎖住的縮小（11-01 第二輪） */
   box-shadow: 0 0.6vmin 0 rgba(36,81,92,0.22), 0 1vmin 2.4vmin rgba(20,50,80,0.25); }
 body.hub3d .hub-tags.pressing { z-index: 16; }   /* 手指按住某棟：名字疊在貓頭鷹（15）、膠囊上面，上方圓鈕（20）下面（hub3d lodStep） */
 .hub-tags.far .hub-tag { --fs: 0.78; }   /* 拉遠（≤ 0.7 倍）：圖示縮小一點，遠景不會一片圖示（跟 hub3d 的 FAR_SCALE 一樣） */
-.hub-tag::before { content: ""; position: absolute; inset: -1.2vmin -0.6vmin; }   /* 隱形點擊區：可點高度約 10vmin */
+.hub-tag::before { content: ""; position: absolute; inset: min(-1.2vmin, calc(3.2vmin - 22px)) min(-0.6vmin, calc(3.2vmin - 22px)); }   /* 隱形點擊區：至少 44px（11-01 第二輪浮標縮小，手機上要往外多留） */
 .hub-tag::after { content: ""; position: absolute; left: calc(50% + var(--tx, 0px)); bottom: -1.3vmin; margin-left: -1.3vmin; border: 1.3vmin solid transparent; border-top-color: #fff; border-bottom: 0; }
 .hub-tag .ht-row { display: flex; align-items: center; }
-.hub-tag .ht-ico { font-size: 4.4vmin; line-height: 1; width: 6vmin; height: 6vmin; display: flex; align-items: center; justify-content: center; }
+.hub-tag .ht-ico { font-size: 3.9vmin; line-height: 1; width: 5.2vmin; height: 5.2vmin; display: flex; align-items: center; justify-content: center; }   /* 11-01 第二輪（寧次「島上浮標減雜」）：圓形圖示 7.4 → 約 6.4vmin（加 padding） */
 /* 名字那段：收合＝寬度 0（grid 0fr）、展開＝自然寬度（1fr），中間 0.2 秒拉開；.ht-txt 永遠是自然寬度（hub3d 量「展開會多大」用） */
 .hub-tag .ht-more { display: grid; grid-template-columns: 0fr; opacity: 0; transition: grid-template-columns 0.2s ease, opacity 0.2s ease; }
 .hub-tag.open .ht-more { grid-template-columns: 1fr; opacity: 1; }
@@ -672,19 +696,20 @@ body.hub3d .hub-tags.pressing { z-index: 16; }   /* 手指按住某棟：名字�
 /* 鎖住、收合時：圓形圖示右下角一個小 🔒（不顯示數字） */
 .hub-tag .ht-badge { position: absolute; right: -0.5vmin; bottom: -0.3vmin; font-size: 2.8vmin; line-height: 1; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; filter: drop-shadow(0 0.2vmin 0.3vmin rgba(0,0,0,0.3)); }
 .hub-tag.locked:not(.open) .ht-badge { opacity: 1; }
+.hub-tag.locked:not(.open):not(.sel) { --lk: 0.8; opacity: 0.75; }   /* 11-01 第二輪：鎖住的浮標縮成 0.8 倍、淡一點（按住／介紹卡開著那一棟照常） */
 .hub-tag.first { box-shadow: 0 0 0 0.6vmin #ffd54a, 0 0.6vmin 0 0.6vmin rgba(36,81,92,0.22), 0 1vmin 2.4vmin rgba(20,50,80,0.25); }   /* 新玩家唯一能玩的釣魚：常駐黃框 */
 .hub-tag:active { filter: brightness(0.95); }
 .hub-tag.pop { animation: tagPop 0.45s cubic-bezier(.2,1.6,.4,1); }
 @keyframes tagPop { 0% { scale: 1; } 35% { scale: 1.15; } 100% { scale: 1; } }
 .hub-tag.hop { animation: tagHop 0.5s ease-out; }   /* 每 4 秒輪流輕跳：告訴小孩可以點（位置在 translate，跳用 transform；拉遠縮小要一起帶著） */
-@keyframes tagHop { 0%, 100% { transform: scale(var(--fs, 1)); } 40% { transform: translateY(-1.4vmin) scale(var(--fs, 1)); } 70% { transform: translateY(0.2vmin) scale(var(--fs, 1)); } }
+@keyframes tagHop { 0%, 100% { transform: scale(calc(var(--fs, 1) * var(--lk, 1))); } 40% { transform: translateY(-1.4vmin) scale(calc(var(--fs, 1) * var(--lk, 1))); } 70% { transform: translateY(0.2vmin) scale(calc(var(--fs, 1) * var(--lk, 1))); } }
 /* 新玩家第一次進來：手指點釣魚浮標的提示 */
 .hub-finger { position: absolute; left: 0; top: 0; pointer-events: none; font-size: 9vmin; line-height: 1; will-change: transform; filter: drop-shadow(0 0.6vmin 0.8vmin rgba(0,0,0,0.35)); }
 .hub-finger > span { display: block; animation: fingerTap 3.2s ease-in-out forwards; }
 @keyframes fingerTap { 0% { opacity: 0; translate: 5vmin 7vmin; } 18% { opacity: 1; translate: 0 0; scale: 1; } 30% { scale: 0.82; translate: 0 -0.8vmin; } 38% { scale: 1; translate: 0 0; } 52% { scale: 0.82; translate: 0 -0.8vmin; } 60% { scale: 1; translate: 0 0; } 85% { opacity: 1; } 100% { opacity: 0; translate: 0 1vmin; } }
 @media (orientation: portrait) {   /* 直式：標題在圓鈕下面、膠囊緊接著標題（底部留給貓頭鷹），小島在中間 */
   body.hub3d #menu h1 { margin-top: 13vmin; }
-  body.hub3d #menu > .menu-bottom { position: relative; left: auto; bottom: auto; transform: none; margin-top: 2vmin; }
+  body.hub3d #menu > .menu-bottom { position: relative; left: auto; right: auto; bottom: auto; transform: none; margin: 2vmin auto 0; max-width: calc(100vw - 4vmin); flex-direction: column; flex-wrap: nowrap; align-items: center; }   /* 停靠列：「繼續玩」下面、東西直著疊 */
 }
 body.hub3d #menu > .resume { font-size: 4.6vmin; padding: 1.1vmin 3vmin; margin-top: 1.4vmin; }   /* 有注音的字 ≥4.6vmin（寧次 10-10） */
 
@@ -693,10 +718,10 @@ body.hub3d #menu > .resume { font-size: 4.6vmin; padding: 1.1vmin 3vmin; margin-
    直式＝標題、膠囊在上（原樣），貓頭鷹對話框加寬 */
 body.hub3d #menu > h1 { display: none; }   /* 阿葉 10-10「注音小島一直顯示太占位置」：3D 選單不放標題（開始畫面已有大標題） */
 @media (orientation: landscape) {
-  body.hub3d #menu > .resume { position: absolute; left: 2vmin; top: 16vmin; margin: 0; translate: none; }   /* 繼續玩放在左上第二排（以前在 30vmin 會跟 🏙️ 疊在一起；第一排留給 🏙️／⋯／🏠🎵） */
-  body.hub3d #menu > .menu-bottom { left: 2vmin; bottom: 2.4vmin; transform: none; translate: none; }
+  body.hub3d #menu > .resume { position: absolute; left: calc(max(2vmin, env(safe-area-inset-left, 0px)) + max(10vmin, 44px) + 4vmin); top: calc(4vmin + max(10vmin, 44px)); margin: 0; translate: none; }   /* 繼續玩放在左上第二排、🧭 右邊（第一排留給 ⋯／🏠🎵 和狀態列） */
+  body.hub3d #menu > .menu-bottom { translate: none; }   /* 取消卡片選單的往左挪：進化膠囊在下面正中間 */
   body.hub3d .guide { flex-direction: row-reverse; align-items: flex-end; gap: 1.5vmin; }   /* 貓頭鷹在最右、對話框在牠左邊 */
-  body.hub3d .guideText { max-width: 52vmin; margin-bottom: 14vmin; font-size: 4.6vmin; line-height: 1.6; }   /* 底比左下膠囊頂（約 13.4vmin）高，不會蓋到星星罐。
+  body.hub3d .guideText { max-width: 52vmin; margin-bottom: max(14vmin, calc(var(--zy-dock, 0px) + 3vmin)); font-size: 4.6vmin; line-height: 1.6; }   /* 底比下面的停靠列頂高（進化膠囊約 12vmin；迷你播放器比較高時 js 量好的 --zy-dock 會把對話框往上推），不會蓋到它。
      寬度一律 52vmin（阿葉規格「加寬約兩行」）：以前 min(52vmin, 100vw - 98vmin) 在 4:3 只剩 35vmin → 一句話變 3 行、往上長 → 有「繼續玩」時小島擺不下、氣球浮標被對話框壓到（v5 審查） */
   body.hub3d .guideText::after { right: -2vmin; bottom: 3vmin; border: 1.6vmin solid transparent; border-left-color: #fff; }
 }
@@ -748,15 +773,17 @@ body:not(.night) .night-sky { display: none; }
 #settingsBtn.holding .lock-ring { opacity: 1; }
 #settingsBtn.nudge .ic { animation: nudge 0.45s ease-in-out; }
 @keyframes nudge { 20% { transform: rotate(-18deg); } 50% { transform: rotate(14deg); } 80% { transform: rotate(-6deg); } }
-.lock-tip { position: absolute; z-index: 21; right: 2vmin; top: 15.5vmin; background: #fff; color: #333; font-size: 3.4vmin; font-weight: bold; border-radius: 2vmin; padding: 1vmin 2vmin; box-shadow: 0 4px 12px rgba(0,0,0,0.22); pointer-events: none; animation: zyFadeIn 0.2s; }
+.lock-tip { position: absolute; z-index: 21; right: calc(max(2vmin, env(safe-area-inset-right, 0px)) + 14vmin); top: 31.4vmin; transform: translateY(-50%); background: #fff; color: #333; font-size: 3.4vmin; font-weight: bold; border-radius: 2vmin; padding: 1vmin 2vmin; box-shadow: 0 4px 12px rgba(0,0,0,0.22); pointer-events: none; animation: zyFadeIn 0.2s; }
 
 /* B8 換人：頭像下方小字「換人」（跟著頭像一起顯示／隱藏） */
 .player-tag { position: absolute; z-index: 20; background: #fff; color: var(--blue); font-size: 4.6vmin; font-weight: bold; line-height: 1; white-space: nowrap;
   border-radius: 3vmin; padding: 0.7vmin 1.2vmin 0.7vmin 1.6vmin; box-shadow: 0 3px 8px rgba(0,0,0,0.22); cursor: pointer; }
 #playerBtn.hidden ~ #playerTag { display: none; }
-/* 「換人」在 🐻 正下方（🐻 是右上那排的第一顆，中心＝容器左邊 + 6vmin）；卡片選單直式（上面有大標題）改放 🐻 左邊 */
-.hud-r > #playerTag { top: calc(100% + 0.8vmin); left: 6vmin; transform: translateX(-50%); }
-@media (orientation: portrait) { body:not(.hub3d) .hud-r > #playerTag { top: 50%; left: auto; right: calc(100% + 1vmin); transform: translateY(-50%); } }
+/* 11-01 第二輪：右上只剩一顆「⋯」，點了往下展開一欄——🐻換人（「換人」小字在它左邊）、⚙️家長設定（「家長請按住 2 秒」在它左邊）、🏠回首頁、🎵音樂（js 搬進來的）。
+   收起來看不到也點不到；展開時暫時蓋在小島上（3D 擺鏡頭不替它們留位子）。遊戲裡這欄沒東西（🏠🎵 回到左上） */
+body.on-menu .hud-r { flex-direction: column; align-items: flex-end; gap: 1.2vmin; }
+body.on-menu .hud-r > #hudRBtn { order: -1; }
+.hud-r > #playerTag { top: calc(9vmin + 1.2vmin + 6vmin); right: calc(100% + 1vmin); left: auto; transform: translateY(-50%); }
 
 /* B9 翻牌選張數：1／2／3 張疊起來的牌、字大一點 */
 .msize { width: 26vmin; gap: 0.6vmin; }
@@ -808,48 +835,57 @@ body:not(.night) .night-sky { display: none; }
 @keyframes tipIn { 0% { opacity: 0; scale: 0.6; } 100% { opacity: 1; scale: 1; } }
 .tile.toneTile.tipped { outline: 1vmin solid var(--yellow); outline-offset: 0.6vmin; }
 
-/* 10-11 新市區（hub3d 的城市設施）：設施浮標換顏色、右邊的「新市區／回小島」按鈕、失火 🔥、寵物不舒服 🤕 */
+/* 10-11 新市區（hub3d 的城市設施）：設施浮標換顏色、失火 🔥、寵物不舒服 🤕 */
 .hub-tag.civic { background: #fff7e6; } .hub-tag.civic::after { border-top-color: #fff7e6; }
 .hub-tag.civic.locked { background: #eef1f5; } .hub-tag.civic.locked::after { border-top-color: #eef1f5; }
-/* 🏙️ 新市區鈕（10-11 改）：跟其他圓鈕一樣白底、圖示不常駐晃動；有新東西（.news）才出現 NEW 小紅標＋圖示輕跳。「新市區」小字黏在圓鈕右邊 */
-#townBtn, #rainbowBtn { z-index: 2; }
-#townBtn .nav-ico, #rainbowBtn .nav-ico { display: inline-block; }
-#townBtn.news .nav-ico, #rainbowBtn.news .nav-ico { animation: navNudge 2.8s ease-in-out infinite; }
 @keyframes navNudge { 0%, 72%, 100% { rotate: 0deg; scale: 1; } 80% { rotate: -8deg; scale: 1.12; } 88% { rotate: 5deg; scale: 1.05; } }
-.hud > .town-tag { position: relative; z-index: 1; flex: none; margin-left: -6vmin; padding: 1.3vmin 1.8vmin 1.3vmin 6.4vmin; cursor: pointer; }
 /* 有新東西的小紅標：英文「NEW」小孩看不懂 → 加注音的「新」（寧次 v5；是 HTML 裡的 <span class="nav-new">，zhuyin-ann.js 才會加注音；字 4.6vmin、白字紅底對比 5.1:1） */
 .nav-new { display: none; position: absolute; right: -2.4vmin; top: -2vmin; z-index: 3; pointer-events: none; white-space: nowrap;   /* 右邊不蓋到旁邊小字的第一個字 */
   font-size: 4.6vmin; font-weight: 900; line-height: 1; color: #fff; background: #cf3030; border: 0.4vmin solid #fff; border-radius: 2.4vmin; padding: 0.5vmin 0.2vmin 0.5vmin 0.8vmin;
   box-shadow: 0 0.4vmin 0.8vmin rgba(0,0,0,0.25); transform-origin: 50% 0; animation: newPulse 1.4s ease-in-out infinite; }   /* 只放大、不往上跳（頂端貼著畫面上緣，跳會出畫面） */
 @keyframes newPulse { 0%, 60%, 100% { scale: 1; } 75% { scale: 1.1; } }
 .nav-new .ac { margin-right: 0.5em; }
-#townBtn.news .nav-new, #rainbowBtn.news .nav-new { display: block; }
 .school-card { position: absolute; left: 50%; top: 18%; translate: -50% 0; z-index: 30; background: #fff; border-radius: 4vmin; padding: 2.4vmin 4vmin 3vmin; box-shadow: 0 1.4vmin 4vmin rgba(20,50,80,0.35);
   display: flex; flex-direction: column; align-items: center; gap: 1.6vmin; animation: tipIn 0.4s cubic-bezier(.2,1.5,.4,1) both; pointer-events: none; }
 .school-card .sc-t { font-size: 4.2vmin; font-weight: 900; color: #e0703a; }
 .school-card .sticker { transform: none; }
 .school-card.bye { opacity: 0; transition: opacity 0.4s; }
-.town-tag.hidden { display: none; }
-/* 10-12 第二顆地點鈕 🌈 彩虹島：上面那排沒位子了（直式更擠）→ 放在 🏙️ 下面一排，樣子跟歸仁區一樣（圓鈕＋右邊黏著小字）。
-   橫式：第二排（top 16vmin），「繼續玩」往右挪到它旁邊；直式：見下面（兩顆並排在上排下面） */
-.hud-l > #rainbowBtn { position: absolute; left: 0; top: calc(100% + 2vmin); }
-.hud-l > #rainbowTag { position: absolute; left: 6vmin; top: calc(100% + 8vmin); transform: translateY(-50%); margin-left: 0; }
-@media (orientation: landscape) {   /* 「繼續玩」一行約 70vmin：出現時放在 🌈 圓鈕右邊（同一排），「彩虹島」小字先收起來（zhuyin.js 加 body.has-resume），不然 4:3 會碰到右邊「換人」 */
-  body.hub3d #menu > .resume { left: 16vmin; }
-  body.has-resume .hud-l > #rainbowTag { display: none; }
-}
-/* 直式（v5 寧次🟡）：兩顆地點鈕一律「圓鈕＋右邊黏著小字」，並排在上排（⋯🏠🎵）下面同一排——
-   以前「歸仁區」字在 🏙️ 下面、「彩虹島」字在 🌈 右邊（兩種排法），整疊到 33vmin。
-   做法：左上那組換行（flex-wrap＋::before 佔滿一行當換行），⋯🏠🎵 排第一排、地點鈕排第二排；「換人」小字改到 🐻 左邊（不然會碰到 🌈 那組） */
-@media (orientation: portrait) {
-  body.hub3d .hud-l { flex-wrap: wrap; row-gap: 0; }   /* 換行用的 ::before 自己佔一行（高 0），row-gap 會算兩次 → 用 margin-top 控制間距 */
-  body.hub3d .hud-l::before { content: ""; order: 1; flex-basis: 100%; height: 0; }
-  body.hub3d .hud-l > #townBtn, body.hub3d .hud-l > #townTag, body.hub3d .hud-l > #rainbowBtn, body.hub3d .hud-l > #rainbowTag { order: 2; margin-top: 1.2vmin; }
-  body.hub3d .hud-l > #townBtn, body.hub3d .hud-l > #rainbowBtn { position: relative; left: auto; top: auto; width: max(10vmin, 44px); height: max(10vmin, 44px); font-size: 5vmin; }
-  body.hub3d .hud-l > #townTag, body.hub3d .hud-l > #rainbowTag { position: relative; left: auto; top: auto; transform: none; margin-left: -6vmin; padding: 1.3vmin 1.8vmin 1.3vmin 6.4vmin; }
-  body.hub3d .hud-r > #playerTag { top: 50%; left: auto; right: calc(100% + 1vmin); transform: translateY(-50%); }
-  body.hub3d #menu { padding-top: calc(18.2vmin + max(10vmin, 44px)); }   /* 第二排底＝2＋12＋1.2vmin＋圓鈕；繼續玩接在下面（它會往上輕跳 1.2vmin，再多留 1.8vmin） */
-  .nav-new { top: -1.2vmin; }   /* 第二排的小紅標別頂到上排的 🏠 */
+/* ===== 11-01 左上小孩用的兩顆小圓鈕：🧭 去哪裡（地點面板）、🗺️ 全部遊戲（阿葉「一進來的畫面太複雜了，歸仁區 彩虹島 音樂到那些可以縮起來」）=====
+   以前左上一欄是 🏙️歸仁區／🌈彩虹島／🎵音樂島三組「圓鈕＋小字」＋🗺️（橫式疊到第四排）。11-01 第二輪：左邊的「⋯」🏠🎵 搬去右上，
+   🧭 在最左上（2vmin）、🗺️ 在它下面一直欄（橫式「繼續玩」在 🗺️ 右邊）；配色跟地點面板一樣（淡藍底＋藍框），跟島上的白色浮標分得出來。只在 3D 小島選單出現 */
+#navBtn, #mapBtn { position: relative; flex: none; z-index: 2; width: max(10vmin, 44px); height: max(10vmin, 44px); font-size: 5vmin; background: #f3faff; border: 0.5vmin solid #9fcdf5; }
+#navBtn .nav-ico, #mapBtn .nav-ico { display: inline-block; line-height: 1; }
+body:not(.on-menu) #navBtn, body:not(.hub3d) #navBtn, body:not(.on-menu) #mapBtn, body:not(.hub3d) #mapBtn { display: none; }
+#navBtn[aria-expanded=true] { background: #24515c; border-color: #24515c; }   /* 面板開著：深色（跟「⋯」把手展開一樣）＝再點一次收起來 */
+.hud-l > #mapBtn { position: absolute; left: 0; top: calc(100% + 2vmin); }   /* 選單上左上那排只有 🧭（🏠🎵 搬去右上「⋯」）→ 100%＝🧭 的底 */
+/* 有新東西的小紅點（11-01 第二輪寧次：「新」字只留在地點面板那一行；🧭 和狀態列的 🎪 改成格子／圓鈕右上角內側一顆 2.2vmin 紅點，閃 3 下就停） */
+.nav-dot { display: none; position: absolute; right: 0.6vmin; top: 0.6vmin; z-index: 3; width: max(2.2vmin, 9px); height: max(2.2vmin, 9px); border-radius: 50%; background: #e0393e; box-shadow: 0 0 0 max(0.3vmin, 1.5px) #fff; pointer-events: none; animation: navDot 0.45s ease-in-out 6 alternate; }
+@keyframes navDot { from { opacity: 1; scale: 1; } to { opacity: 0.25; scale: 0.7; } }
+#navBtn.news .nav-dot, #plazaBtn.news .nav-dot { display: block; }
+#statusBar > #plazaBtn.news .nav-ico { animation: none; }   /* css/zhuyin-plaza.css 的 🎪 一直晃：只留小紅點 */
+#statusBar > #plazaBtn .nav-dot { right: 0.2vmin; top: 0.4vmin; }
+/* 地點面板（點 🧭 展開）：一行一座島的大按鈕（圖示＋名字＋「你在這裡」／「🔒 還差 N 張」／「新」）；從 🧭 下面往下展開（暫時蓋住 🗺️）。
+   只是暫時蓋在小島上（不算 3D 擺鏡頭要避開的介面）；8 秒沒碰、點別的地方就收起來（js/zhuyin.js navOpen） */
+.nav-panel { position: absolute; z-index: 3; left: 0; top: calc(100% + 1.6vmin); display: flex; flex-direction: column; gap: 1.2vmin; padding: 1.6vmin;
+  background: rgba(255,255,255,0.97); border-radius: 4vmin; box-shadow: 0 1vmin 0 rgba(36,81,92,0.18), 0 2vmin 5vmin rgba(20,50,80,0.35); transform-origin: 0 0; animation: navIn 0.22s cubic-bezier(.2,1.4,.4,1) both; }
+@keyframes navIn { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: none; } }
+.nav-row { display: flex; align-items: center; gap: 2vmin; min-height: max(11vmin, 52px); padding: 0.8vmin 2.6vmin 0.8vmin 1.4vmin; border-radius: 3vmin; text-align: left; white-space: nowrap;
+  background: #f3faff; border: 0.5vmin solid #9fcdf5; box-shadow: 0 0.6vmin 0 #a9c9e6; color: #24515c; font-weight: 900; }
+.nav-row:active { transform: translateY(0.4vmin); box-shadow: 0 0.2vmin 0 #a9c9e6; }
+.nav-ri { font-size: 6.4vmin; line-height: 1; width: 8vmin; text-align: center; }
+.nav-rn { font-size: 5.2vmin; line-height: 1.3; }
+.nav-rs { font-size: 4.6vmin; line-height: 1.3; border-radius: 3vmin; padding: 0.3vmin 1.8vmin; }   /* 有注音的字 ≥ 4.6vmin */
+.nav-rs:empty { display: none; }
+.nav-row.here { background: #fff3c4; border-color: #ffd54a; box-shadow: none; }   /* 現在在的那座：黃底、「你在這裡」（點了只收起來） */
+.nav-row.here .nav-rs { background: #ffd54a; color: #5a3d00; }
+.nav-row.locked { background: #eef1f5; border-color: #c4ccd8; color: #5f6b80; box-shadow: 0 0.6vmin 0 #a9b3c2; }   /* 還沒開：灰、圖示淡掉、「🔒 還差 N 張」（對比 ≥ 4.5:1） */
+.nav-row.locked .nav-ri { filter: grayscale(1); opacity: 0.55; }
+.nav-row.locked .nav-rs { background: #4a5568; color: #fff; }
+.nav-row .nav-new { position: relative; right: auto; top: auto; }   /* 面板裡的「新」排在那一行最後面 */
+.nav-row.news .nav-new { display: block; }
+.nav-row.shake { animation: shake 0.4s; }
+@media (orientation: portrait) {   /* 直式：繼續玩、停靠列（迷你播放器 440×60，手機上幾乎跟畫面一樣寬）一律接在左上 🧭🗺️ 那一欄下面置中，不會壓到 🗺️ */
+  body.hub3d #menu { padding-top: calc(6vmin + 2 * max(10vmin, 44px)); }
 }
 /* 沒有 3D 的卡片選單（10-12）：「彩虹配送站」五個字 → 這張卡佔兩格寬（10 張＝4＋4＋3 格）；
    橫式卡片矮一點，三排卡片＋下面貼紙那排才放得下（以前橫式第 9 張就超出畫面） */
@@ -975,13 +1011,15 @@ body.hub-off #menu .mode-card .label { font-size: 4.2vmin; }
 .hud-handle:active { scale: 0.9; }
 body.on-menu .hud-handle { display: flex; }
 .hud.open > .hud-handle { background: #24515c; } .hud.open > .hud-handle i { background: #fff; }
-/* 收起來＝看不到也點不到，但位置照樣佔著（3D 小島擺浮標會避開，展開不會蓋到東西）；只用淡入淡出，不縮放（不改變量到的大小） */
-.hud .fold { transition: opacity 0.2s, visibility 0s, scale 0.1s; }
-body.on-menu .hud:not(.open) .fold { opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0s 0.2s; }
+/* 收起來＝不顯示（11-01 第二輪：右上「⋯」往下展開那一欄是暫時蓋在小島上的選單，收起來就不佔位置——不然直式「換人」小字會跟「繼續玩」疊在一起）；展開時淡入 */
+.hud .fold { transition: scale 0.1s; }
+body.on-menu .hud:not(.open) .fold { display: none; }
+body.on-menu .hud.open .fold { animation: zyFadeIn 0.2s ease-out; }
 /* 貓頭鷹收起來：對話框和大貓頭鷹淡出（位置照樣佔著），右下角換成探頭的小貓頭鷹 */
 .guide > img, .guideText { transition: opacity 0.3s, visibility 0s; }
 .guide.fold { pointer-events: none; }
 .guide.fold > img, .guide.fold > .guideText { opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0s 0.3s; }
+.guide.owl-fade > .guideText { opacity: 0; transition: opacity 0.8s ease-in; }   /* 11-01 阿葉「說完話的文字過2-3秒就會逐漸淡出消失」：講完 2.5 秒，字先花 0.8 秒淡出，接著貓頭鷹才縮成探頭（js/zhuyin.js owl） */
 .owl-peek { position: absolute; right: -2vmin; bottom: -2vmin; width: max(17vmin, 64px); height: max(12vmin, 48px); padding: 0; border-radius: 50% 50% 0 0; background: none; overflow: hidden;
   visibility: hidden; pointer-events: none; }
 .owl-peek img { position: absolute; left: 50%; top: 0.6vmin; width: 86%; height: auto; margin-left: -43%; animation: none; filter: drop-shadow(0 0.4vmin 0.8vmin rgba(0,0,0,0.3)); }
@@ -1055,10 +1093,10 @@ body.night .owl-peek img { filter: drop-shadow(0 0 0.8vmin rgba(255,255,255,0.8)
   .pick { grid-template-columns: auto 1fr; grid-template-areas: "ico body" "go go"; }
   .pk-go { width: 100%; }
 }
-/* 介紹卡開著：貓頭鷹（直式在下面）、左下膠囊（橫式在下面）淡出——只用 opacity／visibility，位置照樣佔著（小島不會因此重擺） */
+/* 介紹卡開著：貓頭鷹（直式在下面）淡出、下面的停靠列藏起來——只用 opacity／visibility，位置照樣佔著（小島不會因此重擺） */
 body.pick-on #guide { opacity: 0; transition: opacity 0.2s; }
 body.pick-on #guide, body.pick-on #guide * { pointer-events: none !important; }
-@media (orientation: landscape) { body.pick-on #menu > .menu-bottom { opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0s 0.2s; } }
+body.pick-on #menu > .menu-bottom { opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0s 0.2s; }   /* 停靠列（進化膠囊、正在放、迷你播放器）讓給介紹卡：直式也藏（位置照樣佔著，小島不重擺） */
 
 /* ===== v6 難度等級（docs/zhuyin-v6-plan.md §1、§2）===== */
 /* 等級徽章：圓形＋數字，Lv1 綠、Lv2 藍、Lv3 紫、Lv4 橘、Lv5 金（不用星星圖案，免得跟分數混淆） */
@@ -1131,7 +1169,8 @@ body.pick-on #guide, body.pick-on #guide * { pointer-events: none !important; }
 .hub-sign::after { content: ""; position: absolute; left: calc(50% + var(--tx, 0px)); bottom: -1.3vmin; margin-left: -1.1vmin; border: 1.1vmin solid transparent; border-top: 1.1vmin solid #f1dcc0; border-bottom: 0; }
 .hub-sign.edge::after { display: none; }   /* 木牌在畫面外、浮標貼邊：沒有尾巴 */
 .hub-sign .sg-ico { font-size: 3vmin; line-height: 1; }
-.hub-sign .sg-word { font-size: 3.6vmin; line-height: 1.1; white-space: nowrap; }   /* 比遊戲浮標的名字（4.8vmin）小：導航小牌子，不搶戲（注音 0.38 倍在 iPad 約 10px，還看得清） */
+.hub-sign .sg-word { font-size: 4.2vmin; line-height: 1.1; white-space: nowrap; }   /* 比遊戲浮標的名字（4.8vmin）小：導航小牌子，不搶戲（注音 0.38 倍在 iPad 約 10px，還看得清） */
+.hub-sign.sg-mini .sg-word { display: none; }   /* 11-01 第二輪：整支放不下時的備案小牌＝只有圖示＋箭頭（js/zhuyin-hub3d.js dodgeSigns） */
 .hub-sign .sg-arr { order: 9; font-size: 3.2vmin; line-height: 1; color: #ffe08a; }
 .hub-sign.left .sg-arr { order: -1; transform: scaleX(-1); }   /* 那座島在畫面左邊：箭頭放前面、朝左 */
 .hub-sign .sg-lock { order: 10; font-size: 2.8vmin; line-height: 1; } .hub-sign .sg-lock:empty { display: none; }
@@ -1140,18 +1179,7 @@ body.pick-on #guide, body.pick-on #guide * { pointer-events: none !important; }
 .hub-tags.far .hub-sign { --fs: 0.78; }
 .hub-tags.in-town .hub-sign[data-at=main], .hub-tags:not(.at-town) .hub-sign[data-at=town], .hub-tags:not(.at-rainbow) .hub-sign[data-at=rainbow], .hub-tags:not(.at-music) .hub-sign[data-at=music] { display: none; }   /* 只顯示人在的那座島的路牌（v8 加音樂島） */
 
-/* ===== 10-12 🗺️ 全部遊戲：圓鈕（左上那組，跟 🏙️／🌈 同一欄：橫式在 🌈 下面、直式第三排最左邊）＋全畫面清單 ===== */
-#mapBtn { position: relative; flex: none; z-index: 2; }
-#mapBtn .nav-ico { display: inline-block; line-height: 1; }
-body:not(.on-menu) #mapBtn, body:not(.hub3d) #mapBtn { display: none; }
-.hud-l > #mapBtn { position: absolute; left: 0; top: calc(100% + 16vmin); }   /* 橫式：🌈（100%＋2vmin，高 12vmin）下面一格；「繼續玩」在 🌈 右邊（16vmin），不會碰到 */
-/* 直式：上面第二排（🏙️／🌈／🎪）已經滿了，🗺️ 自己一排（第三排最左邊）：有「繼續玩」＝跟它同一排（膠囊置中、左緣離 🗺️ 還有空）；
-   沒有「繼續玩」＝貼紙那排往下讓一格（不然會碰到 🗺️）——小島能用的高度跟有「繼續玩」時一樣 */
-@media (orientation: portrait) {
-  body.hub3d .hud-l::after { content: ""; order: 3; flex-basis: 100%; height: 0; }
-  body.hub3d .hud-l > #mapBtn { position: relative; left: auto; top: auto; order: 4; margin-top: 1.2vmin; width: max(10vmin, 44px); height: max(10vmin, 44px); font-size: 5vmin; }
-  body.hub3d:not(.has-resume) #menu > .menu-bottom { margin-top: calc(max(10vmin, 44px) + 0.6vmin); }
-}
+/* ===== 10-12 🗺️ 全部遊戲：全畫面清單（圓鈕在左上 🧭 那組，見上面「左上小孩用的兩顆小圓鈕」）===== */
 .games-box { position: relative; width: min(94vw, 132vmin); max-height: 96vh; gap: 1.2vmin; padding: 2vmin 2.6vmin; }   /* ✕ 在右上角（同介紹卡）：比下面一顆「回去」少一排 */
 .games-box > .q { font-size: 5.4vmin; line-height: 1.4; }
 .gl-list { width: 100%; min-height: 0; overflow-y: auto; touch-action: pan-y; display: grid; grid-template-columns: 1fr; gap: 2vmin; padding: 0.8vmin; }   /* 直式一組一排；橫式：主島一整排，歸仁區、彩虹島並排在下面（見下面 landscape） */
@@ -1184,14 +1212,9 @@ body:not(.on-menu) #mapBtn, body:not(.hub3d) #mapBtn { display: none; }
   clip-path: polygon(50% 0%, 61.8% 34.5%, 97.6% 34.5%, 68.8% 55.9%, 79.4% 90.5%, 50% 69.1%, 20.6% 90.5%, 31.2% 55.9%, 2.4% 34.5%, 38.2% 34.5%); }
 .evo-badge.big { width: 11vmin; height: 11vmin; } .evo-badge.mini { width: 3vmin; height: 3vmin; }
 @keyframes evoSpin { to { rotate: 360deg; } }
-/* 選單的「✨ 進化！」膠囊（能量滿才出現；卡片選單、3D 小島都在 .menu-bottom 裡） */
+/* 選單的「✨ 進化！」膠囊（能量滿才出現；在 .menu-bottom 裡：3D 小島橫式＝下面正中間、直式＝「繼續玩」下面；卡片選單＝狀態列下面。
+   11-01 以前它跟貼紙那排擠在一起（浮在那排上面／卡片選單只留頭像），現在那排搬到頂端狀態列，它自己一排、整顆照原樣顯示） */
 #menu .evo-call { gap: 1vmin; padding: 0.6vmin 2.6vmin 0.6vmin 0.8vmin; border-color: #ffb300 !important; background: linear-gradient(180deg, #fff7d1, #ffe07a) !important; color: #7a3d00 !important; animation: evoCallGlow 1.4s ease-in-out infinite alternate; }
-body.hub3d #menu > .menu-bottom > .evo-call { position: absolute; left: 0; bottom: calc(100% + 2vmin); }   /* 3D 小島橫式：浮在貼紙那排的左上（排在同一排會撞到右下的貓頭鷹） */
-@media (orientation: portrait) { body.hub3d #menu > .menu-bottom > .evo-call { bottom: auto; top: calc(100% + 1.6vmin); } }   /* 直式：那排在上面（上面是 🗺️），膠囊放在它下面 */
-/* 卡片選單（沒有 3D）：排在同一排，只留寵物頭像＋角落 ✨（字太寬，4:3 會把左邊的貼紙擠出畫面）；有它的時候那排的間距縮一點 */
-body.hub-off #menu .evo-call { padding: 0.5vmin; } body.hub-off #menu .evo-call .ec-t { display: none; }
-body.hub-off #menu .evo-call .ec-pet { position: relative; } body.hub-off #menu .evo-call .ec-pet::after { content: "✨"; position: absolute; right: -1.6vmin; top: -1.8vmin; font-size: 4vmin; }
-body.hub-off #menu > .menu-bottom:has(> .evo-call:not(.hidden)) { gap: 1.6vmin; }
 #menu .evo-call .ec-pet { width: 7.4vmin; height: 7.4vmin; border-radius: 50%; background: radial-gradient(circle, #fff 30%, #ffe9a0 70%); display: flex; align-items: center; justify-content: center; }
 #menu .evo-call .ec-pet img { width: 92%; height: 92%; object-fit: contain; filter: drop-shadow(0 0 0.6vmin rgba(255,190,40,0.9)); }
 @keyframes evoCallGlow { from { box-shadow: 0 0 0 0.5vmin rgba(255,213,74,0.4), 0 0.6vmin 0 #d9a400, 0 0 1.2vmin rgba(255,190,40,0.35); } to { box-shadow: 0 0 0 0.9vmin rgba(255,213,74,0.7), 0 0.6vmin 0 #d9a400, 0 0 4vmin rgba(255,190,40,0.95); } }

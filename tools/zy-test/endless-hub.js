@@ -16,7 +16,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     ok("浮標：跑跑運動場、海洋館都有", true);
     const cards = await p.evaluate(() => ["run", "grow"].map(m => { const c = document.querySelector(`.mode-card[data-mode=${m}]`); return c && !c.classList.contains("locked"); }));
     ok("40 張貼紙：兩張卡片都沒鎖", cards.every(Boolean), JSON.stringify(cards));
-    await p.click("#townBtn"); await sleep(2500);
+    await p.click("#navBtn"); await sleep(400); await p.click("#navPanel .nav-row[data-isle=town]"); await sleep(2500);   // 11-01：地點鈕收進 🧭 地點面板
     await p.screenshot({ path: path.join(OUT, "town.png") });
     for (const m of ["run", "grow"]) {
       const sc = await p.evaluate(mm => window.__hub3d.screenOf(mm), m);
@@ -33,7 +33,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await p.reload(); await p.waitForFunction(() => document.getElementById("loading").classList.contains("hidden"), null, { timeout: 15000 });
     await p.evaluate(() => { const g = document.getElementById("startGate"); if (g && !g.classList.contains("hidden")) document.getElementById("startBtn").click(); });
     await p.waitForFunction(() => document.querySelector('.hub-tag[data-mode="grow"]'), null, { timeout: 30000 }); await sleep(800);
-    await p.click("#townBtn"); await sleep(2000);
+    await p.click("#navBtn"); await sleep(400); await p.click("#navPanel .nav-row[data-isle=town]"); await sleep(2000);
     await p.evaluate(() => document.querySelector('.hub-tag[data-mode="grow"]').click()); await sleep(1500);
     const ch = await p.evaluate(() => { const b2 = document.querySelector("#pkMeta .pk-from"); return b2 ? b2.textContent : null; });
     ok("打卡點：小魚介紹卡有「從🐢海龜繼續 ✓」", ch && /海龜繼續/.test(ch) && /✓/.test(ch), String(ch));
