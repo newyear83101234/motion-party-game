@@ -16,9 +16,11 @@ const STICK20 = ["貓","狗","魚","鳥","牛","馬","羊","豬","雞","鴨","�
 // ZY_GPU=0 退回軟體算圖（顯示卡驅動出問題、或要跟舊截圖比對時），ZY_GPU=1 讓非測試腳本也用顯示卡
 const GPU_ARGS = ["--use-angle=d3d11", "--enable-gpu", "--ignore-gpu-blocklist"];
 const IS_TEST = !!(require.main && /[\\/]zy-test[\\/]/.test(require.main.filename));
+// 11-04 阿葉：「測試時把聲音關掉」→ 一律 --mute-audio（只關喇叭，音樂／語音照樣在跑、測得到）；ZY_SOUND=1 才出聲
+const MUTE = process.env.ZY_SOUND === "1" ? [] : ["--mute-audio"];
 async function launch(args = []) {   // args：宣傳片用 --enable-begin-frame-control 等
   const pick = args.some(a => /^--(use-angle|use-gl|enable-begin-frame-control)\b/.test(a)) ? false : process.env.ZY_GPU ? process.env.ZY_GPU === "1" : IS_TEST;
-  return chromium.launch({ headless: true, executablePath: findShell(), args: pick ? [...args, ...GPU_ARGS] : args });
+  return chromium.launch({ headless: true, executablePath: findShell(), args: [...args, ...(pick ? GPU_ARGS : []), ...MUTE] });
 }
 // 開一頁、清存檔、塞進度（n 張貼紙＝詞庫前 n 個詞）、聽過全部開場語
 // homeHi：我的家第一天的「這是你的家！」算聽過（10-31：不然它會在貓頭鷹沒講話時插進來，蓋掉測試要看的台詞；要測新存檔的我的家傳 false）

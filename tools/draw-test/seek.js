@@ -20,7 +20,7 @@ const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 const near = (a, b, t = 0.6) => Math.abs(a - b) <= t;
 
 (async () => {
-  const browser = await chromium.launch({ headless: true, executablePath: findShell() });
+  const browser = await chromium.launch({ headless: true, executablePath: findShell(), args: ["--mute-audio"] });
   const errs = [];
   // init：在模組載入前寫好 localStorage（只在第一次載入時寫，reload 時保留模組自己寫的值）；broken = localStorage 一碰就丟例外
   async function newPage(init = { "draw-seek-seen": "1" }, { viewport = { width: 1180, height: 820 }, broken = false } = {}) {

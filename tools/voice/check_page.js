@@ -13,7 +13,7 @@ function findShell() {
 const URL = process.env.VC_URL || "http://127.0.0.1:8765/voice-choice.html";
 const shotDir = process.argv[2];
 (async () => {
-  const browser = await chromium.launch({ headless: true, executablePath: findShell(), args: ["--autoplay-policy=no-user-gesture-required"] });
+  const browser = await chromium.launch({ headless: true, executablePath: findShell(), args: ["--autoplay-policy=no-user-gesture-required", "--mute-audio"] });
   const errs = [];
   for (const [w, h, name] of [[1180, 900, "desktop"], [390, 844, "phone"]]) {
     const p = await browser.newPage({ viewport: { width: w, height: h } });

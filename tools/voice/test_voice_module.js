@@ -13,7 +13,7 @@ const URL = process.env.VT_URL || "http://127.0.0.1:8765/tools/voice/voice-test.
 let fails = 0;
 const check = (ok, msg) => { console.log((ok ? "PASS " : "FAIL ") + msg); if (!ok) fails++; };
 (async () => {
-  const browser = await chromium.launch({ headless: true, executablePath: findShell() });
+  const browser = await chromium.launch({ headless: true, executablePath: findShell(), args: ["--mute-audio"] });
   const p = await browser.newPage(); const errs = [];
   p.on("pageerror", e => errs.push("PAGEERR " + e.message));
   p.on("console", m => { if (m.type() === "error" || m.type() === "warning") errs.push(m.type() + " " + m.text().slice(0, 200)); });

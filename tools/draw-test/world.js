@@ -16,7 +16,7 @@ const results = [];
 const check = (name, ok, info = "") => { results.push((ok ? "✅ " : "❌ ") + name + (info ? "  " + info : "")); console.log(results[results.length - 1]); };
 
 (async () => {
-  const browser = await chromium.launch({ headless: true, executablePath: findShell() });
+  const browser = await chromium.launch({ headless: true, executablePath: findShell(), args: ["--mute-audio"] });
   const ctx = await browser.newContext({ viewport: { width: 1180, height: 820 }, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
   const p = await ctx.newPage(); const errs = [];
   p.on("pageerror", e => errs.push("PAGEERR " + e.message));

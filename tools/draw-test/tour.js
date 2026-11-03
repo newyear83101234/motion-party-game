@@ -10,7 +10,7 @@ const W = +(process.argv[3] || 1180), H = +(process.argv[4] || 820);
 const URL0 = process.env.DRAW_URL || "http://127.0.0.1:8765/draw.html";
 fs.mkdirSync(OUT, { recursive: true });
 (async () => {
-  const b = await chromium.launch({ headless: true, executablePath: shell, args: ["--use-angle=swiftshader"] });
+  const b = await chromium.launch({ headless: true, executablePath: shell, args: ["--use-angle=swiftshader", "--mute-audio"] });
   const p = await (await b.newContext({ viewport: { width: W, height: H }, hasTouch: true })).newPage();
   const errs = []; p.on("pageerror", e => errs.push(e.message));
   await p.addInitScript(() => { try { localStorage.setItem("draw-hinted", "1"); } catch {} });

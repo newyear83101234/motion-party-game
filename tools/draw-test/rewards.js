@@ -17,7 +17,7 @@ const check = (name, ok, info = "") => { const s = (ok ? "✅ " : "❌ ") + name
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 (async () => {
-  const browser = await chromium.launch({ headless: true, executablePath: findShell() });
+  const browser = await chromium.launch({ headless: true, executablePath: findShell(), args: ["--mute-audio"] });
   const ctx = await browser.newContext({ viewport: { width: 1180, height: 820 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
   const p = await ctx.newPage(); const errs = [];
   p.on("pageerror", e => errs.push("PAGEERR " + e.message));

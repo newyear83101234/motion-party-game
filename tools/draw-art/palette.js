@@ -10,7 +10,7 @@ const shell = path.join(base, fs.readdirSync(base).filter(n => n.startsWith("chr
 const REF = process.argv[2], OUT = path.join(__dirname, "../../IMAGE/draw/lineart/palette");
 fs.mkdirSync(OUT, { recursive: true });
 (async () => {
-  const b = await chromium.launch({ headless: true, executablePath: shell });
+  const b = await chromium.launch({ headless: true, executablePath: shell, args: ["--mute-audio"] });
   const p = await (await b.newContext({ viewport: { width: 1180, height: 820 } })).newPage();
   await p.addInitScript(() => { try { localStorage.setItem("draw-hinted", "1"); } catch {} });
   await p.goto("http://127.0.0.1:8765/draw.html");

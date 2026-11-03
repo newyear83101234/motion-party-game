@@ -11,7 +11,7 @@ function findShell() {
   return path.join(base, d, "chrome-headless-shell-win64", "chrome-headless-shell.exe");
 }
 (async () => {
-  const b = await chromium.launch({ executablePath: findShell(), args: ["--autoplay-policy=no-user-gesture-required"] });
+  const b = await chromium.launch({ executablePath: findShell(), args: ["--autoplay-policy=no-user-gesture-required", "--mute-audio"] });
   const p = await b.newPage();
   const errs = [];
   p.on("console", m => { if (m.type() === "error" || m.type() === "warning") errs.push(m.type() + ": " + m.text()); });

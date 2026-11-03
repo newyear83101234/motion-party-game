@@ -16,7 +16,7 @@ const results = [];
 const check = (name, ok, info = "") => { results.push((ok ? "✅ " : "❌ ") + name + (info ? "  " + info : "")); };
 
 (async () => {
-  const browser = await chromium.launch({ headless: true, executablePath: findShell() });
+  const browser = await chromium.launch({ headless: true, executablePath: findShell(), args: ["--mute-audio"] });
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true });
   // 雲端排行榜：測試一律用測試專用 device（00000000-0000-4000-8000- 開頭，伺服器端不列入排行），不會在朋友榜留假資料
   await ctx.addInitScript(() => { try { if (!localStorage.getItem("bb_dev")) localStorage.setItem("bb_dev", JSON.stringify("00000000-0000-4000-8000-0000000000aa")); } catch (e) {} });

@@ -24,7 +24,7 @@ const SPECK = 50;                              // --fix 會把小於 50 像素�
     ? [{ id: path.basename(pos[0], path.extname(pos[0])), url: pos[0].replace(/\\/g, "/"), level: +(pos[1] || 1) }]
     : JSON.parse(fs.readFileSync(path.join(ROOT, "IMAGE/draw/lineart/index.json"), "utf8")).arts
         .filter(a => !a.test).map(a => ({ id: a.id, url: "IMAGE/draw/lineart/" + a.file, level: a.level }));
-  const browser = await chromium.launch({ headless: true, executablePath: findShell() });
+  const browser = await chromium.launch({ headless: true, executablePath: findShell(), args: ["--mute-audio"] });
   const p = await browser.newPage();
   await p.goto(ROOT_URL + "IMAGE/draw/lineart/index.json");
   let bad = 0;

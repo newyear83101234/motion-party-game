@@ -17,7 +17,7 @@ const check = (name, ok, info = "") => { results.push((ok ? "✅ " : "❌ ") + n
 const GRID = { 4: [2, 2], 6: [3, 2], 9: [3, 3], 12: [4, 3] };
 
 (async () => {
-  const browser = await chromium.launch({ headless: true, executablePath: findShell() });
+  const browser = await chromium.launch({ headless: true, executablePath: findShell(), args: ["--mute-audio"] });
   const errs = [];
   // init：在模組載入前寫好 localStorage（之後讀回確認真的寫進去了）
   async function newPage(init = { "draw-puzzle-seen": "1" }, viewport = { width: 1180, height: 820 }) {

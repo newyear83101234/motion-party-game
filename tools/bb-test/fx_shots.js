@@ -12,7 +12,7 @@ const URL = process.env.BB_URL || "http://127.0.0.1:8765/blocks.html";
 const OUT = process.argv[2] || path.join(process.env.TEMP, "bb-fx");
 fs.mkdirSync(OUT, { recursive: true });
 (async () => {
-  const browser = await chromium.launch({ headless: true, executablePath: findShell() });
+  const browser = await chromium.launch({ headless: true, executablePath: findShell(), args: ["--mute-audio"] });
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   // 雲端排行榜：測試一律用測試專用 device（00000000-0000-4000-8000- 開頭，伺服器端不列入排行），不會在朋友榜留假資料
   await ctx.addInitScript(() => { try { if (!localStorage.getItem("bb_dev")) localStorage.setItem("bb_dev", JSON.stringify("00000000-0000-4000-8000-0000000000aa")); } catch (e) {} });

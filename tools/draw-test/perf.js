@@ -7,7 +7,7 @@ const base = path.join(process.env.LOCALAPPDATA, "ms-playwright");
 const shell = path.join(base, fs.readdirSync(base).filter(n => n.startsWith("chromium_headless_shell-")).sort().pop(), "chrome-headless-shell-win64", "chrome-headless-shell.exe");
 (async () => {
   const id = process.argv[2] || "animal-2";
-  const browser = await chromium.launch({ headless: true, executablePath: shell });
+  const browser = await chromium.launch({ headless: true, executablePath: shell, args: ["--mute-audio"] });
   const p = await (await browser.newContext({ viewport: { width: 1180, height: 820 } })).newPage();
   await p.goto("http://127.0.0.1:8765/draw.html?dev");
   await p.waitForFunction(() => window.__draw && document.querySelector("#arts .card"));
