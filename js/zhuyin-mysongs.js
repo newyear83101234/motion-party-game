@@ -8,10 +8,11 @@ const PW = "zy-island-songs";
 const V = "1";                                    // 換歌檔內容時升這個（破 GitHub Pages 快取）
 // bgm＝音訊引擎認的鍵（"my:"＋id）；by＝唱片牆名字下面那行小字
 export const MY_SONGS = [
-  { id: "my_soyeon", name: "SOYEON", by: "소연", e: "🎤", color: "#ff8fb1" },
-  { id: "my_ateez", name: "BAD", by: "ATEEZ", e: "🔥", color: "#ff6f6f" },
+  { id: "my_soyeon", name: "SOYEON", by: "소연", e: "💼", color: "#ff8fb1" },   // 〈퇴사할게여〉＝「我要辭職囉」→ 公事包
+  { id: "my_ateez", name: "BAD", by: "ATEEZ", e: "🏴‍☠️", color: "#ff6f6f" },   // ATEEZ 的招牌是海盜船長 → 海盜旗
   { id: "my_jay", name: "女兒殿下", by: "周杰倫", e: "👑", color: "#ffd166" },
-  { id: "my_hero", name: "英雄爸爸", by: "愛好好聽", e: "🦸", color: "#5fb4ff" },
+  { id: "my_hero", name: "英雄爸爸", by: "愛好好聽", e: "🦸‍♂️", color: "#5fb4ff" },   // 英雄爸爸 → 男超人
+  { id: "my_eyes", name: "看著我的眼睛說", by: "張遠", e: "👀", color: "#c79bff" },   // 11-01 阿葉加的第 5 首
 ].map(s => ({ ...s, bgm: "my:" + s.id }));
 
 const urls = new Map();

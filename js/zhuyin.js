@@ -11,7 +11,7 @@ import { createClock } from "./zhuyin-clock.js?v=1";   // 日夜時鐘（真實 
 import { createPlaza, PLAZA_URL } from "./zhuyin-plaza.js?v=1";   // ?v 要跟 zhuyin.html 的 modulepreload 一樣；10-12 小島同樂廣場（全島合作目標；只送匿名加總）；PLAZA_URL：注音戰鬥陀螺的全島陀螺榜也送到同一個後端
 import * as ST from "./zhuyin-stats.js?v=4";          // 10-12 家長頁「玩了什麼」本機遊玩紀錄（?v 要跟 zhuyin.html 的 modulepreload 一樣；只存本機、不上傳、不進備份碼）
 import * as HM from "./zhuyin-home.js?v=2";           // 10-31 v8 我的家：房子看星星長大、花園小舖、信箱（docs/zhuyin-v8-plan.md §3；3D 在 zhuyin-hub3d.js）
-import * as REC from "./zhuyin-records.js?v=2";       // 11-01 v8 第二批 音符唱片行：唱片牆、紀念唱片、小島音樂（docs/zhuyin-v8-plan.md §4；?v 要跟 zhuyin.html 的 modulepreload 一樣）
+import * as REC from "./zhuyin-records.js?v=3";       // 11-01 v8 第二批 音符唱片行：唱片牆、紀念唱片、小島音樂（docs/zhuyin-v8-plan.md §4；?v 要跟 zhuyin.html 的 modulepreload 一樣）
 startAnnotate();                                      // 畫面上每個國字自動加注音（阿葉 10-10）
 
 const TONES = ["", "ˊ", "ˇ", "ˋ", "˙"];

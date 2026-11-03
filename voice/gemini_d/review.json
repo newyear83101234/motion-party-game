@@ -1,7 +1,7 @@
 {
  "how": "每句由 Gemini 3.8 Flash 盲聽寫（不給答案），拼音跟正確讀音比對；詞庫詞以遊戲注音為準。AI 聽寫本身也會錯，所以這份是『請人耳確認』清單，不代表一定唸錯。",
- "count": 142,
- "suspicious": 142,
+ "count": 143,
+ "suspicious": 143,
  "items": [
   {
    "text": "第一聲不用加符號，按這個空白格就好",
@@ -5050,6 +5050,43 @@
      "why": [
       "樂 應 le4 聽到 yue4",
       "著 應 zhu4 聽到 zhe5"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "轉到中間就會先聽一小段喔！",
+   "file": "guide_fdc309fc.mp3",
+   "level": "可疑",
+   "why": [
+    "轉 應 zhuan3 聽到 jiang3"
+   ],
+   "heard": "講到中間就會先聽一小段喔",
+   "pinyin": "jiang3 dao4 zhong1 jian1 jiu4 hui4 xian1 ting1 yi4 xiao3 duan4 o5",
+   "correct": "zhuan3 dao4 zhong1 jian1 jiu4 hui4 xian1 ting1 yi1 xiao3 duan4 o1",
+   "zhuyin": null,
+   "tries": 3,
+   "all_takes": [
+    {
+     "sent": "轉到中間就會先聽一小段喔！",
+     "pinyin": "jian3 dao4 zhong1 jian1 jiu4 hui4 xian1 ting2 yi4 xiao3 duan4 o5",
+     "why": [
+      "轉 應 zhuan3 聽到 jian3",
+      "聽 應 ting1 聽到 ting2"
+     ]
+    },
+    {
+     "sent": "轉到中間就會先聽一小段喔！",
+     "pinyin": "jiang3 dao4 zhong1 jian1 jiu4 hui4 xian1 ting1 yi4 xiao3 duan4 o5",
+     "why": [
+      "轉 應 zhuan3 聽到 jiang3"
+     ]
+    },
+    {
+     "sent": "轉到中間就會先聽一小段喔！",
+     "pinyin": "zhuan3 dao4 zhong1 jian1 jiu4 hui4 xian1 ting2 yi4 xiao3 duan4 o5",
+     "why": [
+      "聽 應 ting1 聽到 ting2"
      ]
     }
    ]

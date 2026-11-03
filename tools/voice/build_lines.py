@@ -502,7 +502,7 @@ RCSRC = (ROOT / "js" / "zhuyin-records.js").read_text(encoding="utf-8")
 RC_LINES = re.findall(r'(\w+): "([^"]+)"', RCSRC.split("export const LINES = {")[1].split("\n};")[0])
 assert len(RC_LINES) == 11, f"唱片行台詞解析失敗：{len(RC_LINES)}"
 for key, t in RC_LINES:
-    if key in ("now", "stop"): continue          # 「正在放／停止播放」是膠囊上的字，不唸
+    if key == "stop": continue                    # 「停止播放」是迷你播放器 ⏹ 的讀屏標籤，不唸
     if key == "poor":                             # 「還差 N 顆星星！」：N 換成數字（店裡的唱片 ⭐8 → 最多差 8 顆）
         for n in range(1, 9): add(f"rc_poor{n}", t.replace("N", str(n)), "guide", "zhuyin-records.js LINES.poor（錢不夠，N＝還差幾顆）")
         continue

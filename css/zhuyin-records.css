@@ -1,87 +1,126 @@
-/* 注音小島：音符唱片行（js/zhuyin-records.js；v8 音樂島）——唱片牆＋唱盤 */
-.rc-shop { z-index: 42; padding: max(2vmin, env(safe-area-inset-top, 0px)) max(2.4vmin, env(safe-area-inset-right, 0px)) max(2vmin, env(safe-area-inset-bottom, 0px)) max(2.4vmin, env(safe-area-inset-left, 0px)); }
-.rc-panel { position: relative; width: min(96vw, 168vmin); max-height: 100%; display: flex; flex-direction: column; gap: 1.6vmin; background: linear-gradient(180deg, #fff8ec 0%, #ffeef4 100%); border: 0.8vmin solid #c79bff; border-radius: 4.4vmin; padding: 2vmin 2.6vmin 2.4vmin; box-shadow: 0 1.4vmin 0 rgba(90,60,140,0.25); animation: dlgIn 0.3s cubic-bezier(.2,1.6,.4,1); }
-.rc-head { display: flex; align-items: center; gap: 2vmin; padding-right: max(9.6vmin, 52px); }   /* 右上的 ✕（9vmin，離邊 1vmin）不能蓋到錢包 */
-.rc-dj { width: 11vmin; height: 11vmin; object-fit: contain; animation: rcNod 0.55s ease-in-out infinite alternate; }
-@keyframes rcNod { from { rotate: -6deg; } to { rotate: 6deg; } }
-.rc-title { font-size: 5.6vmin; font-weight: 900; color: #5a3c8c; white-space: nowrap; }
-.rc-wallet { margin-left: auto; font-size: 4.6vmin; font-weight: 900; color: #24515c; background: #fff; border: 0.5vmin solid var(--yellow); border-radius: 4vmin; padding: 0.6vmin 2.2vmin; white-space: nowrap; }
+/* 注音小島：音符唱片行（js/zhuyin-records.js；v8 音樂島）——11-01 v3 全螢幕唱片轉盤＋小島上的迷你播放器 #recNow */
+
+/* ===== 唱片牆：霧化變暗的小島當背景，中間一排黑膠左右轉 ===== */
+.overlay.rc-shop { z-index: 42; display: flex; flex-direction: column; align-items: center; overflow: hidden; touch-action: manipulation; color: #fff;
+  --S: 36vmin; --sp: 1; --dj: 19vmin;   /* --S 中間那張唱片的直徑；--sp 兩旁唱片的間距倍數（直式縮）；--dj 無尾熊 DJ 的寬 */
+  padding: max(1.6vmin, env(safe-area-inset-top, 0px)) max(2vmin, env(safe-area-inset-right, 0px)) max(1.6vmin, env(safe-area-inset-bottom, 0px)) max(2vmin, env(safe-area-inset-left, 0px));
+  background: radial-gradient(ellipse at 50% 42%, rgba(26,58,98,0.38) 0%, rgba(8,18,34,0.74) 100%);
+  -webkit-backdrop-filter: blur(12px) saturate(1.15); backdrop-filter: blur(12px) saturate(1.15); }
+.rc-stage { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2vmin; }
+.rc-head { display: flex; align-items: center; justify-content: center; gap: 2vmin; min-height: max(8vmin, 44px); padding: 0 max(11vmin, 56px); }   /* 左右留位子給右上的 ✕ */
+.rc-title { font-size: max(5vmin, 21px); font-weight: 900; letter-spacing: 0.08em; white-space: nowrap; text-shadow: 0 0.4vmin 0 rgba(0,0,0,0.32); }
+.rc-wallet { font-size: max(3.6vmin, 16px); font-weight: 900; color: #24515c; background: #fff; border: 0.5vmin solid var(--yellow); border-radius: 99px; padding: 0.4vmin 2vmin; white-space: nowrap; }   /* 只有 recshop（要用星星買）才出現 */
 .rc-wallet b { color: #b4531f; }
-.rc-x { right: 1vmin; top: 1vmin; }
-.rc-body { display: flex; gap: 2.6vmin; min-height: 0; flex: 1; }
-/* 左邊：唱盤＋按鈕 */
-.rc-deck { flex: 0 0 44%; display: flex; flex-direction: column; align-items: center; gap: 1.4vmin; }
-.rc-table { position: relative; width: min(100%, 52vmin); aspect-ratio: 1.25; background: linear-gradient(160deg, #8b5a3c, #5e3a24); border-radius: 3vmin; box-shadow: inset 0 -1vmin 0 rgba(0,0,0,0.25), 0 1vmin 0 rgba(0,0,0,0.18); display: grid; place-items: center; }
-.rc-vinyl { --c: #888; width: 74%; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; background: repeating-radial-gradient(circle, #1d1d24 0 1.1vmin, #2c2c36 1.1vmin 1.5vmin); box-shadow: 0 0.6vmin 1.4vmin rgba(0,0,0,0.4); margin-right: 12%; }
-.rc-vinyl.spin { animation: rcSpin 2.2s linear infinite; }
-.rc-vinyl.wait { animation-play-state: paused; }   /* 還沒出聲（下載＋解密中）：唱片先不轉、中間是 ⏳（js 換字） */
-.rc-vinyl.wait .rc-label { animation: rcWait 1s ease-in-out infinite alternate; }
-@keyframes rcWait { from { scale: 0.92; } to { scale: 1.06; } }
+.rc-shop .rc-x { position: absolute; right: max(2vmin, env(safe-area-inset-right, 0px)); top: max(1.6vmin, env(safe-area-inset-top, 0px)); z-index: 300; }
+/* 三個標籤 */
+.rc-tabs { display: flex; gap: max(1.2vmin, 6px); max-width: 100%; }
+.rc-tab { min-height: 44px; padding: 0.4vmin max(2.2vmin, 9px); border-radius: 99px; background: rgba(255,255,255,0.14); border: max(0.3vmin, 2px) solid rgba(255,255,255,0.3); color: #e8f1ff;
+  font-size: clamp(13px, 3vmin, 26px); font-weight: 800; white-space: nowrap; -webkit-tap-highlight-color: transparent; }
+.rc-tab.rc-cur { background: #fff; border-color: #fff; color: #5a3c8c; }
+.rc-tab:active { scale: 0.95; }
+/* 轉盤：每張唱片的位置（translateX／rotateY／scale）由 js layout() 算，單位是唱片直徑 --S */
+.rc-flow { position: relative; flex: none; width: 100%; height: calc(var(--S) * 1.22); touch-action: none; -webkit-user-select: none; user-select: none; }
+.rc-ring { position: absolute; inset: 0; perspective: calc(var(--S) * 3.6); }   /* 不用 preserve-3d：每張各自壓平，z-index 決定誰在前面 */
+.rc-rec { position: absolute; left: 50%; top: 50%; width: var(--S); height: var(--S); margin: calc(var(--S) / -2) 0 0 calc(var(--S) / -2); padding: 0; border: none; border-radius: 50%; background: transparent;
+  box-shadow: 0 calc(var(--S) * 0.06) calc(var(--S) * 0.1) rgba(0,0,0,0.55); -webkit-tap-highlight-color: transparent; will-change: transform; }
+.rc-ring.rc-snap .rc-rec { transition: transform 0.38s cubic-bezier(.2,.9,.3,1.12), opacity 0.3s, filter 0.3s; }
+.rc-vin { position: absolute; inset: 0; border-radius: 50%; display: grid; place-items: center;
+  background: repeating-radial-gradient(circle, #1d1d24 0 calc(var(--S) * 0.02), #2b2b35 calc(var(--S) * 0.02) calc(var(--S) * 0.028)); }
+.rc-rec::after { content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;   /* 黑膠反光（不跟著轉） */
+  background: conic-gradient(from 30deg, transparent 0 10%, rgba(255,255,255,0.17) 14%, transparent 20% 55%, rgba(170,220,255,0.15) 62%, transparent 70%); }
+.rc-lab { --c: #888; position: relative; width: 42%; aspect-ratio: 1; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--c);
+  box-shadow: 0 0 0 calc(var(--S) * 0.012) #141418; }
+.rc-lab::after { content: ""; position: absolute; left: 50%; top: 50%; width: 11%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; background: #10141c; z-index: 2; }   /* 中間的洞 */
+.rc-e { font-size: calc(var(--S) * 0.19); line-height: 1; }
+.rc-cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }   /* 封面圖：圓形裁切；載入失敗 js 會拿掉 → 退回 emoji＋顏色 */
+.rc-has-cover > .rc-e { visibility: hidden; }
+.rc-rec:not(.have) .rc-lab { filter: grayscale(1) brightness(0.8); }   /* 還沒拿到（recshop 舊規則才有） */
+.rc-rec.rc-mid { box-shadow: 0 0 0 calc(var(--S) * 0.024) rgba(120,230,255,0.9), 0 0 calc(var(--S) * 0.15) calc(var(--S) * 0.05) rgba(120,230,255,0.5), 0 calc(var(--S) * 0.07) calc(var(--S) * 0.13) rgba(0,0,0,0.6); }
+.rc-rec.rc-spin .rc-vin { animation: rcSpin 2.4s linear infinite; }
+.rc-rec.rc-wait .rc-vin { animation-play-state: paused; }   /* 還沒出聲（下載＋解密中）：先不轉、中間 ⏳（js 換字） */
+.rc-rec.rc-wait .rc-cover { visibility: hidden; }
+.rc-rec.rc-wait .rc-e { visibility: visible; animation: rcWait 1s ease-in-out infinite alternate; }
+@keyframes rcWait { from { scale: 0.9; } to { scale: 1.08; } }
 @keyframes rcSpin { to { rotate: 360deg; } }
-.rc-label { width: 38%; aspect-ratio: 1; border-radius: 50%; background: var(--c); display: grid; place-items: center; font-size: 7vmin; line-height: 1; border: 0.5vmin solid rgba(255,255,255,0.7); }
-.rc-arm { position: absolute; right: 7%; top: 10%; width: 2.2vmin; height: 52%; background: linear-gradient(#e8e8ee, #a9a9b6); border-radius: 1.2vmin; transform-origin: 50% 6%; rotate: 8deg; transition: rotate 0.5s ease; }
-.rc-vinyl.spin + .rc-arm { rotate: 26deg; }
-.rc-now { font-size: 4.8vmin; font-weight: 900; color: #24515c; min-height: 6vmin; text-align: center; }
-.rc-acts { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.6vmin; }
-.rc-acts .big-btn { font-size: 4.6vmin; padding: 1.6vmin 3.4vmin; min-height: 44px; }
+.rc-pinb { position: absolute; right: 4%; top: 4%; width: 22%; aspect-ratio: 1; border-radius: 50%; background: #fff; display: none; place-items: center; font-size: calc(var(--S) * 0.1); line-height: 1; box-shadow: 0 0.4vmin 1vmin rgba(0,0,0,0.35); }
+.rc-rec.rc-pin .rc-pinb { display: grid; }   /* 小島正在放這張 */
+.rc-arr { position: absolute; top: 50%; z-index: 200; translate: 0 -50%; width: max(8vmin, 44px); height: max(8vmin, 44px); border-radius: 50%; display: grid; place-items: center; padding: 0 0 0.6vmin;
+  background: rgba(255,255,255,0.18); border: max(0.3vmin, 2px) solid rgba(255,255,255,0.45); color: #fff; font-size: max(6.4vmin, 30px); font-weight: 700; line-height: 1; -webkit-tap-highlight-color: transparent; }
+.rc-prev { left: max(0px, calc(50% - var(--S) * var(--sp) * 1.62)); }
+.rc-next { right: max(0px, calc(50% - var(--S) * var(--sp) * 1.62)); }
+.rc-arr:disabled { opacity: 0.2; }
+.rc-arr:not(:disabled):active { scale: 0.9; }
+/* 名字、小字、音波條 */
+.rc-info { display: flex; flex-direction: column; align-items: center; gap: 0.5vmin; max-width: 100%; }
+.rc-now { font-size: max(5.2vmin, 22px); font-weight: 900; line-height: 1.25; white-space: nowrap; text-shadow: 0 0.4vmin 0 rgba(0,0,0,0.35); }
+.rc-sub { font-size: max(2.8vmin, 13px); font-weight: 700; color: #cfe3ff; line-height: 1.4; min-height: 1.4em; text-align: center; }
+.rc-wave { display: flex; align-items: flex-end; gap: max(0.4vmin, 3px); height: max(2.8vmin, 14px); }
+.rc-wave i { width: max(0.55vmin, 4px); height: calc(var(--h) * 100%); border-radius: 3px; background: #7fe3ff; opacity: 0.55; transform-origin: 50% 100%;
+  animation: rcWave 1.1s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -0.17s); }
+.rc-shop.rc-live .rc-wave i { opacity: 0.95; animation-duration: 0.55s; }   /* 試聽中：跳得快 */
+@keyframes rcWave { from { transform: scaleY(0.3); } to { transform: scaleY(1); } }
+/* 大按鈕 */
+.rc-acts { display: flex; flex-wrap: wrap; justify-content: center; gap: max(1.6vmin, 10px); max-width: 100%; }
+.rc-acts .big-btn { font-size: max(4vmin, 17px); padding: max(1.2vmin, 7px) max(3.2vmin, 14px); min-height: 44px; border-radius: 99px; white-space: nowrap; }
+.rc-acts .rc-set { color: #1b4fa0; }
+.rc-acts .rc-on { background: rgba(255,255,255,0.16); color: #eafff0; border: max(0.3vmin, 2px) solid rgba(255,255,255,0.45); box-shadow: none; opacity: 1; cursor: default; }
+.rc-acts .rc-on:active { transform: none; }
 .rc-buy.poor { opacity: 0.6; }
 .rc-buy-go { background: #7fd77a; box-shadow: 0 5px 0 #4fa84a; animation: pickIn 0.25s cubic-bezier(.2,1.4,.4,1) both; }
-.rc-isle { display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 1.4vmin; font-size: 4vmin; font-weight: 800; color: #24515c; }
-.rc-isle button { font-size: 3.8vmin; font-weight: 800; color: #24515c; background: #fff; border: 0.5vmin solid #c9d6e2; border-radius: 4vmin; padding: 0.8vmin 2.2vmin; min-height: 44px; }
-.rc-isle button.on { border-color: var(--yellow); background: #fff6d6; box-shadow: 0 0 0 0.5vmin rgba(255,213,74,0.55); }
-.rc-lock { font-size: 3.4vmin; font-weight: 800; color: #6b5a7e; background: #fff; border: 0.4vmin dashed #c9b6e0; border-radius: 3vmin; padding: 0.8vmin 2.2vmin; text-align: center; }   /* 家長鎖：小島只放原本的音樂（一行小字，沒有按鈕） */
-/* 右邊：唱片牆 */
-.rc-wall { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; grid-template-columns: repeat(auto-fill, minmax(max(19vmin, 92px), 1fr)); gap: 1.8vmin; align-content: start; grid-auto-rows: max-content;   /* 每一排照內容高度（卡片有 min-height，不寫的話排高會被壓到「剛好塞滿」，字跑出卡片外）；放不下就上下捲 */  padding: 0.6vmin; -webkit-overflow-scrolling: touch; }
-.rc-rec { display: flex; flex-direction: column; align-items: center; gap: 0.6vmin; background: #fff; border: 0.5vmin solid #e3dccf; border-radius: 3vmin; padding: 1.2vmin 0.8vmin 1.2vmin; color: #24515c; min-height: 44px; }
-.rc-rec:active { scale: 0.95; }
-.rc-disc { --c: #888; width: 13vmin; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle, var(--c) 0 32%, #24242c 33% 100%); box-shadow: 0 0.5vmin 0 rgba(0,0,0,0.15); }
-.rc-disc-e { font-size: 5vmin; line-height: 1; }
-.rc-rec:not(.have) .rc-disc { filter: grayscale(1) brightness(0.85); opacity: 0.55; }
-.rc-rec:not(.have) .rc-disc-e { filter: brightness(0); opacity: 0.45; }
-.rc-name { font-size: 3.6vmin; font-weight: 900; line-height: 1.4; white-space: nowrap; }
-.rc-how { font-size: 2.8vmin; font-weight: 800; color: #8a6d9e; line-height: 1.35; text-align: center; min-height: 3.8vmin; }
-.rc-rec.have .rc-how { color: #2f8a3a; }
-.rc-rec.sel { border-color: var(--yellow); box-shadow: 0 0 0 0.6vmin rgba(255,213,74,0.55); transform: translateY(-0.8vmin); }
-.rc-rec.on .rc-disc { animation: rcSpin 3s linear infinite; }
-.rc-sing { align-self: center; font-size: 5.4vmin; }
-/* 直式（11-01 櫻木：唱盤佔掉上半頁、第一眼只看到 1.5 排唱片）：唱盤縮小放左邊、名字和按鈕放右邊，「小島音樂」那列在下面一整排 → 第一眼至少 3 排唱片 */
+.rc-isle { display: flex; justify-content: center; }
+.rc-orig { min-height: 44px; padding: 0.4vmin max(2.4vmin, 12px); border-radius: 99px; background: rgba(255,255,255,0.14); border: max(0.3vmin, 2px) solid rgba(255,255,255,0.38); color: #fff; font-size: max(2.9vmin, 14px); font-weight: 800; white-space: nowrap; }
+.rc-orig.on { background: #fff6d6; color: #7a5200; border-color: var(--yellow); box-shadow: 0 0 0 0.5vmin rgba(255,213,74,0.5); }   /* 目前就是原本的 */
+.rc-lock { font-size: max(2.8vmin, 13px); font-weight: 800; color: #fff; background: rgba(255,255,255,0.12); border: max(0.3vmin, 2px) dashed rgba(255,255,255,0.45); border-radius: 99px; padding: 0.8vmin 2.4vmin; text-align: center; }   /* 家長鎖：一行小字，沒有按鈕 */
+.rc-sing { font-size: max(4.4vmin, 18px); }
+/* 無尾熊 DJ（粉紅耳機用 CSS 畫，跟著拍子點頭）＋對話泡泡：橫式在左下角（中間那排按鈕兩旁的空位） */
+.rc-djbox { position: absolute; left: max(1.6vmin, env(safe-area-inset-left, 0px)); bottom: max(1.2vmin, env(safe-area-inset-bottom, 0px)); width: var(--dj); display: flex; flex-direction: column-reverse; align-items: flex-start; gap: 2.4vmin; pointer-events: none; z-index: 5; }   /* gap：泡泡尾巴的位子＋DJ 點頭時不碰到泡泡 */
+.rc-djfig { position: relative; width: var(--dj); aspect-ratio: 1; flex: none; transform-origin: 50% 92%; animation: rcNod 0.5s ease-in-out infinite alternate; }   /* 約 120 拍：每拍點一下 */
+@keyframes rcNod { from { rotate: -5deg; translate: 0 0; } to { rotate: 5deg; translate: 0 -2%; } }
+.rc-dj { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 1.2vmin 1.2vmin rgba(0,0,0,0.45)); }
+.rc-phones { position: absolute; left: 17%; top: 9%; width: 66%; height: 36%; border: calc(var(--dj) * 0.055) solid #ff5d8f; border-bottom: none; border-radius: 50% 50% 0 0 / 100% 100% 0 0; box-shadow: 0 -0.3vmin 0 rgba(255,255,255,0.35) inset; }   /* 頭帶 */
+.rc-cup { position: absolute; top: 36%; width: 17%; height: 25%; border-radius: 45%; background: radial-gradient(circle at 40% 35%, #ff9ab9 0 30%, #ff5d8f 31% 100%); box-shadow: 0 0.4vmin 0 #d63f72; }   /* 耳罩 */
+.rc-cup-l { left: 9%; } .rc-cup-r { right: 9%; }
+.rc-bub { position: relative; max-width: calc(var(--dj) + 9vmin); width: max-content; background: #fff; color: #24515c; border-radius: 2.4vmin; padding: 1vmin 1.8vmin; font-size: max(2.6vmin, 13px); font-weight: 800; line-height: 1.55;
+  box-shadow: 0 0.6vmin 0 rgba(0,0,0,0.22); }
+.rc-bub:empty { display: none; }
+.rc-bub::after { content: ""; position: absolute; left: calc(var(--dj) * 0.42); bottom: -1.6vmin; border: 1vmin solid transparent; border-top: 1.4vmin solid #fff; border-bottom: none; }   /* 尾巴指向下面的 DJ */
+.rc-bub.rc-pop { animation: rcBubIn 0.3s cubic-bezier(.2,1.5,.4,1); }
+@keyframes rcBubIn { from { scale: 0.8; opacity: 0.4; } to { scale: 1; opacity: 1; } }
+@media (orientation: landscape) {
+  .overlay.rc-shop { --S: min(36vmin, 25vw); }   /* 4:3（1024×768）唱片小一點：上下才放得下名字＋兩排按鈕 */
+  .rc-acts, .rc-isle, .rc-info { max-width: calc(100vw - 2 * (var(--dj) + 5vmin)); }   /* 中間那幾排不碰左下角的 DJ（DJ＋泡泡都在這個寬度裡） */
+  .rc-bub { max-width: calc(var(--dj) + 3vmin); }
+}
+/* 直式：唱片小一點、間距縮；DJ＋泡泡在最下面一排（泡泡在 DJ 右邊），不跟唱片／按鈕疊 */
 @media (orientation: portrait) {
-  .rc-panel { gap: 1.2vmin; padding-top: 1.6vmin; }
-  .rc-body { flex-direction: column; gap: 1.8vmin; }
-  .rc-deck { flex: 0 0 auto; display: grid; grid-template-columns: min(30vmin, 38%) 1fr; grid-template-areas: "t n" "t a" "i i" "l l"; column-gap: 2.6vmin; row-gap: 1vmin; align-items: center; }
-  .rc-table { grid-area: t; width: 100%; }
-  .rc-now { grid-area: n; align-self: end; min-height: 0; font-size: 4.6vmin; }
-  .rc-acts { grid-area: a; align-self: start; gap: 1.2vmin; }
-  .rc-acts .big-btn { font-size: 4.2vmin; padding: 1.2vmin 2.8vmin; }
-  .rc-isle { grid-area: i; font-size: 3.6vmin; gap: 1.2vmin; }
-  .rc-isle button { font-size: 3.4vmin; padding: 0.6vmin 2vmin; }
-  .rc-lock { grid-area: l; justify-self: center; }
-  .rc-wall { grid-template-columns: repeat(auto-fill, minmax(max(21vmin, 92px), 1fr)); gap: 1.4vmin; }
-  .rc-rec { padding: 0.9vmin 0.6vmin; gap: 0.3vmin; }
-  .rc-disc { width: 10.5vmin; }
-  .rc-how { font-size: 2.6vmin; min-height: 3.4vmin; }
-  .rc-dj { width: 8.6vmin; height: 8.6vmin; }   /* 直式比較窄：標題一行＋錢包要留位子給右上的 ✕ */
-  .rc-head { gap: 1.4vmin; }
-  .rc-title { font-size: 5vmin; }
+  .overlay.rc-shop { --S: min(46vmin, 30vh); --sp: 0.86; --dj: max(15vmin, 76px); }
+  .rc-stage { gap: max(1.4vmin, 8px); }
+  .rc-djbox { position: static; width: 100%; flex: none; flex-direction: row; align-items: flex-end; gap: 1.6vmin; margin-top: 1vmin; }
+  .rc-bub { max-width: calc(100% - var(--dj) - 2vmin); margin-bottom: calc(var(--dj) * 0.45); }
+  .rc-bub::after { left: -1.4vmin; bottom: 1.2vmin; border: 0.9vmin solid transparent; border-right: 1.4vmin solid #fff; border-left: none; }   /* 尾巴指向左邊的 DJ */
 }
 
-/* ===== 「▶ 聽整首」時小島上的膠囊：♪ 正在放《歌名》 ⏹（#recNow；整顆都能按＝停）=====
-   放在貼紙那排（#menu > .menu-bottom）裡、浮在旁邊，跟「✨ 進化！」膠囊一樣：橫式浮在那排左上、直式在那排下面（靠右，左邊留給進化膠囊）；兩個都在就疊開 */
-.rc-np { position: absolute; z-index: 3; display: flex; align-items: center; gap: 1vmin; min-height: 44px; max-width: min(calc(100vw - 4vmin), 92vmin);
-  padding: 0.4vmin 0.6vmin 0.4vmin 2vmin; border-radius: 99px; background: #fff; border: 0.5vmin solid #c79bff; color: #5a3c8c;
-  font-size: 3vmin; font-weight: 900; line-height: 1.2; white-space: nowrap; box-shadow: 0 0.6vmin 0 rgba(90,60,140,0.22), 0 1vmin 2.4vmin rgba(20,50,80,0.22); animation: pickIn 0.3s cubic-bezier(.2,1.4,.4,1) both; }
-.rc-np-ico { display: inline-block; font-size: 3.8vmin; color: #b04fd8; animation: rcNod 0.55s ease-in-out infinite alternate; }
-.rc-np-t { overflow: hidden; text-overflow: ellipsis; }
-.rc-np-x { flex: none; display: grid; place-items: center; width: max(6.4vmin, 36px); height: max(6.4vmin, 36px); border-radius: 50%; background: #f1e8ff; font-size: 3.6vmin; line-height: 1; }
-.rc-np:active { scale: 0.95; }
+/* ===== 小島上的迷你播放器 #recNow：唱片小圖＋歌名＋⏮ ⏸ ⏭（聽整首時中間 ⏹）=====
+   這段只管外觀與大小；它掛在 #menu > .menu-bottom 裡照一般排版，「放在哪」由 .menu-bottom 停靠列負責（css/zhuyin.css：置中、跟進化膠囊排一排、窄螢幕縮、介紹卡開著時讓開）。
+   11-01 寧次：最大 440×60、三顆鈕各 46px——560 寬時 4:3 iPad 跟進化膠囊擠成兩排（約 170px 高），小島被迫縮小約三成 */
+.rc-np { display: flex; align-items: center; gap: 6px; box-sizing: border-box; width: min(440px, calc(100vw - 32px)); max-width: 100%; height: 60px;
+  padding: 7px 8px 7px 7px; border-radius: 99px; background: #fff; color: #24515c; pointer-events: auto;
+  box-shadow: 0 0.6vmin 0 rgba(36,81,92,0.18), 0 1vmin 2.4vmin rgba(20,50,80,0.28); animation: pickIn 0.3s cubic-bezier(.2,1.4,.4,1) both; }
 body:not(.on-menu) .rc-np { display: none; }
-#menu > .menu-bottom > .rc-np { left: 0; bottom: calc(100% + 2vmin); }   /* 橫式（3D 小島）：貼紙那排的左上（右邊是貓頭鷹的對話框；4:3 只差一點點 → 橫式字小一號） */
-@media (orientation: landscape) { .rc-np { font-size: 2.8vmin; } }
-#menu > .menu-bottom:has(> .evo-call:not(.hidden)) > .rc-np { bottom: calc(100% + 3.4vmin + max(8.6vmin, 44px)); }   /* 進化膠囊也在：疊在它上面 */
-body.hub-off #menu > .menu-bottom { position: relative; }   /* 沒有 3D 的卡片選單：膠囊一樣浮在那排上面 */
-@media (orientation: portrait) {
-  body.hub3d #menu > .menu-bottom > .rc-np { bottom: auto; top: calc(100% + 1.6vmin); left: auto; right: 0; }   /* 直式：那排在上面 → 膠囊在它下面靠右（.at-l＝靠左：出現時 js 看哪邊蓋到的小島浮標少） */
-  body.hub3d #menu > .menu-bottom > .rc-np.at-l { left: 0; right: auto; }
-  body.hub3d #menu > .menu-bottom:has(> .evo-call:not(.hidden)) > .rc-np { top: calc(100% + 2.8vmin + max(8.6vmin, 44px)); }
+.rc-np-disc { flex: none; width: 46px; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; --S: 46px;
+  background: repeating-radial-gradient(circle, #1d1d24 0 2px, #2c2c36 2px 3px); box-shadow: 0 0.4vmin 0.8vmin rgba(0,0,0,0.3); animation: rcSpin 4s linear infinite; }   /* 播放中慢慢轉 */
+.rc-np.rc-np-still .rc-np-disc { animation: none; }   /* 音樂開關關著：不轉 */
+.rc-np-lab { --c: #888; position: relative; width: 50%; aspect-ratio: 1; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--c); }
+.rc-np-lab .rc-e { font-size: calc(var(--S) * 0.28); }
+.rc-np-txt { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; }
+.rc-np-t { font-size: 15px; font-weight: 900; line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }   /* 歌名長（看著我的眼睛說）：換第二行，不切字 */
+.rc-np-b { flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; padding: 0; border: none; background: transparent; color: #1b4fa0;
+  font-size: 20px; line-height: 1; -webkit-tap-highlight-color: transparent; }
+.rc-np-mid { background: var(--yellow); color: #5a3200; box-shadow: 0 0.5vmin 0 var(--yellow-dk); }
+.rc-np-b:active { scale: 0.9; }
+@media (max-width: 520px) { .rc-np-t { font-size: 14px; } }   /* 手機直式：歌名小一號（最多兩行） */
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-djfig, .rc-rec.rc-spin .rc-vin, .rc-rec.rc-wait .rc-e, .rc-wave i, .rc-np-disc, .rc-bub.rc-pop { animation: none; }
+  .rc-ring.rc-snap .rc-rec { transition: none; }
 }
-@media (prefers-reduced-motion: reduce) { .rc-dj, .rc-vinyl.spin, .rc-rec.on .rc-disc, .rc-np-ico, .rc-vinyl.wait .rc-label { animation: none; } }
