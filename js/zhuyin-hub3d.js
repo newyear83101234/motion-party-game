@@ -1902,6 +1902,7 @@ const DIST_NEED = CIVIC[0].need;
 const sdDist = (x, z) => Math.min(sdRoundBox(x - DIST.x, z - DIST.z, DIST.h, DIST.h, DIST.r), sdRoundBox(x - TEX.x, z - TEX.z, TEX.hx, TEX.hz, TEX.r),
   sdRoundBox(x - WEX.x, z - WEX.z, WEX.hx, WEX.hz, WEX.r), sdRoundBox(x - NEX.x, z - NEX.z, NEX.hx, NEX.hz, NEX.r));   // 11-01 西邊（跑跑運動場）、北邊（海洋館）小半島   // 新市區＋東邊小半島（10-12 陀螺競技場）
 const town = { agent: {}, sickTags: [], open: undefined, bridge: null, gap: null, barrier: null, nav: null, place: "main", off: { x: 0, y: 0 }, tgt: { x: 0, y: 0 }, zoomTgt: 0, fires: [], cars: {}, parked: {}, nextEvent: 0, siren: 0 };
+const eventGap = () => 300000 + Math.random() * 180000;   // 小島隨機事件（失火／寵物生病）的間隔：5～8 分鐘
 const CAR_YAW = 0;                                     // Kenney 車模型的車頭方向修正（車頭朝 +z＝0）
 const civHits = [];
 const shut = e => !!(e.town && !town.open) || !!(e.rb && !rb.open) || !!(e.mu && !mu.open);   // 新市區／彩虹島／音樂島還沒開：橋跟那邊的路都不走
@@ -2382,14 +2383,14 @@ function stepTown(t, dt) {
   }
   if (town.patrol) town.patrol.speed = fast ? 1.25 : 0.8;
   for (const c of CIVIC) if (c.lights && !c.locked) { const on = Math.floor(t * (c.id === "police" && fast ? 6 : 1.2)) % 2; c.lights.r.visible = !on; c.lights.b.visible = !!on; }
-  // 事件：選單開著、新市區開了，每 50～90 秒一次（火災或寵物不舒服）
+  // 事件：選單開著、新市區開了，每 5～8 分鐘一次（火災或寵物不舒服）；11-04 阿葉：原本 50～90 秒太常 → 第一次也從 5～8 分鐘起算
   const now = performance.now();
-  if (!town.nextEvent) town.nextEvent = now + 25000;
+  if (!town.nextEvent) town.nextEvent = now + eventGap();
   if (town.open && built && now > town.nextEvent) {
     let quiet = false; try { quiet = !!(opts.quiet && opts.quiet()); } catch (e) {}
     if (quiet) town.nextEvent = now + 20000;           // 11-03 阿葉：選唱片時「失火了」這類講話＋警笛會蓋過歌 → 唱片牆開著／正在放唱片＝事件晚 20 秒再看
     else {
-      town.nextEvent = now + 50000 + Math.random() * 40000;
+      town.nextEvent = now + eventGap();
       const canFire = !CIVIC.find(c => c.id === "fire").locked && !town.fires.length, canSick = !CIVIC.find(c => c.id === "hospital").locked;
       if (canFire && (!canSick || Math.random() < 0.55)) { const ds = MAIN_DEFS.filter(d => !d.locked && d.ready && !d.free && !d.spot); if (ds.length) startFire(ds[Math.floor(Math.random() * ds.length)]); }
       else if (canSick) sickPet();

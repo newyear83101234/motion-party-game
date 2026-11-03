@@ -119,9 +119,11 @@ const topCheck = () => { const ids = ["#hudLBtn", "#hudRBtn", "#navBtn", "#homeB
     ok("免費：店裡那張（安靜時光）＝有「✓ 就聽這首」、小字「小島配樂」，沒有「買下來」；已經在放", (await btn(p, ".rc-go")).shown && strip((await btn(p, ".rc-go")).text) === "✓就聽這首" && !(await btn(p, ".rc-buy")).shown && !(await btn(p, ".rc-buy-go")).shown && (await txt(p, ".rc-sub")) === "小島配樂" && (await bgm(p)) === "calm");
     ok("免費：錢包膠囊不出現（不用買）", !(await btn(p, ".rc-wallet")).shown);
     ok("舊的「▶ 聽整首」「🏝️ 當小島音樂」「✓ 小島正在放」鈕都沒了", await p.evaluate(() => !document.querySelector(".rc-play, .rc-set, .rc-on, .rc-pinb")));
+    await p.waitForFunction(() => { const d = window.__zyAudio.debug(); return d.cur === "calm" && !d.pend; }, null, { timeout: 15000 }).catch(() => {});   // 11-04：安靜時光真的開始播了才記次數（還在下載就記＝下載完開播會多算 1 次）
     await clearSpoken(p); const st0 = await p.evaluate(() => window.__zyAudio.debug().stats.bgmStarts);
     await click(p, ".rc-go"); await sleep(300);
-    ok("「✓ 就聽這首」：唱片牆收起來、小島繼續放安靜時光（沒重放）、寵物跳 30 秒、DJ 說「回小島就會放這首歌喔！」", !(await wallOn(p)) && (await bgm(p)) === "calm" && (await npId(p)) === "r_calm" && (await lastDance(p)) === 30 && (await spoken(p)).includes("回小島就會放這首歌喔！") && (await p.evaluate(() => window.__zyAudio.debug().stats.bgmStarts)) === st0, JSON.stringify(await spoken(p)));
+    const g = { wall: await wallOn(p), bgm: await bgm(p), np: await npId(p), dance: await lastDance(p), said: await spoken(p), starts: (await p.evaluate(() => window.__zyAudio.debug().stats.bgmStarts)) - st0 };
+    ok("「✓ 就聽這首」：唱片牆收起來、小島繼續放安靜時光（沒重放）、寵物跳 30 秒、DJ 說「回小島就會放這首歌喔！」", !g.wall && g.bgm === "calm" && g.np === "r_calm" && g.dance === 30 && g.said.includes("回小島就會放這首歌喔！") && g.starts === 0, JSON.stringify(g));
     await p.evaluate(() => window.__zy.openRecords()); await clearSpoken(p); await sleep(2900);
     d = await dbg(p);
     ok("第二次開店：不再教一次（這次開頁教過了）；停在正在放的那張（🎼 安靜時光）、繼續放", !(await spoken(p)).includes("轉到中間就會先聽一小段喔！") && d.sel === "r_calm" && d.tab === "shop" && (await bgm(p)) === "calm", JSON.stringify({ sp: await spoken(p), d }));
@@ -458,6 +460,8 @@ const topCheck = () => { const ids = ["#hudLBtn", "#hudRBtn", "#navBtn", "#homeB
   for (const [w, h, t] of [[1180, 820, "L"], [1024, 768, "L4"], [820, 1180, "P"], [390, 844, "M"]]) {
     const { ctx, p, errs } = await openGame(browser, { w, h, stickers: 45, query: "debug&novoice&night=0&weather=sunny" }); await covers(ctx);
     await p.waitForFunction(() => window.__hub3d && window.__hub3d.ready, null, { timeout: 40000 }).catch(() => {}); await sleep(600);
+    const first = await p.evaluate(() => window.__hub3d.eventIn());
+    ok(`${t}：剛進小島＝第一次事件排在 5～8 分鐘後（阿葉 11-04「50～90 秒太常」）`, first > 280000 && first <= 480000, String(first));
     await p.evaluate(() => window.__hub3d.events(false));
     let pc = await npS(p);
     ok(`${t} ${w}×${h}：小島上一開始就有小顆「換音樂」：在畫面內、≥44px、不擋別的按鈕／狀態列／貓頭鷹`, pc.shown && pc.mode === "idle" && pc.inV && pc.h >= 44 && !pc.small && pc.hit.length === 0, JSON.stringify(pc));
@@ -486,7 +490,7 @@ const topCheck = () => { const ids = ["#hudLBtn", "#hudRBtn", "#navBtn", "#homeB
     await p.evaluate(() => document.querySelector("#recNow .rc-np-mid").click()); await sleep(600);
     ok(`${t}：按 ⏹＝寵物停下來、回原本的音樂`, (await p.evaluate(() => window.__hub3d.dancing())) === 0 && (await p.evaluate(() => window.__zy.bgmNow())) === "island");
     q = await ev();
-    ok(`${t}：停掉唱片之後：事件照常出（下一次排到 50 秒以後）`, q.in > 40000, JSON.stringify(q));
+    ok(`${t}：停掉唱片之後：事件照常出（下一次排在 5～8 分鐘後）`, q.in > 290000 && q.in <= 480000, JSON.stringify(q));
     await p.evaluate(() => window.__hub3d.events(false));
     await p.evaluate(() => window.__zy.openRecords()); await sleep(200); await pickRec(p, "my_eyes", 300); await click(p, ".rc-go"); await sleep(900);
     pc = await npS(p);
