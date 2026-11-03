@@ -662,7 +662,8 @@ body.hub3d #menu .pill { border-color: #fff; color: #24515c; box-shadow: 0 0.6vm
 .sb-bar .jar { width: max(2.6vmin, 12px); height: max(3.6vmin, 17px); border-width: max(0.35vmin, 1.5px); border-top-width: max(0.7vmin, 3px); border-radius: 0.4vmin 0.4vmin 1vmin 1vmin; }
 .sb-bar .jarBtn .egg { font-size: inherit; }
 .sb-bar .jarBtn.ready { margin: max(0.5vmin, 3px) 0; border-radius: 99px; background: #fff3c4; box-shadow: inset 0 0 0 max(0.35vmin, 1.5px) #ffd54a; }   /* 有扭蛋幣：那一格黃底（不動；只有幣圖示輕跳） */
-.sb-bar .jarBtn:not(.ready), .sb-bar .jarBtn .jarStar { display: none; }   /* 11-01 第二輪（寧次）：沒有扭蛋幣＝整格藏起來（淡淡的 🪙0 對比太低）；星星進度只看罐子水位，⭐＋數字只留給「我的星星」 */
+.sb-bar .jarBtn:not(.ready), .sb-bar .jarBtn .jarStar, .sb-bar .jarBtn .jar { display: none; }   /* 11-01 第二輪（寧次）：沒有扭蛋幣＝整格藏起來（淡淡的 🪙0 對比太低）；⭐＋數字只留給「我的星星」。
+   11-03 阿葉照寧次建議：罐子＋🪙 兩個圖示對一個數字，小孩會以為是兩樣東西 → 狀態列只留 🪙 幾枚（罐子水位在結算畫面看） */
 .sb-bar .jarBtn.ready::before, .sb-bar .jarBtn.ready + .sb-chip::before { display: none; }
 #walletBtn.pop { animation: hmPop 0.6s cubic-bezier(.2,1.6,.4,1); }   /* 錢包數字變多＝跳一下（keyframes 在 css/zhuyin-home.css） */
 body.garden-on #statusBar { visibility: hidden; }   /* 布置花園：跟上面的按鈕一起藏起來（css/zhuyin-home.css 藏的是 .menu-bottom） */
@@ -1170,7 +1171,8 @@ body.pick-on #menu > .menu-bottom { opacity: 0; visibility: hidden; transition: 
 .hub-sign.edge::after { display: none; }   /* 木牌在畫面外、浮標貼邊：沒有尾巴 */
 .hub-sign .sg-ico { font-size: 3vmin; line-height: 1; }
 .hub-sign .sg-word { font-size: 4.2vmin; line-height: 1.1; white-space: nowrap; }   /* 比遊戲浮標的名字（4.8vmin）小：導航小牌子，不搶戲（注音 0.38 倍在 iPad 約 10px，還看得清） */
-.hub-sign.sg-mini .sg-word { display: none; }   /* 11-01 第二輪：整支放不下時的備案小牌＝只有圖示＋箭頭（js/zhuyin-hub3d.js dodgeSigns） */
+.hub-sign.sg-mini .sg-word { display: none; }   /* 小牌＝只有圖示＋箭頭（11-01 第二輪是放不下的備案；11-03 起平常一律小牌，js/zhuyin-hub3d.js SIGN_MINI） */
+.hub-sign.sg-mini { padding: 0.5vmin 1.1vmin; } .hub-sign.sg-mini .sg-ico { font-size: 3.8vmin; } .hub-sign.sg-mini .sg-arr { font-size: 3.4vmin; }   /* 沒有字了：圖示放大一點，好認也好點 */
 .hub-sign .sg-arr { order: 9; font-size: 3.2vmin; line-height: 1; color: #ffe08a; }
 .hub-sign.left .sg-arr { order: -1; transform: scaleX(-1); }   /* 那座島在畫面左邊：箭頭放前面、朝左 */
 .hub-sign .sg-lock { order: 10; font-size: 2.8vmin; line-height: 1; } .hub-sign .sg-lock:empty { display: none; }

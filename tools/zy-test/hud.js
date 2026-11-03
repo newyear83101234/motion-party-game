@@ -93,6 +93,9 @@ const opened = (p, m) => p.waitForFunction(m => { const t = document.querySelect
     ok("星星罐有幣：出現（黃底）、顯示 🪙4、不寫 ⭐ 幾顆", jar.ready && jar.shown && jar.egg === "🪙4" && jar.star === "none", JSON.stringify(jar));
     ok("星星罐有幣：整顆膠囊沒有動畫、沒有放大", jar.pill.length === 0 && jar.pillTf === "none" && (jar.scale === "none" || jar.scale === "1"), JSON.stringify(jar));
     ok("星星罐有幣：只有幣圖示在跳，罐子不動", jar.coin.join() === "softHop" && jar.jarIco.length === 0, JSON.stringify(jar));
+    ok("11-03 狀態列那格只有一個圖示：🪙＋數字，罐子藏起來", await p.evaluate(() => getComputedStyle(document.querySelector("#menu .jarBtn .jar")).display === "none"));
+    const sgs = await p.evaluate(() => [...document.querySelectorAll(".hub-sign")].filter(s => getComputedStyle(s).display !== "none" && s.style.visibility !== "hidden").map(s => ({ go: s.dataset.go, mini: s.classList.contains("sg-mini"), word: getComputedStyle(s.querySelector(".sg-word")).display, label: s.getAttribute("aria-label"), w: Math.round(s.getBoundingClientRect().width), h: Math.round(s.getBoundingClientRect().height) })));
+    ok("11-03 橋頭路牌平常一律小牌（只有圖示＋箭頭，名字在 aria-label）", sgs.length >= 1 && sgs.every(s => s.mini && s.word === "none" && s.label && s.label !== s.go), JSON.stringify(sgs));
     // 🧭 去哪裡：圖示不晃；剛開了一座島＝右上角內側一顆小紅點（閃 3 下就停），「新」字只在面板那一行
     const town = await p.evaluate(() => { const b = document.getElementById("navBtn"), i = b.querySelector(".nav-ico"); return { ico: i.getAnimations().length, dot: getComputedStyle(b.querySelector(".nav-dot")).display, txt: b.textContent.includes("新") }; });
     ok("🧭 平常：圖示不晃、沒有小紅點、上面沒有「新」字", town.ico === 0 && town.dot === "none" && !town.txt, JSON.stringify(town));

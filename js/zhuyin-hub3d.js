@@ -2965,7 +2965,7 @@ function dance(sec) { const s = Number(sec) || 0; if (s <= 0) { danceUntil = 0; 
 // =========================================================
 // 橋頭路牌（10-12 阿葉：「進入彩虹島除了點左邊按鈕，地圖上也要有地方可以點」）：
 // 主島往彩虹島、往歸仁區的橋頭各一支小木牌（3D：柱子＋箭頭形木板＋圓形圖示），到了那邊橋頭各一支「回小島」。
-// 浮標（.hub-sign，DOM）＝木牌底色的小牌子「圖示＋地名＋箭頭」，名字常駐（導航不是遊戲）；只顯示人在的那座島的；
+// 浮標（.hub-sign，DOM）＝木牌底色的小牌子「圖示＋箭頭」（11-03 起平常一律小牌，名字只在 aria-label；以前名字常駐）；只顯示人在的那座島的；
 // 木牌不在畫面裡（主島取景只顧遊戲建築）→ 浮標貼在畫面邊（沒有尾巴），一樣點得到。點了＝tapIsle（還沒開＝貓頭鷹說上鎖台詞）
 // =========================================================
 const SIGNS = [], signHits = [];
@@ -3022,6 +3022,8 @@ function signRects(list, sc) {
 // 碰到遊戲浮標、固定介面或另一支路牌 → 在木牌附近往下／上／左／右挪一格、兩格，找第一個都不碰的地方；挪過了就沒有尾巴（不再指著木牌）。
 // 11-01 第二輪（寧次）：整支放不下 → 備案縮成只有「圖示＋箭頭」的小牌（約 8vmin 寬，.sg-mini）再找一次；路牌一律不准疊到遊戲浮標；
 // 小牌也放不下＝這一格先藏起來（換島用 🧭 地點面板）。不挪太遠（挪到別座島的橋頭旁邊會指錯方向）
+// 11-03 阿葉照寧次建議：路牌平常一律小牌（棕色長牌「彩虹島」「歸仁區」比遊戲浮標還搶眼，換島已經有 🧭 面板寫名字）；名字留在 aria-label
+const SIGN_MINI = true;
 function dodgeSigns(list, tags) {
   const W = innerWidth, M = 8, top = (view.sgTop || 0) + M, bot = (view.sgBot || innerHeight) - M, done = [], vm = Math.min(innerWidth, innerHeight) / 100;
   const over = (r, o, gx, gy) => o && r.x0 < o.x1 + gx && r.x1 > o.x0 - gx && r.y0 < o.y1 + TAIL + gy && r.y1 + TAIL + gy > o.y0;
@@ -3033,8 +3035,8 @@ function dodgeSigns(list, tags) {
     return null; };
   for (const r of list) {
     const s = r.d, cx = (r.x0 + r.x1) / 2, cy = r.y1, b = { x0: r.x0, x1: r.x1, y0: r.y0, y1: r.y1 };
-    let q = find(b), mini = false;
-    if (!q) { const mw = Math.min(r.x1 - r.x0, 8 * vm); q = find({ x0: cx - mw / 2, x1: cx + mw / 2, y0: r.y0, y1: r.y1 }); mini = !!q; }
+    let q = SIGN_MINI ? null : find(b), mini = false;
+    if (!q) { const mw = s.twMini && s.tw0 ? s.twMini * (r.x1 - r.x0) / s.tw0 : Math.min(r.x1 - r.x0, 12.5 * vm); q = find({ x0: cx - mw / 2, x1: cx + mw / 2, y0: r.y0, y1: r.y1 }); mini = !!q; }   // 量過小牌就用真的寬（iPad 約 12vmin），第一次先估
     s.sgm = q ? { dcx: (q.x0 + q.x1) / 2 - cx, dy: q.y1 - cy, w: q.x1 - q.x0, moved: q.moved, mini, hide: false } : { dcx: 0, dy: 0, w: r.x1 - r.x0, moved: false, mini: false, hide: true };
     signMemo(r);
     if (!s.sgm.hide) done.push(r);                       // 下一支路牌要讓開這一支
