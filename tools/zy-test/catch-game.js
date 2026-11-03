@@ -364,8 +364,10 @@ const spokenOf = p => p.evaluate(() => (window.__spoken || []).map(s => s.text))
     const said = await spokenOf(p);
     ok(`${T} Lv4 ${portrait ? "手指觸控" : "滑鼠"}真點旗子的 🔊：唸「${bx.word}」、鼓沒有跑到旗子那裡`, said.includes(bx.word) && Math.abs(a1.drumX - 0.5) < 0.001 && Math.abs(a2.drumX - 0.5) < 0.001, JSON.stringify({ said, d0: a0.drumX, d1: a1.drumX, d2: a2.drumX }));
     ok(`${T} Lv4 真點 🔊 後音符全部停住`, a1.notes.length > 0 && a1.notes.every(n => { const b = a2.notes.find(q => q.h === n.h && q.lane === n.lane); return !b || Math.abs(b.y - n.y) < 0.004; }), JSON.stringify({ a1: a1.notes, a2: a2.notes }));
-    const pw = await p.evaluate(() => { const c = window.__zy.catch, d = c.debug, word = c.state().target.word, hs = new Set(); d.noSpawn(true); for (let i = 0; i < 40; i++) { const n = d.drop({ good: true, lane: i % 5 }); if (n) hs.add(n.h); d.clear(); } return { word, hs: [...hs] }; });
-    ok(`${T} Lv4：唸的那個詞（${pw.word}）本身不會掉下來（不然看旗子上的圖就接得到）`, pw.hs.length >= 3 && !pw.hs.includes(pw.word), JSON.stringify(pw));
+    // 11-03：每次重開一局乾淨的 Lv4 再抽（遊戲會先避開最近掉過的 6 個詞；接著上面那局抽，ㄩ 組只有 4 個能用、最近又掉過 2 個時只剩 2 種＝假失敗）。重開 12 局，多題目組都驗到
+    const pws = await p.evaluate(() => { const c = window.__zy.catch, d = c.debug, out = []; for (let k = 0; k < 12; k++) { c.start(4); d.noSpawn(true); const word = c.state().target.word, hs = new Set(); for (let i = 0; i < 40; i++) { const n = d.drop({ good: true, lane: i % 5 }); if (n) hs.add(n.h); d.clear(); } out.push({ word, hs: [...hs] }); } return out; });
+    const pwBad = pws.filter(pw => pw.hs.length < 3 || pw.hs.includes(pw.word));
+    ok(`${T} Lv4：唸的那個詞本身不會掉下來（不然看旗子上的圖就接得到）、對的音符至少 3 種（12 局：${pws.map(pw => pw.word).join("、")}）`, pwBad.length === 0, JSON.stringify(pwBad.length ? pwBad : pws.slice(0, 2)));
     ok(`${T}：沒有錯誤`, errs.length === 0, errs.join(" | "));
     await ctx.close();
   }
