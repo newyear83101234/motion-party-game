@@ -22,22 +22,22 @@
   </script>
   <!-- 自己的程式一開頁就同時抓（高優先）：不然要等 zhuyin.js 下載完才知道要抓 ann/words/ui，再等它跑起來才抓 hub3d，
        一層等一層，線上 4Mbps 實測多卡約 3 秒（tools/zy-test/loadprofile.js）。網址要跟實際 import 的完全一樣（含 ?v=） -->
-  <link rel="modulepreload" href="js/zhuyin.js?v=43" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin.js?v=44" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-words.js" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-ann.js?v=18" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-ui.js?v=18" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-ann.js?v=19" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-ui.js?v=19" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-voice.js?v=8" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=19" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=20" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-weather.js?v=5">
   <link rel="modulepreload" href="js/zhuyin-clock.js?v=1">
   <link rel="modulepreload" href="js/zhuyin-ocean.js?v=4">
   <link rel="modulepreload" href="js/zhuyin-rewards.js?v=3" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-audio.js?v=5" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-audio.js?v=6" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-plaza.js?v=1">
   <link rel="modulepreload" href="js/zhuyin-stats.js?v=4">
   <link rel="modulepreload" href="js/zhuyin-home.js?v=2" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-records.js?v=3">
-  <link rel="modulepreload" href="js/zhuyin-mysongs.js?v=3">
+  <link rel="modulepreload" href="js/zhuyin-records.js?v=4">
+  <link rel="modulepreload" href="js/zhuyin-mysongs.js?v=4">
   <link rel="modulepreload" href="js/song-crypto.js">
   <!-- 開頁要等貓頭鷹：圖片預設優先序最低，線上實測 24KB 會排在 three.js 後面最晚才到 → 提高優先序 -->
   <link rel="preload" as="image" href="IMAGE/zhuyin/guide_owl.webp" fetchpriority="high">
@@ -63,7 +63,7 @@
   <link rel="stylesheet" href="css/zhuyin-tower.css?v=1">
   <link rel="stylesheet" href="css/zhuyin-home.css?v=1">   <!-- 10-31 v8 我的家：房子卡片、花園小舖、信件、錢包 -->
   <link rel="stylesheet" href="css/zhuyin-catch.css?v=1">   <!-- 11-01 v8 音符接接樂 -->
-  <link rel="stylesheet" href="css/zhuyin-records.css?v=2">   <!-- 11-01 v8 音符唱片行：唱片牆 -->
+  <link rel="stylesheet" href="css/zhuyin-records.css?v=3">   <!-- 11-01 v8 音符唱片行：唱片牆 -->
   <link rel="stylesheet" href="css/zhuyin-music.css?v=2">   <!-- 11-01 v8 音樂島：🗺️ 清單的音樂島那組（要排在 zhuyin.css 後面） -->
 </head>
 <body class="gate-on">
@@ -413,6 +413,6 @@
   <div id="flash" class="flash"></div>
 
   <div id="fx" class="fx"></div>
-  <script type="module" src="js/zhuyin.js?v=43"></script>
+  <script type="module" src="js/zhuyin.js?v=44"></script>
 </body>
 </html>

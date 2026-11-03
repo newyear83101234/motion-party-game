@@ -3,15 +3,15 @@
 // 八個模式：釣魚 / 點餐 / 積木 / 尋寶 / 翻牌 / 聲調氣球 / 打地鼠 / 跳跳蛙（後兩個 2026-10-10 加）。長期動力：貼紙圖鑑（每個詞一張貼紙）＋星星罐孵蛋（解鎖朋友）。
 // 設計依據：櫻木花道（遊戲設計）＋寧次（UI/UX）2026-09-09 審查報告；規格見 memory project-zhuyin-game.md
 import { WORDS, PHRASES, CATS, FRIENDS } from "./zhuyin-words.js";
-import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js?v=18";
+import { startAnnotate, missing as zMissing } from "./zhuyin-ann.js?v=19";
 import { voiceUnlock, voiceSay, voiceStop, voiceSpeaking, voicePreload, voiceCtx, voiceBind, voiceHas } from "./zhuyin-voice.js?v=8";
-import A from "./zhuyin-audio.js?v=5";               // 音訊引擎：一個 AudioContext、music／sfx／voice／ambience 四條 bus（docs/zhuyin-v5-plan.md §5）
+import A from "./zhuyin-audio.js?v=6";               // 音訊引擎：一個 AudioContext、music／sfx／voice／ambience 四條 bus（docs/zhuyin-v5-plan.md §5）
 import * as RW from "./zhuyin-rewards.js?v=3";   // 獎勵系統（扭蛋機）純邏輯
 import { createClock } from "./zhuyin-clock.js?v=1";   // 日夜時鐘（真實 30 分鐘＝小島一天）
 import { createPlaza, PLAZA_URL } from "./zhuyin-plaza.js?v=1";   // ?v 要跟 zhuyin.html 的 modulepreload 一樣；10-12 小島同樂廣場（全島合作目標；只送匿名加總）；PLAZA_URL：注音戰鬥陀螺的全島陀螺榜也送到同一個後端
 import * as ST from "./zhuyin-stats.js?v=4";          // 10-12 家長頁「玩了什麼」本機遊玩紀錄（?v 要跟 zhuyin.html 的 modulepreload 一樣；只存本機、不上傳、不進備份碼）
 import * as HM from "./zhuyin-home.js?v=2";           // 10-31 v8 我的家：房子看星星長大、花園小舖、信箱（docs/zhuyin-v8-plan.md §3；3D 在 zhuyin-hub3d.js）
-import * as REC from "./zhuyin-records.js?v=3";       // 11-01 v8 第二批 音符唱片行：唱片牆、紀念唱片、小島音樂（docs/zhuyin-v8-plan.md §4；?v 要跟 zhuyin.html 的 modulepreload 一樣）
+import * as REC from "./zhuyin-records.js?v=4";       // 11-01 v8 第二批 音符唱片行：唱片牆、紀念唱片、小島音樂（docs/zhuyin-v8-plan.md §4；?v 要跟 zhuyin.html 的 modulepreload 一樣）
 startAnnotate();                                      // 畫面上每個國字自動加注音（阿葉 10-10）
 
 const TONES = ["", "ˊ", "ˇ", "ˋ", "˙"];
@@ -441,8 +441,6 @@ const K = k => `zy${slot}_${k}`;
 })();
 const save = { music: lsGet("zy_music", 1), hintWait: lsGet("zy_hint_wait", 20), talk: lsGet("zy_talk", 1), bgmLock: lsGet("zy_bgm_lock", 0) ? 1 : 0 };   // talk：說明語音開關（家長設定，全家共用）；bgmLock：小島只放原本的音樂（唱片機選的不放）   // hintWait：家長設定幾秒沒動作讓「🔊 提示」閃（0＝關閉）；遊戲永遠不自己唸答案
 let statsDirty = false;                               // 遊玩紀錄有還沒寫進 localStorage 的秒數（換存檔位前要先寫給舊的那位）
-let recDone = null;                                   // 11-01 我的歌當小島音樂放完一次後＝這段選單放原本的（islandSongEnded；menuBgmKey 開頁就會用到，宣告放這裡）
-let recRoll = null;                                   // 11-01 唱片機「🔀 隨機」這段選單期間抽到的那首 { pick, key }（menuBgmKey 很常被叫，不能每次重抽；loadSlot 開頁就會用到，宣告放這裡）
 function loadSlot(n) {
   if (statsDirty && save.stats) { lsSet(K("stats"), save.stats); statsDirty = false; }   // 換人前，舊那位的遊玩秒數先存好
   slot = n; lsSet("zy_slot", n);
@@ -468,7 +466,6 @@ function loadSlot(n) {
   if (!hm0) lsSet(K("home"), save.home);
   try { const tw = lsGet(K("tower"), null); if (tw && Array.isArray(tw.badges) && tw.badges.length) save.home.flag = 1; } catch (e) {}   // 以前就打倒過守塔怪（塔徽章不歸零）：門口小旗照插
   save.rec = REC.cleanRec(lsGet(K("rec"), null));      // 11-01 v8 唱片：{ own 有哪些唱片, pick 小島音樂（唱片 id｜"rand"｜""＝原本的）, seen }；紀念唱片第一次進唱片行才補發
-  recRoll = null;                                       // 換人＝「🔀 隨機」重抽
 }
 loadSlot(slot);
 const persist = () => [lsSet(K("stickers"), save.stickers), lsSet(K("stars"), save.stars), lsSet(K("eggs"), save.eggs), lsSet(K("intro"), save.intro), lsSet(K("match_size"), save.matchSize), lsSet(K("best"), save.best), lsSet(K("bubble"), save.bubble), lsSet(K("deliver"), save.deliver), lsSet(K("detective"), save.detective), lsSet(K("tops"), save.tops), lsSet(K("endless"), save.endless), lsSet(K("rewards"), save.rw), lsSet(K("home"), save.home), lsSet(K("rec"), save.rec), lsSet("zy_music", save.music), lsSet("zy_hint_wait", save.hintWait), lsSet("zy_talk", save.talk), lsSet("zy_bgm_lock", save.bgmLock)].every(Boolean);
@@ -623,28 +620,15 @@ const friends = () => FRIENDS.filter(f => save.rw.pets[RW.FRIEND_PET[f.id]]);   
 // 全部走 js/zhuyin-audio.js（Web Audio）：音效 audio/sfx/<名字>.mp3、背景音樂 audio/bgm/<key>.mp3（舊的 MUSIC/zy_*.mp3 留給宣傳片工具）
 // play(名字, 速度)：速度連音高一起變（連對音階往上爬）；任何 audio/sfx 裡有的名字都能播，沒有的安靜略過；"party"＝結算 jingle（播的時候自動壓低音樂）
 A.setMusic(!!save.music);
-REC.registerSongs(A);                                  // 11-01 唱片行「我的歌」：整首歌登記給音訊引擎（playBgm("my:xxx") 用 <audio> 串流，js/zhuyin-mysongs.js）
+REC.registerSongs(A);                                  // 11-01 唱片行「我的歌」：登記給音訊引擎（playBgm("my:xxx") 用 <audio> 串流；11-03 起只有副歌片段，js/zhuyin-mysongs.js）
 voiceBind({ ctx: () => A.ctx(true), out: () => A.busFor("voice") });   // 預錄配音：同一個 AudioContext、接 voice bus
 function play(name, rate = 1) { A.sfx(name, { rate }); }
-// 背景音樂：同一首不重播、換曲 0.6 秒交叉淡化；音樂關著也記住要播哪首
-function playBgm(key) { A.bgmRate(1); A.playBgm(key); }   // 速度歸零：最後一題衝刺（A19）加快過
-// 選單的背景音樂：唱片機選了一張（唱片牆的「🏝️ 當小島音樂」／「🔀 隨機」）＝每座島都放那首（家長鎖開著就不放）；
-// 沒選＝看人在哪座島（主島晚上＝搖籃曲；音樂島主題曲第三批才有，先放服裝店那首）
-// 阿葉 11-01 原話「放完之後就變成原本遊戲的背景音樂」：我的歌（整首歌，不循環）當小島音樂時，放完一次就換回這座島原本的音樂；
-// 從遊戲回選單、改了唱片設定、換人才再放一次（recDone 清掉）。一般 60 秒的配樂照常循環。
-function islandSongEnded(k) {
-  if (REC.nowKey() || PZ(recBgm) !== k) return;       // 「▶ 聽整首」放完由唱片行自己收；不是小島音樂那首不管
-  recDone = k; if (!mode && !dressFrom && !evoBusy) playBgm(menuBgmKey());
-}
-function recBgm() {
-  const R = save.rec; if (!R || save.bgmLock || !R.pick) return null;
-  if (R.pick !== "rand") return REC.islandBgm(R, false);
-  if (!recRoll || recRoll.pick !== R.pick || !recRoll.key) recRoll = { pick: R.pick, key: REC.islandBgm(R, false) };   // 「🔀 隨機」：同一段選單期間固定一首（從遊戲回選單、改了唱片設定、換人才重抽）
-  return recRoll.key;
-}
+// 背景音樂：同一首不重播、換曲 0.6 秒交叉淡化（fade 秒可改：唱片牆換唱片 0.25 秒）；音樂關著也記住要播哪首
+function playBgm(key, fade) { A.bgmRate(1); A.playBgm(key, fade == null ? undefined : { fade }); }   // 速度歸零：最後一題衝刺（A19）加快過
+// 選單的背景音樂：正在放唱片（唱片牆／迷你播放器）＝放那張；不然看人在哪座島（主島晚上＝搖籃曲；音樂島主題曲第三批才有，先放服裝店那首）
+// 11-03 阿葉選「回到原本的遊戲音樂」：唱片只放當下那一次（副歌放完、進遊戲、重開網頁＝原本的），不再有「小島音樂」設定（以前的 recBgm／🔀 隨機／recDone 拿掉）
 function menuBgmKey(p) {
-  const nk = REC.nowKey(); if (nk) return nk;           // 11-01 唱片牆「▶ 聽整首」正在小島上放：繼續放這首（放完／按 ⏹／進遊戲／換島才回原本的）
-  const rk = PZ(recBgm); if (rk && rk !== recDone) return rk;   // 我的歌當小島音樂：放完一次＝這段選單改回原本的（recDone）
+  const nk = REC.nowKey(); if (nk) return nk;           // 正在放唱片：回小島／換島／換日夜都繼續放這首（放完／按 ⏹／進遊戲才回原本的）
   p = p || (hub && hub.place ? hub.place() : "main");
   return p === "town" ? "town" : p === "rainbow" ? "rainbow" : p === "music" ? "dress" : document.body.classList.contains("night") ? "night" : "island";
 }
@@ -740,7 +724,7 @@ function nav() { const tok = ++navToken; qToken++; gClear(); pendingSays.clear()
   for (const g of Object.values(endlessGames)) PZ(() => g.stop());   // 11-01 跑跑／小魚：停動畫、事件、語音，跑跑的 WebGL 釋放   // 10-12 詞句小偵探、陀螺：停語音、停 rAF、釋放 WebGL；陀螺下場了還沒打完就離開＝券退回
   if (towerGame && !towerNavKeep) { inNav = true; PZ(() => towerGame.stop()); inNav = false; }   // 10-13 挑戰燈塔：停流程、收愛心 HUD、正在玩的那層 abort（爬塔自己換層的 nav 不停：towerNavKeep）
   PZ(() => { homeUI.hideCard(); if (homeUI.isOpen()) homeUI.closeGarden(); });   // v8：換畫面＝我的家的卡片、花園小舖收起來
-  if (catchGame) PZ(() => catchGame.stop()); PZ(() => recUI.close(true));   // 11-01 v8 音符接接樂停 rAF、收音符；唱片牆收起來（音樂交給接下來的畫面）
+  if (catchGame) PZ(() => catchGame.stop()); PZ(() => { const was = REC.nowKey(); recUI.close(true); if (was) playBgm(menuBgmKey()); });   // 11-01 v8 音符接接樂停 rAF、收音符；唱片牆收起來、唱片停（11-03 里維：先換回選單音樂——遊戲會接著放自己的，圖鑑這種不換音樂的畫面才不會放完唱片就沒聲音）
   if (loadingOwner) { loadingOwner = 0; showLoading(false); } return tok; }   // qToken++＋gClear：上一局還沒到的換題、結算、稱讚全部作廢
 // 同一局的計時器（阿葉 10-10 ①）：換題、配對結算、延遲的稱讚都走這裡 → 暫停選單開著＝凍結（剩下的時間留著）、回小島／重新開始＝全部作廢
 const gameT = new Set(); let gamePaused = false, pausedAt = 0, pausedTotal = 0;
@@ -778,7 +762,7 @@ const homeUI = HM.createHome({
   onClose: () => { walletSync(); },
   onBuy: id => {                                       // 11-01 第一次買到留聲機＝送一張唱片（已經有那張就不送）
     if (id !== "gramophone" || save.rec.own.includes(REC.GIFT_REC)) return "";
-    save.rec.own.push(REC.GIFT_REC); recRoll = null; return REC.LINES.gift;   // 存檔：花園小舖買完會 api.save()＝persist()（rec 一起寫）
+    save.rec.own.push(REC.GIFT_REC); return REC.LINES.gift;   // 存檔：花園小舖買完會 api.save()＝persist()（rec 一起寫）
   },
 });
 // ---------- 11-01 v8 第二批：音符唱片行（js/zhuyin-records.js；docs/zhuyin-v8-plan.md §4）----------
@@ -791,10 +775,11 @@ const recConds = () => ({ rainbow: stickerCount() >= MODES.deliver.need, town: s
   bubble: Object.keys(save.bubble.stars || {}).length > 0, road: Object.keys(save.deliver.stars || {}).length > 0 });   // 泡泡過過一關、配送送完過一次
 const recUI = REC.createRecords({
   rec: () => save.rec, wallet: () => save.tops.stars, pay: n => { save.tops.stars = Math.max(0, save.tops.stars - n); },
-  save: () => { recRoll = null; recDone = null; persist(); walletSync(); },   // 改了唱片設定／買了新的＝「🔀 隨機」重抽
-  play: n => play(n), talk: t => talk(t), bgm: k => playBgm(k), restore: () => { if (!mode) playBgm(menuBgmKey()); },
+  save: () => { persist(); walletSync(); },            // 補發紀念唱片／買了新的
+  play: n => play(n), talk: t => talk(t), bgm: (k, f) => playBgm(k, f), restore: () => { if (!mode && !dressFrom && !evoBusy) playBgm(menuBgmKey()); },
   dance: s => PZ(() => { if (hub && hub.dance) hub.dance(s); }), conds: recConds, locked: () => !!save.bgmLock, musicOn: () => !!save.music,
-  once: k => A.bgmOnce(k), loading: k => A.loading(k), preload: k => A.prefetchBgm(k), onSongEnd: fn => A.onSongEnd(k => { fn(k); islandSongEnded(k); }), place: () => PZ(() => (hub && hub.place ? hub.place() : null)),   // 「▶ 聽整首」：整首歌放完就停、⏳ 還沒出聲、點唱片先預載、放完回原本的、換島才結束
+  loading: k => A.loading(k), preload: k => A.prefetchBgm(k), onSongEnd: fn => A.onSongEnd(fn),   // ⏳ 還沒出聲、開唱片牆先把我的歌全部預載、副歌放完回原本的
+  openWall: () => openRecords(),                       // 11-03 小島上的迷你播放器點唱片＝開唱片牆（阿葉「點下去就能跳出唱片可以選擇，不用再特別去音樂島」）
   onClose: () => { walletSync(); PZ(pzNews); },        // （沒有 onSing：兒歌接唱第三批才做 → 🎤 鈕藏著）
 });
 function openRecords() {
@@ -850,7 +835,7 @@ function hasWebGL() {                                 // Three.js r163 起只支
   try { const gl = document.createElement("canvas").getContext("webgl2"); if (!gl) return false; const x = gl.getExtension("WEBGL_lose_context"); if (x) x.loseContext(); return true; } catch (e) { return false; }
 }
 function importHub() {
-  const url = "./zhuyin-hub3d.js?v=19";
+  const url = "./zhuyin-hub3d.js?v=20";
   if (window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports("importmap")) return import(url);
   return new Promise((ok, no) => {                    // 舊 iPad（iOS 16.3 以前）不支援 importmap → 補 es-module-shims 再載
     const s = document.createElement("script"); s.src = "IMAGE/zy3d/vendor/es-module-shims/es-module-shims.js";
@@ -865,7 +850,7 @@ function initHub() {
   const ready = importHub().then(m => m.createHub({ host: $("menu"), onFriend: f => { play("tap"); say(f.name); }, onFail: hubFail, newbie: () => stickerCount() === 0,
     onGacha: () => { play("select"); openGacha(); },   // 獎勵系統（docs/zhuyin-rewards-spec.md）
     played: m => { const d = save.stats && save.stats.days && save.stats.days[statsDay()]; return !!(d && d.plays && d.plays[m]); },   // 11-01 第二輪：今天玩過的遊戲，浮標不再輪流輕跳（家長頁的遊玩紀錄）
-    stickers: stickerCount, onCivic: (k, info) => PZ(() => civicEvent(k, info)), onPlace: (p, open, st) => PZ(() => { navSync(p, st || { town: open }); if (!mode) { recUI.atPlace(p); playBgm(menuBgmKey(p)); } }),   // 換島＝換選單音樂（唱片「▶ 聽整首」放到一半換島＝結束、放那座島的）
+    stickers: stickerCount, onCivic: (k, info) => PZ(() => civicEvent(k, info)), quiet: () => !!PZ(() => recUI.isOpen() || !!REC.nowKey()), onPlace: (p, open, st) => PZ(() => { navSync(p, st || { town: open }); if (!mode) { playBgm(menuBgmKey(p)); } }),   // 換島＝換選單音樂（正在放唱片＝繼續放那張）
     onDress: () => PZ(() => { play("select"); openDress(save.rw.partner, "menu"); }),   // 10-12 寵物服裝店（彩虹島）→ 換裝畫面（先選夥伴）
     onEvolve: id => PZ(() => startEvolve(id)),          // v7 點頭上發光的 ✨（或點那隻寵物）＝看進化演出
     onPick: (m, info) => PZ(() => (m ? showPick(m, info) : hidePick())),   // 10-12 點一下建築＝介紹卡；收起來＝null
@@ -2445,7 +2430,7 @@ function renderDeliverPick() {
 // 第一次玩：教學交給模組唸（start({ intro:true })：卡片等教學講完才出來）；之後 intro:false（主程式本來就不唸開場語，見 SELF_INTRO）。
 // 答對一題（模組的 onCorrect）＝點心 +1、同樂廣場讀字週 +1；演出完（onWin）存檔 save.detective＝{ seen, best }，結算走共用 showResult（星星＝模組算的、點心再 +2、唸 WIN_TALK）。
 let detectiveMod = null, detectiveGame = null, detectiveRun = null, detectiveWinTalk = "", detectiveAdv = null;
-const importDetective = () => detectiveMod || (detectiveMod = import("./zhuyin-detective.js?v=12").catch(e => { detectiveMod = null; throw e; }));
+const importDetective = () => detectiveMod || (detectiveMod = import("./zhuyin-detective.js?v=13").catch(e => { detectiveMod = null; throw e; }));
 const DETECTIVE_FAIL = "偵探社現在打不開，等一下再試試看！";
 async function buildDetective() {
   const tok = navToken; let m;
@@ -3297,7 +3282,6 @@ function renderMenu() {
 let menuPrefetch = null;
 function goMenu() {
   nav(); stopSpeech(); introUntil = 0;                 // 作廢所有等圖中的導覽、停掉還沒講完的語音
-  recRoll = null; recDone = null;                      // 11-01 唱片機「🔀 隨機」：從遊戲回到選單＝重抽一首；我的歌再放一次
   mode = null; clearIdle(); locked = false; showScreen("menu"); playBgm(menuBgmKey()); renderMenu();   // 選單音樂看島＋日夜（主島／歸仁區／彩虹島／晚上）
   clearTimeout(menuPrefetch);                         // 選單停 2 秒 → 預抓上次玩的那關（第一次玩＝釣魚），星星罐快滿就預抓孵蛋
   menuPrefetch = setTimeout(() => { const lm = lsGet(K("last_mode"), "fish"); preload(lm); if (MODES[lm]) A.prefetchBgm(MODES[lm].bgm); if (save.rw.coins + save.rw.gold > 0 || RW.jarLeft(save.rw, save.stars) >= EGG_STARS - 3) { preload("gacha"); preload("hatch"); } }, 2000);
@@ -3468,9 +3452,9 @@ function lockEnd(opened) {
 for (const b of document.querySelectorAll("#hintOpts button")) b.onclick = () => { save.hintWait = +b.dataset.v; persist(); play("tap"); renderSettings(); };
 for (const b of document.querySelectorAll("#musicOpts button")) b.onclick = () => { setMusic(+b.dataset.v); play("tap"); renderSettings(); };
 for (const b of document.querySelectorAll("#talkOpts button")) b.onclick = () => { save.talk = +b.dataset.v; persist(); play("tap"); if (!save.talk) stopSpeech(); renderSettings(); };
-for (const b of document.querySelectorAll("#bgmLockOpts button")) b.onclick = () => {   // 11-01 家長鎖：小島只放原本的音樂（全家共用）；在選單上改＝馬上換音樂
+for (const b of document.querySelectorAll("#bgmLockOpts button")) b.onclick = () => {   // 11-01 家長鎖：小島只放原本的音樂（全家共用）；11-03 起＝收起迷你播放器、正在放的唱片停掉
   const v = +b.dataset.v ? 1 : 0, was = save.bgmLock; save.bgmLock = v; persist(); play("tap"); renderSettings();
-  if (v !== was) { recRoll = null; if (!mode && !dressFrom && !evoBusy && !$("menu").classList.contains("hidden")) playBgm(menuBgmKey()); }
+  if (v && !was && !mode) PZ(() => recUI.endNow(false));
 };
 for (const b of document.querySelectorAll("#plazaOpts button")) b.onclick = () => { play("tap"); PZ(() => plaza.setOn(+b.dataset.v === 1)); renderSettings(); if (hub) hub.refresh(); };   // 同樂廣場：關＝不送不讀、🎪 收起來、小島慶祝收掉（hub.refresh＝鏡頭重擺）
 $("settingsClose").onclick = () => { play("select"); $("settings").classList.add("hidden"); };

@@ -330,7 +330,7 @@ let playerIx = 0, songEnd = null, onceKey = null;
 const streamPos = new Map();                      // 整首歌 key → { t 放到第幾秒, dur 全長 }
 const RESTART_SEC = 5;                            // 離結尾不到 5 秒：下次從頭放
 const SILENT = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAACAgICA";   // 4 個 sample 的靜音
-export function addStream(key, get, { loop = true } = {}) { STREAMS.set(key, { get, loop }); }
+export function addStream(key, get, { loop = true, resume = true } = {}) { STREAMS.set(key, { get, loop, resume }); }   // resume:false＝每次都從頭放（11-03 唱片只放副歌片段）
 export function onSongEnd(fn) { songEnd = fn; }
 const loopOf = key => { const S = STREAMS.get(key); return !!(S && S.loop) && key !== onceKey; };
 export function bgmOnce(key) { onceKey = key || null; for (const p of players) if (p.owner) { try { p.el.loop = loopOf(p.owner.key); } catch (e) {} } }   // 正在放的那首馬上改（小島音樂剛好就是這首也算）
@@ -339,7 +339,7 @@ function remember(t) {                            // 記住這首放到哪（播
   const el = t.pl.el, d = el.duration, prev = streamPos.get(t.key);
   if (el.currentTime > 0 || !prev) streamPos.set(t.key, { t: +el.currentTime || 0, dur: isFinite(d) && d > 0 ? d : prev ? prev.dur : 0 });   // 還沒讀到長度就被收掉：沿用上次記的長度
 }
-function startAt(key) { const p = streamPos.get(key); return p && p.dur && p.dur - p.t >= RESTART_SEC ? p.t : 0; }
+function startAt(key) { const S = STREAMS.get(key); if (S && !S.resume) return 0; const p = streamPos.get(key); return p && p.dur && p.dur - p.t >= RESTART_SEC ? p.t : 0; }
 export function loading(key) {
   if (!key || want !== key || !musicOn) return false;
   if (pend === key) return true;                  // 下載＋解密中（一般 BGM：下載＋解碼中）

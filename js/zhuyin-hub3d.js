@@ -2386,10 +2386,14 @@ function stepTown(t, dt) {
   const now = performance.now();
   if (!town.nextEvent) town.nextEvent = now + 25000;
   if (town.open && built && now > town.nextEvent) {
-    town.nextEvent = now + 50000 + Math.random() * 40000;
-    const canFire = !CIVIC.find(c => c.id === "fire").locked && !town.fires.length, canSick = !CIVIC.find(c => c.id === "hospital").locked;
-    if (canFire && (!canSick || Math.random() < 0.55)) { const ds = MAIN_DEFS.filter(d => !d.locked && d.ready && !d.free && !d.spot); if (ds.length) startFire(ds[Math.floor(Math.random() * ds.length)]); }
-    else if (canSick) sickPet();
+    let quiet = false; try { quiet = !!(opts.quiet && opts.quiet()); } catch (e) {}
+    if (quiet) town.nextEvent = now + 20000;           // 11-03 阿葉：選唱片時「失火了」這類講話＋警笛會蓋過歌 → 唱片牆開著／正在放唱片＝事件晚 20 秒再看
+    else {
+      town.nextEvent = now + 50000 + Math.random() * 40000;
+      const canFire = !CIVIC.find(c => c.id === "fire").locked && !town.fires.length, canSick = !CIVIC.find(c => c.id === "hospital").locked;
+      if (canFire && (!canSick || Math.random() < 0.55)) { const ds = MAIN_DEFS.filter(d => !d.locked && d.ready && !d.free && !d.spot); if (ds.length) startFire(ds[Math.floor(Math.random() * ds.length)]); }
+      else if (canSick) sickPet();
+    }
   }
   placeTownTags(); placeFireTags(); placeSickTags();
 }
@@ -4407,6 +4411,7 @@ if (DEBUG) window.__hub3d = {
   cam(z, px = 0, py = 0) { user.zoom = z; user.px = px; user.py = py; },   // 宣傳片運鏡（tools/promo）
   look(x, z, zm = 2, y = 0.5) { user.zoom = zm; _v.set(x, y, z).applyMatrix4(camera.matrixWorldInverse); user.px = _v.x - view.cx - town.off.x; user.py = _v.y - view.cy - town.off.y; },   // v8 特寫截圖：鏡頭對準世界座標 (x, z)（不管人在哪座島）
   events(on) { town.nextEvent = on ? performance.now() + 25000 : 1e15; },   // 錄影時關掉隨機火災／生病
+  eventSoon() { town.nextEvent = performance.now() - 1; }, eventIn: () => Math.round(town.nextEvent - performance.now()),   // 11-03 測試：下一格就該出事件（唱片在放＝晚 20 秒）
   town: () => ({ open: town.open, place: town.place, off: [+town.off.x.toFixed(2), +town.off.y.toFixed(2)], locked: CIVIC.filter(c => c.locked).map(c => c.id), ready: CIVIC.filter(c => c.ready).map(c => c.id), fires: town.fires.length, busy: ["fire", "hospital"].filter(k => town[k + "Busy"]), patrol: !!(town.patrol && town.patrol.e),
     games: DEFS.filter(d => d.isle === "town").map(d => ({ mode: d.mode, ready: !!d.ready, locked: !!d.locked, door: !!(d.doorNode && d.doorNode.edges.length) })) }),   // games：歸仁區的遊戲建築（10-12 陀螺競技場）
   fire: m => { const d = DEFS.find(x => x.mode === m) || DEFS.find(x => !x.locked && x.ready && !x.free); return !!(d && startFire(d)); },

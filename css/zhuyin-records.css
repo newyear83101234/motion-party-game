@@ -42,8 +42,6 @@
 .rc-rec.rc-wait .rc-e { visibility: visible; animation: rcWait 1s ease-in-out infinite alternate; }
 @keyframes rcWait { from { scale: 0.9; } to { scale: 1.08; } }
 @keyframes rcSpin { to { rotate: 360deg; } }
-.rc-pinb { position: absolute; right: 4%; top: 4%; width: 22%; aspect-ratio: 1; border-radius: 50%; background: #fff; display: none; place-items: center; font-size: calc(var(--S) * 0.1); line-height: 1; box-shadow: 0 0.4vmin 1vmin rgba(0,0,0,0.35); }
-.rc-rec.rc-pin .rc-pinb { display: grid; }   /* 小島正在放這張 */
 .rc-arr { position: absolute; top: 50%; z-index: 200; translate: 0 -50%; width: max(8vmin, 44px); height: max(8vmin, 44px); border-radius: 50%; display: grid; place-items: center; padding: 0 0 0.6vmin;
   background: rgba(255,255,255,0.18); border: max(0.3vmin, 2px) solid rgba(255,255,255,0.45); color: #fff; font-size: max(6.4vmin, 30px); font-weight: 700; line-height: 1; -webkit-tap-highlight-color: transparent; }
 .rc-prev { left: max(0px, calc(50% - var(--S) * var(--sp) * 1.62)); }
@@ -62,9 +60,7 @@
 /* 大按鈕 */
 .rc-acts { display: flex; flex-wrap: wrap; justify-content: center; gap: max(1.6vmin, 10px); max-width: 100%; }
 .rc-acts .big-btn { font-size: max(4vmin, 17px); padding: max(1.2vmin, 7px) max(3.2vmin, 14px); min-height: 44px; border-radius: 99px; white-space: nowrap; }
-.rc-acts .rc-set { color: #1b4fa0; }
-.rc-acts .rc-on { background: rgba(255,255,255,0.16); color: #eafff0; border: max(0.3vmin, 2px) solid rgba(255,255,255,0.45); box-shadow: none; opacity: 1; cursor: default; }
-.rc-acts .rc-on:active { transform: none; }
+.rc-acts .rc-go { color: #1b4fa0; }   /* 11-03 ✓ 就聽這首（收起唱片牆、繼續放） */
 .rc-buy.poor { opacity: 0.6; }
 .rc-buy-go { background: #7fd77a; box-shadow: 0 5px 0 #4fa84a; animation: pickIn 0.25s cubic-bezier(.2,1.4,.4,1) both; }
 .rc-isle { display: flex; justify-content: center; }
@@ -100,16 +96,22 @@
   .rc-bub::after { left: -1.4vmin; bottom: 1.2vmin; border: 0.9vmin solid transparent; border-right: 1.4vmin solid #fff; border-left: none; }   /* 尾巴指向左邊的 DJ */
 }
 
-/* ===== 小島上的迷你播放器 #recNow：唱片小圖＋歌名＋⏮ ⏸ ⏭（聽整首時中間 ⏹）=====
+/* ===== 小島上的迷你播放器 #recNow：左半邊（唱片小圖＋歌名）是一顆按鈕＝開唱片牆，右邊 ⏮ ⏹ ⏭ =====
    這段只管外觀與大小；它掛在 #menu > .menu-bottom 裡照一般排版，「放在哪」由 .menu-bottom 停靠列負責（css/zhuyin.css：置中、跟進化膠囊排一排、窄螢幕縮、介紹卡開著時讓開）。
-   11-01 寧次：最大 440×60、三顆鈕各 46px——560 寬時 4:3 iPad 跟進化膠囊擠成兩排（約 170px 高），小島被迫縮小約三成 */
+   11-01 寧次：最大 440×60、三顆鈕各 46px——560 寬時 4:3 iPad 跟進化膠囊擠成兩排（約 170px 高），小島被迫縮小約三成
+   11-03 阿葉「點下去就能跳出唱片可以選擇」：小島上一直都在。沒在放唱片（data-mode=idle）＝只剩小顆「唱片＋換音樂」（不轉、沒有 ⏮⏹⏭），在放才展開 */
 .rc-np { display: flex; align-items: center; gap: 6px; box-sizing: border-box; width: min(440px, calc(100vw - 32px)); max-width: 100%; height: 60px;
   padding: 7px 8px 7px 7px; border-radius: 99px; background: #fff; color: #24515c; pointer-events: auto;
   box-shadow: 0 0.6vmin 0 rgba(36,81,92,0.18), 0 1vmin 2.4vmin rgba(20,50,80,0.28); animation: pickIn 0.3s cubic-bezier(.2,1.4,.4,1) both; }
 body:not(.on-menu) .rc-np { display: none; }
 .rc-np-disc { flex: none; width: 46px; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; --S: 46px;
   background: repeating-radial-gradient(circle, #1d1d24 0 2px, #2c2c36 2px 3px); box-shadow: 0 0.4vmin 0.8vmin rgba(0,0,0,0.3); animation: rcSpin 4s linear infinite; }   /* 播放中慢慢轉 */
-.rc-np.rc-np-still .rc-np-disc { animation: none; }   /* 音樂開關關著：不轉 */
+.rc-np.rc-np-still .rc-np-disc { animation: none; }   /* 音樂開關關著／沒在放唱片：不轉 */
+.rc-np-open { flex: 1 1 auto; min-width: 0; align-self: stretch; display: flex; align-items: center; gap: 8px; padding: 0 4px 0 0; margin: 0; border: none; border-radius: 99px;
+  background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.rc-np-open:active { scale: 0.96; }
+.rc-np[data-mode="idle"] { width: auto; padding-right: 16px; }   /* 沒在放：縮成內容寬（唱片＋「換音樂」） */
+.rc-np[data-mode="idle"] .rc-np-b { display: none; }
 .rc-np-lab { --c: #888; position: relative; width: 50%; aspect-ratio: 1; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--c); }
 .rc-np-lab .rc-e { font-size: calc(var(--S) * 0.28); }
 .rc-np-txt { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; }

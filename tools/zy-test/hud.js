@@ -227,13 +227,14 @@ const opened = (p, m) => p.waitForFunction(m => { const t = document.querySelect
       const rb = document.getElementById("resumeBtn").getBoundingClientRect(), mp = document.getElementById("mapBtn").getBoundingClientRect();
       const v = Math.min(innerWidth, innerHeight) / 100, sb = document.getElementById("statusBar").getBoundingClientRect(), hr = document.getElementById("hudRBtn").getBoundingClientRect(), nb = document.getElementById("navBtn").getBoundingClientRect();
       const bar = { top: +(sb.top / v).toFixed(1), h: +(sb.height / v).toFixed(1), hpx: Math.round(sb.height), mid: Math.round((sb.left + sb.right) / 2 - innerWidth / 2), row1: sb.top < nb.bottom && sb.bottom > nb.top && sb.left >= nb.right && sb.right <= hr.left, fs: +(parseFloat(getComputedStyle(document.getElementById("statusBar")).fontSize) / v).toFixed(2) };
-      return { bad, out, tags, bar, resume: !document.getElementById("resumeBtn").classList.contains("hidden"), resumeRect: [rb.left, rb.top, rb.right, rb.bottom].map(Math.round), map: [mp.left, mp.top, mp.right, mp.bottom].map(Math.round), shut: [...document.querySelectorAll(".hub-tag:not(.civic):not(.rb):not(.mu)")].filter(t => !t.classList.contains("open")).length };
+      const R4 = e => { if (!e) return null; const q = e.getBoundingClientRect(); return [q.left, q.top, q.right, q.bottom].map(Math.round); };
+      return { gt: R4(document.getElementById("guideText")), gtx: document.getElementById("guideText").textContent, frog: R4(document.querySelector(".hub-tag[data-mode=frog]")), dock: R4(document.querySelector("#menu > .menu-bottom")), bad, out, tags, bar, resume: !document.getElementById("resumeBtn").classList.contains("hidden"), resumeRect: [rb.left, rb.top, rb.right, rb.bottom].map(Math.round), map: [mp.left, mp.top, mp.right, mp.bottom].map(Math.round), shut: [...document.querySelectorAll(".hub-tag:not(.civic):not(.rb):not(.mu)")].filter(t => !t.classList.contains("open")).length };
     });
     ok(`${t} ${w}×${h}：繼續玩有出現`, r.resume);
     // 11-01 頂端狀態列：第一排正中間（🧭 和右上「⋯」中間，第二輪起直式也是）；高度約以前膠囊的一半（≤ 7vmin，手機至少 40px）、字比以前的 4.6vmin 小一號
     ok(`${t} ${w}×${h}：狀態列在最上方第一排正中間、細（≤7vmin）、字小一號`, r.bar.row1 && Math.abs(r.bar.mid) <= 2 && r.bar.top <= 5 && (r.bar.h <= 7 || r.bar.hpx <= 41) && r.bar.fs < 4.6, JSON.stringify(r.bar));
     ok(`${t} ${w}×${h}：上方兩排／繼續玩／膠囊／換人小字／貓頭鷹互不重疊、都在畫面內`, r.bad.length === 0 && r.out.length === 0, JSON.stringify(r));
-    ok(`${t} ${w}×${h}：浮標（平常收成圓形圖示；主島 12 個＝10-13 加挑戰燈塔＋v8 我的家）、橋頭路牌沒被任何按鈕／「繼續玩」膠囊擋到（收起來的也算位置）`, r.tags.length === 0 && r.shut === 12, r.tags.join(",") + ` 收著 ${r.shut} 個 繼續玩 ${JSON.stringify(r.resumeRect)} 🗺️ ${JSON.stringify(r.map)}`);
+    ok(`${t} ${w}×${h}：浮標（平常收成圓形圖示；主島 12 個＝10-13 加挑戰燈塔＋v8 我的家）、橋頭路牌沒被任何按鈕／「繼續玩」膠囊擋到（收起來的也算位置）`, r.tags.length === 0 && r.shut === 12, r.tags.join(",") + ` 收著 ${r.shut} 個 繼續玩 ${JSON.stringify(r.resumeRect)} 🗺️ ${JSON.stringify(r.map)} 對話框 ${JSON.stringify(r.gt)}「${r.gtx}」 青蛙 ${JSON.stringify(r.frog)} 停靠列 ${JSON.stringify(r.dock)}`);
     if (["W", "169", "43", "P34"].includes(t)) await p.screenshot({ path: require("path").join(SHOTS, `resume-${w}x${h}.png`) }).catch(() => {});
     // 浮標精簡（10-12）：一棟一棟按住展開名字——在畫面內、不碰上方圓鈕那兩排（收起來的也算位置）、名字那一橫排從左到右都沒被蓋住
     // （按住時浮標層疊到貓頭鷹對話框、膠囊上面，所以那兩個用「有沒有被蓋住」驗；手機直式只驗收合狀態：iPad 才是主要裝置）
@@ -255,10 +256,10 @@ const opened = (p, m) => p.waitForFunction(m => { const t = document.querySelect
       await p.evaluate(() => window.__hub3d.openOne(null)); await sleep(300);
       ok(`${t} ${w}×${h}：一棟一棟按住展開名字，也沒被任何按鈕擋到、在畫面內`, hitOpen.length === 0, hitOpen.join(","));
     }
-    // 11-01 下面的停靠列（.menu-bottom）：塞一個 440×60 的假播放器（跟唱片行的迷你播放器一樣大、窄螢幕會縮）＋進化膠囊——
+    // 11-01 下面的停靠列（.menu-bottom）：塞一個 440×60 的假播放器（跟唱片行的迷你播放器一樣大、窄螢幕會縮；11-03 起真的播放器一直都在＝先藏起來，只量假的）＋進化膠囊——
     // 排得下、在畫面內、不壓到貓頭鷹／探頭／對話框／上面的按鈕，3D 浮標也讓開；介紹卡開著＝整列藏起來（測完拿掉假的）
     await p.evaluate(() => { const d = document.createElement("div"); d.id = "zyFakePlayer"; d.style.cssText = "width:440px;max-width:100%;height:60px;border-radius:30px;background:#fff;border:3px solid #c79bff;box-sizing:border-box;flex:none";
-      document.querySelector("#menu > .menu-bottom").appendChild(d); const e = document.getElementById("evoBtn"); e.classList.remove("hidden"); e.querySelector("img").src = "IMAGE/zhuyin/pets/cat.webp"; document.getElementById("guide").classList.remove("fold"); });
+      document.querySelector("#menu > .menu-bottom").appendChild(d); const rn = document.getElementById("recNow"); if (rn) rn.style.display = "none"; const e = document.getElementById("evoBtn"); e.classList.remove("hidden"); e.querySelector("img").src = "IMAGE/zhuyin/pets/cat.webp"; document.getElementById("guide").classList.remove("fold"); });
     await sleep(1500);
     const dk = await p.evaluate(() => { const R = s => { const e = document.querySelector(s); if (!e || getComputedStyle(e).display === "none") return null; const q = e.getBoundingClientRect(); return q.width ? q : null; }, f = R("#zyFakePlayer"), ev = R("#evoBtn"), hit = [];
       for (const s of ["#guide > img", "#owlPeek", "#guideText", "#hudRBtn", "#navBtn", "#mapBtn", "#statusBar", "#resumeBtn"]) { const b = R(s); if (!b) continue; for (const [n, q] of [["播放器", f], ["進化", ev]]) if (q && q.left < b.right - 1 && q.right > b.left + 1 && q.top < b.bottom - 1 && q.bottom > b.top + 1) hit.push(n + "×" + s); }
@@ -269,7 +270,7 @@ const opened = (p, m) => p.waitForFunction(m => { const t = document.querySelect
     if (["L", "43", "P", "M"].includes(t)) await p.screenshot({ path: require("path").join(SHOTS, `dock-${w}x${h}.png`) }).catch(() => {});
     await p.evaluate(() => document.body.classList.add("pick-on")); await sleep(400);
     ok(`${t} ${w}×${h}：介紹卡開著（body.pick-on）停靠列藏起來`, await p.evaluate(() => getComputedStyle(document.querySelector("#menu > .menu-bottom")).visibility === "hidden"));
-    await p.evaluate(() => { document.body.classList.remove("pick-on"); document.getElementById("zyFakePlayer").remove(); document.getElementById("evoBtn").classList.add("hidden"); }); await sleep(300);
+    await p.evaluate(() => { document.body.classList.remove("pick-on"); document.getElementById("zyFakePlayer").remove(); const rn = document.getElementById("recNow"); if (rn) rn.style.display = ""; document.getElementById("evoBtn").classList.add("hidden"); }); await sleep(300);
     ok(`${t} 沒有錯誤`, errs.length === 0, errs.join(" | "));
     await ctx.close();
   }
