@@ -20,7 +20,7 @@
   font-size: 24px; font-weight: 800; color: #fff; text-shadow: 0 2px 4px rgba(0, 0, 0, .45); }
 
 /* 字型：jf open 粉圓（OFL），只收畫面用到的字（tools/draw-font.mjs 產生），沒收到的字退回蘋方 */
-@font-face { font-family: "Huninn"; src: url("../fonts/huninn-draw.woff2?v=12") format("woff2"); font-display: swap; }
+@font-face { font-family: "Huninn"; src: url("../fonts/huninn-draw.woff2?v=13") format("woff2"); font-display: swap; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); overflow: hidden; touch-action: none;
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
@@ -38,7 +38,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 
 /* 首頁與作品牆 */
 .top { display: flex; align-items: center; gap: 16px; padding: 16px 20px 8px; }
-#home { background: var(--bg) url("../IMAGE/draw/ui/home-bg.jpg?v=12") center / cover; }
+#home { background: var(--bg) url("../IMAGE/draw/ui/home-bg.jpg?v=13") center / cover; }
 .hero { padding: 12px 24px 22px; gap: 14px; }   /* 下面留位置給玩法鈕的小字 */
 .mascot { height: clamp(70px, 8vw, 92px); width: auto; animation: bob 2.6s ease-in-out infinite; filter: drop-shadow(0 6px 6px rgba(60, 30, 0, .2)); }
 @keyframes bob { 50% { transform: translateY(-6px) rotate(-3deg); } }
@@ -430,3 +430,70 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 /* 直向：整頁蓋上「請轉橫」 */
 .rotate { position: fixed; inset: 0; z-index: 30; display: none; place-items: center; font-size: 96px; background: var(--bg); }
 @media (orientation: portrait) { .rotate { display: grid; } }
+
+/* 手機橫放（高度 500 以下）：畫面很寬但很矮——工具列、完成欄改兩欄，首頁頂部縮小，所有按鈕不用捲就看得到；iPad 不受影響 */
+@media (max-height: 500px) and (orientation: landscape) {
+  :root { --bar-w: 132px; }
+  .top { padding: 6px 12px 2px; gap: 10px; }
+  .top .big { width: 50px; height: 50px; border-radius: 16px; font-size: 28px; }
+  .hero { padding: 6px 14px 16px; gap: 8px; }
+  .mascot { height: 46px; }
+  .logo { font-size: 30px; letter-spacing: 1px; }
+  .logo span { -webkit-text-stroke: 6px #fff; }
+  .modes { gap: 6px; }
+  .modes .big { width: 48px; height: 48px; border-radius: 15px; font-size: 26px; }
+  .modes .big::after { font-size: 10px; margin-top: 2px; }
+  .themes { padding: 2px 12px 6px; gap: 8px; }
+  .theme { height: 46px; padding: 0 14px 0 6px; font-size: 15px; gap: 4px; }
+  .theme .ico { width: 36px; height: 36px; }
+  .theme .emo { width: 36px; font-size: 24px; }
+  /* 卡片照高度算：一整排看得到，其他往下捲 */
+  .arts { grid-template-columns: repeat(3, minmax(0, min(300px, calc((100vw - 80px) / 3), calc((100vh - 170px) * 1.333)))); gap: 10px 16px; padding: 2px 12px 16px; }
+  .colhead { font-size: 18px; padding: 2px 10px; }
+  .card { border-radius: 18px; padding: 6px; }
+  .card img { border-radius: 12px; }
+  .works { grid-template-columns: repeat(auto-fill, 200px); gap: 20px 22px; padding-top: 10px; }
+  /* 畫畫工具列：9 顆排成兩欄五排，分隔線先收起來 */
+  #bar { display: grid; grid-template-columns: repeat(2, 54px); grid-auto-rows: min-content; justify-content: center; align-content: center; gap: 6px; padding: 6px 0; }
+  #bar hr { display: none; }
+  .btn { width: 54px; height: clamp(40px, calc((100vh - 48px) / 5), 64px); border-radius: 14px; font-size: 24px; }
+  .btn .ico { max-width: 44px; }
+  .btn img { width: 32px; height: 32px; }
+  /* 完成欄：吉祥物＋星星在上面，大鈕兩欄 */
+  .after { gap: 6px; padding: 6px 0; }
+  .after.on { display: grid; grid-template-columns: repeat(2, 54px); justify-content: center; align-content: center; }
+  .after .cheer { grid-column: 1 / -1; }
+  .cheer img { height: 54px; }
+  .cheer span { font-size: 18px; -webkit-text-stroke: 3px #fff; }
+  .after .big { width: 54px; height: 54px; font-size: 30px; border-radius: 16px; box-shadow: 0 0 0 3px var(--ink), 0 4px 0 rgba(59, 42, 26, .35); }
+  /* 筆刷／顏色／貼紙選單：格子縮小，最小的手機（寬 667）也放得下 */
+  .pop { top: 6px; padding: 10px; gap: 6px; max-width: 360px; max-height: calc(100vh - 12px); overflow-y: auto; }
+  .pop .opt { width: 52px; height: 52px; border-radius: 14px; font-size: 28px; }
+  .pop .opt canvas, .pop .opt img { width: 40px; height: 40px; border-radius: 9px; }
+  .pop .row, .pop .side, .pop .side .sizes, .pop.eraser .sizes { gap: 6px; }
+  .pop .side { padding-top: 8px; }
+  .pop .side .opt { width: 52px; height: 44px; }
+  .pop .brushes { grid-template-columns: repeat(5, 84px); gap: 6px; }
+  .pop .opt.wide { width: 84px; height: 56px; }
+  .pop .opt.wide canvas { width: 74px; height: 44px; border-radius: 8px; }
+  .pop .swatches { grid-template-columns: repeat(10, 36px); gap: 6px; }
+  .pop.color .sw { width: 36px; height: 36px; border-width: 3px; }
+  .pop .mats { padding-top: 8px; gap: 6px; }
+  .pop .opt.mat { width: 44px; height: 44px; }
+  .pop .opt.mat canvas { width: 34px; height: 34px; }
+  /* 拍照：照片矮一點，下面兩顆鈕放得下 */
+  .snap { gap: 10px; }
+  .snap-photo img { max-height: 60vh; }
+  .snap-bar { gap: 24px; }
+  .snap-bar .big { width: 64px; height: 64px; font-size: 34px; }
+  #snapSave { width: 72px; height: 72px; }
+  .snap-ok { width: 60px; height: 60px; font-size: 34px; right: -10px; bottom: -10px; }
+}
+@supports (height: 100dvh) {
+  @media (max-height: 500px) and (orientation: landscape) {
+    .arts { grid-template-columns: repeat(3, minmax(0, min(300px, calc((100vw - 80px) / 3), calc((100dvh - 170px) * 1.333)))); }
+    .btn { height: clamp(40px, calc((100dvh - 48px) / 5), 64px); }
+    .pop { max-height: calc(100dvh - 12px); }
+    .snap-photo img { max-height: 60dvh; }
+  }
+}

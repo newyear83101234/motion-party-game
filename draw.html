@@ -4,31 +4,36 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="畫畫樂園">
   <meta name="theme-color" content="#fff4e0">
   <title>畫畫樂園</title>
   <link rel="icon" href="data:,">
-  <link rel="preload" href="fonts/huninn-draw.woff2?v=12" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/draw.css?v=12">
-  <link rel="modulepreload" href="js/draw-core.js?v=12">
-  <link rel="modulepreload" href="js/draw-canvas.js?v=12">
-  <link rel="modulepreload" href="js/draw-paint.js?v=12">
-  <link rel="modulepreload" href="js/draw-fx.js?v=12">
-  <link rel="modulepreload" href="js/draw-gallery.js?v=12">
-  <link rel="modulepreload" href="js/draw-stickers.js?v=12">
-  <link rel="modulepreload" href="js/draw-audio.js?v=12">
-  <link rel="modulepreload" href="js/draw-particles.js?v=12">
-  <link rel="modulepreload" href="js/draw-music.js?v=12">
-  <link rel="modulepreload" href="js/draw-mirror.js?v=12">
-  <link rel="modulepreload" href="js/draw-rewards.js?v=12">
-  <link rel="modulepreload" href="js/draw-world.js?v=12">
-  <link rel="modulepreload" href="js/draw-puzzle.js?v=12">
-  <link rel="modulepreload" href="js/draw-seek.js?v=12">
+  <!-- 加入主畫面：圖示＋從主畫面打開就整頁滿版（iPhone 靠上面的 apple 設定；Android 靠 manifest，還會鎖橫向） -->
+  <link rel="apple-touch-icon" href="IMAGE/draw/ui/app-icon-180.png?v=13">
+  <link rel="manifest" href="draw.webmanifest?v=13">
+  <link rel="preload" href="fonts/huninn-draw.woff2?v=13" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/draw.css?v=13">
+  <link rel="modulepreload" href="js/draw-core.js?v=13">
+  <link rel="modulepreload" href="js/draw-canvas.js?v=13">
+  <link rel="modulepreload" href="js/draw-paint.js?v=13">
+  <link rel="modulepreload" href="js/draw-fx.js?v=13">
+  <link rel="modulepreload" href="js/draw-gallery.js?v=13">
+  <link rel="modulepreload" href="js/draw-stickers.js?v=13">
+  <link rel="modulepreload" href="js/draw-audio.js?v=13">
+  <link rel="modulepreload" href="js/draw-particles.js?v=13">
+  <link rel="modulepreload" href="js/draw-music.js?v=13">
+  <link rel="modulepreload" href="js/draw-mirror.js?v=13">
+  <link rel="modulepreload" href="js/draw-rewards.js?v=13">
+  <link rel="modulepreload" href="js/draw-world.js?v=13">
+  <link rel="modulepreload" href="js/draw-puzzle.js?v=13">
+  <link rel="modulepreload" href="js/draw-seek.js?v=13">
 </head>
 <body>
   <!-- 首頁：上排選主題，下面是線稿縮圖 -->
   <section id="home" class="screen on">
     <header class="top hero">
-      <img class="mascot" src="IMAGE/draw/ui/mascot.png?v=12" alt="" onerror="this.remove()">
+      <img class="mascot" src="IMAGE/draw/ui/mascot.png?v=13" alt="" onerror="this.remove()">
       <h1 class="logo" aria-label="畫畫樂園"><span>畫</span><span>畫</span><span>樂</span><span>園</span></h1>
       <span class="grow"></span>
       <div class="setwrap">
@@ -83,13 +88,13 @@
     <!-- 刮刮樂：畫好顏色的圖蓋一層銀色刮刮膜，用手指刮開；刮完選「自己畫這張」或「再刮一張」 -->
     <canvas id="foil" class="foil"></canvas>
     <div id="scratchBar" class="after scratch-bar">
-      <div class="cheer" aria-hidden="true"><img src="IMAGE/draw/ui/mascot.png?v=12" alt="" onerror="this.remove()"><p class="sstars"><span class="sstar">★</span><span class="sstar">★</span><span class="sstar">★</span></p></div>
+      <div class="cheer" aria-hidden="true"><img src="IMAGE/draw/ui/mascot.png?v=13" alt="" onerror="this.remove()"><p class="sstars"><span class="sstar">★</span><span class="sstar">★</span><span class="sstar">★</span></p></div>
       <button class="big" id="sHome" aria-label="回首頁">🏠</button>
       <button class="big" id="sPaint" aria-label="自己畫這張">🖌️</button>
       <button class="big" id="sAgain" data-sfx="magic" aria-label="再刮一張">🎁</button>
     </div>
     <div id="after" class="after">
-      <div class="cheer" aria-hidden="true"><img src="IMAGE/draw/ui/mascot.png?v=12" alt="" onerror="this.remove()"><p><span>★</span><span>★</span><span>★</span></p></div>
+      <div class="cheer" aria-hidden="true"><img src="IMAGE/draw/ui/mascot.png?v=13" alt="" onerror="this.remove()"><p><span>★</span><span>★</span><span>★</span></p></div>
       <button class="big lead" id="aWorld" data-sfx="magic" aria-label="放進我的世界">🌍</button>
       <button class="big lead" id="aPuzzle" aria-label="變成拼圖">🧩</button>
       <button class="big" id="aSnap" data-sfx="none" aria-label="拍照">📷</button>
@@ -127,7 +132,7 @@
   <!-- 首頁點了畫過的卡片：選「接著畫我的畫」或「畫新的一張」（兩張大圖，小孩看圖就懂；下面的小字給大人） -->
   <div id="pick" class="pick">
     <div class="pick-row">
-      <button class="pick-opt mine" id="pickMine" data-sfx="open" aria-label="接著畫我的畫"><img class="art" alt=""><i class="badge"><img src="IMAGE/draw/ui/btn-edit.png?v=12" alt="" onerror="this.replaceWith('✏️')"></i><span class="lbl">接著畫</span></button>
+      <button class="pick-opt mine" id="pickMine" data-sfx="open" aria-label="接著畫我的畫"><img class="art" alt=""><i class="badge"><img src="IMAGE/draw/ui/btn-edit.png?v=13" alt="" onerror="this.replaceWith('✏️')"></i><span class="lbl">接著畫</span></button>
       <button class="pick-opt fresh" id="pickNew" data-sfx="open" aria-label="畫新的一張"><img class="art" alt=""><i class="badge">＋</i><span class="lbl">畫新的一張</span></button>
     </div>
   </div>
@@ -141,6 +146,6 @@
   </div>
   <div id="toast" class="toast"></div>
   <div id="rotate" class="rotate">📱 ↻</div>
-  <script type="module" src="js/draw.js?v=12"></script>
+  <script type="module" src="js/draw.js?v=13"></script>
 </body>
 </html>

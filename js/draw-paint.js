@@ -1,6 +1,6 @@
 // 畫畫遊戲塗色：先在暫存畫布做好、用區塊遮罩裁切後才合進顏色層；復原只存被改到的長方形範圍
-import { regionMask, regionAt, rectClamp, rectUnion, History } from "./draw-core.js?v=12";
-import { makeCanvas as mk } from "./draw-canvas.js?v=12";
+import { regionMask, regionAt, rectClamp, rectUnion, History } from "./draw-core.js?v=13";
+import { makeCanvas as mk } from "./draw-canvas.js?v=13";
 
 // 每種筆的筆跡最遠會離中心線幾倍半徑（即時層的重畫範圍要涵蓋到）；沒列的是 1 倍
 const REACH = { crayon: 1.3, watercolor: 1.25, spray: 1.75, neon: 1.7, sparkle: 1.75, pencil: 0.5, chalk: 1.2 };

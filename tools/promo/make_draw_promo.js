@@ -89,7 +89,7 @@ const OVERLAY = () => {
   const logo = (cls = "lg") => `<div class="${cls}">${[..."畫畫樂園"].map((c, i) => `<b style="--i:${i};color:${COL[i]}">${c}</b>`).join("")}</div>`;
   let cap = null, finger = null;
   window.P = {
-    title() { this.t = el("ttl", `<div class="row"><img src="IMAGE/draw/ui/mascot.png?v=12" alt="">${logo()}</div><div class="sub">給小朋友的著色遊戲</div>`); },
+    title() { this.t = el("ttl", `<div class="row"><img src="IMAGE/draw/ui/mascot.png?v=13" alt="">${logo()}</div><div class="sub">給小朋友的著色遊戲</div>`); },
     titleOut() { this.t?.classList.add("out"); setTimeout(() => this.t?.remove(), 400); },
     cap(emo, text, c = "#ffc93c") { this.capOut(); cap = el("cap", `<i style="--c:${c}">${emo}</i><span>${text}</span>`); },
     capOut() { if (!cap) return; const c = cap; cap = null; c.classList.add("out"); setTimeout(() => c.remove(), 320); },
@@ -107,8 +107,8 @@ const OVERLAY = () => {
     wipe(kind) { document.querySelectorAll("#promo .wipe").forEach(w => w.remove()); el("wipe " + kind, "<i></i><i></i><i></i>"); },
     end() {
       const chips = [["mode-mirror", "鏡子畫"], ["mode-world", "我的世界"], ["btn-book", "扭蛋貼紙本"], ["mode-puzzle", "拼圖"], ["mode-seek", "躲貓貓"], ["btn-gift", "刮刮樂"]];
-      el("end", `<div class="row"><img class="m" src="IMAGE/draw/ui/mascot.png?v=12" alt="">${logo()}</div>
-        <div class="chips">${chips.map(([n, t], i) => `<div class="chip" style="--i:${i}"><img src="IMAGE/draw/ui/${n}.png?v=12" alt=""><span>${t}</span></div>`).join("")}</div>
+      el("end", `<div class="row"><img class="m" src="IMAGE/draw/ui/mascot.png?v=13" alt="">${logo()}</div>
+        <div class="chips">${chips.map(([n, t], i) => `<div class="chip" style="--i:${i}"><img src="IMAGE/draw/ui/${n}.png?v=13" alt=""><span>${t}</span></div>`).join("")}</div>
         <div class="tag">iPad 打開就能玩・免費</div>`);
     },
   };
@@ -151,10 +151,10 @@ const OVERLAY = () => {
   await E(() => document.querySelector("#aHome").click());
   await p.waitForFunction(() => document.querySelector('#arts .card[data-id="animal-3"].mine'), null, { timeout: 15000, polling: 200 });
   await p.addStyleTag({ content: CSS(FONT) }); await E(OVERLAY);
-  await E(() => Promise.all([document.fonts.load('10px "PromoHuninn"', "畫畫樂園"), ...["mascot", "mode-mirror", "mode-world", "btn-book", "mode-puzzle", "mode-seek", "btn-gift"].map(n => new Promise(r => { const i = new Image(); i.onload = i.onerror = r; i.src = `IMAGE/draw/ui/${n}.png?v=12`; }))]));
+  await E(() => Promise.all([document.fonts.load('10px "PromoHuninn"', "畫畫樂園"), ...["mascot", "mode-mirror", "mode-world", "btn-book", "mode-puzzle", "mode-seek", "btn-gift"].map(n => new Promise(r => { const i = new Image(); i.onload = i.onerror = r; i.src = `IMAGE/draw/ui/${n}.png?v=13`; }))]));
   // 扭蛋的貼紙圖也先載好（不然大章蓋完要等圖片下載，扭蛋很久才出現）
   const STK = fs.readdirSync(path.join(ROOT, "IMAGE/draw/stickers")).filter(f => f.endsWith(".png"));
-  await E(list => Promise.all(list.map(f => new Promise(r => { const i = new Image(); i.onload = i.onerror = r; i.src = "IMAGE/draw/stickers/" + f + "?v=12"; }))), STK);
+  await E(list => Promise.all(list.map(f => new Promise(r => { const i = new Image(); i.onload = i.onerror = r; i.src = "IMAGE/draw/stickers/" + f + "?v=13"; }))), STK);
   await p.waitForTimeout(800);
   pumping = false; await pump;
 

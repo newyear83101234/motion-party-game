@@ -66,3 +66,11 @@
 .x-sw:active { transform: scale(.9); }
 .x-sw.on { box-shadow: 0 0 0 4px #fff, 0 0 24px 6px var(--c, #fff); animation: xPicked .3s var(--spring); }
 @keyframes xPicked { 40% { transform: scale(1.15); } }
+
+/* 手機橫放（高度 500 以下）：工具列跟畫畫頁一樣改兩欄，8 顆不用捲 */
+@media (max-height: 500px) and (orientation: landscape) {
+  .x-bar { display: grid; grid-template-columns: repeat(2, 54px); grid-auto-rows: min-content; justify-content: center; align-content: center; gap: 6px; padding: 6px 0; }
+  .x-bar hr { display: none; }
+  #xBrush canvas { width: 40px; height: 26px; }
+  #xColor .dot { width: 30px; height: 30px; }
+}

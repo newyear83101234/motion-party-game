@@ -111,7 +111,7 @@ function versionCheck() {
 
   // Task 6：貼紙
   const st = await p.evaluate(async () => {
-    const M = await import("./js/draw-stickers.js?v=12");
+    const M = await import("./js/draw-stickers.js?v=13");
     const ids = M.STICKERS.map(s => s.id);
     const img = await M.stickerImage("star");
     __draw.painter.sticker(img, 1000, 1200, 200);
@@ -124,7 +124,7 @@ function versionCheck() {
 
   // Task 7：特效
   await p.evaluate(async () => {
-    const M = await import("./js/draw-fx.js?v=12");
+    const M = await import("./js/draw-fx.js?v=13");
     window.__fx = __draw.fx || new M.Fx(__draw.board);   // Task 9 之後用遊戲自己的那一個，免得兩組亮粉互相干擾
     __draw.painter.clearAll();
   });
@@ -212,7 +212,7 @@ function versionCheck() {
 
   // Task 8：作品牆
   const gal = await p.evaluate(async () => {
-    const G = await import("./js/draw-gallery.js?v=12");
+    const G = await import("./js/draw-gallery.js?v=13");
     await G.wipe();
     const c = __draw.board.composite();
     const w = { id: G.newId(), art: "test-shapes", done: true, thumb: await G.thumbOf(c), image: await G.toBlob(c),
@@ -478,7 +478,7 @@ function versionCheck() {
   check("第一次選貼紙 → 自動打開選單", await on("#pop"));
   await p.tap('#pop .opt[aria-label="heart"]');
   const stk = await p.evaluate(async () => {
-    const M = await import("./js/draw-stickers.js?v=12");
+    const M = await import("./js/draw-stickers.js?v=13");
     const want = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(M.STICKERS.find(s => s.id === "heart").svg);
     const im = document.querySelector('[data-tool="sticker"] img');
     return { has: !!im, same: !!im && im.getAttribute("src") === want };
@@ -952,6 +952,29 @@ function versionCheck() {
   await p.evaluate(() => { document.querySelector("#bSnap").click(); __draw.show("home"); });
   await p.waitForTimeout(2500);
   check("拍到一半換畫面：照片不會在首頁跳出來", await p.evaluate(() => !document.querySelector("#snap").classList.contains("on") && document.querySelector("#home").classList.contains("on")));
+
+  // 手機橫放（iPhone 844×390、iPhone SE 667×375）：首頁卡片夠大、工具列 9 顆與完成欄每顆都在畫面內、不用捲
+  for (const [W, H] of [[844, 390], [667, 375]]) {
+    const pc = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
+    await pc.addInitScript(() => { try { localStorage.setItem("draw-hinted", "1"); } catch {} });
+    const pp = await pc.newPage();
+    pp.on("pageerror", e => errs.push(`手機${W}: ` + e.message));
+    await pp.goto(BASE);
+    await pp.waitForFunction(() => window.__draw && document.querySelector("#arts .card"), null, { timeout: 20000 });
+    await pp.waitForTimeout(600);
+    const home = await pp.evaluate(() => { const r = document.querySelector("#arts .card").getBoundingClientRect(), t = [...document.querySelectorAll("#home .modes .big:not(.off)")].map(b => b.getBoundingClientRect().right); return { cw: Math.round(r.width), ch: Math.round(r.bottom), modesRight: Math.round(Math.max(...t)) }; });
+    check(`手機 ${W}×${H}：首頁卡片夠大、第一排整個看得到、玩法鈕沒超出右邊`, home.cw >= 150 && home.ch <= H && home.modesRight <= W, JSON.stringify(home));
+    await pp.evaluate(async () => { const a = (await (await fetch("IMAGE/draw/lineart/index.json")).json()).arts.find(x => x.id === "animal-1"); await __draw.startArt(a); });
+    await pp.waitForFunction(() => __draw.board.labels && !__draw.S.busy, null, { timeout: 15000 });
+    const inView = sel => pp.evaluate(([sel, W, H]) => [...document.querySelectorAll(sel)].filter(e => e.offsetParent).map(e => e.getBoundingClientRect()).filter(r => r.width && (r.left < 0 || r.top < 0 || r.right > W || r.bottom > H)).length, [sel, W, H]);
+    const nBar = await pp.evaluate(() => [...document.querySelectorAll("#bar .btn")].filter(e => e.offsetParent).length);
+    check(`手機 ${W}×${H}：工具列 ${nBar} 顆都在畫面內（不用捲）`, nBar === 9 && await inView("#bar .btn") === 0, `超出 ${await inView("#bar .btn")}`);
+    await pp.evaluate(() => { __draw.board.ctx.drawImage(__draw.painter.magicPaint(), 0, 0); document.querySelector("#bDone").click(); });
+    await pp.waitForFunction(() => document.querySelector("#after").classList.contains("on"), null, { timeout: 30000 }).catch(() => {});
+    await pp.waitForTimeout(1500);   // 等大鈕滑進來的動畫跑完
+    check(`手機 ${W}×${H}：畫完的大鈕每顆都在畫面內`, await inView("#after .big") === 0, `超出 ${await inView("#after .big")}`);
+    await pc.close();
+  }
 
   // ── 後續 task 的測試插在這一行上面 ──
   check("沒有頁面錯誤", errs.length === 0, errs.join(" | "));

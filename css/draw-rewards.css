@@ -249,3 +249,30 @@ img.stk:not(.ok) { opacity: 0; }   /* 圖還沒載到（或 404 正要換成 emo
   pointer-events: none; -webkit-user-drag: none; rotate: -8deg; transform-origin: 50% 100%; filter: drop-shadow(0 6px 6px rgba(60, 30, 0, .25));
   animation: bkBob 2.8s ease-in-out infinite; }
 @keyframes bkBob { 50% { translate: 0 -6px; rotate: -4deg; } }
+
+/* 手機橫放（高度 500 以下）：頁首、分頁鈕、書頁頁首縮小，貼紙格照剩下的高度算 */
+@media (max-height: 500px) and (orientation: landscape) {
+  #book { --slot: min(120px, calc((100vh - 168px) / 3), calc((100vw - 220px) / 4)); --gap: 8px; --pad: 8px; --ph: calc(var(--slot) * 3 + var(--gap) * 2 + 64px); }
+  .bk-top { padding: 4px 10px 0; gap: 8px; }
+  .bk-tabs { gap: 6px; }
+  .bk-tab { width: 42px; height: 42px; }
+  .bk-tab img { width: 32px; height: 32px; }
+  .bk-tab .emo { font-size: 22px; }
+  .bk-tab.full::after { font-size: 16px; right: -6px; top: -10px; }
+  .bk-count { height: 38px; padding: 0 12px 0 8px; font-size: 18px; box-shadow: 0 0 0 3px var(--sun), 0 3px 0 rgba(90, 60, 20, .2); }
+  .bk-count .st { font-size: 20px; }
+  .bk-count .of { font-size: 15px; }
+  .bk-desk { padding: 2px 10px 6px; }
+  .bk-pg { padding: 6px 14px 8px; }
+  .bk-head { height: 40px; margin: 4px 0 4px; gap: 8px; }
+  .bk-badge { width: 40px; height: 40px; }
+  .bk-badge img { width: 32px; height: 32px; }
+  .bk-badge .emo { font-size: 22px; }
+  .bk-dots { gap: 5px; }
+  .bk-dots i { width: 11px; height: 11px; }
+  .bk-crown { top: -34px; width: 50px; margin-left: -25px; font-size: 34px; }
+  .bk-mascot { height: min(110px, 26vh); left: calc(50% - var(--bkw) / 2 - 90px); }
+}
+@supports (height: 100dvh) {
+  @media (max-height: 500px) and (orientation: landscape) { #book { --slot: min(120px, calc((100dvh - 168px) / 3), calc((100vw - 220px) / 4)); } }
+}
