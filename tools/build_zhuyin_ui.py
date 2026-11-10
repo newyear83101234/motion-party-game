@@ -27,7 +27,8 @@ SOURCES = ["zhuyin.html", "js/zhuyin.js", "js/zhuyin-words.js",
            "js/zhuyin-tower.js", "js/zhuyin-tower-core.js",   # 10-13 挑戰燈塔：介面字、台詞、規則、24 個代號名（生肖、星座）
            "js/zhuyin-home.js",      # 10-31 v8 我的家：房子名、花園小舖裝飾名、信件、台詞
            "js/zhuyin-run.js", "js/zhuyin-grow.js",   # 11-01 跑跑大冒險、小魚長大記：介面字、台詞、區域名
-           "js/zhuyin-catch.js", "js/zhuyin-records.js", "js/zhuyin-mysongs.js"]   # mysongs：阿葉指定的整首歌（歌名、歌手）   # 11-01 v8 第二批：音符接接樂（旗子、滑動帶）、音符唱片行（唱片名、台詞、按鈕）
+           "js/zhuyin-catch.js", "js/zhuyin-records.js", "js/zhuyin-mysongs.js",
+           "js/zhuyin-math-core.js", "js/zhuyin-fruit.js", "js/zhuyin-hop.js"]   # 11-10 v10 數學島：念法（零～十、加減等於）、兩款的介面字與台詞   # mysongs：阿葉指定的整首歌（歌名、歌手）   # 11-01 v8 第二批：音符接接樂（旗子、滑動帶）、音符唱片行（唱片名、台詞、按鈕）
 HAN = re.compile(r"[\u3400-\u9fff]+")
 TONES = "ˊˇˋ˙"
 

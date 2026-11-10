@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>青蛙跳荷葉 試玩</title>
+<!-- 獨立試玩頁（不經過主程式）：python -m http.server 8765（專案根目錄）→ http://127.0.0.1:8765/tools/zy-test/hop-harness.html
+     參數：?lv=3 開哪一級（1～5）｜?speed=4 遊戲時間快 4 倍｜?seed=1 固定亂數（出題、蜻蜓飛的位置）｜?ann=1 跑主程式的自動注音
+          ?clean=1 收起試玩工具列（截圖用）｜?sound=1 有音效｜?noend=1 假的 say／talk 永遠不回 onEnd（測保險計時）
+     假的 api：say／talk 印在左下角＋console，並記到 window.__spoken（{ t, kind: "say"|"talk", text }）；新的一句或 stopVoice 會讓上一句的 onEnd 不來（跟真的一樣）；
+          later 用 setTimeout（暫停時延後）；onWin 記到 __lab.calls.win。左上角的 🏠🎵 是假的主程式圓鈕（位置跟真遊戲一樣 2／16vmin，看會不會跟遊戲擋到）：🏠＝暫停／繼續 -->
+<link rel="stylesheet" href="../../css/zhuyin.css">
+<link rel="stylesheet" href="../../css/zhuyin-hop.css">
+<style>
+  #homeBtn { left: 2vmin; top: 2vmin; } #musicBtn { left: 16vmin; top: 2vmin; }
+  #homeBtn.on { background: #ffd54a; }
+  #lab { position: fixed; z-index: 50; left: 50%; bottom: 1vmin; transform: translateX(-50%); display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: center;
+    max-width: 80vw; padding: 4px 6px; border-radius: 10px; background: rgba(20, 30, 50, .72); color: #fff; font: 12px/1.3 system-ui, sans-serif; }
+  #lab button { font: 12px system-ui, sans-serif; padding: 3px 7px; border-radius: 6px; background: #fff; color: #123; }
+  #labLog { position: fixed; z-index: 50; left: 1vmin; bottom: 6vmin; max-width: 45vw; color: #fff; font: 12px/1.35 ui-monospace, Consolas, monospace; text-shadow: 0 1px 2px #000; pointer-events: none; white-space: pre-wrap; }
+  #labResult { position: fixed; z-index: 60; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.35); }
+  #labResult div { background: #fff; border-radius: 3vmin; padding: 3vmin 5vmin; font: bold 3.4vmin/1.5 system-ui, sans-serif; color: #1b4fa0; text-align: center; white-space: pre-line; }
+  .clean #lab, .clean #labLog { display: none; }
+</style>
+</head>
+<body>
+<section id="hop" class="screen"><div class="topbar"></div><div id="hopRoot"></div></section>
+<button class="round-btn" id="homeBtn" aria-label="暫停">🏠</button>
+<button class="round-btn" id="musicBtn" aria-label="音樂">🎵</button>
+<div id="lab" class="noann"></div>
+<div id="labLog" class="noann"></div>
+<div id="labResult" class="hidden noann"><div></div></div>
+<script type="module">
+  import * as mod from "../../js/zhuyin-hop.js";
+  const Q = new URLSearchParams(location.search);
+  const speed = Math.max(0.1, +Q.get("speed") || 1);
+  const clean = Q.get("clean") === "1", noEnd = Q.get("noend") === "1";
+  if (clean) document.body.classList.add("clean");
+  if (Q.get("ann") === "1") import("../../js/zhuyin-ann.js?v=20").then(m => { m.startAnnotate(); window.__lab.ann = m; });
+  window.__spoken = window.__spoken || [];
+  const lines = [], calls = { say: [], talk: [], play: [], win: [], stopVoice: 0 };
+  const log = (k, t) => { lines.push(`${k}: ${t}`); while (lines.length > 7) lines.shift(); document.getElementById("labLog").textContent = lines.join("\n"); console.log("[hop]", k, t); };
+  let paused = false, voiceTok = 0;
+  // 假語音：念一句要 (300＋字數×120)/speed 毫秒；下一句或 stopVoice 打斷上一句＝上一句的 onEnd 不會來（測模組的保險計時）
+  const speak = (kind, t, cb) => {
+    const me = ++voiceTok; window.__spoken.push({ t: Math.round(performance.now()), kind, text: t }); calls[kind].push(t); log(kind === "say" ? "念" : "說", t);
+    if (cb && !noEnd) setTimeout(() => { if (me === voiceTok) cb(); }, (300 + [...t].length * 120) / speed);
+  };
+  let rnd = Math.random;
+  if (Q.has("seed")) { let s = (+Q.get("seed") || 1) % 2147483647; if (s <= 0) s += 2147483646; rnd = () => (s = s * 16807 % 2147483647) / 2147483647; }
+  const api = {
+    speed, rnd,
+    say: (t, cb) => speak("say", t, cb),
+    talk: (t, cb) => speak("talk", t, cb),
+    stopVoice: () => { calls.stopVoice++; voiceTok++; },
+    play: (n, r = 1) => { calls.play.push({ n, r: +(+r).toFixed(3) }); if (Q.get("sound") === "1") { try { const a = new Audio(`../../audio/sfx/${n}.mp3`); a.playbackRate = r; a.play().catch(() => {}); } catch (e) {} } },
+    later: (fn, ms) => { const tick = () => { if (paused) { setTimeout(tick, 50); return; } fn(); }; setTimeout(tick, ms); },   // 暫停時延後（跟主程式的 gLater 一樣凍結）
+    paused: () => paused,
+    onWin: r => {
+      calls.win.push(r); log("onWin", JSON.stringify(r));
+      if (clean) return;
+      const box = document.getElementById("labResult");
+      box.firstElementChild.textContent = `Lv${r.lv}　${"⭐".repeat(r.stars)}\n答對 ${r.right}／${r.total}　答錯 ${r.wrong}`;
+      box.classList.remove("hidden");
+    },
+  };
+  const root = document.getElementById("hopRoot");
+  const game = mod.createHopGame(root, api);
+  const setPaused = v => { paused = !!v; document.getElementById("homeBtn").classList.toggle("on", paused); };
+  window.__lab = { mod, game, api, calls, setPaused, paused: () => paused };
+
+  const bar = document.getElementById("lab");
+  const restart = lv => { document.getElementById("labResult").classList.add("hidden"); game.start(lv); };
+  for (let lv = 1; lv <= 5; lv++) { const b = document.createElement("button"); b.textContent = `Lv${lv}`; b.onclick = () => restart(lv); bar.appendChild(b); }
+  const H = () => window.__zyHop;
+  const wrongOf = () => { const s = H().state(); if (!s || !s.q) return; if (s.q.ask === "b") return s.q.choices.find(v => v !== s.q.ans); for (const v of [s.q.ans + 2, s.q.ans - 2, s.q.ans + 3, s.q.ans - 3]) if (v >= 0 && v <= 10 && v !== s.q.a) return v; };
+  const extra = [["⏸", () => setPaused(!paused)], ["對", () => H().right()], ["錯", () => H().answer(wrongOf())], ["跳過", () => H().skip()], ["🔊", () => game.sayCurrent()], ["停", () => game.stop()]];
+  for (const [t, f] of extra) { const b = document.createElement("button"); b.textContent = t; b.onclick = f; bar.appendChild(b); }
+  document.getElementById("homeBtn").onclick = () => setPaused(!paused);
+  document.getElementById("labResult").onclick = () => document.getElementById("labResult").classList.add("hidden");
+  addEventListener("resize", () => game.relayout());
+  restart(Math.max(1, Math.min(5, +Q.get("lv") || 1)));
+  window.__lab.ready = true;
+</script>
+</body>
+</html>

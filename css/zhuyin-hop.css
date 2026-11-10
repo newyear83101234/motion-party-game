@@ -1,0 +1,128 @@
+/* 注音小島：🐸 青蛙跳荷葉（js/zhuyin-hop.js；v10 數學島荷花池）。class 一律 hop- 開頭（跟注音遊戲「跳跳蛙」的 .frog/.pad/.river 分開）
+   尺寸：荷葉寬 --u 等由程式量畫面後寫在 .hop-stage 上（--u --padW --padH --badgeH --tagH --frogW --frogH --flyS --cb；--spd＝測試加速倍率） */
+#hop { padding: 0; }
+#hopRoot { position: absolute; inset: 0; }
+.hop-stage { position: absolute; inset: 0; overflow: hidden; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+  background: #4f9fd0 url("../IMAGE/zhuyin/bg_pond.webp") center / cover no-repeat; --u: 90px; --spd: 1; }
+@media (orientation: portrait) { .hop-stage { background-image: url("../IMAGE/zhuyin/bg_pond_p.webp"); } }
+.hop-stage .hop-hide { display: none !important; }
+
+/* 上方：算式卡（算式＋🔊＋腳印）＋進度（吃到的蜻蜓）。左上留給主程式的 🏠🎵（.hud-l：max(2vmin, 安全區) 起、兩顆 12vmin＋間隔 2vmin＝排到 28vmin）→ 從 30vmin 起排 */
+.hop-bar { position: absolute; z-index: 6; top: max(1.6vmin, env(safe-area-inset-top, 0px)); left: calc(max(2vmin, env(safe-area-inset-left, 0px)) + 28vmin); right: max(1.6vmin, env(safe-area-inset-right, 0px));
+  display: flex; align-items: flex-start; gap: 2vmin; pointer-events: none; }
+.hop-card { margin-inline: auto; pointer-events: auto; display: flex; align-items: center; gap: 2vmin; background: rgba(255,255,255,0.96); border: 0.7vmin solid #57b05a;
+  border-radius: 3.6vmin; padding: 0.7vmin 2.2vmin; box-shadow: 0 1vmin 0 rgba(36,81,92,0.18); }
+/* 兩排（算式 🔊 ／ 腳印）：直放一律；橫放放不下一排時（iPad 橫放＋跳 5 下）js fitBar 加 .hop-stack */
+.hop-stack .hop-card { display: grid; grid-template-areas: "eq say" "feet feet"; justify-items: center; align-items: center; gap: 0.6vmin 1.6vmin; padding: 0.8vmin 2.6vmin; }
+.hop-stack .hop-eq { grid-area: eq; } .hop-stack .hop-say { grid-area: say; } .hop-stack .hop-feet { grid-area: feet; }
+.hop-eq { display: flex; align-items: baseline; gap: 0.22em; font-size: max(8vmin, 28px); font-weight: 900; line-height: 1.15; color: #24515c; white-space: nowrap; }
+/* 加減等號：用畫的，＋ 跟 － 一樣寬（0.62em）、一樣粗（0.14em）（字型的「－」常常只有「＋」一半寬） */
+.hop-eq .hop-op { position: relative; flex: none; align-self: center; width: 0.62em; height: 0.62em; color: #c2410c; }
+.hop-op::before, .hop-op::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 0.14em; margin-top: -0.07em; border-radius: 0.07em; background: currentColor; }
+.hop-op::after { display: none; }
+.hop-plus::after { display: block; left: 50%; right: auto; top: 0; bottom: 0; width: 0.14em; height: auto; margin: 0 0 0 -0.07em; }
+.hop-eqs::before { top: 25%; } .hop-eqs::after { display: block; top: 75%; }
+.hop-op > i { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.hop-eq .hop-unk { color: #ff6f86; min-width: 0.9em; text-align: center; }
+.hop-eq .hop-ans { color: #fff; background: #2e9e4f; border-radius: 0.2em; padding: 0 0.16em; animation: hopPop 0.4s cubic-bezier(.2,1.6,.4,1); }
+.hop-say { flex: none; width: max(9vmin, 44px); height: max(9vmin, 44px); border-radius: 50%; border: 0; background: #ffd54a; font-size: max(4.6vmin, 20px); line-height: 1;
+  box-shadow: 0 0.6vmin 0 #d4a800; touch-action: manipulation; cursor: pointer; }
+.hop-say:active { scale: 0.92; }
+.hop-feet { display: flex; align-items: center; gap: 0.5vmin; min-height: max(5.4vmin, 20px); }
+.hop-foot { font-size: max(4.4vmin, 16px); line-height: 1; padding: 0.35vmin; opacity: 0.22; filter: grayscale(1); transition: opacity 0.25s, filter 0.25s, scale 0.25s; }
+.hop-foot.on { opacity: 1; filter: none; background: #ffe58a; border-radius: 50%; box-shadow: 0 0 0 0.3vmin #ffcf3a; }
+.hop-foot.hop-qm { opacity: 1; filter: none; font-weight: 900; color: #8a97a3; }
+/* 進度：白色托盤裡 10 個圓格；還沒吃到＝圓格裡一隻淡淡的灰蜻蜓（一眼數得出還剩幾隻），吃到＝黃底彩色 */
+.hop-prog { flex: none; pointer-events: none; display: grid; grid-template-columns: repeat(5, auto); gap: 0.4vmin 0.5vmin; padding: 0.6vmin 0.8vmin;
+  background: rgba(255,255,255,0.86); border: 0.4vmin solid rgba(87,176,90,0.6); border-radius: 2.4vmin; box-shadow: 0 0.6vmin 0 rgba(36,81,92,0.15); }
+.hop-dot { font-style: normal; width: max(4.8vmin, 18px); height: max(4.8vmin, 18px); display: flex; align-items: center; justify-content: center; border-radius: 50%;
+  background: #e2eee3; box-shadow: inset 0 0 0 max(0.3vmin, 1px) rgba(36,81,92,0.2); }
+.hop-dot .hop-fly-ico { width: 84%; height: 84%; font-size: max(3.4vmin, 13px); opacity: 0.4; filter: grayscale(1); }
+.hop-dot.on { background: #fff3b5; box-shadow: inset 0 0 0 max(0.35vmin, 1.5px) #ffcf3a; animation: hopPop 0.4s cubic-bezier(.2,1.6,.4,1); }
+.hop-dot.on .hop-fly-ico { opacity: 1; filter: none; }
+/* 直放：算式卡、進度都靠左排在 🎵 右邊；進度一排 10 格（寬約 44vmin＝排到 75vmin 以內，不壓到背景右邊的小船） */
+@media (orientation: portrait) {
+  .hop-bar { flex-direction: column; align-items: flex-start; gap: 1.6vmin; }
+  .hop-card { margin-inline: 0; }
+  .hop-prog { grid-template-columns: repeat(10, auto); gap: 0.35vmin; padding: 0.5vmin 0.7vmin; }
+  .hop-dot { width: max(3.9vmin, 16px); height: max(3.9vmin, 16px); }
+}
+
+/* 荷葉：一排 11 片（位置大小由程式寫）；荷葉下面是號碼牌（數字路徑），起點那片號碼牌黃色 */
+.hop-row { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.hop-pad { position: absolute; pointer-events: auto; padding: 0; border: 0; background: none; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  touch-action: manipulation; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.hop-leaf { flex: none; width: var(--padW); height: var(--padH); background: url("../IMAGE/zhuyin/lilypad.webp") center / contain no-repeat; filter: drop-shadow(0 0.5vmin 0.6vmin rgba(0,40,80,0.28)); }
+.hop-num { flex: none; box-sizing: border-box; height: calc(var(--badgeH) - 3px); margin-top: 3px; min-width: calc(var(--u) * 0.62); padding: 0 calc(var(--u) * 0.08);
+  display: flex; align-items: center; justify-content: center; font-size: calc(var(--u) * 0.36); font-weight: 900; line-height: 1; color: #1b4fa0;
+  background: rgba(255,255,255,0.95); border-radius: calc(var(--u) * 0.18); box-shadow: 0 0.4vmin 0 rgba(20,60,90,0.25); }
+.hop-pad.start .hop-num { background: #ffd54a; color: #5a3200; }
+.hop-pad.glow .hop-leaf { background-image: url("../IMAGE/zhuyin/lilypad_flower.webp"); animation: hopGlow 0.8s ease-in-out infinite alternate; }
+.hop-pad.glow .hop-num { background: #ffd54a; color: #5a3200; box-shadow: 0 0 0 0.6vmin #ff9f1c; }
+.hop-pad.sink .hop-leaf { animation: hopSink 0.7s ease-in-out; }
+.hop-pad.shake .hop-leaf { animation: hopShake 0.45s ease-in-out; }
+.hop-pad.glow.shake .hop-leaf { animation: hopShake 0.45s ease-in-out, hopGlow 0.8s ease-in-out 0.45s infinite alternate; }
+.hop-pad:active .hop-leaf { scale: 0.94; }
+@keyframes hopGlow { from { filter: drop-shadow(0 0 0.6vmin #fff59d) brightness(1.04); } to { filter: drop-shadow(0 0 2.6vmin #ffd54a) brightness(1.15); } }
+@keyframes hopSink { 40% { transform: translateY(calc(var(--u) * 0.16)) scale(0.84); filter: brightness(0.7) drop-shadow(0 0 0 transparent); } }
+@keyframes hopShake { 25% { transform: rotate(-9deg); } 75% { transform: rotate(9deg); } }
+
+/* 「起點」牌：在青蛙那片的號碼牌下面；把起點算進去的錯 → 閃一下 */
+.hop-starttag { position: absolute; z-index: 3; box-sizing: border-box; height: var(--tagH); display: flex; align-items: center; justify-content: center; white-space: nowrap;
+  font-size: calc(var(--tagH) * 0.6); font-weight: 900; line-height: 1; color: #5a3200; background: #ffe58a; border: 2px solid #d4a800; border-radius: calc(var(--tagH) * 0.5);
+  pointer-events: none; transition: left calc(0.2s / var(--spd)); }
+.hop-starttag.pulse { animation: hopPulse 0.55s ease-in-out 3; }
+@keyframes hopPulse { 50% { scale: 1.3; background: #ff9f1c; color: #fff; } }
+
+/* 青蛙：外層＝位置（程式寫 left/top，跳的弧線用 transform）；中層＝空翻、吃、吃飽；內層＝圖與面向（--face：1 往右、-1 往左） */
+.hop-frog { position: absolute; left: 0; top: 0; z-index: 4; width: var(--frogW); height: var(--frogH); pointer-events: none; transition: opacity calc(0.2s / var(--spd)); }
+.hop-frog.hop-out { opacity: 0; }
+.hop-frog-fx { width: 100%; height: 100%; transform-origin: 50% 85%; transition: scale 0.6s cubic-bezier(.2,1.5,.4,1); }
+.hop-frog-fx.hop-full { scale: 1.34 1.2; }
+.hop-frog-img { width: 100%; height: 100%; background: url("../IMAGE/zhuyin/frog_sit.webp") center bottom / contain no-repeat; transform: scaleX(var(--face, 1));
+  filter: drop-shadow(0 0.6vmin 0.6vmin rgba(0,0,0,0.25)); }
+.hop-frog-img.jump { background-image: url("../IMAGE/zhuyin/frog_jump.webp"); }
+.hop-burp { position: absolute; z-index: 6; font-size: calc(var(--u) * 0.6); line-height: 1; pointer-events: none; animation: hopBurp 1.3s ease-out forwards; }
+@keyframes hopBurp { 0% { opacity: 0; scale: 0.4; } 25% { opacity: 1; scale: 1.2; } 100% { opacity: 0; scale: 1.5; translate: 0 calc(var(--u) * -0.6); } }
+
+/* 蜻蜓（位置用 transform 由程式寫；--fd 面向） */
+.hop-fly { position: absolute; left: 0; top: 0; z-index: 5; width: var(--flyS); height: var(--flyS); pointer-events: none;
+  transition-property: transform, opacity; transition-timing-function: ease-in-out, ease-out; }
+.hop-fly.hop-eaten { opacity: 0; }
+.hop-fly-in { width: 100%; height: 100%; transform: scaleX(var(--fd, 1)); transition: scale 0.25s; animation: hopBob 0.45s ease-in-out infinite alternate; }
+.hop-fly.hop-eaten .hop-fly-in { scale: 0.2; }
+.hop-fly-ico { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: calc(var(--flyS) * 0.8); line-height: 1; }
+.hop-fly-ico img { width: 100%; height: 100%; object-fit: contain; }
+@keyframes hopBob { from { translate: 0 -6%; } to { translate: 0 6%; } }
+
+/* 第一題的手指示範 */
+.hop-finger { position: absolute; z-index: 7; font-size: calc(var(--u) * 0.72); line-height: 1; pointer-events: none; filter: drop-shadow(0 0.5vmin 0.6vmin rgba(0,0,0,0.3)); }
+.hop-finger.tap { animation: hopTap 0.55s ease-in-out 2; }
+@keyframes hopTap { 50% { translate: 0 calc(var(--u) * 0.18); scale: 0.88; } }
+
+/* Lv5：三顆數字鈕（跳幾下） */
+.hop-choices { position: absolute; z-index: 6; left: 50%; translate: -50% 0; display: flex; gap: calc(var(--cb) * 0.45); }
+.hop-ch { width: var(--cb); height: var(--cb); padding: 0; border-radius: calc(var(--cb) * 0.26); border: 0.6vmin solid #57b05a; background: #fff; color: #1b4fa0;
+  font-size: calc(var(--cb) * 0.56); font-weight: 900; line-height: 1; box-shadow: 0 0.8vmin 0 #3a8a3e; touch-action: manipulation; cursor: pointer; }
+.hop-ch:active { scale: 0.93; }
+.hop-ch.dim { filter: grayscale(1); opacity: 0.45; }
+.hop-ch.ok { background: #c9f2c0; }
+.hop-ch.glow { background: #ffd54a; border-color: #ff9f1c; animation: hopBtnGlow 0.8s ease-in-out infinite alternate; }
+.hop-ch.shake { animation: hopShake 0.45s ease-in-out; }
+.hop-ch.glow.shake { animation: hopShake 0.45s ease-in-out, hopBtnGlow 0.8s ease-in-out 0.45s infinite alternate; }
+@keyframes hopBtnGlow { from { box-shadow: 0 0.8vmin 0 #d4a800, 0 0 0 0 rgba(255,213,74,0.8); } to { box-shadow: 0 0.8vmin 0 #d4a800, 0 0 0 1.6vmin rgba(255,213,74,0.2); } }
+@keyframes hopPop { 0% { scale: 0.4; } 100% { scale: 1; } }
+
+/* 手機直放（每片 < 44px）：請他把手機橫過來（左上 🏠 那一塊不蓋住） */
+.hop-rotate { position: absolute; inset: 0; z-index: 30; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3vmin; color: #fff;
+  background: rgba(20,45,70,0.88); clip-path: polygon(118px 0, 100% 0, 100% 100%, 0 100%, 0 118px, 118px 118px); }
+.hop-rot-ico { font-size: 24vmin; line-height: 1; animation: hopRot 1.8s ease-in-out infinite; }
+.hop-rot-t { font-size: 8vmin; font-weight: 900; }
+@keyframes hopRot { 0%, 30% { rotate: 0deg; } 60%, 100% { rotate: -90deg; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .hop-fly-in, .hop-rot-ico { animation: none; }
+  .hop-pad.glow .hop-leaf, .hop-ch.glow { animation-duration: 1.6s; }
+  .hop-starttag.pulse { animation-iteration-count: 1; }
+  .hop-frog-fx { transition-duration: 0.2s; }
+}

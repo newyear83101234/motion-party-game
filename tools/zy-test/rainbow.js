@@ -87,7 +87,7 @@ const dressDone = async p => { await p.evaluate(() => { const b = document.query
     const g = await p.evaluate(() => window.__hub3d.graph()), r = await rbInfo(p);
     ok("路網全部連通（含彩虹島、拱橋）", g.components === 1, JSON.stringify(g));
     ok("彩虹島沒有斷頭路、6 棟（配送站、偵探社、服裝店、三戶人家）門口都接到路", r.deadEnds.length === 0 && ["deliver", "detective", "dress", "bearHouse", "bunnyHouse", "pigHouse"].every(d => r.doors.includes(d)), JSON.stringify(r));
-    ok("斷頭路 10 條（主島西邊路底接上彩虹橋、10-12 歸仁區橫路東端接上陀螺競技場半島、11-01 橫路西端接跑跑運動場、直路北端接海洋館）", g.deadEnds === 10, String(g.deadEnds));
+    ok("斷頭路 10 條（主島西邊路底接上彩虹橋、10-12 歸仁區橫路東端接上陀螺競技場半島、11-01 橫路西端接跑跑運動場、直路北端接海洋館）", g.deadEnds === 9, String(g.deadEnds));   // 11-10 主島主路東端接上數學島的積木橋：少一條
     ok("在主島：彩虹島的浮標藏著、動畫不跑", await p.evaluate(() => [...document.querySelectorAll(".hub-tag.rb")].every(t => getComputedStyle(t).display === "none")) && !r.active, JSON.stringify(r));
     let b = await btns(p);
     ok("在主島：面板＝小島（你在這裡）、歸仁區、彩虹島、音樂島（都開了）", b.main === "小島你在這裡" && b.town === "歸仁區" && b.rb === "彩虹島" && b.mu === "音樂島" && b.place === "main", JSON.stringify(b));
@@ -198,7 +198,7 @@ const dressDone = async p => { await p.evaluate(() => { const b = document.query
     const { ctx, p, errs } = await openGame(browser, { w, h, stickers: 40, query: "debug&novoice&no3d" });
     const c = await p.evaluate(() => { const cs = [...document.querySelectorAll(".mode-card")].map(e => e.getBoundingClientRect()); const d = document.querySelector(".mode-card[data-mode=deliver]").getBoundingClientRect();
       return { n: cs.length, out: cs.filter(r => r.left < 0 || r.top < 0 || r.right > innerWidth || r.bottom > innerHeight).length, dv: d.width > 50 && d.height > 50, lab: document.querySelector(".mode-card[data-mode=deliver] .label").scrollWidth <= d.width + 1 }; });
-    ok(`?no3d ${w}×${h}：16 張卡都在畫面內、配送站卡字沒有超出卡片`, c.n === 16 && c.out === 0 && c.dv && c.lab, JSON.stringify(c));   // 10-12 多了偵探、陀螺
+    ok(`?no3d ${w}×${h}：18 張卡都在畫面內、配送站卡字沒有超出卡片`, c.n === 18 && c.out === 0 && c.dv && c.lab, JSON.stringify(c));   // 10-12 多了偵探、陀螺
     await p.evaluate(() => document.querySelector(".mode-card[data-mode=deliver]").click());
     const inD = await p.waitForFunction(() => window.__zy.mode === "deliver" && !document.getElementById("deliver").classList.contains("hidden"), null, { timeout: 15000 }).then(() => true, () => false);
     ok(`?no3d ${w}×${h}：點配送站卡 → 進配送站（卡片選單也能玩）`, inD, String(await p.evaluate(() => window.__zy.mode)));

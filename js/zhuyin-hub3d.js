@@ -43,6 +43,13 @@ const MUSIC_NEED = 40;                                  // 貼紙幾張開放（
 const MU_LOOP = { u0: -3.2, u1: 2.6, v0: -1.6, v1: 2.3, rc: 1.1 };
 const MU_BX = -24.9, MU_Z0 = -5.85, MU_Z1 = MU.z + 4.5;   // 琴鍵橋：x、南端（彩虹島北岸，多壓進岸上一點）、北端（音樂島南岸）
 function sdMusic(x, z) { return sdRoundBox(x - MU.x, z - MU.z, MU.hx, MU.hz, MU.r); }
+// v10（11-10）數學島（第五座島，docs/zhuyin-math-plan.md §1）：主島東邊，從主島 z=0 東西向主路的東端過一座「數字積木橋」；一開始就開（阿葉 11-10 選「一開始就能去」：橋不鎖、沒有升起動畫）。
+//   量過：主島東岸（z=0）草地到 x≈9.6、沙灘到 10.3，右側凹口外的礁石在 x≈11–12、z≈±3～4.6；歸仁區東邊小半島（陀螺）在 z≈−19，很遠。島比音樂島（4.6×4.8）小一點；
+//   中心 z 往北挪 0.3：橋（世界 z=0）接到環狀小路西段的中間，北排兩棟離北岸多留一點草地
+//   島上一圈環狀小路 MA_LOOP（區域座標 u＝x−MA.x、v＝z−MA.z；西段接橋）；北排（正面朝 +z＝朝鏡頭）：🍎 水果攤（fruit）、🐸 荷花池（hop）；環裡：大算盤、數字積木「1＋2＝3」
+const MA = { x: 19.6, z: -0.3, hx: 4.0, hz: 4.3, r: 1.5 };
+const MA_LOOP = { u0: -2.5, u1: 2.5, v0: -1.1, v1: 2.2, rc: 0.9 };
+function sdMath(x, z) { return sdRoundBox(x - MA.x, z - MA.z, MA.hx, MA.hz, MA.r); }
 // 歸仁區東邊的小半島（10-12）：陀螺競技場（DEFS 的 tops）。新市區（下面「新市區」段的 DIST，中心 4.8, −18.9、半寬 5.2）那條東西向橫路往東延伸過來，
 // 路底就是競技場入口。半島＝圓角方塊，西緣跟新市區東岸疊一點，連成一塊（sdDist 兩塊取聯集）
 const TEX = { x: 13.4, z: -18.9, hx: 3.8, hz: 3.0, r: 1.2 };
@@ -75,6 +82,8 @@ const DEFS = [
   { mode: "records", isle: "music", x: MU.x - 1.9, z: MU.z - 3.5, door: [0, 1], ex: [-0.95, 0.95, -0.8, 0.75], free: true },   // v8 音符唱片行（音樂島北排西邊；門朝南接環狀小路北段）：不是遊戲、沒有卡片（照服裝店：音樂島開了就能進；再點一次＝opts.onRecords()）
   { mode: "catch", isle: "music", x: MU.x + 1.2, z: MU.z - 3.55, door: [0, 1], ex: [-1.5, 1.5, -1.1, 1.15], lockDist: 1.3 },     // v8 露天音樂台（音樂島北排東邊；半圓舞台朝南）
   { mode: "tower", x: BC(3) + 2.0, z: BC(0) - 2.0, door: [0, 1], ex: [-0.9, 0.9, -0.9, 0.9], lockDist: 0.95, spot: "lighthouse" },   // 10-13 挑戰燈塔＝燈塔岬那座燈塔（景點 SPOTS 的 lighthouse 蓋好後，startDef 把燈塔本體搬進 pivot；門口小路、草地台階、小屋照舊是景點的）
+  { mode: "fruit", isle: "math", x: MA.x - 1.3, z: MA.z - 2.65, door: [0, 1], ex: [-1.0, 1.3, -0.75, 0.85], lockDist: 1.0 },   // v10 🍎 水果攤（數學島北排西邊；門朝南接環狀小路北段；攤子東邊站一隻小猴子）：need 0，一開始就能玩
+  { mode: "hop", isle: "math", x: MA.x + 1.35, z: MA.z - 2.65, door: [0, 1], ex: [-1.35, 1.35, -1.05, 0.95], lockDist: 1.0 },   // v10 🐸 荷花池（數學島北排東邊；池子前緣就在小路旁）
 ].map(d => ({ ...d, x: d.x ?? BC(d.bx), z: d.z ?? BC(d.bz) }));
 const isleOf = d => d.isle || "main";
 const MAIN_DEFS = DEFS.filter(d => !d.isle);
@@ -98,6 +107,8 @@ const LAYOUT = {   // [box x0,x1,y0,y1,z0,z1]、[anchor x,y,z]、[body x,y,z]（
   records: [[-0.79, 0.81, 0, 3.15, -0.62, 0.99], [0.01, 3.05, 0.19], [0.01, 0.73, 0.19]],   // v8 11-01 measure()
   catch: [[-1.34, 1.53, 0, 1.64, -1.34, 1.54], [0.07, 1.76, 0.07], [0.07, 0.66, 0.07]],     // v8 11-01 measure()
   tower: [[-0.6, 0.6, 0, 3.7, -0.6, 0.6], [0, 3.85, 0], [0, 1.4, 0]],   // 10-13 燈塔（原點＝燈塔底；台地高 0.3、燈罩頂約 3.7）
+  fruit: [[-0.85, 1.25, 0, 2.03, -0.5, 0.75], [0, 2.15, -0.17], [0.1, 0.7, 0.05]],   // v10 水果攤（含東邊的小猴子；浮標放棚子上那支 🍎 圓牌上）
+  hop: [[-1.25, 1.25, 0, 1.27, -0.92, 0.92], [0.1, 1.39, -0.78], [0, 0.3, 0]],      // v10 荷花池（池子扁平；浮標放在後面那支 🐸 圓牌上）
 };
 // 景點（沒有浮標、點了沒反應）
 const SPOTS = [
@@ -389,6 +400,7 @@ function groundY(x, z) {
   if (sdDist(x, z) <= 0) return 0;                     // 新市區
   if (sdRainbow(x, z) <= 0) return 0;                  // 彩虹島
   if (sdMusic(x, z) <= 0) return 0;                    // v8 音樂島
+  if (sdMath(x, z) <= 0) return 0;                     // v10 數學島
   return inside(mainPoly, x, z) ? 0 : inside(islPoly, x, z) ? LEDGE_Y : SAND_Y;
 }
 let seaU;
@@ -420,7 +432,7 @@ function buildTerrain() {
   const R = 36, N = Math.round(288 * R / 27), data = new Uint8Array(N * N);
   for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
     const x = (i + 0.5) / N * 2 * R - R, z = (j + 0.5) / N * 2 * R - R;
-    let d = Math.min(sdIsland(x, z), sdDist(x, z), sdRainbow(x, z), sdMusic(x, z)) - 1.25;   // v8 加音樂島
+    let d = Math.min(sdIsland(x, z), sdDist(x, z), sdRainbow(x, z), sdMusic(x, z), sdMath(x, z)) - 1.25;   // v8 加音樂島、v10 數學島
     for (const [rx, rz, rs] of ROCKS) d = Math.min(d, Math.hypot(x - rx, z - rz) - rs * 1.3);
     data[j * N + i] = Math.max(0, Math.min(255, Math.round((d + 3) / 16 * 255)));
   }
@@ -1395,7 +1407,103 @@ async function buildBandstand(d, p) {
   });
   return st;
 }
-const BUILDERS = { fish: buildFish, order: buildOrder, build: buildBuild, hunt: buildHunt, match: buildMatch, tone: buildTone, whack: buildWhack, frog: buildFrog, bubble: buildBubble, gacha: buildGacha, deliver: buildDepot, dress: buildDress, detective: buildSleuth, tops: buildArena, tower: buildBeacon, run: buildStadium, grow: buildAquarium, records: buildRecords, catch: buildBandstand };
+// ----- v10 🍎 水果攤（數學島北排西邊；正面朝南）：木頭櫃＋紅腰帶、檯面上三箱水果（紅蘋果、橘子、黃檸檬）、四根白柱撐紅白條紋遮陽棚（前低後高、前緣一排半圓花邊）；
+//       棚子上一支 🍎 圓牌（朝鏡頭；浮標放它上面）；攤前地上一箱蘋果；攤子東邊一隻小猴子（舉著一顆蘋果，偶爾揮一揮；maTickers）-----
+async function buildFruitStall(d, p) {
+  const st = new THREE.Group(); p.add(st);
+  const W = 1.45, D = 0.6, H = 0.52, Z = -0.05, fz = Z + D / 2, top = H + 0.05;
+  vm(rbox(W, H, D, 0.03), "#c98a55", { y: H / 2, z: Z, parent: st });                                 // 木頭櫃
+  vm(box(W + 0.02, 0.09, D + 0.02), "#e2453c", { y: H * 0.62, z: Z, parent: st, shadow: false });       // 紅色腰帶
+  for (const x of [-0.36, 0.36]) vm(box(0.03, H * 0.4, 0.02), "#a8673f", { x, y: H * 0.24, z: fz + 0.006, parent: st, shadow: false });   // 櫃子正面的木板縫
+  vm(box(W + 0.08, 0.05, D + 0.12), "#8a5a3c", { y: H + 0.025, z: Z, parent: st });                     // 檯面
+  [["#e8423a", "#6b8f2a"], ["#ff9a2e", "#4f8f2f"], ["#ffd43b", "#7aa83a"]].forEach(([c, leaf], k) => {   // 三箱水果（一箱一種、一顆一顆排好）
+    const cx = -0.46 + k * 0.46, cz = Z + 0.02;
+    vm(box(0.4, 0.1, 0.32), "#b7804e", { x: cx, y: top + 0.05, z: cz, parent: st });
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) vm(new THREE.SphereGeometry(0.066, 8, 6), c, { x: cx - 0.12 + i * 0.12, y: top + 0.13, z: cz - 0.065 + j * 0.13, parent: st, shadow: false });
+    vm(box(0.02, 0.05, 0.02), leaf, { x: cx, y: top + 0.22, z: cz + 0.065, parent: st, shadow: false });   // 最前面中間那顆的蒂
+  });
+  for (const [x, z, h] of [[-W / 2 + 0.05, fz - 0.03, 1.22], [W / 2 - 0.05, fz - 0.03, 1.22], [-W / 2 + 0.05, Z - D / 2 + 0.04, 1.4], [W / 2 - 0.05, Z - D / 2 + 0.04, 1.4]])
+    vm(cyl(0.025, 0.03, h - top, 6), "#f4f1ea", { x, y: top + (h - top) / 2, z, parent: st, shadow: false });   // 四根柱子（前低後高）
+  const AL = D + 0.42, AR = 0.3, ay = 1.33, az = Z + 0.06;                                               // 遮陽棚：斜的條紋布（前緣低）
+  mesh(box(W + 0.24, 0.035, AL), texMat("awnMa", () => stripeTex("#ffffff", "#ff6b6b", 7)), { y: ay, z: az, rx: AR, parent: st });
+  const vy = ay - Math.sin(AR) * AL / 2 - 0.05, vz = az + Math.cos(AR) * AL / 2;                          // 前緣：紅色花邊條＋一排半圓
+  vm(box(W + 0.24, 0.1, 0.03), "#ff6b6b", { y: vy, z: vz, parent: st, shadow: false });
+  for (let k = 0; k < 7; k++) vm(new THREE.CircleGeometry(0.085, 10, Math.PI, Math.PI), k % 2 ? "#ff6b6b" : "#ffffff", { x: -(W + 0.24) / 2 + 0.085 + k * (W + 0.24 - 0.17) / 6, y: vy - 0.05, z: vz + 0.017, parent: st, shadow: false });
+  const sg = new THREE.Group(); sg.position.set(0, 0, Z - 0.12); sg.rotation.y = CAM_YAW; st.add(sg);   // 棚子上的 🍎 圓牌（朝鏡頭）
+  vm(box(0.05, 0.34, 0.05), "#8a5a3c", { y: 1.5, parent: sg, shadow: false });
+  vm(cyl(0.29, 0.29, 0.04, 22).rotateX(Math.PI / 2), "#8a5a3c", { y: 1.74, z: -0.025, parent: sg });
+  sign(sg, "🍎", "#ffd84d", 0, 1.74, 0.0, 0);   // 黃底（紅蘋果在紅底上看不清楚）
+  const cr = new THREE.Group(); cr.position.set(-0.5, 0, 0.55); cr.rotation.y = 0.25; st.add(cr);       // 攤前地上一箱蘋果
+  vm(box(0.4, 0.2, 0.3), "#b7804e", { y: 0.1, parent: cr });
+  for (const [x, z] of [[-0.1, -0.06], [0.04, -0.06], [-0.03, 0.07], [0.11, 0.07]]) vm(new THREE.SphereGeometry(0.068, 8, 6), "#e8423a", { x, y: 0.25, z, parent: cr, shadow: false });
+  blob(d.x - 0.5, d.z + 0.55, 0.55, 0);
+  // 小猴子（攤子東邊，正面朝鏡頭）：身體＋頭＋臉＋耳朵＋尾巴；右手舉著一顆蘋果（會揮）
+  const BR = "#9a6440", SK = "#f3d3a6";
+  const mk = new THREE.Group(); mk.position.set(W / 2 + 0.3, 0, 0.32); mk.rotation.y = CAM_YAW; mk.userData.dyn = true; p.add(mk);
+  const body = new THREE.Group(); mk.add(body);
+  vm(new THREE.SphereGeometry(0.16, 12, 10), BR, { y: 0.27, parent: body }).scale.set(1, 1.12, 0.92);
+  vm(new THREE.SphereGeometry(0.1, 10, 8), SK, { y: 0.25, z: 0.088, parent: body }).scale.set(1, 1.15, 0.55);
+  vm(new THREE.SphereGeometry(0.145, 12, 10), BR, { y: 0.55, parent: body });
+  vm(new THREE.SphereGeometry(0.1, 12, 8), SK, { y: 0.53, z: 0.075, parent: body }).scale.set(1.2, 0.95, 0.75);
+  for (const s of [-1, 1]) {
+    vm(new THREE.SphereGeometry(0.055, 8, 6), BR, { x: s * 0.15, y: 0.58, parent: body });                    // 耳朵
+    vm(new THREE.SphereGeometry(0.034, 8, 6), SK, { x: s * 0.16, y: 0.58, z: 0.022, parent: body });
+    vm(new THREE.SphereGeometry(0.022, 8, 6), "#2b2230", { x: s * 0.045, y: 0.575, z: 0.148, parent: body });   // 眼睛
+    vm(new THREE.SphereGeometry(0.06, 8, 6), BR, { x: s * 0.08, y: 0.05, z: 0.05, parent: body }).scale.set(1, 0.7, 1.3);   // 腳
+  }
+  vm(new THREE.TorusGeometry(0.06, 0.012, 4, 10, Math.PI).rotateZ(Math.PI), "#b0623f", { y: 0.52, z: 0.15, parent: body });   // 笑嘴
+  vm(new THREE.TorusGeometry(0.11, 0.022, 6, 14, Math.PI * 1.4), BR, { x: -0.05, y: 0.2, z: -0.15, ry: Math.PI / 2, parent: body });   // 尾巴（捲起來）
+  vm(cyl(0.032, 0.03, 0.2, 6), BR, { x: -0.15, y: 0.25, rz: -0.45, parent: body });                           // 左手（垂著）
+  const arm = new THREE.Group(); arm.position.set(0.14, 0.36, 0.02); arm.userData.dyn = true; body.add(arm);  // 右手（舉著蘋果；會揮）
+  vm(cyl(0.032, 0.03, 0.22, 6), BR, { y: 0.1, parent: arm }); vm(new THREE.SphereGeometry(0.07, 10, 8), "#e8423a", { y: 0.25, parent: arm }); vm(box(0.018, 0.045, 0.018), "#6b8f2a", { y: 0.33, parent: arm });
+  mergeStatic(arm); mergeStatic(body);                    // 會動的兩塊各自合併（一隻猴子 2 個 draw call）
+  blob(d.x + mk.position.x, d.z + mk.position.z, 0.45, 0);
+  ma.monkey = { body, arm };
+  maTickers.push(t => { const w = t % 4.2, wave = w < 1.3 ? Math.sin(w / 1.3 * Math.PI * 3) : 0; arm.rotation.z = -0.55 + wave * 0.38; body.position.y = Math.abs(Math.sin(t * 2.4)) * 0.018; body.rotation.z = Math.sin(t * 1.2) * 0.05; });
+  return st;
+}
+// ----- v10 🐸 荷花池（數學島北排東邊）：扁圓的池子（淺藍外圈、深一點的中間）＋一圈圓石、五片荷葉（缺一角）＋兩朵粉紅荷花、後面幾根香蒲；
+//       後面中間一支 🐸 圓牌（朝鏡頭；浮標放它上面）；前面那片荷葉上一隻綠色青蛙（正面朝鏡頭，每幾秒跳一下；maTickers）-----
+async function buildLotusPond(d, p) {
+  const g = new THREE.Group(); p.add(g);
+  const RX = 1.12, RZ = 0.8;
+  vm(cyl(1, 1, 0.05, 30), "#7fcfe9", { y: 0.025, parent: g, shadow: false }).scale.set(RX, 1, RZ);          // 水面
+  vm(cyl(1, 1, 0.052, 30), "#55b2dd", { y: 0.027, parent: g, shadow: false }).scale.set(RX * 0.7, 1, RZ * 0.66);
+  for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2; vm(new THREE.IcosahedronGeometry(0.1 + (k % 3) * 0.016, 0), k % 2 ? "#c9c4b8" : "#ddd8cf", { x: Math.cos(a) * (RX + 0.05), y: 0.045, z: Math.sin(a) * (RZ + 0.05), ry: k * 0.7, parent: g }).scale.set(1.25, 0.55, 1); }   // 池邊圓石
+  const LEAF = [[-0.52, 0.12, 0.23, 0.4], [0.02, 0.34, 0.29, 2.2], [0.55, -0.02, 0.22, 4.0], [-0.12, -0.33, 0.19, 1.1], [0.5, 0.42, 0.16, 5.2], [-0.62, -0.32, 0.14, 3.0]];
+  LEAF.forEach(([x, z, r, a], k) => vm(new THREE.CylinderGeometry(r, r, 0.02, 16, 1, false, a + 0.35, Math.PI * 2 - 0.7), k % 2 ? "#6fbf4f" : "#5aae44", { x, y: 0.062, z, parent: g, shadow: false }));   // 荷葉
+  for (const [x, z] of [[-0.52, 0.1], [0.55, -0.05]]) {                                                    // 荷花：六片粉紅花瓣＋黃色花心
+    for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; vm(new THREE.SphereGeometry(0.055, 8, 6), k % 2 ? "#ff9fc4" : "#ffb8d4", { x: x + Math.cos(a) * 0.055, y: 0.12, z: z + Math.sin(a) * 0.055, rz: Math.cos(a) * 0.5, rx: -Math.sin(a) * 0.5, parent: g, shadow: false }).scale.set(0.6, 1, 0.6); }
+    vm(new THREE.SphereGeometry(0.035, 8, 6), "#ffd84d", { x, y: 0.13, z, parent: g, shadow: false });
+  }
+  for (const [x, z, h] of [[0.78, -0.62, 0.62], [0.95, -0.5, 0.78], [-0.98, -0.42, 0.56], [-0.84, -0.56, 0.7]]) {   // 香蒲（蒲棒）
+    vm(cyl(0.012, 0.016, h, 5), "#5f9c3a", { x, y: h / 2, z, parent: g, shadow: false }); vm(cyl(0.036, 0.036, 0.15, 8), "#8a5a3c", { x, y: h - 0.04, z, parent: g, shadow: false });
+  }
+  const sg = new THREE.Group(); sg.position.set(0.1, 0, -0.78); sg.rotation.y = CAM_YAW; g.add(sg);         // 招牌（池子後面中間）
+  vm(cyl(0.035, 0.04, 0.9, 6), P.wood, { y: 0.45, parent: sg }); vm(cyl(0.29, 0.29, 0.04, 22).rotateX(Math.PI / 2), "#8a5a3c", { y: 0.98, z: -0.025, parent: sg });
+  sign(sg, "🐸", "#4fb6f0", 0, 0.98, 0.0, 0);   // 藍底（綠青蛙在綠底上看不清楚）
+  // 青蛙（前面那片荷葉上，正面朝鏡頭）：扁扁的身體、肚子、頭頂兩顆大眼睛、腮紅、笑嘴、前後腳
+  const GR = "#5cc24a", GL = "#b4e68a";
+  const fr = new THREE.Group(); fr.position.set(0.02, 0.072, 0.34); fr.rotation.y = CAM_YAW; fr.userData.dyn = true; g.add(fr);
+  const fb = new THREE.Group(); fr.add(fb);
+  vm(new THREE.SphereGeometry(0.15, 12, 10), GR, { y: 0.1, parent: fb }).scale.set(1.15, 0.72, 1);
+  vm(new THREE.SphereGeometry(0.1, 10, 8), GL, { y: 0.075, z: 0.085, parent: fb }).scale.set(1.1, 0.7, 0.7);
+  for (const s of [-1, 1]) {
+    vm(new THREE.SphereGeometry(0.058, 10, 8), GR, { x: s * 0.075, y: 0.2, z: 0.05, parent: fb });
+    vm(new THREE.SphereGeometry(0.04, 10, 8), "#ffffff", { x: s * 0.078, y: 0.214, z: 0.084, parent: fb });
+    vm(new THREE.SphereGeometry(0.02, 8, 6), "#1f1a24", { x: s * 0.08, y: 0.217, z: 0.115, parent: fb });
+    vm(new THREE.SphereGeometry(0.022, 8, 6), "#ff9fb0", { x: s * 0.1, y: 0.115, z: 0.125, parent: fb });
+    vm(new THREE.SphereGeometry(0.06, 8, 6), GR, { x: s * 0.13, y: 0.035, z: -0.03, parent: fb }).scale.set(1, 0.5, 1.5);
+    vm(new THREE.SphereGeometry(0.03, 8, 6), GR, { x: s * 0.07, y: 0.025, z: 0.125, parent: fb }).scale.set(1, 0.6, 1.2);
+  }
+  vm(new THREE.TorusGeometry(0.06, 0.009, 4, 10, Math.PI).rotateZ(Math.PI), "#2f6b30", { y: 0.13, z: 0.148, parent: fb });
+  mergeStatic(fb);
+  ma.frog = fb;
+  maTickers.push(t => { const u = (t % 3.6) / 0.55; let y = 0, sq = 1 + Math.sin(t * 2.6) * 0.025; if (u < 1) { y = Math.sin(Math.PI * u) * 0.22; sq = 1 + Math.sin(Math.PI * u) * 0.12; } fb.position.y = y; fb.scale.set(1, sq, 1); });
+  return g;
+}
+const BUILDERS = { fish: buildFish, order: buildOrder, build: buildBuild, hunt: buildHunt, match: buildMatch, tone: buildTone, whack: buildWhack, frog: buildFrog, bubble: buildBubble, gacha: buildGacha, deliver: buildDepot, dress: buildDress, detective: buildSleuth, tops: buildArena, tower: buildBeacon, run: buildStadium, grow: buildAquarium, records: buildRecords, catch: buildBandstand,
+  fruit: buildFruitStall, hop: buildLotusPond };   // v10 數學島
 // 10-13 挑戰燈塔：燈塔本體是景點 lighthouse 蓋的（startDef 已經搬進 pivot），這裡只回傳 pivot（量大小、合併用）
 async function buildBeacon(d, p) { return p; }
 
@@ -2188,8 +2296,8 @@ function syncTownTags() {
   if (!town.nav) return;
   for (const c of CIVIC) { if (!c.tag) continue; const lk = c.tag.querySelector(".ht-lock"), txt = c.locked ? `🔒 ${c.need}` : ""; if (lk.textContent !== txt) lk.textContent = txt; c.tag.classList.toggle("locked", !!c.locked); }
   tagLayer.classList.toggle("in-town", town.place !== "main");   // 不在主島：主島浮標收起來
-  tagLayer.classList.toggle("at-town", town.place === "town"); tagLayer.classList.toggle("at-rainbow", town.place === "rainbow"); tagLayer.classList.toggle("at-music", town.place === "music");
-  try { opts.onPlace(town.place, !!town.open, { town: !!town.open, rainbow: !!rb.open, music: !!mu.open }); } catch (e) {}
+  tagLayer.classList.toggle("at-town", town.place === "town"); tagLayer.classList.toggle("at-rainbow", town.place === "rainbow"); tagLayer.classList.toggle("at-music", town.place === "music"); tagLayer.classList.toggle("at-math", town.place === "math");   // v10 數學島
+  try { opts.onPlace(town.place, !!town.open, { town: !!town.open, rainbow: !!rb.open, music: !!mu.open, math: true }); } catch (e) {}   // 數學島一開始就開
   syncSigns();                                         // 路牌：還沒開的島 🔒
 }
 function placeTownTags() {
@@ -2211,17 +2319,19 @@ function placeTownTags() {
 // zoomL／land＝橫式用的放大倍數、鏡頭再往鏡頭方向（+x+z）偏多少：彩虹島南邊有碼頭和貨船、北排浮標又高，橫式畫面矮 → 小一點、往上挪一點
 // 10-12 歸仁區多了東邊小半島（陀螺競技場）：鏡頭中心往東挪、拉遠一點，新市區＋半島整片都放得進畫面
 const PLACE = { main: { x: 0, z: 0, zoom: 1 }, town: { x: DIST.x + 2.3, z: DIST.z + 0.2, zoom: 1.08, zoomL: 1.16 }, rainbow: { x: RB.x + 0.2, z: RB.z + 0.9, zoom: 1.2, zoomL: 1.05, land: 0.4 },
-  music: { x: MU.x + 0.3, z: MU.z - 0.3, zoom: 1.45, zoomL: 1.45, land: 0.3 } };   // v8 音樂島（島最小：拉近一點；建築在北排、浮標在上面：中心往北挪一點）
+  music: { x: MU.x + 0.3, z: MU.z - 0.3, zoom: 1.45, zoomL: 1.45, land: 0.3 },   // v8 音樂島（島最小：拉近一點；建築在北排、浮標在上面：中心往北挪一點）
+  math: { x: MA.x - 0.2, z: MA.z - 0.8, zoom: 1.45, zoomL: 1.45, land: 0.3 } };   // v10 數學島（建築在北排、南邊是草地：中心往北挪；倍數跟音樂島一樣——再大（≥1.5）浮標會自動展開名字，兩棟的名字會蓋到對方）
 const placeZoom = P => { const z = innerWidth > innerHeight && P.zoomL ? P.zoomL : P.zoom; return P.cap > 0 ? Math.min(z, P.cap) : z; };   // cap：那座島的遊戲建築放得進畫面的最大倍數（fit 算；11-01 第二輪）
 function goPlace(p) {
   if (!PLACE[p]) p = "main";
   deselect();                                            // 換島＝介紹卡收起來（清單選別座島的遊戲：pickMode 飛過去之後再選）
   if (town.place === "rainbow" && p !== "rainbow") rb.awake = performance.now() + 3000;   // 離開彩虹島：動畫再跑 3 秒（鏡頭還在滑）
   if (town.place === "music" && p !== "music") mu.awake = performance.now() + 3000;      // v8 音樂島一樣
+  if (town.place === "math" && p !== "math") ma.awake = performance.now() + 3000;        // v10 數學島一樣
   town.place = p; town.off.x += user.px; town.off.y += user.py; user.px = user.py = 0; town.zoomTgt = placeZoom(PLACE[p]); syncTownTags();   // 拖過的量併進偏移、一起滑過去（不會跳一下）
   town.sunFrom = [sun.target.position.x, sun.target.position.z]; town.offFrom = [town.off.x, town.off.y];   // 太陽從現在的位置慢慢移到新地點
   if (p === "main") town.tgt.x = town.tgt.y = 0;
-  try { opts.onCivic(p === "town" ? (town.open ? "town" : "townLocked") : p === "rainbow" ? (rb.open ? "rainbow" : "rainbowLocked") : p === "music" ? (mu.open ? "music" : "musicLocked") : "main", { need: p === "rainbow" ? RAINBOW_NEED : p === "music" ? MUSIC_NEED : DIST_NEED }); } catch (e) {}
+  try { opts.onCivic(p === "town" ? (town.open ? "town" : "townLocked") : p === "rainbow" ? (rb.open ? "rainbow" : "rainbowLocked") : p === "music" ? (mu.open ? "music" : "musicLocked") : p === "math" ? "math" : "main", { need: p === "rainbow" ? RAINBOW_NEED : p === "music" ? MUSIC_NEED : DIST_NEED }); } catch (e) {}
 }
 function stepPlace(dt) {
   const P0 = PLACE[town.place] || PLACE.main;
@@ -2350,7 +2460,7 @@ function placeFireTags() {
 // ----- 寵物不舒服：停下來頭上冒 🤕 → 救護車開到最近的路口 → 愛心、繼續走 -----
 function sickPet() {
   const c = CIVIC.find(q => q.id === "hospital"); if (!c || c.locked || town.hospitalBusy) return false;
-  const cand = agents.filter(a => a.kind === "pet" && a.e && !a.e.spur && !a.e.mu && !a.home && !a.sick && !shut(a.e)); if (!cand.length) return false;   // v8 音樂島只有步道、琴鍵橋：救護車開不過去
+  const cand = agents.filter(a => a.kind === "pet" && a.e && !a.e.spur && !a.e.mu && !a.e.ma && !a.home && !a.sick && !shut(a.e)); if (!cand.length) return false;   // v8 音樂島只有步道、琴鍵橋（v10 數學島、積木橋一樣）：救護車開不過去
   const p = cand[Math.floor(Math.random() * cand.length)], n = Math.hypot(p.x - p.e.a.x, p.z - p.e.a.z) < Math.hypot(p.x - p.e.b.x, p.z - p.e.b.z) ? p.e.a : p.e.b;
   const a = launch("hospital", n, amb => { heal(p); later(() => sendHome(amb, "hospital"), 900); });
   if (!a) return false;
@@ -2968,6 +3078,164 @@ function danceHop(t) { const ph = t * BEAT * Math.PI; return { y: Math.abs(Math.
 function dance(sec) { const s = Number(sec) || 0; if (s <= 0) { danceUntil = 0; return 0; } danceUntil = Math.max(danceUntil, performance.now() + s * 1000); return +((danceUntil - performance.now()) / 1000).toFixed(2); }
 
 // =========================================================
+// v10 數學島（11-10，docs/zhuyin-math-plan.md §1）：主島東邊，主島 z=0 東西向主路的東端過一座「數字積木橋」（十塊彩色積木 1～10 排成小小的拱，欄杆串著算盤珠）。
+// 一開始就開（阿葉 11-10「一開始就能去，不用集貼紙」）：橋沒有缺口、沒有路障、沒有升起動畫、沒有上鎖台詞；路網邊標 e.ma（車子、救護車不開進來，寵物可以走過去逛）。
+// 島上一圈環狀小路（沒有人行道；路面中線一圈 1～10 的數字地磚，從橋頭開始數），北排：🍎 水果攤（fruit，旁邊小猴子）、🐸 荷花池（hop，荷葉上青蛙）；
+// 環裡：大算盤、數字積木「1＋2＝3」；邊上：樹、灌木。
+// 效能：不會動的進 maStatics（loadRest 另外合併，鏡頭不在那邊時整塊被剔除）；積木、地磚共用一張字的貼圖集（一個材質 → 合併後一個 draw call）；
+//       欄杆的算盤珠＝InstancedMesh；猴子、青蛙的動作在 maTickers，只有鏡頭在數學島（或剛離開 3 秒內）才跑。
+// =========================================================
+const ma = { awake: 0, bridge: null, nodes: 0, monkey: null, frog: null };
+const maTickers = [], maStatics = [];
+const maActive = () => town.place === "math" || performance.now() < ma.awake;
+const toMa = (u, v) => [MA.x + u, MA.z + v];            // 區域座標 → 世界座標
+const MA_SPOT = [0.3, 3.35];                            // __hub3d.isleScreen("math")：南岸一塊空地（不種樹）
+const MA_ABACUS = [-1.15, 0.55], MA_EQ = [0.95, 0.55];   // 環裡：大算盤、數字積木「1＋2＝3」（區域座標）
+const MA_COLORS = ["#ff6b6b", "#ffa24c", "#ffd84d", "#7ad66b", "#4fb6f0", "#6f7ff2", "#b583f2", "#ff8fc8", "#3fc7a6", "#ff8a3d"];   // 數字 1～10 的積木顏色
+const maLoopD = (x, z) => { const L = MA_LOOP; return Math.abs(sdRoundBox(x - MA.x - (L.u0 + L.u1) / 2, z - MA.z - (L.v0 + L.v1) / 2, (L.u1 - L.u0) / 2, (L.v1 - L.v0) / 2, L.rc)); };
+// 字的貼圖集：cells＝[{ txt, bg, fw, fh, rot }]（fw×fh＝要貼的那一面多寬多高：格子照這個長寬比畫，字不會被拉長；rot＝字轉幾度）→ 排好、畫好，回傳材質；每格多了 u0 u1 v0 v1
+function maAtlas(cells) {
+  const W = 1024, MIN = 88; let x = 0, y = 0, rowH = 0;
+  for (const c of cells) {
+    const s = MIN / Math.min(c.fw, c.fh); c.pw = Math.min(W - 4, Math.round(c.fw * s)); c.ph = Math.round(c.fh * s);
+    if (x + c.pw + 4 > W) { x = 0; y += rowH; rowH = 0; }
+    c.px = x + 2; c.py = y + 2; x += c.pw + 4; rowH = Math.max(rowH, c.ph + 4);
+  }
+  const H = y + rowH;
+  const tex = canvasTex(W, H, g => {
+    for (const c of cells) {
+      g.fillStyle = c.bg; g.fillRect(c.px - 2, c.py - 2, c.pw + 4, c.ph + 4);   // 往外多塗 2px：貼圖縮小時邊上不會混到旁邊那格的顏色
+      if (!c.txt) continue;
+      const f = Math.round(Math.min(c.pw, c.ph) * (c.txt.length > 1 ? 0.5 : 0.68));
+      g.save(); g.translate(c.px + c.pw / 2, c.py + c.ph / 2); g.rotate(c.rot || 0);
+      g.font = `900 ${f}px "Arial Rounded MT Bold","Segoe UI","Microsoft JhengHei",Arial,sans-serif`; g.textAlign = "center"; g.textBaseline = "middle"; g.lineJoin = "round";
+      g.lineWidth = Math.max(3, f * 0.17); g.strokeStyle = "rgba(45,35,70,0.6)"; g.strokeText(c.txt, 0, f * 0.05);
+      g.fillStyle = "#ffffff"; g.fillText(c.txt, 0, f * 0.05); g.restore();
+    }
+  });
+  for (const c of cells) { c.u0 = (c.px + 0.5) / W; c.u1 = (c.px + c.pw - 0.5) / W; c.v1 = 1 - (c.py + 0.5) / H; c.v0 = 1 - (c.py + c.ph - 0.5) / H; }
+  const m = new THREE.MeshLambertMaterial({ map: tex }); matCache.set("maAtlas", m); return m;
+}
+// 一塊積木（w×h×d）：頂面貼 top 那格、朝南（+z）那面貼 side 那格，其他面用 top（或 side）那格的角落＝純色（BoxGeometry 每面 4 個頂點，順序 +x −x +y −y +z −z）
+function maBlockGeo(w, h, d, top, side) {
+  const geo = box(w, h, d), uv = geo.attributes.uv, base = top || side;
+  for (let i = 0; i < uv.count; i++) {
+    const f = Math.floor(i / 4), c = f === 2 && top ? top : f === 4 && side ? side : null, cc = c || base, u = c ? uv.getX(i) : 0.12, v = c ? uv.getY(i) : 0.12;
+    uv.setXY(i, cc.u0 + (cc.u1 - cc.u0) * u, cc.v0 + (cc.v1 - cc.v0) * v);
+  }
+  return geo;
+}
+// 第一段（同步）：地形、數字積木橋、小路、路網、數字地磚、算盤、算式積木、樹（都不用下載）；兩棟建築在 BUILDERS（buildFruitStall／buildLotusPond）
+function buildMath() {
+  const g = new THREE.Group(); scene.add(g); maStatics.push(g);
+  const C = new THREE.Vector2(MA.x, MA.z), shrink = (pts, k) => pts.map(q => q.clone().sub(C).multiplyScalar(k).add(C)), poly = contourC(sdMath, 0, MA.x, MA.z);
+  extrudePoly(g, poly, 0, 0.1, P.grass, 0.04);                                             // 草地
+  extrudePoly(g, shrink(poly, 0.997), -0.08, 0.52, P.dirt).castShadow = true;               // 土壁
+  extrudePoly(g, shrink(poly, 0.994), -0.58, 0.2, P.dirtDk);
+  extrudePoly(g, contourC(sdMath, 0.7, MA.x, MA.z), SAND_Y, 0.4, P.sand, 0.55, true);     // 沙灘
+  // ----- 數字積木橋：主島 z=0 主路的東端（第一塊壓在路底上）→ 數學島西岸；十塊積木的頂照拱形（中間高 BH），一塊一塊是平的（像疊起來的玩具積木）-----
+  const mainE = [...graph.nodes.values()].filter(n => Math.abs(n.z) < 0.01 && !n.door && n.x > 0).sort((a, b) => b.x - a.x)[0];
+  let xw = MA.x; while (sdMath(xw - 0.02, 0) <= 0) xw -= 0.02;                            // 島的西岸（z=0 那一點）
+  const xa = mainE.x - 0.2, xb = xw + 0.05, BL = xb - xa, NB = 10, KP = BL / NB, BLK = KP - 0.05, BT = 0.4, bw = 1.35, BH = 0.32;
+  const yA = x => 0.05 + BH * Math.sin(Math.PI * Math.min(1, Math.max(0, (x - xa) / BL)));   // 寵物走的高度（平滑的拱；積木頂在每塊中間剛好等於它）
+  terraces.push({ x0: xa, x1: xb, z0: -bw / 2, z1: bw / 2, y: 0.05, fy: x => yA(x) });
+  // 字的貼圖集：橋的 10 塊（頂面的字轉 45°＝正對鏡頭；南面的字是正的）、環狀小路的 1～10 地磚、算式積木（整組轉向鏡頭，字是正的）
+  const R45 = -Math.PI / 4, TILE = 0.36, CUBE = 0.38, EQ = ["1", "+", "2", "=", "3"], EQC = [MA_COLORS[0], "#9aa7c0", MA_COLORS[1], "#9aa7c0", MA_COLORS[2]], cells = [];
+  const cell = (txt, bg, fw, fh, rot = 0) => { const c = { txt, bg, fw, fh, rot }; cells.push(c); return c; };
+  const bt = MA_COLORS.map((c, k) => cell(String(k + 1), c, BLK, bw, R45)), bs = MA_COLORS.map((c, k) => cell(String(k + 1), c, BLK, BT));
+  const tl = MA_COLORS.map((c, k) => cell(String(k + 1), c, TILE, TILE, R45)), eq = EQ.map((t, k) => cell(t, EQC[k], CUBE, CUBE));
+  const am = maAtlas(cells);
+  const br = new THREE.Group(); scene.add(br); maStatics.push(br);
+  const tops = [];
+  for (let k = 0; k < NB; k++) {
+    const x = xa + (k + 0.5) * KP, y = yA(x); tops.push([x, y]);
+    mesh(maBlockGeo(BLK, BT, bw, bt[k], bs[k]), am, { x, y: y - BT / 2, parent: br });
+    if (k) for (const s of [-1, 1]) vm(cyl(0.08, 0.1, y - BT + 1.3, 8), "#c9b9a6", { x, y: (y - BT - 1.3) / 2, z: s * (bw / 2 - 0.22), parent: br });   // 橋墩（第一塊在主島的地上，不用）
+  }
+  const RY = 0.34, beads = [];                                                             // 欄杆：每塊中間一根白柱、柱頂一條木扶手，扶手上串著彩色算盤珠
+  for (const s of [-1, 1]) {
+    const z = s * (bw / 2 - 0.07);
+    tops.forEach(([x, y], k) => {
+      vm(box(0.06, RY, 0.06), "#ffffff", { x, y: y + RY / 2, z, parent: br, shadow: false });
+      if (k === NB - 1) return;
+      const [x2, y2] = tops[k + 1], len = Math.hypot(x2 - x, y2 - y), rz = Math.atan2(y2 - y, x2 - x);
+      vm(box(len + 0.04, 0.04, 0.04), "#8a5a3c", { x: (x + x2) / 2, y: (y + y2) / 2 + RY, z, rz, parent: br, shadow: false });
+      for (const f of [0.36, 0.64]) beads.push([x + (x2 - x) * f, y + (y2 - y) * f + RY, z, rz, MA_COLORS[(k * 2 + (f > 0.5 ? 1 : 0) + (s > 0 ? 3 : 0)) % 10]]);
+    });
+  }
+  const bm = new THREE.InstancedMesh(new THREE.SphereGeometry(0.06, 10, 8), new THREE.MeshLambertMaterial(), beads.length); bm.castShadow = false; bm.receiveShadow = true;
+  beads.forEach(([x, y, z, rz, c], i) => { _m4.compose(_v.set(x, y, z), _q.setFromAxisAngle(_s.set(0, 0, 1), rz), _s.set(0.72, 1, 1)); bm.setMatrixAt(i, _m4); bm.setColorAt(i, _c.set(c)); });
+  br.add(bm);
+  ma.bridge = { xa, xb, yA, bw, n: NB, kp: KP, sign: [xb + 0.75, 0.95] };                 // sign：數學島橋頭「回小島」路牌的位置（buildSigns 放；樹先讓開）——離橋尾遠一點，木牌才不會擋住最後一塊「10」
+  // ----- 小路：環狀小路（奶油色石板＋深一點的邊）＋橋頭到環狀小路西段那一段＋水果攤正前方的石板 -----
+  const L = MA_LOOP, rc = L.rc, cu = (L.u0 + L.u1) / 2, cv = (L.v0 + L.v1) / 2, hu = (L.u1 - L.u0) / 2, hv = (L.v1 - L.v0) / 2, PW = 0.5, PATH = "#f6ead0", EDGE = "#dcc9a0";
+  const ringM = (grow, top, hex) => {
+    const s = rrShape(hu + PW + grow, hv + PW + grow, rc + PW + grow); s.holes.push(rrShape(hu - PW - grow, hv - PW - grow, rc - PW - grow));
+    const geo = new THREE.ExtrudeGeometry(s, { depth: 0.03, bevelEnabled: false, curveSegments: 10 }); geo.rotateX(Math.PI / 2); geo.translate(MA.x + cu, top, MA.z + cv); vm(geo, hex, { parent: g, shadow: false });
+  };
+  ringM(0.06, 0.025, EDGE); ringM(0, 0.03, PATH);
+  const rect = (x0, x1, z0, z1, top, hex) => vm(box(x1 - x0, 0.03, z1 - z0), hex, { x: (x0 + x1) / 2, y: top - 0.015, z: (z0 + z1) / 2, shadow: false, parent: g });
+  rect(xb - 0.1, MA.x + L.u0, -0.51, 0.51, 0.025, EDGE); rect(xb - 0.1, MA.x + L.u0, -0.45, 0.45, 0.03, PATH);   // 橋頭 → 環狀小路西段
+  // ----- 路網（全部標 e.ma）：主路東端 → 橋 → 橋頭 → 環狀小路西段（從這裡順著北、東、南、西一圈）；兩棟的門口接環狀小路北段 -----
+  const T = e => { e.ma = true; return e; }, V2 = (u, v) => new THREE.Vector2(MA.x + u, MA.z + v), W = (u, v) => node(MA.x + u, MA.z + v), ring = [], vj = -MA.z;   // vj：橋（世界 z=0）在區域座標的 v
+  const arc = (ac, bc, a0, a1) => { const pts = []; for (let k = 0; k <= 6; k++) { const a = a0 + (a1 - a0) * k / 6; pts.push(V2(ac + Math.cos(a) * rc, bc + Math.sin(a) * rc)); } ring.push(T(edge(node(pts[0].x, pts[0].y), node(pts[6].x, pts[6].y), pts))); };
+  const chain = pts => { for (let i = 1; i < pts.length; i++) ring.push(T(edge(W(...pts[i - 1]), W(...pts[i])))); };
+  const [fd, hd] = ["fruit", "hop"].map(m => DEFS.find(q => q.mode === m));
+  chain([[L.u0, vj], [L.u0, L.v0 + rc]]); arc(L.u0 + rc, L.v0 + rc, Math.PI, Math.PI * 1.5);
+  chain([[L.u0 + rc, L.v0], [fd.x - MA.x, L.v0], [hd.x - MA.x, L.v0], [L.u1 - rc, L.v0]]); arc(L.u1 - rc, L.v0 + rc, -Math.PI / 2, 0);
+  chain([[L.u1, L.v0 + rc], [L.u1, L.v1 - rc]]); arc(L.u1 - rc, L.v1 - rc, 0, Math.PI / 2);
+  chain([[L.u1 - rc, L.v1], [L.u0 + rc, L.v1]]); arc(L.u0 + rc, L.v1 - rc, Math.PI / 2, Math.PI);
+  chain([[L.u0, L.v1 - rc], [L.u0, vj]]);
+  for (const d of [fd, hd]) {                                                              // 門口：環狀小路北段往北一小段
+    const n = graph.nodes.get(nkey(d.x, MA.z + L.v0)), dn = node(d.x, MA.z + L.v0 - (PW + 0.2)); dn.door = d; d.doorNode = dn; T(edge(n, dn, null, true));
+    if (d === fd) rect(d.x - 0.3, d.x + 0.3, d.z + 0.42, MA.z + L.v0 - PW + 0.02, 0.03, PATH);   // 水果攤正前方到小路的石板（荷花池的池邊就在小路旁，不用）
+  }
+  const nB = node(xb, 0), gate = T(edge(mainE, nB)); gate.maGate = true; T(edge(nB, W(L.u0, vj)));
+  ma.nodes = [...graph.nodes.values()].filter(n => n.edges.some(e => e.ma)).length;
+  // 環狀小路中線：1～10 的數字地磚（從橋頭往北開始數一圈；門口讓開）
+  const tot = ring.reduce((a, e) => a + e.len, 0), at = s => { for (const e of ring) { if (s <= e.len) return edgePoint(e, s, {}); s -= e.len; } return edgePoint(ring[ring.length - 1], ring[ring.length - 1].len, {}); };
+  for (let k = 0; k < 10; k++) {
+    let s = (k + 0.5) * tot / 10, q = at(s);
+    for (let tries = 0; tries < 3 && [fd, hd].some(d => Math.hypot(q.x - d.x, q.z - (MA.z + L.v0)) < 0.5); tries++) { s += 0.5; q = at(s); }
+    mesh(maBlockGeo(TILE, 0.02, TILE, tl[k], null), am, { x: q.x, y: 0.04, z: q.z, parent: g, shadow: false });
+  }
+  // ----- 大算盤（環裡西邊，正面朝鏡頭）：木框＋五排珠子（第 n 排有 n 顆撥到左邊：像正在數）-----
+  { const [ax, az] = toMa(...MA_ABACUS), ag = new THREE.Group(); ag.position.set(ax, 0, az); ag.rotation.y = CAM_YAW; g.add(ag);
+    const AW = 1.0, AH = 0.8, ROWS = 5, gy = (AH - 0.12) / (ROWS + 1);
+    for (const s of [-1, 1]) { vm(box(0.07, AH + 0.06, 0.08), "#8a5a3c", { x: s * AW / 2, y: (AH + 0.06) / 2 + 0.03, parent: ag }); vm(box(0.12, 0.05, 0.34), "#7d4a2e", { x: s * AW / 2, y: 0.025, parent: ag }); }
+    for (const y of [0.12, AH]) vm(box(AW + 0.07, 0.07, 0.09), "#8a5a3c", { y, parent: ag });
+    for (let r = 0; r < ROWS; r++) {
+      const y = 0.12 + gy * (r + 1), nl = r + 1; vm(cyl(0.011, 0.011, AW, 6).rotateZ(Math.PI / 2), "#d9d3ca", { y, parent: ag, shadow: false });
+      for (let i = 0; i < 6; i++) { const x = i < nl ? -AW / 2 + 0.085 + i * 0.078 : AW / 2 - 0.085 - (5 - i) * 0.078; vm(new THREE.SphereGeometry(0.05, 10, 8), MA_COLORS[r * 2], { x, y, parent: ag }).scale.set(0.62, 1, 1); }
+    }
+    blob(ax, az, 1.3, 0); exRects.push([ax - 0.8, ax + 0.8, az - 0.8, az + 0.8]);
+  }
+  // ----- 數字積木「1＋2＝3」（環裡東邊；整排轉向鏡頭，從畫面左邊讀到右邊）-----
+  { const [ex, ez] = toMa(...MA_EQ), eg = new THREE.Group(); eg.position.set(ex, 0, ez); eg.rotation.y = CAM_YAW; g.add(eg);
+    EQ.forEach((t, k) => { const lx = (k - 2) * (CUBE + 0.05); mesh(maBlockGeo(CUBE, CUBE, CUBE, eq[k], eq[k]), am, { x: lx, y: CUBE / 2, ry: k % 2 ? 0.06 : -0.05, parent: eg }); blob(ex + lx * Math.SQRT1_2, ez - lx * Math.SQRT1_2, 0.62, 0); });
+    exRects.push([ex - 1.0, ex + 1.0, ez - 1.0, ez + 1.0]);
+  }
+  // ----- 樹、灌木（島的邊上；InstancedMesh）：小路、建築（含正前方）、橋頭那段、路牌、算盤、算式積木、南岸空地都讓開；朝鏡頭那邊（東南）少種一點，才看得到島上 -----
+  const inst = [[], [], [], [], []], rt = rng(63), avoid = [MA_SPOT, MA_ABACUS, MA_EQ].map(([u, v]) => toMa(u, v)), [sgx, sgz] = ma.bridge.sign;
+  for (let x = MA.x - MA.hx; x <= MA.x + MA.hx; x += 0.55) for (let z = MA.z - MA.hz; z <= MA.z + MA.hz; z += 0.55) {
+    const jx = x + (rt() - 0.5) * 0.35, jz = z + (rt() - 0.5) * 0.35, sd = sdMath(jx, jz), u = jx - MA.x, v = jz - MA.z;
+    if (sd > -0.45 || maLoopD(jx, jz) < PW + 0.42 || exRects.some(([a, b, c, e]) => jx > a && jx < b && jz > c && jz < e)) continue;
+    if ((v < L.v0 && v > -3.7 && u > -2.75 && u < 2.8) || avoid.some(([ax, az]) => Math.hypot(jx - ax, jz - az) < 0.85) || (Math.abs(jz) < 1.05 && u < L.u0 + 0.3) || Math.hypot(jx - sgx, jz - sgz) < 0.8) continue;
+    if (treeXZ.some(([a, b]) => Math.hypot(a - jx, b - jz) < 0.8)) continue;
+    const coast = sd > -1.4, r = rt(), inRing = sdRoundBox(u - cu, v - cv, hu, hv, rc) < 0, front = u + v > 2.4;   // inRing＝環狀小路裡面：只放灌木；front＝朝鏡頭那邊
+    const lawn = v > L.v1 + PW && v < L.v1 + 1.5;                                        // 環狀小路南段正前方：只放灌木（樹會擋住小路上的數字地磚）
+    if (r < (inRing || lawn ? 0 : coast ? (front ? 0.12 : 0.34) : 0.08)) { treeXZ.push([jx, jz]); const k = rt(); inst[k < 0.4 ? 0 : k < 0.6 ? 1 : k < 0.8 ? 2 : 3].push([jx, 0, jz, 0.75 + rt() * 0.3, rt() * 6.28]); blob(jx, jz, 1.0, 0); }
+    else if (r < (inRing ? 0.2 : coast ? 0.48 : 0.18)) { treeXZ.push([jx, jz]); inst[4].push([jx, 0, jz, 0.8 + rt() * 0.4, rt() * 6.28]); blob(jx, jz, 0.6, 0); }
+  }
+  inst.forEach((list, k) => {
+    if (!list.length) return;
+    const im = new THREE.InstancedMesh(k < 4 ? TREE_GEOS[k] : BUSH_GEO, vcMat, list.length);
+    list.forEach(([x, y, z, s, r], i) => { _m4.compose(_v.set(x, y, z), _q.setFromAxisAngle(_s.set(0, 1, 0), r), _s.set(s, s, s)); im.setMatrixAt(i, _m4); });
+    im.castShadow = im.receiveShadow = true; scene.add(im);
+  });
+}
+
+// =========================================================
 // 橋頭路牌（10-12 阿葉：「進入彩虹島除了點左邊按鈕，地圖上也要有地方可以點」）：
 // 主島往彩虹島、往歸仁區的橋頭各一支小木牌（3D：柱子＋箭頭形木板＋圓形圖示），到了那邊橋頭各一支「回小島」。
 // 浮標（.hub-sign，DOM）＝木牌底色的小牌子「圖示＋箭頭」（11-03 起平常一律小牌，名字只在 aria-label；以前名字常駐）；只顯示人在的那座島的；
@@ -2977,12 +3245,13 @@ const SIGNS = [], signHits = [];
 const signBoardGeo = () => { const s = new THREE.Shape(); s.moveTo(-0.28, -0.12); s.lineTo(0.17, -0.12); s.lineTo(0.31, 0); s.lineTo(0.17, 0.12); s.lineTo(-0.28, 0.12); s.closePath(); const g = new THREE.ExtrudeGeometry(s, { depth: 0.06, bevelEnabled: false }); g.translate(0, 0, -0.03); return g; };
 function buildSigns() {
   const T = town.bridge, B = rb.bridge, M = mu.bridge; if (!T || !B) return;
-  const icons = { rainbow: "🌈", town: "🏙️", main: "🏝️", music: "🎵" }, bg = { rainbow: "#b583f2", town: "#4fb6f0", main: "#7ad66b", music: "#ff7eb6" };
-  const isleXZ = { main: [0, 0], town: [DIST.x, DIST.z], rainbow: [RB.x, RB.z], music: [MU.x, MU.z] };
+  const icons = { rainbow: "🌈", town: "🏙️", main: "🏝️", music: "🎵", math: "🔢" }, bg = { rainbow: "#b583f2", town: "#4fb6f0", main: "#7ad66b", music: "#ff7eb6", math: "#ffa24c" };
+  const isleXZ = { main: [0, 0], town: [DIST.x, DIST.z], rainbow: [RB.x, RB.z], music: [MU.x, MU.z], math: [MA.x, MA.z] };
   // 位置：橋頭的人行道上（朝鏡頭那側；跟垃圾桶、消防栓一樣是街道設施，寵物走車道不會撞到）——主島西橋頭南邊緊鄰打地鼠，不能再往外
   const SW_C = RW / 2 + SW / 2;                          // 人行道中線離路中線多遠
   const list = [["main", "rainbow", B.xa + 0.35, SW_C], ["rainbow", "main", B.xb - 0.3, SW_C], ["main", "town", T.cx + SW_C, T.z0 + 0.35], ["town", "main", T.cx + SW_C, T.z1 - 0.4]];
   if (M) list.push(["rainbow", "music", M.x + 0.75, M.z0 + 0.45], ["music", "main", M.x + 0.75, M.z1 - 0.35]);   // v8 音樂島：彩虹島往音樂島的小路橋頭（東邊＝朝鏡頭）、音樂島橋頭
+  const A = ma.bridge; if (A) list.push(["main", "math", A.xa - 0.35, SW_C], ["math", "main", ...A.sign]);   // v10 數學島：主島東邊橋頭（南邊人行道）、數學島橋頭（小路南邊）
   for (const [at, go, x, z] of list) {
     const y = groundY(x, z), g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = Math.PI / 4; scene.add(g);   // 正面朝鏡頭（+x+z）
     const [gx, gz] = isleXZ[go], dir = Math.sign((gx - x) - (gz - z)) || 1;   // 那座島在畫面左邊還是右邊（區域 +x＝畫面右）
@@ -2992,7 +3261,8 @@ function buildSigns() {
     blob(x, z, 0.5, y);
     const hit = new THREE.Mesh(box(0.9, 1.3, 0.9), new THREE.MeshBasicMaterial({ visible: false })); hit.position.set(x, y + 0.65, z); scene.add(hit);
     const s = { at, go, x, y: y + 1.12, z, dir, g, ico: icons[go] }; hit.userData.sign = s; signHits.push(hit); SIGNS.push(s);
-    exRects.push([x - 0.6, x + 0.6, z - 0.6, z + 0.6]);   // 不種樹
+    const er = at === "main" && go === "math" ? 0.45 : 0.6;   // v10 主島往數學島這支：範圍縮到人行道裡（行道樹本來就不種在路邊 1.3 以內）→ 主島的樹一棵都不變（buildTrees 的亂數順序不受影響）
+    exRects.push([x - er, x + er, z - er, z + er]);   // 不種樹
   }
 }
 function makeSignTags() {
@@ -3135,7 +3405,7 @@ const CAM_YAW = Math.PI / 4;                            // 面向鏡頭的方向
 function turnTo(cur, want, k) { const d = ((want - cur + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI; return cur + d * k; }
 let agentRand = rng(99);
 function placeAgent(a, kind) {
-  const pool = graph.edges.filter(e => !e.spur && !shut(e) && (kind !== "car" || (!e.mu && e.a.edges.length > 1 && e.b.edges.length > 1)));   // v8 音樂島只有步道：車子不放那邊
+  const pool = graph.edges.filter(e => !e.spur && !shut(e) && (kind !== "car" || (!e.mu && !e.ma && e.a.edges.length > 1 && e.b.edges.length > 1)));   // v8 音樂島、v10 數學島只有步道：車子不放那邊
   // 找一段沒人的路段放
   for (let tries = 0; tries < 40; tries++) {
     const e = pool[Math.floor(agentRand() * pool.length)], s = agentRand() * e.len, fwd = agentRand() < 0.5;
@@ -3165,8 +3435,8 @@ function nextEdge(a) {
     a.home = false;
   }
   if (n.door && a.kind === "pet") { a.pause = 2 + agentRand() * 2.5; a.atDoor = true; a.fwd = !a.fwd; a.s = 0; return; }   // 到建築門口：停一下、轉身看鏡頭，再走回去
-  let opts = n.edges.filter(e => e !== a.e && (a.kind === "pet" || (!e.spur && !e.mu)) && !(e.spur && (e.a === parkDoor || e.b === parkDoor || (e.a.door || e.b.door || {}).locked)) && !shut(e));   // 還在施工（門口有路障）的不走進去；新市區沒開不過橋
-  if (a.kind === "pet" && opts.length === 1 && opts[0].rbGate && opts[0].a === n && agentRand() < 0.5) { a.fwd = !a.fwd; a.s = 0; return; }   // 走到主島西邊路底（彩虹橋頭）：一半機會掉頭，主島不會一下子空掉
+  let opts = n.edges.filter(e => e !== a.e && (a.kind === "pet" || (!e.spur && !e.mu && !e.ma)) && !(e.spur && (e.a === parkDoor || e.b === parkDoor || (e.a.door || e.b.door || {}).locked)) && !shut(e));   // 還在施工（門口有路障）的不走進去；新市區沒開不過橋
+  if (a.kind === "pet" && opts.length === 1 && (opts[0].rbGate || opts[0].maGate) && opts[0].a === n && agentRand() < 0.5) { a.fwd = !a.fwd; a.s = 0; return; }   // 走到主島西邊路底（彩虹橋頭）、v10 東邊路底（數學島的積木橋頭）：一半機會掉頭，主島不會一下子空掉
   if (a.kind === "pet") { const sp = opts.filter(e => e.spur), rd = opts.filter(e => !e.spur); opts = sp.length && agentRand() < 0.3 ? sp : rd.length ? rd : opts; }
   if (!opts.length) { a.fwd = !a.fwd; a.s = 0; return; }   // 路的盡頭（海邊）：掉頭
   const e = opts[Math.floor(agentRand() * opts.length)];
@@ -3238,6 +3508,7 @@ function walkY(x, z) {
   let d;
   if (x < RB.x + RB.hx + 0.1 && z < RB.z - RB.hz - 0.3) d = 9;   // v8 音樂島（＋琴鍵橋）：小路沒有人行道（以前 x 夠西就一律當彩虹島）
   else if (x < RB.x + RB.hx + 0.1) d = rbRoadD(x, z);   // 彩虹島：環狀路＋接橋那段
+  else if (sdMath(x, z) < 0.3) d = 9;                   // v10 數學島：小路沒有人行道
   else { d = Math.abs(Math.hypot(x, z) - RR); for (const c of ROADS) d = Math.min(d, Math.abs(x - c), Math.abs(z - c)); }
   return groundY(x, z) + (d > RW / 2 && d < RW / 2 + SW ? 0.075 : 0);
 }
@@ -3463,7 +3734,7 @@ let tagRO = null, hudRO = null;   // hudRO：11-01 停靠列／頂端狀態列�
 const TAG_HTML = '<span class="ht-row"><span class="ht-ico"></span><span class="ht-more"><span class="ht-in"><span class="ht-txt"><span class="ht-word"></span><span class="ht-lock"></span></span></span></span></span><span class="ht-badge">🔒</span>';
 function makeTags() {
   for (const d of DEFS) {
-    const t = document.createElement("button"); t.className = "hub-tag" + (d.isle === "rainbow" ? " rb" : d.isle === "town" ? " civic tw" : d.isle === "music" ? " mu" : ""); t.type = "button"; t.dataset.mode = d.mode; t._def = d;   // v8 音樂島：.mu（只在音樂島顯示）   // 彩虹島的浮標多一個 .rb（只在彩虹島顯示）；歸仁區的遊戲（陀螺競技場）＝.civic（跟設施一樣只在歸仁區顯示、同一種底色）＋.tw
+    const t = document.createElement("button"); t.className = "hub-tag" + (d.isle === "rainbow" ? " rb" : d.isle === "town" ? " civic tw" : d.isle === "music" ? " mu" : d.isle === "math" ? " ma" : ""); t.type = "button"; t.dataset.mode = d.mode; t._def = d;   // v8 音樂島：.mu（只在音樂島顯示）；v10 數學島：.ma   // 彩虹島的浮標多一個 .rb（只在彩虹島顯示）；歸仁區的遊戲（陀螺競技場）＝.civic（跟設施一樣只在歸仁區顯示、同一種底色）＋.tw
     t.innerHTML = TAG_HTML;
     t.addEventListener("pointerdown", () => { preloadCard(d); pressTag(t); });
     t.addEventListener("pointerup", () => releaseTag(true)); t.addEventListener("pointercancel", () => releaseTag(false));
@@ -3519,7 +3790,7 @@ function syncTag(d, card) {
   d.tag.classList.toggle("locked", !!d.locked);
   d.tag.classList.toggle("first", d.mode === "fish" && opts.newbie());   // 新玩家唯一能玩的：常駐黃框
 }
-const freeNeed = d => d.isle === "music" ? MUSIC_NEED : RAINBOW_NEED;   // 不用卡片的建築（服裝店、v8 唱片行）：那座島幾張貼紙開（扭蛋機不會鎖）
+const freeNeed = d => d.isle === "music" ? MUSIC_NEED : d.isle === "math" ? 0 : RAINBOW_NEED;   // 不用卡片的建築（服裝店、v8 唱片行）：那座島幾張貼紙開（扭蛋機不會鎖；v10 數學島一開始就開）
 function setLocked(d, on, animate) {
   d.locked = on; shadowDirty = true;
   setGray(d.pivot, on);
@@ -3620,6 +3891,8 @@ function isleAt(x, z) {
   if (sdMusic(x, z) < 0.9) return "music";              // v8
   const M = mu.bridge; if (M && Math.abs(x - M.x) < 1.4 && z < M.z0 + 0.3 && z > M.z1 - 0.3 && sdRainbow(x, z) > 0.4) return town.place === "music" ? "rainbow" : "music";   // 琴鍵橋＝通往另一頭
   if (sdRainbow(x, z) < 0.9) return "rainbow";
+  if (sdMath(x, z) < 0.9) return "math";                // v10
+  const A = ma.bridge; if (A && x > A.xa - 0.3 && x < A.xb + 0.3 && Math.abs(z) < 1.4) return town.place === "math" ? "main" : "math";   // 數字積木橋＝通往另一頭（在主島上點橋頭也算：同彩虹橋）
   if (sdDist(x, z) < 0.9) return "town";
   const B = rb.bridge; if (B && x < B.xa + 0.3 && x > B.xb - 0.3 && Math.abs(z) < 1.4) return town.place === "rainbow" ? "main" : "rainbow";
   const T = town.bridge; if (T && Math.abs(x - T.cx) < 1.4 && z < T.z0 + 0.3 && z > T.z1 - 0.3) return town.place === "town" ? "main" : "town";
@@ -3820,7 +4093,7 @@ function fit() {
     let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
     const add = (x, z) => { _v.set(x, 0, z).applyMatrix4(inv); x0 = Math.min(x0, _v.x); x1 = Math.max(x1, _v.x); y0 = Math.min(y0, _v.y); y1 = Math.max(y1, _v.y); };
     for (const v of islPoly) add(v.x, v.y);
-    for (const [a, b] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { add(DIST.x + a * DIST.h, DIST.z + b * DIST.h); add(RB.x + a * RB.hx, RB.z + b * RB.hz); add(TEX.x + a * TEX.hx, TEX.z + b * TEX.hz); add(WEX.x + a * WEX.hx, WEX.z + b * WEX.hz); add(NEX.x + a * NEX.hx, NEX.z + b * NEX.hz); add(MU.x + a * MU.hx, MU.z + b * MU.hz); }   // TEX：歸仁區東邊小半島（10-12）；MU：v8 音樂島
+    for (const [a, b] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { add(DIST.x + a * DIST.h, DIST.z + b * DIST.h); add(RB.x + a * RB.hx, RB.z + b * RB.hz); add(TEX.x + a * TEX.hx, TEX.z + b * TEX.hz); add(WEX.x + a * WEX.hx, WEX.z + b * WEX.hz); add(NEX.x + a * NEX.hx, NEX.z + b * NEX.hz); add(MU.x + a * MU.hx, MU.z + b * MU.hz); add(MA.x + a * MA.hx, MA.z + b * MA.hz); }   // TEX：歸仁區東邊小半島（10-12）；MU：v8 音樂島；MA：v10 數學島
     view.isles = { x: (x0 + x1) / 2, y: (y0 + y1) / 2 };
   }
   const items = MAIN_DEFS.map((d, i) => {
@@ -3969,6 +4242,7 @@ function frame(ms) {
   const muOn = muActive();
   if (muOn) for (const f of muTickers) f(t, dt);       // v8 音樂島的唱片、燈泡、喇叭、噴泉、DJ：鏡頭在那邊才動
   if (muOn !== mu.shownDJ) { mu.shownDJ = muOn; if (mu.dj) mu.dj.holder.visible = muOn; shadowDirty = true; }
+  if (maActive()) for (const f of maTickers) f(t, dt);   // v10 數學島的小猴子、青蛙：鏡頭在那邊才動
   for (const pl of plugins) if (pl.update) { try { pl.update(t, dt); } catch (e) { console.warn("[hub3d] 外掛", e); pl.update = null; } }
   for (const a of anims) if (a.update(performance.now()) === false) anims.delete(a);
   stepAgents(t, dt); updateAgentVisuals(t, dt); stepTown(t, dt);
@@ -4227,6 +4501,7 @@ export async function createHub(o) {
     for (const [x, z] of RB_SLOTS) slot(x, z);            // 彩虹島的裝飾放置點排在最後面
     buildMusic();                                        // v8 音樂島（接彩虹島環狀路：要在 buildRainbow 後面；路牌要橋的資料、樹要讓開：在 buildSigns／buildTrees 前面）
     for (const [u, v] of MU_SLOTS) slot(MU.x + u, MU.z + v);   // 音樂島的裝飾放置點再接在彩虹島後面
+    buildMath();                                         // v10 數學島（接主島 z=0 主路的東端：要在 buildRoads 後面；路牌要橋的資料：在 buildSigns 前面）
     buildSigns();                                        // 10-12 橋頭路牌（樹要讓開：在 buildTrees 前面）
     buildTrees(); buildBlobs(); makeTownTags(); makeSignTags();
     agentBlob = blobMesh(40, 0.3); agentBlob.count = 0; scene.add(agentBlob);
@@ -4245,7 +4520,7 @@ let builtOk = null; const builtP = new Promise(r => { builtOk = r; });
 async function loadRest() {
   if (dead) { builtOk(); return; }
   try {
-    const order = ["fish", "order", "build", "gacha", "hunt", "match", "tone", "whack", "frog", "bubble", "deliver", "dress", "detective", "tops", "tower", "run", "grow", "records", "catch"];
+    const order = ["fish", "order", "build", "gacha", "hunt", "match", "tone", "whack", "frog", "bubble", "deliver", "dress", "detective", "tops", "tower", "run", "grow", "records", "catch", "fruit", "hop"];   // v10 數學島兩棟排最後
     await Promise.all([
       ...order.map((m, i) => buildDef(DEFS.find(d => d.mode === m), BUILDERS[m], i * 90).catch(e => console.warn("[hub3d] 建築載入失敗", m, e))),
       buildSpotsKenney().catch(e => console.warn("[hub3d] 景點載入失敗", e)),
@@ -4258,6 +4533,7 @@ async function loadRest() {
     const w = new THREE.Group(); scene.add(w); for (const g of statics) w.attach(g); noDynShadow(w); mergeStatic(w);   // 整座島的靜態物件依材質合併（draw call 再少幾十個）
     const wr = new THREE.Group(); scene.add(wr); for (const g of rbStatics) wr.attach(g); noDynShadow(wr); mergeStatic(wr);   // 彩虹島另外合併（看不到的時候整塊不畫）
     const wm = new THREE.Group(); scene.add(wm); for (const g of muStatics) wm.attach(g); noDynShadow(wm); mergeStatic(wm);   // v8 音樂島也另外合併
+    const wa = new THREE.Group(); scene.add(wa); for (const g of maStatics) wa.attach(g); noDynShadow(wa); mergeStatic(wa);   // v10 數學島（＋積木橋）也是
     built = true; shadowDirty = true; dprCool = performance.now() + 1500;
     spawnCars(); syncPets(); applyDecor();
   } catch (e) { console.warn("[hub3d]", e); }
@@ -4333,13 +4609,13 @@ function use(plugin) {
     isles: [{ id: "town", x: DIST.x, z: DIST.z, h: DIST.h, hx: DIST.h, hz: DIST.h }, { id: "rainbow", x: RB.x, z: RB.z, h: Math.max(RB.hx, RB.hz), hx: RB.hx + 0.6, hz: RB.hz + 0.6 },
       { id: "townE", x: TEX.x, z: TEX.z, h: Math.max(TEX.hx, TEX.hz), hx: TEX.hx, hz: TEX.hz },
       { id: "townW", x: WEX.x, z: WEX.z, h: Math.max(WEX.hx, WEX.hz), hx: WEX.hx, hz: WEX.hz }, { id: "townN", x: NEX.x, z: NEX.z, h: Math.max(NEX.hx, NEX.hz), hx: NEX.hx, hz: NEX.hz },
-      { id: "music", x: MU.x, z: MU.z, h: Math.max(MU.hx, MU.hz), hx: MU.hx, hz: MU.hz }] };   // v8 音樂島   // 11-01 西／北小半島   // 10-12：主島以外的每座島（海洋外掛的魚群／量陸地、天氣外掛用）；townE＝歸仁區東邊小半島（陀螺競技場）
+      { id: "music", x: MU.x, z: MU.z, h: Math.max(MU.hx, MU.hz), hx: MU.hx, hz: MU.hz }, { id: "math", x: MA.x, z: MA.z, h: Math.max(MA.hx, MA.hz), hx: MA.hx, hz: MA.hz }] };   // v8 音樂島、v10 數學島   // 11-01 西／北小半島   // 10-12：主島以外的每座島（海洋外掛的魚群／量陸地、天氣外掛用）；townE＝歸仁區東邊小半島（陀螺競技場）
   let p = null; try { p = plugin(ctx) || {}; } catch (e) { console.warn("[hub3d] 外掛載入失敗", e); return null; }
   plugins.push(p); return p;
 }
 // 10-12 介紹卡／全部遊戲清單：start(m)＝介紹卡的「開始玩」；deselect()＝✕；pick(m)＝清單點一張（飛過去＋開介紹卡）；selected()＝現在開著哪棟；
 // games()＝每個遊戲在哪座島、鎖著沒＋三座島開了沒（清單分組用）
-function games() { return { list: DEFS.map(d => ({ mode: d.mode, isle: isleOf(d), locked: !!d.locked })), open: { main: true, town: !!town.open, rainbow: !!rb.open, music: !!mu.open }, need: { town: DIST_NEED, rainbow: RAINBOW_NEED, music: MUSIC_NEED } }; }
+function games() { return { list: DEFS.map(d => ({ mode: d.mode, isle: isleOf(d), locked: !!d.locked })), open: { main: true, town: !!town.open, rainbow: !!rb.open, music: !!mu.open, math: true }, need: { town: DIST_NEED, rainbow: RAINBOW_NEED, music: MUSIC_NEED, math: 0 } }; }   // v10 數學島一開始就開
 const api = { show, hide, resume, refresh, dispose, setPets, setDecor, use, goPlace, place: () => town.place, celebrate, whenBuilt: () => builtP, dance,   // celebrate：10-12 同樂廣場慶祝裝飾；whenBuilt：建築全部長好（效能體檢 10-12）；dance(sec)：v8 寵物跳舞（0＝停）
   start: m => { const d = DEFS.find(x => x.mode === m); if (d && !dead && shown) playDef(d); }, deselect, pick: pickMode, selected: () => sel ? sel.mode : null, games,
   setHome, homeEdit, playHomeUpgrade, homeIntro, homeIcons, homeEditing: () => home.edit, homeBusy: () => !!home.busy };   // v8 我的家
@@ -4388,6 +4664,17 @@ if (DEBUG) window.__hub3d = {
   // 把一隻在路上的寵物放到琴鍵橋南端（往北走）：驗「走得到音樂島」＋琴鍵會壓下去
   muSend(id) { const a = id ? pets.get(id) : agents.find(o => o.kind === "pet" && o.e && !o.home); const e = graph.edges.find(q => q.muBridge); if (!a || !e || shut(e)) return null; Object.assign(a, { e, fwd: true, s: 0, pause: 0, wait: 0, home: false, x: e.a.x, z: e.a.z }); a.holder.visible = true; return a.id; },
   muRoute() { const S = graph.edges.find(q => q.muBridge), A = [...graph.nodes.values()].find(n => !n.door && Math.hypot(n.x, n.z) < 0.01 + RR && n.edges.length > 1), dn = DEFS.find(d => d.mode === "catch").doorNode; if (!S || !A || !dn) return null; const p = routePath(A, dn); return p ? p.length : 0; },
+  // v10 數學島：人在哪、動畫在跑沒、兩棟蓋好沒（[fruit, hop]）、門口接到路沒、路網節點數（e.ma）、斷頭路、在島上走的寵物、猴子／青蛙在不在
+  math() {
+    const md = ["fruit", "hop"].map(m => DEFS.find(d => d.mode === m)), ns = [...graph.nodes.values()].filter(n => n.edges.some(e => e.ma));
+    return { place: town.place, active: maActive(), defs: md.map(d => !!(d && d.ready)), locked: md.filter(d => d.locked).map(d => d.mode), doors: md.map(d => !!(d.doorNode && d.doorNode.edges.length)),
+      nodes: ns.length, deadEnds: ns.filter(n => n.edges.length === 1 && !n.door).map(n => [n.x, n.z]), bridge: !!ma.bridge, monkey: !!ma.monkey, frog: !!ma.frog,
+      petsOnMath: agents.filter(a => a.kind === "pet" && a.e && sdMath(a.x, a.z) < 0).length, carsOnMath: agents.filter(a => a.kind === "car" && a.e && a.e.ma).length,
+      off: [+town.off.x.toFixed(2), +town.off.y.toFixed(2)], zoom: +user.zoom.toFixed(3), sun: [+sun.target.position.x.toFixed(2), +sun.target.position.z.toFixed(2)] };
+  },
+  // 路網從主島中央圓環走得到數學島兩棟的門口嗎：回傳 [水果攤, 荷花池] 各要走幾段（null＝走不到）
+  maRoute() { const A = [...graph.nodes.values()].find(n => !n.door && Math.abs(Math.hypot(n.x, n.z) - RR) < 0.01 && n.edges.length > 1); return ["fruit", "hop"].map(m => { const dn = DEFS.find(d => d.mode === m).doorNode; const p = A && dn ? routePath(A, dn) : null; return p ? p.length : null; }); },
+  maScreen(k) { const B = ma.bridge, [x, y, z] = k === "bridge" && B ? [(B.xa + B.xb) / 2, B.yA((B.xa + B.xb) / 2), 0] : [MA.x + MA_SPOT[0], 0, MA.z + MA_SPOT[1]]; _v.set(x, y, z).project(camera); return { x: (_v.x + 1) / 2 * innerWidth, y: (1 - _v.y) / 2 * innerHeight }; },
   lockScreen(m) { const d = DEFS.find(x => x.mode === m), L = d.lockSpot; if (!L) return null; _v.set(d.x + L.x, L.y + 0.3, d.z + L.z).project(camera); return { x: (_v.x + 1) / 2 * innerWidth, y: (1 - _v.y) / 2 * innerHeight }; },   // 施工路障在螢幕上的位置（截圖檢查穿模用）
   finger: () => !!finger,
   tags(on) { tagLayer.style.visibility = on ? "" : "hidden"; },
@@ -4406,7 +4693,7 @@ if (DEBUG) window.__hub3d = {
   // 10-12 路牌／點遠方的島：每支路牌（在哪座島、指去哪、3D 位置在螢幕上哪裡、浮標框、貼邊沒、鎖著沒）；isleScreen(p)＝那座島中心在螢幕上的位置；proj(x,y,z)＝世界座標→螢幕
   signs: () => SIGNS.map(s => { _v.set(s.x, s.y - 0.3, s.z).project(camera); const r = s.tag ? s.tag.getBoundingClientRect() : null;
     return { at: s.at, go: s.go, x: +s.x.toFixed(2), z: +s.z.toFixed(2), sx: Math.round((_v.x + 1) / 2 * innerWidth), sy: Math.round((1 - _v.y) / 2 * innerHeight), shown: !!(r && r.width), rect: r && { x0: r.left, x1: r.right, y0: r.top, y1: r.bottom }, edge: !!s.edge, locked: !!(s.tag && s.tag.classList.contains("locked")) }; }),
-  isleScreen(p) { const c = { main: [-2.4, 2.4], town: [DIST.x - 1.5, DIST.z + 1.5], rainbow: [RB.x + 1.6, RB.z + 2.8], music: [MU.x + MU_SPOT[0], MU.z + MU_SPOT[1]] }[p]; _v.set(c[0], 0, c[1]).project(camera); return { x: (_v.x + 1) / 2 * innerWidth, y: (1 - _v.y) / 2 * innerHeight }; },   // 地面上空曠的一點（不是建築）
+  isleScreen(p) { const c = { main: [-2.4, 2.4], town: [DIST.x - 1.5, DIST.z + 1.5], rainbow: [RB.x + 1.6, RB.z + 2.8], music: [MU.x + MU_SPOT[0], MU.z + MU_SPOT[1]], math: [MA.x + MA_SPOT[0], MA.z + MA_SPOT[1]] }[p]; _v.set(c[0], 0, c[1]).project(camera); return { x: (_v.x + 1) / 2 * innerWidth, y: (1 - _v.y) / 2 * innerHeight }; },   // 地面上空曠的一點（不是建築）
   proj(x, y, z) { _v.set(x, y, z).project(camera); return { x: (_v.x + 1) / 2 * innerWidth, y: (1 - _v.y) / 2 * innerHeight }; },
   isleAt: (x, z) => isleAt(x, z), sel: () => sel ? sel.mode : null, focusing: () => focus.on, place: () => town.place,
   cam(z, px = 0, py = 0) { user.zoom = z; user.px = px; user.py = py; },   // 宣傳片運鏡（tools/promo）
@@ -4471,7 +4758,7 @@ if (DEBUG) window.__hub3d = {
       const g = o.geometry; let t = (g.index ? g.index.count : g.attributes.position.count) / 3;
       if (o.isInstancedMesh) { t *= o.count; o.computeBoundingSphere(); _v.copy(o.boundingSphere.center).applyMatrix4(o.matrixWorld); }
       else { if (!g.boundingSphere) g.computeBoundingSphere(); _v.copy(g.boundingSphere.center).applyMatrix4(o.matrixWorld); }
-      const k = (_v.x < -12.5 ? (_v.z < RB.z - RB.hz - 0.3 ? "mu:" : "rb:") : "main:") + (o.isInstancedMesh ? "inst" : o.material && o.material.map ? "tex" : "other");   // v8 音樂島（＋琴鍵橋）在彩虹島北邊
+      const k = (_v.x < -12.5 ? (_v.z < RB.z - RB.hz - 0.3 ? "mu:" : "rb:") : _v.x > 12.5 && Math.abs(_v.z) < 7 ? "ma:" : "main:") + (o.isInstancedMesh ? "inst" : o.material && o.material.map ? "tex" : "other");   // v8 音樂島（＋琴鍵橋）在彩虹島北邊
       out[k] = (out[k] || 0) + Math.round(t); out[k + "#"] = (out[k + "#"] || 0) + 1;
     });
     return out;

@@ -867,10 +867,10 @@ body:not(.on-menu) #navBtn, body:not(.hub3d) #navBtn, body:not(.on-menu) #mapBtn
 #statusBar > #plazaBtn .nav-dot { right: 0.2vmin; top: 0.4vmin; }
 /* 地點面板（點 🧭 展開）：一行一座島的大按鈕（圖示＋名字＋「你在這裡」／「🔒 還差 N 張」／「新」）；從 🧭 下面往下展開（暫時蓋住 🗺️）。
    只是暫時蓋在小島上（不算 3D 擺鏡頭要避開的介面）；8 秒沒碰、點別的地方就收起來（js/zhuyin.js navOpen） */
-.nav-panel { position: absolute; z-index: 3; left: 0; top: calc(100% + 1.6vmin); display: flex; flex-direction: column; gap: 1.2vmin; padding: 1.6vmin;
+.nav-panel { position: absolute; z-index: 3; left: 0; top: calc(100% + 1.6vmin); display: flex; flex-direction: column; gap: 1vmin; padding: 1.4vmin;
   background: rgba(255,255,255,0.97); border-radius: 4vmin; box-shadow: 0 1vmin 0 rgba(36,81,92,0.18), 0 2vmin 5vmin rgba(20,50,80,0.35); transform-origin: 0 0; animation: navIn 0.22s cubic-bezier(.2,1.4,.4,1) both; }
 @keyframes navIn { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: none; } }
-.nav-row { display: flex; align-items: center; gap: 2vmin; min-height: max(11vmin, 52px); padding: 0.8vmin 2.6vmin 0.8vmin 1.4vmin; border-radius: 3vmin; text-align: left; white-space: nowrap;
+.nav-row { display: flex; align-items: center; gap: 2vmin; min-height: max(9vmin, 52px);   /* 11-10 數學島變五行：11→9vmin，橫放 iPad 新手第一次點 🧭 時貓頭鷹那句才讓得開 */ padding: 0.8vmin 2.6vmin 0.8vmin 1.4vmin; border-radius: 3vmin; text-align: left; white-space: nowrap;
   background: #f3faff; border: 0.5vmin solid #9fcdf5; box-shadow: 0 0.6vmin 0 #a9c9e6; color: #24515c; font-weight: 900; }
 .nav-row:active { transform: translateY(0.4vmin); box-shadow: 0 0.2vmin 0 #a9c9e6; }
 .nav-ri { font-size: 6.4vmin; line-height: 1; width: 8vmin; text-align: center; }
@@ -904,10 +904,11 @@ body.hub-off #menu .mode-card .label { font-size: 4.2vmin; }
   body.hub-off #menu h1 { margin-top: 1vmin; }
   body.hub-off #menu .menu-bottom { margin-top: 2vmin; }
 }
-.hub-tags.in-town .hub-tag:not(.civic):not(.rb):not(.mu) { visibility: hidden; }   /* 不在主島：主島浮標收起來（還是量得到大小，鏡頭擺位照算） */
+.hub-tags.in-town .hub-tag:not(.civic):not(.rb):not(.mu):not(.ma) { visibility: hidden; }   /* 不在主島：主島浮標收起來（還是量得到大小，鏡頭擺位照算） */
 .hub-tags:not(.at-town) .hub-tag.civic { display: none; }                /* 只有在新市區才顯示設施浮標 */
 .hub-tags:not(.at-rainbow) .hub-tag.rb { display: none; }                /* 只有在彩虹島才顯示彩虹島的浮標 */
 .hub-tags:not(.at-music) .hub-tag.mu { display: none; }                  /* v8 只有在音樂島才顯示音樂島的浮標 */
+.hub-tags:not(.at-math) .hub-tag.ma { display: none; visibility: hidden; }   /* v10 只有在數學島才顯示數學島的浮標（水果攤、荷花池）；visibility 也標上：測試用它判斷「不在這座島的浮標藏著」 */
 /* 10-12 歸仁區的遊戲建築（陀螺競技場）：浮標跟設施一樣是 .civic（奶油色、只在歸仁區顯示），多一個 .tw 標記它是遊戲（點了＝點卡片） */
 .hub-fire { position: absolute; left: 0; top: 0; pointer-events: auto; font-size: 5.6vmin; line-height: 1; background: #fff; border-radius: 50%; width: 9vmin; height: 9vmin; display: grid; place-items: center;
   border: 0.7vmin solid #ff7a2f; box-shadow: 0 0 0 0 rgba(255,122,47,0.6); animation: firePulse 1s ease-out infinite; z-index: 99980; }
@@ -1179,7 +1180,7 @@ body.pick-on #menu > .menu-bottom { opacity: 0; visibility: hidden; transition: 
 .hub-sign.locked .sg-arr { display: none; }
 .hub-sign:active { filter: brightness(1.1); }
 .hub-tags.far .hub-sign { --fs: 0.78; }
-.hub-tags.in-town .hub-sign[data-at=main], .hub-tags:not(.at-town) .hub-sign[data-at=town], .hub-tags:not(.at-rainbow) .hub-sign[data-at=rainbow], .hub-tags:not(.at-music) .hub-sign[data-at=music] { display: none; }   /* 只顯示人在的那座島的路牌（v8 加音樂島） */
+.hub-tags.in-town .hub-sign[data-at=main], .hub-tags:not(.at-town) .hub-sign[data-at=town], .hub-tags:not(.at-rainbow) .hub-sign[data-at=rainbow], .hub-tags:not(.at-music) .hub-sign[data-at=music], .hub-tags:not(.at-math) .hub-sign[data-at=math] { display: none; }   /* 只顯示人在的那座島的路牌（v8 加音樂島、v10 數學島） */
 
 /* ===== 10-12 🗺️ 全部遊戲：全畫面清單（圓鈕在左上 🧭 那組，見上面「左上小孩用的兩顆小圓鈕」）===== */
 .games-box { position: relative; width: min(94vw, 132vmin); max-height: 96vh; gap: 1.2vmin; padding: 2vmin 2.6vmin; }   /* ✕ 在右上角（同介紹卡）：比下面一顆「回去」少一排 */

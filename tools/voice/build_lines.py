@@ -88,7 +88,7 @@ def must(snippet):
 
 # ---- 1. 開場語（第一次進模式唸）----
 for m, need, intro in MODES:
-    if m in ("detective", "tops", "tower", "run", "grow"):   # 11-01 跑跑／小魚：模組自己唸教學（LINES.intro，下面 rn_／gw_ 登記）   # 10-12：這兩個的開場語＝模組自己的教學句（下面 dt_intro／tp_intro 已登記同一句），不重複錄；10-13 挑戰燈塔同（tw_intro）
+    if m in ("detective", "tops", "tower", "run", "grow", "fruit", "hop"):   # 11-10 數學島兩款也是模組自己念開場（SELF_INTRO）   # 11-01 跑跑／小魚：模組自己唸教學（LINES.intro，下面 rn_／gw_ 登記）   # 10-12：這兩個的開場語＝模組自己的教學句（下面 dt_intro／tp_intro 已登記同一句），不重複錄；10-13 挑戰燈塔同（tw_intro）
         continue
     add(f"intro_{m}", intro, "intro", "MODES.intro（zhuyin.js:12-19）")
 
@@ -213,6 +213,8 @@ for i, t in [("rb_open", "彩虹橋接好了！彩虹島開放囉！"), ("rb_her
 # ---- 11-01 v8 第二批 音樂島（照彩虹島：開放宣告、到了音樂島、還沒開；「再收集 N 張貼紙，音樂島就開放囉！」只顯示字不唸）----
 for i, t in [("mu_open", "音樂島開放囉！快去看看！"), ("mu_here", "這裡是音樂島！"), ("mu_locked", "收集更多貼紙，就能去音樂島囉！")]:
     must(t); add(i, t, "guide", "zhuyin.js civicEvent 音樂島（11-01 v8）")
+for i, t in [("ma_here", "這裡是數學島！我們來算算看！")]:   # 11-10 數學島一開始就開：沒有 open／locked 台詞
+    must(t); add(i, t, "guide", "zhuyin.js civicEvent 數學島（11-10 v10）")
 # ---- 11-03 首頁第二輪：每個存檔位第一次打開 🧭 地點面板，貓頭鷹教怎麼用（NAV_HI）----
 for i, t in [("nav_hi", "點一座島，就可以飛過去喔！")]:
     must(t); add(i, t, "guide", "zhuyin.js NAV_HI（11-03）")
@@ -412,7 +414,7 @@ for t in ["仔細聽，選出你聽到的那一句！", "用注音拼出五個�
 must('talk(g.name + "！")')
 GI_BLOCK = SRC.split("const GAME_INFO = {")[1].split("\n};")[0]
 GAME_INFO = re.findall(r'^\s+(\w+): \{ name: "([^"]+)"', GI_BLOCK, re.M)
-assert len(GAME_INFO) == 19, f"GAME_INFO 解析失敗：{len(GAME_INFO)}"   # 12 個遊戲＋扭蛋機＋寵物服裝店＋10-13 挑戰燈塔＋11-01 跑跑大冒險、小魚長大記＋11-01 v8 音符接接樂、音符唱片行
+assert len(GAME_INFO) == 21, f"GAME_INFO 解析失敗：{len(GAME_INFO)}"   # 12 個遊戲＋扭蛋機＋寵物服裝店＋10-13 挑戰燈塔＋11-01 跑跑大冒險、小魚長大記＋11-01 v8 音符接接樂、音符唱片行＋11-10 數學島兩款
 for m, nm in GAME_INFO:
     add(f"pick_{m}", nm + "！", "guide", "zhuyin.js showPick（10-12 小島介紹卡，唸遊戲名字）")
 
@@ -426,7 +428,7 @@ for i, t in enumerate(LV_SAY):
     add(f"lv_up_{i + 2}", t, "guide", "zhuyin.js LV_SAY（v6 結算：開了新的一級）")
 LV_NEW_BLOCK = SRC.split("const LV_NEW = {")[1].split("\n};")[0]
 LV_NEW = re.findall(r'^\s+(\w+):\s+\{ 2: "([^"]+)", 3: "([^"]+)", 4: "([^"]+)", 5: "([^"]+)" \}', LV_NEW_BLOCK, re.M)
-assert len(LV_NEW) == 9, f"LV_NEW 解析失敗：{len(LV_NEW)}"   # 主程式 7 個遊戲＋翻牌＋11-01 v8 音符接接樂
+assert len(LV_NEW) == 11, f"LV_NEW 解析失敗：{len(LV_NEW)}"   # 主程式 7 個遊戲＋翻牌＋11-01 v8 音符接接樂＋11-10 數學島兩款
 seen_new = {}
 for m, *ts in LV_NEW:
     for n, t in zip(range(2, 6), ts):
@@ -511,6 +513,23 @@ if "return REC.LINES.gift" not in SRC:
     sys.exit("zhuyin.js 的留聲機送唱片（homeUI onBuy → REC.LINES.gift）改了，請更新 build_lines.py")
 for i, t in [("catch_fail", "音樂台現在打不開，等一下再試試看！"), ("catch_win3", "接得好準，好厲害！"), ("catch_win", "旋律完成了，好厲害！")]:
     must(t); add(i, t, "guide" if i == "catch_fail" else "result", "zhuyin.js 音符接接樂接線（11-01 v8：打不開、結算）")
+
+# ---- 11-10 v10 數學島（docs/zhuyin-math-plan.md）：兩款模組 export 全部會念的句子 → 用 node 載入模組匯出（句子由出題規則展開，不用在這裡抄）----
+#   水果 voiceLines()＝{ say: 題目／數數／算式, talk: 說明 }；荷葉 allSpoken()＝全部（LINES 用 talk、其他 say）。兩款共用的算式句只錄一次。
+#   id＝math_ ＋ 句子的 md5 前 8 碼（題庫順序變了 id 也不會跑掉）
+import hashlib
+import subprocess
+_MATH_JS = ("import { pathToFileURL } from 'node:url';"
+            "const F = await import(pathToFileURL('js/zhuyin-fruit.js').href), H = await import(pathToFileURL('js/zhuyin-hop.js').href);"
+            "const f = F.voiceLines(); console.log(JSON.stringify({ say: f.say, talk: [...f.talk, ...Object.values(H.LINES)], hop: H.allSpoken() }));")
+_math = json.loads(subprocess.run(["node", "--input-type=module", "-e", _MATH_JS], cwd=ROOT, capture_output=True, text=True, encoding="utf-8", check=True).stdout)
+_seen_math = set()
+for t in _math["talk"] + _math["say"] + _math["hop"]:
+    if t in _seen_math:
+        continue
+    _seen_math.add(t)
+    add("math_" + hashlib.md5(t.encode("utf-8")).hexdigest()[:8], t, "guide" if t in _math["talk"] else "word", "數學島 zhuyin-fruit.js voiceLines／zhuyin-hop.js allSpoken（11-10）")
+assert len(_seen_math) >= 300, f"數學島句子太少（{len(_seen_math)}），模組匯出壞了？"
 
 # ---- 5. 動態句：全部展開成完整句子 ----
 DYNAMIC = []

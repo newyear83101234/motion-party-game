@@ -10,6 +10,7 @@ export const MODE_INFO = {
   tower: ["🗼", "燈塔"],   // 10-13 挑戰燈塔
   run: ["🏃", "跑跑"], grow: ["🐟", "小魚"],   // 11-01 無限玩的兩款
   catch: ["🥁", "接接樂"],   // 11-01 v8 音符接接樂（音樂島）
+  fruit: ["🍎", "水果籃"], hop: ["🐸", "跳荷葉"],   // 11-10 v10 數學島
 };
 export const MODE_IDS = Object.keys(MODE_INFO);
 

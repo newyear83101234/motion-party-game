@@ -1,0 +1,126 @@
+/* 注音小島：🍎 水果籃算算看（js/zhuyin-fruit.js；v10 數學島水果攤）
+   尺寸全部跟著 --c（籃子一格的大小，js layout() 依畫面量好寫進來）。橫式：猴子｜籃子｜果汁機；直式：猴子＋果汁機一排、籃子、答案鈕。
+   左上 🏠🎵（主程式，2vmin／16vmin、12vmin 大）不蓋到：橫式算式卡置中、中間那排在它下面；直式整個往下推 16vmin。 */
+#fruit { padding: 0; }
+.fr-stage { --c: 60px; position: absolute; inset: 0; overflow: hidden; box-sizing: border-box; touch-action: manipulation;
+  display: grid; grid-template-columns: auto auto auto; grid-template-areas: "eq eq eq" "mk bk jc" "ans ans ans";
+  justify-content: center; align-content: center; align-items: end; column-gap: calc(var(--c) * 0.55); row-gap: calc(var(--c) * 0.38);
+  padding: max(2vmin, env(safe-area-inset-top, 0px)) max(2vmin, env(safe-area-inset-right, 0px)) max(2vmin, env(safe-area-inset-bottom, 0px)) max(2vmin, env(safe-area-inset-left, 0px));
+  background: #f6e4c8 url("../IMAGE/zhuyin/bg_shop.webp") center / cover no-repeat; }
+.fr-stage.fr-tall { grid-template-columns: auto auto; grid-template-areas: "eq eq" "mk jc" "bk bk" "ans ans";
+  padding-top: calc(16vmin + env(safe-area-inset-top, 0px)); background-image: url("../IMAGE/zhuyin/bg_shop_p.webp"); }
+.noselect { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.fr-pic { display: flex; align-items: center; justify-content: center; }
+.fr-pic img { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.fr-emo { line-height: 1; }
+
+/* 算式卡（阿拉伯數字＋＋－＝，不加注音）＋ 🔊 再念一次 */
+.fr-eq { grid-area: eq; justify-self: center; align-self: center; display: flex; align-items: center; gap: calc(var(--c) * 0.3); z-index: 5;
+  background: #fff; border: max(3px, calc(var(--c) * 0.07)) solid #ff9f43; border-radius: calc(var(--c) * 0.45);
+  padding: calc(var(--c) * 0.06) calc(var(--c) * 0.12) calc(var(--c) * 0.06) calc(var(--c) * 0.42); box-shadow: 0 calc(var(--c) * 0.08) 0 rgba(36, 81, 92, 0.18); }
+.fr-eq-t { display: flex; align-items: baseline; gap: 0.24em; font-size: calc(var(--c) * 0.92); font-weight: 900; color: #24515c; line-height: 1.15; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fr-tall .fr-eq-t { font-size: calc(var(--c) * 0.74); }
+/* 加減等號：用畫的，＋ 跟 － 一樣寬（0.62em）、一樣粗（0.14em）（字型的「－」常常只有「＋」一半寬） */
+.fr-op { position: relative; flex: none; align-self: center; width: 0.62em; height: 0.62em; }
+.fr-op::before, .fr-op::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 0.14em; margin-top: -0.07em; border-radius: 0.07em; background: currentColor; }
+.fr-op::after { display: none; }
+.fr-plus::after { display: block; left: 50%; right: auto; top: 0; bottom: 0; width: 0.14em; height: auto; margin: 0 0 0 -0.07em; }
+.fr-eqs::before { top: 25%; } .fr-eqs::after { display: block; top: 75%; }
+.fr-op > i { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.fr-q { display: inline-block; min-width: 0.9em; text-align: center; color: #e8590c; }
+.fr-q.fr-qa { color: #2f9e44; animation: frPop 0.35s cubic-bezier(.2, 1.6, .4, 1); }
+.fr-say { flex: none; width: max(52px, calc(var(--c) * 0.95)); height: max(52px, calc(var(--c) * 0.95)); border-radius: 50%; padding: 0;
+  background: #fff6d6; border: max(3px, calc(var(--c) * 0.05)) solid var(--yellow, #ffd54a); font-size: max(24px, calc(var(--c) * 0.48)); touch-action: manipulation; }
+.fr-say:active { transform: scale(0.92); }
+
+/* 小猴子（坐著）＋ 手上一盤（減法拿走的水果放這裡，看得到；不算進籃子） */
+.fr-mk { grid-area: mk; justify-self: center; position: relative; width: calc(var(--c) * 2.7); height: calc(var(--c) * 3.05); z-index: 4; pointer-events: none; }
+.fr-mk-pic { position: absolute; left: 50%; top: 0; width: calc(var(--c) * 2.3); height: calc(var(--c) * 2.3); margin-left: calc(var(--c) * -1.15); transform-origin: 50% 60%; }
+.fr-mk-pic .fr-emo { font-size: calc(var(--c) * 1.9); }
+.fr-hand { position: absolute; left: 50%; bottom: 0; translate: -50% 0; display: grid; grid-template-columns: repeat(5, calc(var(--c) * 0.44)); grid-auto-rows: calc(var(--c) * 0.44);
+  gap: calc(var(--c) * 0.04); padding: calc(var(--c) * 0.07); border-radius: calc(var(--c) * 0.3); background: #f6d7a7; border: max(2px, calc(var(--c) * 0.05)) solid #b97a3e;
+  box-shadow: 0 calc(var(--c) * 0.06) 0 rgba(90, 50, 15, 0.25); transition: opacity 0.2s; }
+.fr-hand.fr-empty { opacity: 0; }
+.fr-slot { position: relative; }
+.fr-slot:empty { display: none; }                       /* 盤子只露出有水果的那幾排 */
+
+/* 籃子：十格框（上下兩排、每排 5 格），水果一格一格從左上放 */
+.fr-bkcol { grid-area: bk; justify-self: center; display: flex; flex-direction: column; align-items: center; gap: calc(var(--c) * 0.22); }
+.fr-bk { position: relative; padding: calc(var(--c) * 0.2); border: max(3px, calc(var(--c) * 0.1)) solid #8d5524;
+  border-radius: calc(var(--c) * 0.35) calc(var(--c) * 0.35) calc(var(--c) * 0.75) calc(var(--c) * 0.75);
+  background: repeating-linear-gradient(0deg, rgba(90, 50, 15, 0.16) 0 max(2px, calc(var(--c) * 0.035)), transparent 0 calc(var(--c) * 0.24)),
+    repeating-linear-gradient(90deg, #cf914f 0 calc(var(--c) * 0.2), #b97a3e 0 calc(var(--c) * 0.4));
+  box-shadow: inset 0 calc(var(--c) * 0.08) 0 rgba(255, 255, 255, 0.25), 0 calc(var(--c) * 0.12) 0 rgba(70, 35, 10, 0.3); }
+.fr-bk::before { content: ""; position: absolute; left: calc(var(--c) * -0.2); right: calc(var(--c) * -0.2); top: calc(var(--c) * -0.22); height: calc(var(--c) * 0.3);
+  border-radius: calc(var(--c) * 0.15); background: linear-gradient(#c07a3a, #96582a); box-shadow: 0 calc(var(--c) * 0.04) 0 rgba(0, 0, 0, 0.18); }   /* 籃子口 */
+.fr-frame { position: relative; isolation: isolate; display: grid; grid-template-columns: repeat(5, var(--c)); grid-auto-rows: var(--c); gap: calc(var(--c) * 0.1);
+  padding: calc(var(--c) * 0.12); border-radius: calc(var(--c) * 0.22); background: #fff8e6; }
+.fr-cell { position: relative; border-radius: calc(var(--c) * 0.18); background: #fde9c0; box-shadow: inset 0 0 0 max(1px, calc(var(--c) * 0.03)) rgba(141, 85, 36, 0.3); }
+.fr-fruit { position: absolute; inset: 4%; z-index: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; touch-action: manipulation; }
+.fr-fruit > .fr-pic { width: 100%; height: 100%; }
+.fr-fruit .fr-emo { font-size: calc(var(--c) * 0.74); }
+.fr-fruit.fr-top { z-index: 3; }                          /* Lv5 加法：掉在布上面的 */
+.fr-fruit.fr-lit { filter: drop-shadow(0 0 calc(var(--c) * 0.12) #ffd54a) brightness(1.08); }
+.fr-fruit.fr-glow { filter: drop-shadow(0 0 calc(var(--c) * 0.14) #ffe066) drop-shadow(0 0 calc(var(--c) * 0.04) #fff); }
+.fr-fruit.fr-mini { inset: 0; cursor: default; }
+.fr-fruit.fr-mini .fr-emo { font-size: calc(var(--c) * 0.36); }
+.fr-num { position: absolute; right: -12%; top: -16%; z-index: 4; min-width: calc(var(--c) * 0.46); height: calc(var(--c) * 0.46); box-sizing: border-box; padding: 0 0.12em;
+  border-radius: calc(var(--c) * 0.23); background: #ff6f86; color: #fff; font-size: max(14px, calc(var(--c) * 0.34)); font-weight: 900; line-height: calc(var(--c) * 0.46);
+  text-align: center; box-shadow: 0 0 0 max(2px, calc(var(--c) * 0.04)) #fff; pointer-events: none; }   /* 數數：1、2、3… */
+/* Lv5 布：整個籃子蓋起來（偷看＝掀開 1.5 秒） */
+.fr-cloth { position: absolute; inset: calc(var(--c) * -0.06); z-index: 2; border-radius: calc(var(--c) * 0.25); transform-origin: 50% 0;
+  background: conic-gradient(#ef6a6a 25%, #fff5f5 0 50%, #ef6a6a 0 75%, #fff5f5 0) 0 0 / calc(var(--c) * 0.7) calc(var(--c) * 0.7);
+  box-shadow: 0 calc(var(--c) * 0.1) calc(var(--c) * 0.22) rgba(0, 0, 0, 0.25), inset 0 0 0 calc(var(--c) * 0.06) rgba(255, 255, 255, 0.6);
+  transition: transform 0.4s cubic-bezier(.3, 1.3, .5, 1), opacity 0.35s; }
+.fr-cloth.fr-off { transform: translateY(-30%) scaleY(0.15); opacity: 0; pointer-events: none; }
+.fr-cloth.fr-peeking { transform: translateY(-22%) scaleY(0.2); opacity: 0.3; pointer-events: none; }
+.fr-peek { display: flex; align-items: center; gap: 0.25em; height: max(64px, calc(var(--c) * 0.95)); padding: 0 calc(var(--c) * 0.45); border-radius: 999px;
+  background: var(--yellow, #ffd54a); box-shadow: 0 max(3px, calc(var(--c) * 0.08)) 0 var(--yellow-dk, #d4a800); font-size: max(22px, calc(var(--c) * 0.5)); font-weight: 900; color: #5a3d00;
+  touch-action: manipulation; }
+.fr-peek:active { transform: translateY(3px); box-shadow: none; }
+.fr-peek.fr-off { visibility: hidden; }
+.fr-peek.fr-hide { display: none; }
+
+/* 果汁機（進度：10 個點，第一次就答對＝那顆水果飛進來） */
+.fr-jc { grid-area: jc; justify-self: center; display: flex; flex-direction: column; align-items: center; gap: calc(var(--c) * 0.12); width: calc(var(--c) * 2.7); z-index: 4; pointer-events: none; }
+.fr-jc-pic { width: calc(var(--c) * 2); height: calc(var(--c) * 2); transform-origin: 50% 90%; }
+.fr-jc-pic .fr-emo { font-size: calc(var(--c) * 1.6); }
+.fr-dots { display: grid; grid-template-columns: repeat(5, calc(var(--c) * 0.44)); grid-auto-rows: calc(var(--c) * 0.44); gap: calc(var(--c) * 0.06);
+  padding: calc(var(--c) * 0.08); border-radius: calc(var(--c) * 0.25); background: rgba(255, 255, 255, 0.8); }
+.fr-dot { position: relative; border-radius: 50%; background: #f1e4cf; box-shadow: inset 0 0 0 max(1px, calc(var(--c) * 0.03)) rgba(141, 85, 36, 0.3); }
+.fr-dot.fr-cur { box-shadow: inset 0 0 0 max(2px, calc(var(--c) * 0.06)) #ff9f43; }
+.fr-dot.fr-help { background: #ffe8a3; }
+.fr-dot.fr-on { background: #fff; }
+
+/* 答案鈕：三顆大圓鈕（至少 64px） */
+.fr-ans { grid-area: ans; justify-self: center; display: flex; justify-content: center; gap: calc(var(--c) * 0.7); }
+.fr-btn { --b: max(64px, calc(var(--c) * 1.45)); width: var(--b); height: var(--b); padding: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: #fff; border: max(4px, calc(var(--c) * 0.08)) solid #ff9f43; box-shadow: 0 max(4px, calc(var(--c) * 0.09)) 0 #e07b1a;
+  font-size: calc(var(--b) * 0.55); font-weight: 900; line-height: 1; color: #24515c; font-variant-numeric: tabular-nums; touch-action: manipulation; transition: opacity 0.2s, filter 0.2s; }
+.fr-btn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 #e07b1a; }
+.fr-btn.fr-wait { opacity: 0.55; }
+.fr-btn.fr-x { filter: grayscale(1); opacity: 0.4; }
+.fr-btn.fr-ok { background: #d3f9d8; border-color: #2f9e44; box-shadow: 0 max(4px, calc(var(--c) * 0.09)) 0 #2b8a3e; }
+.fr-btn.fr-glow { border-color: #ffc93c; background: #fffbe6; animation: frGlow 0.8s ease-in-out infinite alternate; }
+@keyframes frGlow { from { box-shadow: 0 max(4px, calc(var(--c) * 0.09)) 0 #e0a800, 0 0 0 0 rgba(255, 201, 60, 0.75); scale: 1; }
+  to { box-shadow: 0 max(4px, calc(var(--c) * 0.09)) 0 #e0a800, 0 0 0 calc(var(--c) * 0.3) rgba(255, 201, 60, 0); scale: 1.08; } }
+@keyframes frPop { 0% { scale: 0.4; } 100% { scale: 1; } }
+
+/* 結算：算式卡、答案鈕、（空的）籃子收掉（visibility：位置照留，猴子、果汁機不會跳位），一大杯果汁放在籃子那一格（js placeJuice 算位置與縮放） */
+.fr-eq, .fr-ans, .fr-bkcol { transition: opacity 0.3s, visibility 0s; }
+.fr-end .fr-eq, .fr-end .fr-ans, .fr-end .fr-bkcol { opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0s 0.3s; pointer-events: none; }
+.fr-juice { position: absolute; left: 50%; top: 46%; z-index: 12; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: calc(var(--c) * 0.2); pointer-events: none; }
+.fr-juice-pic { width: calc(var(--c) * 3.4 * var(--s, 1)); height: calc(var(--c) * 3.4 * var(--s, 1)); filter: drop-shadow(0 calc(var(--c) * 0.15) calc(var(--c) * 0.25) rgba(0, 0, 0, 0.25)); }
+.fr-juice-pic .fr-emo { font-size: calc(var(--c) * 2.9 * var(--s, 1)); }
+/* 下面＝打進去的水果：跟籃子一樣一排 5 顆（最多兩排；--n＝第一排幾顆，js 寫） */
+.fr-juice-row { display: grid; grid-template-columns: repeat(var(--n, 5), calc(var(--c) * 0.55)); grid-auto-rows: calc(var(--c) * 0.55); gap: calc(var(--c) * 0.08);
+  padding: calc(var(--c) * 0.12) calc(var(--c) * 0.2); border-radius: calc(var(--c) * 0.3); background: rgba(255, 255, 255, 0.88); }
+.fr-juice-row:empty { display: none; }
+.fr-juice-row .fr-fruit { position: relative; inset: auto; width: 100%; height: 100%; }
+.fr-juice-row .fr-emo { font-size: calc(var(--c) * 0.45); }
+
+@media (prefers-reduced-motion: reduce) {
+  .fr-cloth { transition-duration: 0.15s; }
+  .fr-btn.fr-glow { animation: none; box-shadow: 0 0 0 calc(var(--c) * 0.18) rgba(255, 201, 60, 0.85); }
+  .fr-q.fr-qa { animation: none; }
+}

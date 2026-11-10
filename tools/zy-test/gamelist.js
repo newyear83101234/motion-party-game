@@ -1,5 +1,5 @@
 // 🗺️ 全部遊戲清單測試（10-12 阿葉：「打開後原本的關卡名字都不見了，這樣會不知道還有哪些關卡」）：node tools/zy-test/gamelist.js
-// 驗：小島選單有 🗺️ 圓鈕（左上 🧭 去哪裡那組：橫式 🧭 下面、直式第二排 🧭 右邊；不跟其他按鈕打架）；點開＝全畫面清單，依「主島／歸仁區／彩虹島」分組、每張卡＝圖示＋名字（旁注音）＋星星或鎖；
+// 驗：小島選單有 🗺️ 圓鈕（左上 🧭 去哪裡那組：橫式 🧭 下面、直式第二排 🧭 右邊；不跟其他按鈕打架）；點開＝全畫面清單，依「主島／數學島／歸仁區／彩虹島／音樂島」分組（11-10 數學島排主島後面）、每張卡＝圖示＋名字（旁注音）＋星星或鎖；
 //     點主島的卡＝清單關掉、鏡頭移到那棟、開它的介紹卡；點彩虹島的卡＝飛到彩虹島＋開介紹卡；還沒開的島（歸仁區 20 張時）：標題寫還差幾張、
 //     點了晃一下＋貓頭鷹說上鎖台詞、不飛過去；右上角 ✕／點暗處關掉；橫式（iPad 4:3、1180×820、1873×1014）清單不用捲就看得完、直式可以捲；
 //     卡片名字一行（短名字）；?no3d 沒有 🗺️；沒有錯誤、旁注音沒漏字
@@ -38,9 +38,14 @@ const fits = p => p.evaluate(() => { const d = document.querySelector("#games .d
     ok("點 🗺️ → 打開全部遊戲清單", await listOn(p));
     const L = await listInfo(p);
     const hasMu = await p.evaluate(() => window.__zy.hub.games().list.some(x => x.isle === "music"));   // 11-01 v8 音樂島：3D 那邊接好（DEFS 有音樂島的建築）才會多一組
-    ok(`清單分組：主島、歸仁區、彩虹島${hasMu ? "、音樂島" : ""}（照這個順序）`, L.map(g => g.isle).join() === (hasMu ? "main,town,rainbow,music" : "main,town,rainbow") && L.map(g => g.name).join() === (hasMu ? "主島,歸仁區,彩虹島,音樂島" : "主島,歸仁區,彩虹島"), JSON.stringify(L.map(g => [g.isle, g.name])));
-    const main = L[0], town = L[1], rb = L[2];
-    if (hasMu) { const mu = L[3]; ok("音樂島（20 張 < 40）：整組鎖著、標題寫「🔒 40」、唱片行／接接樂兩張都有 🔒", mu.locked && mu.lock === "🔒 40" && mu.cards.map(c => c.m).sort().join() === "catch,records" && mu.cards.every(c => c.locked), JSON.stringify(mu)); }
+    const hasMath = await p.evaluate(() => window.__zy.hub.games().list.some(x => x.isle === "math"));   // 11-10 v10 數學島：一開始就開，主程式 renderGames 排在主島後面
+    const ISL = [["main", "主島"], ...(hasMath ? [["math", "數學島"]] : []), ["town", "歸仁區"], ["rainbow", "彩虹島"], ...(hasMu ? [["music", "音樂島"]] : [])];
+    ok(`清單分組：${ISL.map(i => i[1]).join("、")}（照這個順序）`, L.map(g => g.isle).join() === ISL.map(i => i[0]).join() && L.map(g => g.name).join() === ISL.map(i => i[1]).join(), JSON.stringify(L.map(g => [g.isle, g.name])));
+    const grp = k => L.find(g => g.isle === k) || { cards: [], name: "", lock: "" };
+    const main = grp("main"), town = grp("town"), rb = grp("rainbow");
+    if (hasMath) { const mt = grp("math"); ok("數學島（20 張；其實 0 張就開）：整組沒鎖、水果籃／跳荷葉兩張都沒鎖", !mt.locked && !mt.lock && mt.cards.map(c => c.m).join() === "fruit,hop" && mt.cards.every(c => !c.locked), JSON.stringify(mt)); }
+    else out.push("NOTE  3D 還沒有數學島的建築：🗺️ 清單沒有數學島那組（3D 接好後這支會自動驗）");
+    if (hasMu) { const mu = grp("music"); ok("音樂島（20 張 < 40）：整組鎖著、標題寫「🔒 40」、唱片行／接接樂兩張都有 🔒", mu.locked && mu.lock === "🔒 40" && mu.cards.map(c => c.m).sort().join() === "catch,records" && mu.cards.every(c => c.locked), JSON.stringify(mu)); }
     else out.push("NOTE  3D 還沒有音樂島的建築：🗺️ 清單沒有音樂島那組（3D 接好後這支會自動驗）");
     ok("主島：11 張卡（9 個遊戲＋10-13 挑戰燈塔＋扭蛋機），釣魚排第一、燈塔在扭蛋機前、扭蛋機排最後", main.cards.length === 11 && main.cards[0].m === "fish" && main.cards[9].m === "tower" && main.cards[10].m === "gacha", JSON.stringify(main.cards.map(c => c.m)));
     ok("主島：卡片寫短名字（≤ 3 個字一行放得下：打地鼠、跳跳蛙、泡泡、氣球、扭蛋機…）", ["打地鼠", "跳跳蛙", "泡泡", "氣球", "扭蛋機"].every(n => main.cards.some(c => c.name === n)) && main.cards.every(c => c.name.length <= 3), JSON.stringify(main.cards.map(c => c.name)));
@@ -110,7 +115,7 @@ const fits = p => p.evaluate(() => { const d = document.querySelector("#games .d
     ok(`${w}×${h}：🗺️ 在畫面內、≥ 44px、不跟其他按鈕／膠囊重疊（${w < h ? "直式在左上第二排 🧭 右邊" : "橫式在 🧭 下面"}）`, mb.inV && mb.size >= 44 && mb.hit.length === 0 && mb.parent === "hudL", JSON.stringify(mb));
     await openList(p);
     const fl = await fits(p), L = await listInfo(p);
-    ok(`${w}×${h}：清單在畫面內${w < h ? "（直式可以上下捲）" : "、不用捲"}、每座島一組都在（${st} 張）`, fl.inV && (w < h || fl.scroll <= 2) && L.length === (await p.evaluate(() => window.__zy.hub.games().list.some(x => x.isle === "music")) ? 4 : 3), JSON.stringify({ fl, groups: L.map(g => g.isle + (g.locked ? "🔒" : "")) }));
+    ok(`${w}×${h}：清單在畫面內${w < h ? "（直式可以上下捲）" : "、不用捲"}、每座島一組都在（${st} 張）`, fl.inV && (w < h || fl.scroll <= 2) && L.length === 3 + (await p.evaluate(() => ["music", "math"].filter(k => window.__zy.hub.games().list.some(x => x.isle === k)).length)), JSON.stringify({ fl, groups: L.map(g => g.isle + (g.locked ? "🔒" : "")) }));
     if (w !== 390) await shot(p, `gamelist-${w}x${h}`);
     await clickCard(p, "build");
     ok(`${w}×${h}：點「積木」→ 積木的介紹卡`, await pickOn(p, "build"));

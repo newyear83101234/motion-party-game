@@ -22,19 +22,19 @@
   </script>
   <!-- 自己的程式一開頁就同時抓（高優先）：不然要等 zhuyin.js 下載完才知道要抓 ann/words/ui，再等它跑起來才抓 hub3d，
        一層等一層，線上 4Mbps 實測多卡約 3 秒（tools/zy-test/loadprofile.js）。網址要跟實際 import 的完全一樣（含 ?v=） -->
-  <link rel="modulepreload" href="js/zhuyin.js?v=45" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin.js?v=46" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-words.js" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-ann.js?v=19" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-ui.js?v=19" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-ann.js?v=20" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-ui.js?v=20" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-voice.js?v=8" fetchpriority="high">
-  <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=21" fetchpriority="high">
+  <link rel="modulepreload" href="js/zhuyin-hub3d.js?v=22" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-weather.js?v=5">
   <link rel="modulepreload" href="js/zhuyin-clock.js?v=1">
   <link rel="modulepreload" href="js/zhuyin-ocean.js?v=4">
   <link rel="modulepreload" href="js/zhuyin-rewards.js?v=3" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-audio.js?v=6" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-plaza.js?v=1">
-  <link rel="modulepreload" href="js/zhuyin-stats.js?v=4">
+  <link rel="modulepreload" href="js/zhuyin-stats.js?v=5">
   <link rel="modulepreload" href="js/zhuyin-home.js?v=2" fetchpriority="high">
   <link rel="modulepreload" href="js/zhuyin-records.js?v=4">
   <link rel="modulepreload" href="js/zhuyin-mysongs.js?v=4">
@@ -51,7 +51,7 @@
     })();
   </script>
   <!-- 樣式表放在上面兩段 script 後面：classic script 會等前面的樣式表下載完才執行，放前面會卡住整頁解析 -->
-  <link rel="stylesheet" href="css/zhuyin.css?v=31">
+  <link rel="stylesheet" href="css/zhuyin.css?v=32">
   <link rel="stylesheet" href="css/zhuyin-bubble.css?v=3">
   <link rel="stylesheet" href="css/zhuyin-dress.css?v=1">
   <link rel="stylesheet" href="css/zhuyin-deliver.css?v=1">
@@ -63,6 +63,8 @@
   <link rel="stylesheet" href="css/zhuyin-tower.css?v=1">
   <link rel="stylesheet" href="css/zhuyin-home.css?v=1">   <!-- 10-31 v8 我的家：房子卡片、花園小舖、信件、錢包 -->
   <link rel="stylesheet" href="css/zhuyin-catch.css?v=1">   <!-- 11-01 v8 音符接接樂 -->
+  <link rel="stylesheet" href="css/zhuyin-fruit.css?v=1">   <!-- 11-10 v10 數學島：水果籃算算看 -->
+  <link rel="stylesheet" href="css/zhuyin-hop.css?v=1">   <!-- 11-10 v10 數學島：青蛙跳荷葉 -->
   <link rel="stylesheet" href="css/zhuyin-records.css?v=3">   <!-- 11-01 v8 音符唱片行：唱片牆 -->
   <link rel="stylesheet" href="css/zhuyin-music.css?v=2">   <!-- 11-01 v8 音樂島：🗺️ 清單的音樂島那組（要排在 zhuyin.css 後面） -->
 </head>
@@ -95,6 +97,7 @@
     <!-- 地點面板：一行一座島（大按鈕）。.nav-rs＝「你在這裡」／「🔒 還差 N 張」（js 寫）；剛開的島那一行有「新」（🧭 上只有小紅點） -->
     <div id="navPanel" class="nav-panel hidden" role="menu" aria-label="去哪裡">
       <button class="nav-row" data-isle="main" role="menuitem"><span class="nav-ri">🏝️</span><span class="nav-rn">小島</span><span class="nav-rs"></span><span class="nav-new" aria-hidden="true">新</span></button>
+      <button class="nav-row" data-isle="math" role="menuitem"><span class="nav-ri">🔢</span><span class="nav-rn">數學島</span><span class="nav-rs"></span><span class="nav-new" aria-hidden="true">新</span></button>
       <button class="nav-row" data-isle="town" role="menuitem"><span class="nav-ri">🏙️</span><span class="nav-rn">歸仁區</span><span class="nav-rs"></span><span class="nav-new" aria-hidden="true">新</span></button>
       <button class="nav-row" data-isle="rainbow" role="menuitem"><span class="nav-ri">🌈</span><span class="nav-rn">彩虹島</span><span class="nav-rs"></span><span class="nav-new" aria-hidden="true">新</span></button>
       <button class="nav-row" data-isle="music" role="menuitem"><span class="nav-ri">🎵</span><span class="nav-rn">音樂島</span><span class="nav-rs"></span><span class="nav-new" aria-hidden="true">新</span></button>
@@ -145,6 +148,8 @@
       <button class="mode-card" data-mode="grow"><span class="big">🐟</span><span class="label">小魚</span><span class="lock"></span></button>
       <!-- 11-01 v8 音符接接樂（音樂島露天音樂台）；音符唱片行不是遊戲，沒有卡片（從唱片行、DJ、留聲機開唱片牆） -->
       <button class="mode-card" data-mode="catch"><span class="big">🥁</span><span class="label">接接樂</span><span class="lock"></span></button>
+      <button class="mode-card" data-mode="fruit"><span class="big">🍎</span><span class="label">水果籃</span><span class="lock"></span></button>
+      <button class="mode-card" data-mode="hop"><span class="big">🐸</span><span class="label">跳荷葉</span><span class="lock"></span></button>
     </div>
     <!-- 11-01 頂端狀態列（阿葉「貼紙那排的數字可以列在最上方用比較小的圖示表示」；以前是左下一排大膠囊）：只有圖示＋數字（不用加注音的字）。
          3D 小島：橫式在上面第一排正中間、直式在第二排 🧭🗺️ 右邊；卡片選單（沒有 3D）排在卡片下面（css/zhuyin.css .sb-bar） -->
@@ -267,6 +272,15 @@
   <section id="catch" class="screen hidden">
     <div class="topbar"></div>
     <div id="catchRoot"></div>
+  </section>
+  <!-- ===== 11-10 v10 數學島（docs/zhuyin-math-plan.md）：🍎 水果籃算算看 js/zhuyin-fruit.js、🐸 青蛙跳荷葉 js/zhuyin-hop.js，各自在 #fruitRoot／#hopRoot 裡建畫面 ===== -->
+  <section id="fruit" class="screen hidden">
+    <div class="topbar"></div>
+    <div id="fruitRoot"></div>
+  </section>
+  <section id="hop" class="screen hidden">
+    <div class="topbar"></div>
+    <div id="hopRoot"></div>
   </section>
 
   <!-- ===== 挑戰燈塔（10-13，主島燈塔岬；js/zhuyin-tower.js 自己在 #towerRoot 裡建畫面：燈塔、排行榜、選名字、樓層開場、結算；愛心 HUD 掛在 body）===== -->
@@ -413,6 +427,6 @@
   <div id="flash" class="flash"></div>
 
   <div id="fx" class="fx"></div>
-  <script type="module" src="js/zhuyin.js?v=45"></script>
+  <script type="module" src="js/zhuyin.js?v=46"></script>
 </body>
 </html>
