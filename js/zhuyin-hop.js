@@ -22,9 +22,18 @@
 // 左上留給主程式的 🏠🎵（2／16vmin、12vmin 大，排到 28vmin）：上方算式列從 30vmin 起排（css .hop-bar）。畫面上的中文字（起點、把手機橫過來）由主程式自動加注音。
 // 算式卡放不下一排（iPad 橫放）就排兩排（算式 🔊 ／ 腳印）：layout() 用最寬的題目量（fitBar）。加減等號用 CSS 畫（一樣寬、一樣粗）。
 
-import { makeRound, makeChoices, eqText, eqShow, numZh, qtyZh, starsOf, pool, N_DEFAULT } from "./zhuyin-math-core.js?v=1";
+// v11（11-14，docs/zhuyin-math-plan.md §7.3）：6～10 級＝一年級。荷葉上的數字每題不同：第 i 片（0 起）＝q.base + i×q.step（1～5 級沒有這三欄＝base 0、step 1、jumps＝b）。
+//   6～8 級點荷葉、9 級數字鈕（同 5 級）、10 級跳著數（一下跳 2／5／10：腳印上標一次跳多少、青蛙每跳一下跳出「＋5」「－5」）。
+//   6 級以上不念題目、不念算式、不念數字（阿葉：不要那麼多配音）：只念 LINES 裡 1～5 級已經錄好的句子；每跳一下青蛙頭上跳出數字（6～8 級＝跳到的數、9 級＝第幾下）。
+//   6～9 級整十的荷葉（10、20）號碼牌是藍底白字＝地標；換題時荷葉數字滑進來。🔊 收起來（沒有題目可以念），sayCurrent＝再看一次手指示範。
+//   手指示範：6 級以上每一級「這次開機第一次玩」的第一題才做（demoSeen）。
+//   程式裡 frogAt、ans、glow、tapPad／answer 的參數都是「荷葉上寫的數字」；第幾片用 ix(數字) 換算。
 
-export const PADS = 11;                                  // 荷葉 0～10
+import { makeRound, makeChoices, eqText, eqShow, numZh, qtyZh, starsOf, pool, N_DEFAULT, LV_MAX, VOICE_LV_MAX } from "./zhuyin-math-core.js?v=2";
+
+export const PADS = 11;                                  // 一排 11 片荷葉
+const demoSeen = new Set();                              // 6 級以上：這次開機已經做過手指示範的等級（10 級分三段記：「10:2」「10:5」「10:10」，每段第一題各示範一次）
+export const TUNE = { idleMs: 9000 };                    // 6 級以上：可以作答後這麼久都沒點 → 自動再示範一次（每題最多一次）；測試從 window.__zyHop.tune 調
 // 模組會念的固定台詞（tools/voice/build_lines.py 收；不要在別處寫死台詞字串）
 export const LINES = {
   notStart: "青蛙站的這片不算，跳出去才算一下",           // 把起點算進去的錯
@@ -93,7 +102,7 @@ export function createHopGame(root, api) {
   const row = el("div", "hop-row");
   const pads = [];
   for (let n = 0; n < PADS; n++) {
-    const b = el("button", "hop-pad"); b.type = "button"; b.dataset.n = String(n); b.setAttribute("aria-label", String(n));
+    const b = el("button", "hop-pad"); b.type = "button"; b.dataset.i = String(n); b.dataset.n = String(n); b.setAttribute("aria-label", String(n));   // data-n＝荷葉上寫的數字（每題會換）、data-i＝第幾片
     b.append(el("span", "hop-leaf"), el("span", "hop-num", String(n)));
     b.addEventListener("click", () => onPad(n));
     pads.push(b); row.appendChild(b);
@@ -121,22 +130,24 @@ export function createHopGame(root, api) {
   // 算式卡排一排（算式｜腳印｜🔊）放得下嗎：用最寬的內容（「5 ＋ 5 ＝ 10」露出答案＋5 個腳印）量一次，放不下（iPad 橫放）就排兩排（.hop-stack：算式 🔊 ／ 腳印）；
   // 直放一律兩排。上方列的高度也用這個最寬的內容量（每題卡片一樣大：荷葉不會因為題目不同跟著移動），量完把卡片內容放回去。
   function fitBar() {
-    const keepEq = [...eqBox.childNodes], keepFeet = [...feet.childNodes];
-    setEq({ op: "+", a: 5, b: 5, c: 10, ans: 10, ask: "c" }, true);
-    feet.replaceChildren(...Array.from({ length: 5 }, () => el("span", "hop-foot on", "🐾")));
+    const keepEq = [...eqBox.childNodes], keepFeet = [...feet.childNodes], lv = run ? run.lv : 1;
+    const wide = lv >= 10 ? { a: 50, b: 50, c: 100, step: 10, jumps: 5 } : lv >= 8 ? { a: 11, b: 9, c: 20, step: 1, jumps: 9 } : lv >= 6 ? { a: 15, b: 5, c: 20, step: 1, jumps: 5 } : { a: 5, b: 5, c: 10, step: 1, jumps: 5 };   // 這一級最寬的算式、最多的腳印
+    setEq({ op: "+", a: wide.a, b: wide.b, c: wide.c, ans: wide.c, ask: "c" }, true);
+    feet.classList.toggle("two", wide.jumps > 5);
+    feet.replaceChildren(...Array.from({ length: wide.jumps }, () => footEl(true, wide.step > 1 ? wide.step : 0)));
     let stack = true;
     try { stack = matchMedia("(orientation: portrait)").matches; } catch (e) { stack = stage.clientHeight > stage.clientWidth; }
     stage.classList.remove("hop-stack");
     if (!stack) stack = card.offsetWidth + (parseFloat(getComputedStyle(bar).columnGap) || 0) + prog.offsetWidth > bar.clientWidth - 2;
     stage.classList.toggle("hop-stack", stack);
     const br = bar.getBoundingClientRect();
-    eqBox.replaceChildren(...keepEq); feet.replaceChildren(...keepFeet);
+    eqBox.replaceChildren(...keepEq); feet.replaceChildren(...keepFeet); feet.classList.toggle("two", keepFeet.length > 5);
     return br;
   }
   function layout() {
     const sr = stage.getBoundingClientRect(), W = stage.clientWidth || innerWidth, H = stage.clientHeight || innerHeight, vmin = Math.min(W, H) / 100;
     const br = fitBar(), topB = br.height ? br.bottom - sr.top : vmin * 16;
-    const lv5 = !!(run && run.lv === 5), minBtn = W >= 700 && H >= 560 ? 64 : 44;
+    const lv5 = !!(run && run.qs[0] && run.qs[0].ask === "b"), minBtn = W >= 700 && H >= 560 ? 64 : 44;
     let u = Math.min((W - 2 * Math.max(8, vmin * 1.5)) / PADS, 150), d = dims(u, lv5, minBtn, vmin), need = 0;
     for (let k = 0; k < 40; k++) {
       d = dims(u, lv5, minBtn, vmin);
@@ -158,10 +169,13 @@ export function createHopGame(root, api) {
       if (run.fingerOn) hideFinger(run);
     }
   }
-  const padX = n => geo.x0 + (n + 0.5) * geo.u;          // 第 n 片的中心 x
-  const frogXY = n => ({ x: padX(n) - geo.frogW / 2, y: geo.padTop + geo.padH * 0.5 - geo.frogH });
+  const view = { base: 0, step: 1 };                     // 這一題荷葉上寫的數字：第 i 片＝base + i×step
+  const ix = v => Math.round((v - view.base) / view.step);   // 荷葉上的數字 → 第幾片
+  const valAt = i => view.base + i * view.step;          // 第幾片 → 荷葉上的數字
+  const padX = i => geo.x0 + (i + 0.5) * geo.u;          // 第 i 片的中心 x
+  const frogXY = n => ({ x: padX(ix(n)) - geo.frogW / 2, y: geo.padTop + geo.padH * 0.5 - geo.frogH });   // n＝荷葉上的數字（下面 placeFrog／placeTag／perchXY／fingerPad 都一樣）
   function placeFrog(n) { const p = frogXY(n); frog.style.left = px(p.x); frog.style.top = px(p.y); }
-  function placeTag(n) { startTag.style.left = px(padX(n) - geo.u * 0.47); startTag.style.top = px(geo.padTop + geo.padH + geo.badgeH + geo.u * 0.03); startTag.style.width = px(geo.u * 0.94); }
+  function placeTag(n) { startTag.style.left = px(padX(ix(n)) - geo.u * 0.47); startTag.style.top = px(geo.padTop + geo.padH + geo.badgeH + geo.u * 0.03); startTag.style.width = px(geo.u * 0.94); }
 
   // ---------- 一局的狀態 ----------
   let run = null;
@@ -198,15 +212,53 @@ export function createHopGame(root, api) {
       else eqBox.appendChild(opEl(t));
     }
   }
-  function setFeet(R, n, lit) {                           // n 個腳印，前 lit 個亮著；Lv5 還沒跳＝一個「？」
-    feet.innerHTML = ""; R.feetN = n; R.feetOn = lit;
+  function footEl(on, label) {                            // 一個腳印；label＝一下跳多少（10 級：2／5／10，標在腳印下面）
+    const s = el("span", "hop-foot" + (on ? " on" : ""), "🐾");
+    if (label) { s.classList.add("lab"); s.appendChild(el("b", "", String(label))); }
+    return s;
+  }
+  function setFeet(R, n, lit) {                           // n 個腳印，前 lit 個亮著；Lv5／Lv9 還沒跳＝一個「？」；超過 5 個排兩排
+    feet.innerHTML = ""; R.feetN = n; R.feetOn = lit; feet.classList.toggle("two", n > 5);
+    if (!n && R.quiet) { const f = footEl(true, "？"); f.classList.add("hop-qm", "hop-qf"); feet.appendChild(f); return; }   // Lv9：腳印＋？（跟其他級的腳印一樣大：問的是「幾個腳印」）
     if (!n) { feet.appendChild(el("span", "hop-foot hop-qm", "？")); return; }
-    for (let k = 0; k < n; k++) feet.appendChild(el("span", "hop-foot" + (k < lit ? " on" : ""), "🐾"));
+    for (let k = 0; k < n; k++) feet.appendChild(footEl(k < lit, R.q.step > 1 ? R.q.step : 0));
   }
-  function footStep(R, k) {                               // 第 k 跳（1 起）：Lv1～4 熄一個（從右邊熄）；Lv5 亮一個
-    if (R.q.ask === "b") { if (R.feetN !== R.q.b) setFeet(R, R.q.b, 0); const f = feet.children[k - 1]; if (f) f.classList.add("on"); R.feetOn = k; }
-    else { const f = feet.children[R.q.b - k]; if (f) f.classList.remove("on"); R.feetOn = R.q.b - k; }
+  function footStep(R, k) {                               // 第 k 跳（1 起）：點荷葉的級熄一個（從最後一個熄）；Lv5／Lv9 亮一個
+    const J = R.q.jumps;
+    if (R.q.ask === "b") { if (R.feetN !== J) setFeet(R, J, 0); const f = feet.children[k - 1]; if (f) f.classList.add("on"); R.feetOn = k; }
+    else { const f = feet.children[J - k]; if (f) f.classList.remove("on"); R.feetOn = J - k; }
   }
+  // 荷葉上的數字（每題換）：6～9 級整十的那片加 .ten（地標）；三位數加 .n3（字縮小）；換題時數字滑進來（跳的單位變了＝翻一下）
+  function setNums(R, q) {
+    const first = !R.numsSet, moved = Math.sign(q.base - view.base), reStep = q.step !== view.step;
+    view.base = q.base; view.step = q.step; R.numsSet = true;
+    pads.forEach((b, i) => {
+      const v = valAt(i), num = b.lastChild, same = b.dataset.n === String(v);
+      b.dataset.n = String(v); b.setAttribute("aria-label", String(v));
+      b.classList.toggle("ten", R.quiet && q.step !== 10 && v > 0 && v % 10 === 0);   // 一下跳 10 的時候每片都是整十：不標
+      num.classList.toggle("n3", v >= 100);
+      if (same) return;
+      num.textContent = String(v);
+      if (first) return;
+      anim(num, reStep || !moved ? [{ transform: "scaleY(0.1)", opacity: 0 }, { transform: "scaleY(1)", opacity: 1 }]
+        : [{ transform: `translateX(${px(moved * geo.u * 0.7)})`, opacity: 0 }, { transform: "translateX(0px)", opacity: 1 }], { duration: T(reduce ? 160 : 420), easing: "ease-out" });
+    });
+  }
+  // 6 級以上：每跳一下，青蛙頭上跳出數字（不念）。6～8 級＝跳到的數、9 級＝第幾下、10 級＝「＋5」「－5」；落地那片的號碼牌跟著跳一下
+  function popNum(R, at, k, dur) {
+    const q = R.q, e = el("div", "hop-pop"), p = frogXY(at);
+    if (q.step > 1) { e.classList.add("skip"); e.append(opEl(q.op), el("span", "", String(q.step))); }
+    else e.textContent = String(q.ask === "b" ? k : at);
+    e.style.left = px(padX(ix(at))); e.style.top = px(p.y - geo.u * 0.04);
+    stage.appendChild(e);
+    const hw = e.offsetWidth * 0.6 + 4;                    // 最左、最右那片：整塊留在畫面內（動畫最大放到 1.15 倍）
+    e.style.left = px(Math.max(hw, Math.min(geo.W - hw, padX(ix(at)))));
+    anim(e, [{ opacity: 0, transform: "translate(-50%, -60%) scale(0.4)" }, { opacity: 1, transform: "translate(-50%, -100%) scale(1.15)", offset: 0.25 }, { opacity: 1, transform: "translate(-50%, -110%) scale(1)", offset: 0.8 }, { opacity: 0, transform: "translate(-50%, -150%) scale(1)" }], { duration: T(dur * 1.15), easing: "ease-out", fill: "both" });
+    later(() => e.remove(), T(dur * 1.15) + 30);
+    const num = pads[ix(at)] && pads[ix(at)].lastChild;
+    if (num) anim(num, [{ transform: "scale(1)" }, { transform: "scale(1.35)" }, { transform: "scale(1)" }], { duration: T(320), delay: T(dur * 0.6), easing: "ease-out" });
+  }
+  const clearPops = () => { for (const e of [...stage.querySelectorAll(".hop-pop")]) e.remove(); };
 
   // ---------- 蜻蜓：Lv1～4 在水面上空飛來飛去（不靠近答案那片的固定位置）；Lv5 一開始停在終點 ----------
   const flyPos = { x: 0, y: 0 };
@@ -216,7 +268,7 @@ export function createHopGame(root, api) {
     fly.style.transitionDuration = `${T(dur).toFixed(0)}ms, ${T(250).toFixed(0)}ms`;
     fly.style.transform = `translate(${px(x - geo.flyS / 2)}, ${px(y - geo.flyS / 2)})`;
   }
-  const perchXY = n => ({ x: padX(n) + geo.u * 0.2, y: geo.padTop + geo.padH * 0.42 });   // 停在荷葉右前方
+  const perchXY = n => ({ x: padX(ix(n)) + geo.u * 0.2, y: geo.padTop + geo.padH * 0.42 });   // 停在荷葉右前方
   const mouthXY = () => { const p = frogXY(run.frogAt); return { x: p.x + geo.frogW * 0.5, y: p.y + geo.frogH * 0.45 }; };
   function randSky() {
     const yTop = geo.skyTop + geo.flyS * 0.6, yBot = Math.max(yTop, geo.skyBot - geo.flyS * 0.5), y = yTop + rnd() * (yBot - yTop);
@@ -254,17 +306,17 @@ export function createHopGame(root, api) {
 
   // ---------- 手指示範（每局第一題） ----------
   function fingerAt(x, y) { finger.style.left = px(x - geo.u * 0.35); finger.style.top = px(y - geo.u * 0.95); }
-  const fingerPad = n => ({ x: padX(n), y: geo.padTop + geo.padH * 0.45 });
+  const fingerPad = n => ({ x: padX(ix(n)), y: geo.padTop + geo.padH * 0.45 });
   function hideFinger(R) { if (R) R.fingerOn = false; cancelAnims(finger); finger.classList.add("hop-hide"); finger.classList.remove("tap"); }
-  function fingerDemo(R) {
-    if (run !== R || R.phase !== "ask" || R.lock || R.tapsQ || R.fingerDone) return;
+  function fingerDemo(R, force) {                         // force：發呆自動再示範、再看一次（小孩點過別片也照做）
+    if (run !== R || R.phase !== "ask" || R.lock || (!force && (R.tapsQ || R.fingerDone))) return;
     R.fingerDone = true; R.fingerN++; R.fingerOn = true;
-    const q = R.q, dir = q.op === "+" ? 1 : -1, n = Math.abs(q.c - q.a), st = D.fstep;
+    const q = R.q, dir = q.op === "+" ? 1 : -1, n = q.jumps, st = D.fstep;
     let at = q.a; const p0 = fingerPad(at); fingerAt(p0.x, p0.y);
     finger.classList.remove("hop-hide", "tap");
     for (let k = 1; k <= n; k++) LQ(R, () => {
       if (!R.fingerOn) return;
-      const from = fingerPad(at); at = q.a + dir * k; const to = fingerPad(at); fingerAt(to.x, to.y);
+      const from = fingerPad(at); at = q.a + dir * k * q.step; const to = fingerPad(at); fingerAt(to.x, to.y);
       anim(finger, [{ transform: `translate(${px(from.x - to.x)}, 0px)` }, { transform: `translate(${px((from.x - to.x) / 2)}, ${px(-geo.u * (reduce ? 0.15 : 0.45))})`, offset: 0.5 }, { transform: "translate(0px, 0px)" }], { duration: T(st * 0.8), easing: "ease-in-out" });
     }, st * k);
     LQ(R, () => {
@@ -283,19 +335,33 @@ export function createHopGame(root, api) {
   function buildChoices(R) {
     choices.innerHTML = ""; const q = R.q;
     if (q.ask !== "b") { choices.classList.add("hop-hide"); return; }
-    for (const v of q.choices) {
+    q.choices.forEach((v, k) => {
       const b = el("button", "hop-ch", String(v)); b.type = "button"; b.dataset.v = String(v);
+      if (R.quiet) {                                      // Lv9：每顆鈕左上一個小腳印（＝幾個腳印）、進題時三顆依序跳一下（告訴小孩這級按這裡）
+        b.classList.add("ft"); b.prepend(el("span", "hop-ch-foot", "🐾"));
+        LQ(R, () => { if (R.phase === "ask") { bounce(b, 1.1); R.chHops++; } }, 350 + 230 * k);
+      }
       b.addEventListener("click", () => onChoice(v)); choices.appendChild(b);
-    }
+    });
     choices.style.top = px(geo.chTop); choices.classList.remove("hop-hide");
+  }
+  function armIdle(R) {                                   // 6 級以上：可以作答後 TUNE.idleMs 都沒點 → 自動再示範一次（每題最多一次；點了重新算；作答、換題就不跑）
+    if (!R.quiet || R.idleUsed) return;
+    const tok = ++R.idleTok;
+    LQ(R, () => {
+      if (R.idleTok !== tok || R.idleUsed || R.phase !== "ask") return;
+      if (R.lock || R.fingerOn) { armIdle(R); return; }   // 提示中、示範中：晚一點再看
+      R.idleUsed = true; R.idleN++; fingerDemo(R, true);
+    }, TUNE.idleMs);
   }
   function startQ(R) {
     const q = R.q = R.qs[R.i];
     Object.assign(R, { phase: "ask", lock: false, wrongQ: 0, tapsQ: 0, nagged: false, fingerDone: R.i !== 0, glow: null, reading: true, numHinted: false, numHintQ: false });
     for (const b of pads) b.classList.remove("glow", "sink", "shake", "start", "dim");
-    pads[q.a].classList.add("start");
+    setNums(R, q);
+    pads[ix(q.a)].classList.add("start");
     setEq(q, false);
-    setFeet(R, q.ask === "b" ? 0 : q.b, q.ask === "b" ? 0 : q.b);
+    setFeet(R, q.ask === "b" ? 0 : q.jumps, q.ask === "b" ? 0 : q.jumps);
     burp.classList.add("hop-hide");
     const first = R.frogAt == null; R.frogAt = q.a; R.facing = q.op === "-" ? -1 : 1;
     if (first) { placeFrog(q.a); setFacing(R.facing); placeTag(q.a); }
@@ -305,6 +371,13 @@ export function createHopGame(root, api) {
     }
     startTag.classList.remove("pulse");
     buildChoices(R); newFly(R);
+    if (R.quiet) {                                        // 6 級以上不念題目：直接可以作答；這一級這次開機第一次玩 → 第一題手指示範
+      R.sayText = ""; R.reading = false; R.idleUsed = false;
+      const seg = R.lv === 10 ? R.i === 0 || q.step !== R.qs[R.i - 1].step : R.i === 0, key = R.lv === 10 ? "10:" + q.step : R.lv;   // 10 級：一下跳多少換了＝新的一段
+      if (seg && !demoSeen.has(key)) { demoSeen.add(key); R.fingerDone = false; LQ(R, () => fingerDemo(R), 700); } else R.fingerDone = true;
+      armIdle(R);
+      return;
+    }
     R.sayText = R.i < 2 ? qFull(q) : qShort(q);
     const qi = R.i;
     sayW(R, R.sayText, () => {
@@ -319,17 +392,19 @@ export function createHopGame(root, api) {
 
   // 跳 from → to：每一下念一個數、配一個音（往前升、往回降）、腳印熄一個（Lv5 亮一個）
   function hops(R, dur, cb) {
-    const q = R.q, dir = q.op === "+" ? 1 : -1, n = Math.abs(q.c - R.frogAt), from = R.frogAt;
+    const q = R.q, dir = q.op === "+" ? 1 : -1, n = Math.round(Math.abs(q.c - R.frogAt) / q.step), from = R.frogAt;
     for (let k = 1; k <= n; k++) LQ(R, () => {
-      const at = from + dir * k; jumpFrog(R, at, dur);
+      const at = from + dir * k * q.step; jumpFrog(R, at, dur);
       play("pop", dir > 0 ? Math.min(1.8, 0.9 + 0.1 * k) : Math.max(0.5, 1.1 - 0.09 * k));
-      say(countZh(q.ask === "b" ? k : at)); R.counted.push(q.ask === "b" ? k : at);
+      if (R.quiet) popNum(R, at, k, dur); else say(countZh(q.ask === "b" ? k : at));   // 6 級以上：數字用跳出來的（不念）
+      R.counted.push(q.ask === "b" ? k : at);
       footStep(R, k);
     }, dur * (k - 1));
     LQ(R, cb, dur * n + 120);
   }
   function revealAndEq(R, cb) {                          // 算式露出答案、念整句（一定念）
     setEq(R.q, true);
+    if (R.quiet) { L(R, cb, reduce ? 900 : 1300); return; }   // 6 級以上不念算式：停一下讓小孩看答案
     sayW(R, eqText(R.q), cb);
   }
   function afterEq(R) {
@@ -362,7 +437,7 @@ export function createHopGame(root, api) {
       if (R.q.ask === "b") { R.fly = { mode: "hover", at: R.q.c }; const m = mouthXY(); setFly(m.x, m.y - geo.frogH * 0.55, 400); }
       R.phase = "must"; R.lock = false; R.glow = R.q.ans;
       if (R.q.ask === "b") for (const b of choices.children) { const ok = +b.dataset.v === R.q.ans; b.classList.toggle("glow", ok); b.classList.toggle("dim", !ok); }
-      else pads[R.q.ans].classList.add("glow");
+      else pads[ix(R.q.ans)].classList.add("glow");
     });
   }
   function mustDone(R) {                                  // 示範後小孩點對了：蜻蜓被吃掉、念整句（不算 right）
@@ -389,32 +464,34 @@ export function createHopGame(root, api) {
   function markChoice(v, cls) { for (const b of choices.children) if (+b.dataset.v === v) b.classList.add(cls); }
 
   // ---------- 小孩點荷葉／數字鈕 ----------
-  function onPad(n) {
+  function onPad(i) {                                     // i＝第幾片；n＝那片上寫的數字
     const R = run; if (!R || R.done || R.over) return;
     if (R.lock || R.phase === "busy") { R.ignored++; return; }   // 回饋／示範中：不算
-    const q = R.q;
-    if (q.ask === "b") { R.ignored++; numHint(R); return; }   // Lv5 用數字鈕回答：點荷葉不算，數字鈕跳一下提示
-    if (R.phase === "must") { if (n === q.ans) mustDone(R); else nag(R, pads[q.ans]); return; }
+    const q = R.q, n = valAt(i);
+    armIdle(R);
+    if (q.ask === "b") { R.ignored++; numHint(R); return; }   // Lv5／Lv9 用數字鈕回答：點荷葉不算，數字鈕跳一下提示
+    if (R.phase === "must") { if (n === q.ans) mustDone(R); else nag(R, pads[ix(q.ans)]); return; }
     if (n === R.frogAt) { R.ignored++; bounce(frogFx, 0.5); return; }   // 青蛙站的那片：不算作答
     hideFinger(R); R.tapsQ++;
     if (n === q.ans) { correct(R); return; }
     const dir = q.op === "+" ? 1 : -1;
-    if (q.b >= 2 && n === q.a + dir && !R.neighborUsed) {   // 像下棋一片一片點：每局第一次只提示
+    if (q.jumps >= 2 && n === q.a + dir * q.step && !R.neighborUsed) {   // 像下棋一片一片點：每局第一次只提示
       R.neighborUsed = true; R.lock = true; hush();
-      pads[n].classList.remove("shake"); void pads[n].offsetWidth; pads[n].classList.add("shake"); play("tap", 0.9);
+      pads[i].classList.remove("shake"); void pads[i].offsetWidth; pads[i].classList.add("shake"); play("tap", 0.9);
       sayW(R, LINES.howTo, () => { R.lock = false; }, true);
       return;
     }
-    wrongAns(R, n === q.ans - dir, pads[n]);              // 把起點算進去：加法點 ans−1、減法點 ans＋1
+    wrongAns(R, n === q.ans - dir * q.step, pads[i]);     // 把起點算進去：加法點終點左邊一片、減法點終點右邊一片
   }
   function onChoice(v) {
     const R = run; if (!R || R.done || R.over || R.q.ask !== "b") return;
     if (R.lock || R.phase === "busy") { R.ignored++; return; }
     const btn = [...choices.children].find(b => +b.dataset.v === v);
+    armIdle(R);
     if (R.phase === "must") { if (v === R.q.ans) mustDone(R); else nag(R, [...choices.children].find(b => +b.dataset.v === R.q.ans)); return; }
     hideFinger(R); R.tapsQ++;
     if (v === R.q.ans) { correct(R); return; }
-    wrongAns(R, v === R.q.b + 1, btn);                    // 把起點也數進去：多一下
+    wrongAns(R, v === R.q.jumps + 1, btn);                // 把起點也數進去：多一下
   }
 
   // ---------- 結算：肚子圓滾滾、打個嗝 ----------
@@ -441,23 +518,30 @@ export function createHopGame(root, api) {
   // ---------- 開局／停 ----------
   function begin(lv, qs) {
     stop();
-    lv = lv >= 1 && lv <= 5 ? Math.floor(lv) : 1;
-    run = { lv, qs, i: 0, q: null, right: 0, wrong: 0, streak: 0, flips: 0, eaten: 0, frogAt: null, facing: 1, phase: "ask", lock: false, over: false, done: false,
-      neighborUsed: false, ignored: 0, numHints: 0, fingerN: 0, fingerOn: false, fingerDone: false, fly: { mode: "gone", at: null }, feetN: 0, feetOn: 0, counted: [], tapsQ: 0, wrongQ: 0, sayText: "", result: null };
+    lv = lv >= 1 && lv <= LV_MAX ? Math.floor(lv) : 1;
+    qs = qs.map(q => ({ ...q, base: q.base || 0, step: q.step || 1, jumps: q.jumps != null ? q.jumps : q.b }));   // 1～5 級的題目沒有這三欄：base 0、step 1、jumps＝b
+    run = { lv, qs, quiet: lv > VOICE_LV_MAX, numsSet: false, i: 0, q: null, right: 0, wrong: 0, streak: 0, flips: 0, eaten: 0, frogAt: null, facing: 1, phase: "ask", lock: false, over: false, done: false,
+      neighborUsed: false, ignored: 0, numHints: 0, idleTok: 0, idleUsed: false, idleN: 0, chHops: 0, fingerN: 0, fingerOn: false, fingerDone: false, fly: { mode: "gone", at: null }, feetN: 0, feetOn: 0, counted: [], tapsQ: 0, wrongQ: 0, sayText: "", result: null };
     frogFx.classList.remove("hop-full"); frog.classList.remove("hop-out"); fly.classList.remove("hop-eaten");
     for (const d of prog.children) d.classList.remove("on");
     stage.classList.toggle("hop-lv5", lv === 5);
+    stage.classList.toggle("hop-g1", run.quiet);          // 6 級以上：🔊 收起來（要在 layout 量算式卡之前）
     layout();
     startQ(run);
   }
-  function start(lv = 1) { const L5 = lv >= 1 && lv <= 5 ? Math.floor(lv) : 1; begin(L5, makeRound("hop", L5, N_DEFAULT, rnd)); }
+  function start(lv = 1) { const L5 = lv >= 1 && lv <= LV_MAX ? Math.floor(lv) : 1; begin(L5, makeRound("hop", L5, N_DEFAULT, rnd)); }
   function stop() {
     const R = run; if (R) R.done = true; run = null;
-    hideFinger(null); cancelAnims(frog); cancelAnims(frogFx); cancelAnims(fly);
+    hideFinger(null); cancelAnims(frog); cancelAnims(frogFx); cancelAnims(fly); clearPops();
     choices.classList.add("hop-hide"); burp.classList.add("hop-hide");
   }
   function sayCurrent() {                                 // 💬／🔊 再念一次題目（整句）；換題中、念算式時不念（不打斷「四加三等於七」）
     const R = run; if (!R || R.over || !R.q || R.phase === "busy" || R.lock) return;
+    if (R.quiet) {                                        // 6 級以上沒有題目可以念：算式卡跳一下、再看一次手指示範
+      bounce(card, 0.5);
+      if (R.phase === "ask" && !R.fingerOn) fingerDemo(R, true);
+      return;
+    }
     say(qFull(R.q));
   }
 
@@ -465,17 +549,23 @@ export function createHopGame(root, api) {
   function state() {
     const R = run; if (!R) return null; const q = R.q;
     return { lv: R.lv, i: R.i, total: R.qs.length, phase: R.phase, lock: R.lock, over: R.over, done: R.done,
-      q: q && { op: q.op, a: q.a, b: q.b, c: q.c, ask: q.ask, ans: q.ans, choices: q.choices ? q.choices.slice() : null },
+      q: q && { op: q.op, a: q.a, b: q.b, c: q.c, ask: q.ask, ans: q.ans, choices: q.choices ? q.choices.slice() : null, base: q.base, step: q.step, jumps: q.jumps },
+      quiet: R.quiet, nums: pads.map(b => +b.dataset.n),
       right: R.right, wrong: R.wrong, streak: R.streak, flips: R.flips, eaten: R.eaten, frogAt: R.frogAt, facing: R.facing,
-      feetN: R.feetN, feetOn: R.feetOn, neighborUsed: R.neighborUsed, ignored: R.ignored, numHints: R.numHints, fingerN: R.fingerN, fingerOn: R.fingerOn,
+      feetN: R.feetN, feetOn: R.feetOn, neighborUsed: R.neighborUsed, ignored: R.ignored, numHints: R.numHints, idleN: R.idleN, idleUsed: R.idleUsed, chHops: R.chHops, fingerN: R.fingerN, fingerOn: R.fingerOn,
       glow: R.glow, fly: { ...R.fly }, counted: R.counted.slice(), sayText: R.sayText, eq: eqBox.textContent, result: R.result, rot: geo.rot, u: +geo.u.toFixed(1) };
   }
   // 測試掛鉤（只給測試用）
   const debug = {
     geo: () => ({ ...geo }),
     startWith(lv, facts) {                                // 指定題目開一局：facts＝[{ op, a, b }]（不足 10 題就照給的題數）
-      const L5 = lv === 5;
-      begin(lv, facts.map(f => { const c = f.op === "+" ? f.a + f.b : f.a - f.b, ans = L5 ? f.b : c; return { op: f.op, a: f.a, b: f.b, c, ask: L5 ? "b" : "c", ans, choices: L5 ? (f.choices || makeChoices(ans, rnd, 1, 9)) : null }; }));
+      const L5 = lv === 5 || lv === 9;                    // 6 級以上可以多給 base／step／jumps（沒給：step 1、jumps＝b÷step、base＝放得下的最小值）
+      begin(lv, facts.map(f => {
+        const c = f.op === "+" ? f.a + f.b : f.a - f.b, ans = L5 ? f.b : c, step = f.step || 1;
+        const q = { op: f.op, a: f.a, b: f.b, c, ask: L5 ? "b" : "c", ans, choices: L5 ? (f.choices || makeChoices(ans, rnd, 1, 9)) : null };
+        if (lv >= 6) Object.assign(q, { step, jumps: f.jumps || f.b / step, base: f.base != null ? f.base : step > 1 ? 0 : Math.max(0, Math.max(f.a, c) - 10) });
+        return q;
+      }));
     },
     skip() {                                              // 這題直接算答對、換下一題（不跑動畫；整合測試快轉用）
       const R = run; if (!R || R.over || !ready()) return false;   // 只在等小孩作答時（動畫跑一半不能跳）
@@ -483,13 +573,13 @@ export function createHopGame(root, api) {
       const d = prog.children[R.eaten]; if (d) d.classList.add("on"); R.eaten++;
       R.lock = true; R.phase = "busy"; hush(); next(R); return true;
     },
-    rects: () => ({ stage: rect(stage), bar: rect(bar), card: rect(card), prog: rect(prog), pads: pads.map(rect), leaves: pads.map(b => rect(b.firstChild)), frog: rect(frog), tag: rect(startTag), choices: [...choices.children].map(rect), say: rect(sayBtn), rot: !rot.classList.contains("hop-hide") }),
+    rects: () => ({ stage: rect(stage), bar: rect(bar), card: rect(card), prog: rect(prog), eq: rect(eqBox), feet: rect(feet), foot: [...feet.children].map(rect), nums: pads.map(b => rect(b.lastChild)), pads: pads.map(rect), leaves: pads.map(b => rect(b.firstChild)), frog: rect(frog), tag: rect(startTag), choices: [...choices.children].map(rect), say: rect(sayBtn), rot: !rot.classList.contains("hop-hide") }),
   };
   const ready = () => !!(run && !run.over && !run.lock && (run.phase === "ask" || run.phase === "must"));
-  const tapPad = n => { pads[n].click(); return state(); };
+  const tapPad = n => { const i = ix(n); if (pads[i] && valAt(i) === n) pads[i].click(); return state(); };   // n＝荷葉上寫的數字（1～5 級＝第幾片）
   const choose = v => { const b = [...choices.children].find(x => +x.dataset.v === v); if (b) b.click(); return !!b; };
   window.__zyHop = Object.assign(window.__zyHop || {}, {
-    state, ready, tapPad, choose,
+    state, ready, tapPad, choose, tune: TUNE,
     answer: v => (run && run.q && run.q.ask === "b" ? choose(v) : tapPad(v)),   // 用荷葉或數字鈕回答 v
     right: () => { if (run && run.q) window.__zyHop.answer(run.q.ans); return state(); },   // 點正確答案
     skip: debug.skip, startWith: debug.startWith, geo: debug.geo, rects: debug.rects,

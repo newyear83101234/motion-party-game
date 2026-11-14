@@ -76,7 +76,7 @@ const PRAISE = ["好棒！", "哇！", "就是它！", "太厲害了！", "你�
 const EGG_STARS = 10;                               // 星星罐滿幾顆孵一顆蛋
 // v6 難度等級（docs/zhuyin-v6-plan.md §1、§2）：主程式 7 個遊戲＋翻牌各有 Lv1–Lv5（Lv1＝原本的玩法）；存檔 zy{n}_lv。
 // 這兩個常數 loadSlot 開頁就會用到（cleanLv），所以放最上面；旋鈕表 LVP 在「出題」段
-const LV_MODES = ["fish", "order", "build", "hunt", "match", "tone", "whack", "frog", "catch", "fruit", "hop"], LV_MAX = 5;   // 11-01 v8 音符接接樂也用這套五級徽章（星星由模組算：錯接 ≤1 3 星、≤3 2 星）；11-10 數學島兩款也是（第一次就答對 ≥9 題 3 星）
+const LV_MODES = ["fish", "order", "build", "hunt", "match", "tone", "whack", "frog", "catch", "fruit", "hop"], LV_MAX = 5, lvMaxOf = m => (m === "fruit" || m === "hop" ? 10 : LV_MAX);   // 11-14 v11：數學島兩款 10 級（6～10＝一年級），其他仍 5 級；11-01 v8 音符接接樂也用這套五級徽章（星星由模組算：錯接 ≤1 3 星、≤3 2 星）；11-10 數學島兩款也是（第一次就答對 ≥9 題 3 星）
 const TOWER_MODES = ["fish", "order", "build", "hunt", "tone", "whack", "frog"];   // 爬塔（playFloor，§2.4）能用的短題遊戲
 
 // ---------- 注音解析與繪製 ----------
@@ -530,8 +530,8 @@ function cleanLv(d) {
   const num = (v, lo, hi) => Math.min(hi, Math.max(lo, Math.floor(+v) || 0));
   for (const m of LV_MODES) {
     const r = d[m]; if (!r || typeof r !== "object") continue;
-    const max = num(r.max, 1, LV_MAX), st = {};
-    if (r.st && typeof r.st === "object") for (let k = 1; k <= LV_MAX; k++) { const s = num(r.st[k], 0, 3); if (s) st[k] = s; }
+    const top = lvMaxOf(m), max = num(r.max, 1, top), st = {};
+    if (r.st && typeof r.st === "object") for (let k = 1; k <= top; k++) { const s = num(r.st[k], 0, 3); if (s) st[k] = s; }
     out[m] = { max, cur: num(r.cur, 1, max), st, two: num(r.two, 0, 2), one: num(r.one, 0, 1) };
   }
   return out;
@@ -1033,13 +1033,20 @@ function showPick(m, info = {}) {
 // v6 介紹卡的等級徽章（§2.1、§1.4）：名字下面一排五顆圓形徽章（綠藍紫橘金＋數字，不用星星圖案免得跟分數混淆）；沒開的灰＋🔒；
 // 每顆下面小字＝那級最佳星數；預設選開到的最高級（max），點一顆＝這次玩那一級（存 cur）
 const lvBadge = (n, cls = "") => el("span", ("lv-badge lv" + n + " " + cls).trim(), String(n));
-function pickLevels(m, lockedM) {
+function pickLevels(m, lockedM, pg) {
   let row = $("pkLv"); if (!row) { row = el("div", "pk-lv"); row.id = "pkLv"; $("pkMeta").before(row); }   // 放在星星那一排（取代整體最佳星星：每顆徽章下面就有那級的星星），卡片才不會變高擋到小島
   const det = m === "detective" && save.detective && save.detective.lv;   // 10-13 阿葉「有幾個關卡還沒設定難易度」：偵探的五級原本只在偵探自己的開始畫面選 → 介紹卡也列出來（選的那級＝偵探選級畫面的預設）
   row.innerHTML = ""; const on = (LV_MODES.includes(m) || !!det) && !lockedM; row.classList.toggle("hidden", !on); $("pick").classList.toggle("has-lv", on); if (!on) return;
   const r = det ? save.detective.lv : lvRec(m), keep = det ? persist : lvSave;
-  if (r.cur !== r.max) { r.cur = r.max; keep(); }
-  for (let k = 1; k <= LV_MAX; k++) {
+  if (pg === undefined && r.cur !== r.max) { r.cur = r.max; keep(); }
+  let swEnd = null;
+  const top = det ? LV_MAX : lvMaxOf(m), from = top > LV_MAX && (pg === undefined ? r.cur > LV_MAX : pg) ? LV_MAX + 1 : 1;   // 10 級的遊戲分兩頁（1～5、6～10），卡片才不會變寬變高
+  if (top > LV_MAX) {
+    const sw = el("button", "lv-pick lv-page", from > 1 ? "◀" : "▶"); sw.type = "button"; sw.setAttribute("aria-label", from > 1 ? "看第 1 到 5 級" : "看第 6 到 10 級");
+    sw.onclick = e => { e.stopPropagation(); play("tap"); pickLevels(m, lockedM, from === 1); };
+    if (from > 1) row.appendChild(sw); else swEnd = sw;
+  }
+  for (let k = from; k <= from + LV_MAX - 1; k++) {
     const open = k <= r.max, b = el("button", "lv-pick" + (k === r.cur ? " on" : "") + (open ? "" : " locked")); b.type = "button"; b.dataset.lv = k;
     b.setAttribute("aria-label", open ? `第 ${k} 級` : `第 ${k} 級還沒打開`);
     b.appendChild(lvBadge(k)); if (!open) b.appendChild(el("i", "lv-lock", "🔒"));
@@ -1051,6 +1058,7 @@ function pickLevels(m, lockedM) {
     };
     row.appendChild(b);
   }
+  if (swEnd) row.appendChild(swEnd);
 }
 function hidePick() {
   if (!pickMode && $("pick").classList.contains("hidden")) return;
@@ -1388,8 +1396,8 @@ const LV_NEW = {
   tone:  { 2: "多了輕聲氣球！", 3: "氣球會飛了！還有金星沙漏！", 4: "氣球飛得更快！", 5: "兩個字的聲調都可能變！" },
   whack: { 2: "地鼠變狡猾了！", 3: "同時冒出三隻地鼠！", 4: "要敲四下才過關！", 5: "要敲五下才過關！" },
   frog:  { 2: "每排都有三片荷葉！", 3: "小心順序陷阱！還有金星沙漏！", 4: "四片荷葉，三個字的詞！", 5: "荷葉最多，要跳得更快！" },
-  fruit: { 2: "水果會變多喔！", 3: "小猴子來拿水果了！", 4: "有加也有減喔！", 5: "籃子會蓋起來，要記住有幾顆喔！" },   // 11-10 數學島（docs/zhuyin-math-plan.md §2、§3）
-  hop: { 2: "青蛙可以跳更遠了！", 3: "青蛙要往回跳囉！", 4: "往前跳、往回跳都有喔！", 5: "這次要算青蛙要跳幾下！" },
+  fruit: { 2: "水果會變多喔！", 3: "小猴子來拿水果了！", 4: "有加也有減喔！", 5: "籃子會蓋起來，要記住有幾顆喔！", 6: "水果會變多喔！", 7: "放滿一盒，再放下一盒！", 8: "小猴子來拿水果了！", 9: "有加也有減喔！", 10: "一箱有十顆水果！" },   // 11-10 數學島（docs/zhuyin-math-plan.md §2、§3）
+  hop: { 2: "青蛙可以跳更遠了！", 3: "青蛙要往回跳囉！", 4: "往前跳、往回跳都有喔！", 5: "這次要算青蛙要跳幾下！", 6: "荷葉的數字變大了！", 7: "青蛙要往回跳囉！", 8: "往前跳、往回跳都有喔！", 9: "這次要算青蛙要跳幾下！", 10: "青蛙一次跳好幾格！" },   // 11-14 6～10 級＝一年級（docs/zhuyin-math-plan.md §7）；阿葉：不要再加配音 → 沒錄過的句子只顯示不念
   catch: { 2: "接結尾一樣的音符！", 3: "音符會飄來飄去！還有金星沙漏！", 4: "聽聲音，接跟它押韻的音符！", 5: "接到一半會換目標喔！" },   // 11-01 v8 音符接接樂（docs/zhuyin-v8-plan.md §5.2）
 };
 const HG_TIP = "沙子蓋滿以前答對，就是金星喔！";      // 第一次開到第 3 級（有沙漏的遊戲）多說一句
@@ -1420,8 +1428,8 @@ function lvAfter(m, L, stars) {
   if (stars > prevSt) r.st[L] = stars;
   let up = 0, warm = 0;
   if (L === r.max) {
-    if (stars >= 3) { r.two = 0; r.one = 0; if (r.max < LV_MAX) up = ++r.max; }
-    else if (stars === 2) { r.one = 0; if (++r.two >= 3 && r.max < LV_MAX) { up = ++r.max; r.two = 0; } r.two = Math.min(2, r.two); }   // 連續 3 次 2 星也開（防卡死）
+    if (stars >= 3) { r.two = 0; r.one = 0; if (r.max < lvMaxOf(m)) up = ++r.max; }
+    else if (stars === 2) { r.one = 0; if (++r.two >= 3 && r.max < lvMaxOf(m)) { up = ++r.max; r.two = 0; } r.two = Math.min(2, r.two); }   // 連續 3 次 2 星也開（防卡死）
     else { r.two = 0; if (++r.one >= 2) { r.one = 0; if (r.max > 1) warm = r.max - 1; } }
   }
   if (up) r.cur = up;
@@ -2290,7 +2298,7 @@ function catchWin(r) {
 
 // ---------- 11-10 v10 數學島兩款（docs/zhuyin-math-plan.md）：🍎 水果籃算算看 js/zhuyin-fruit.js、🐸 青蛙跳荷葉 js/zhuyin-hop.js ----------
 // 第一次玩才載；出題共用 js/zhuyin-math-core.js。一局 10 題、不會輸；星星由模組算（第一次就答對 ≥9 題 3 星、≥7 題 2 星），走五級徽章（LV_MODES）。沒有貼紙。
-const MATH_SRC = { fruit: ["./zhuyin-fruit.js?v=1", "createFruitGame"], hop: ["./zhuyin-hop.js?v=1", "createHopGame"] };
+const MATH_SRC = { fruit: ["./zhuyin-fruit.js?v=2", "createFruitGame"], hop: ["./zhuyin-hop.js?v=2", "createHopGame"] };
 const importMath = m => mathMods[m] || (mathMods[m] = import(MATH_SRC[m][0]).catch(e => { mathMods[m] = null; throw e; }));
 function ensureMathGame(m, mod) {
   if (!mathGames[m]) mathGames[m] = mod[MATH_SRC[m][1]]($(m + "Root"), {
@@ -2899,8 +2907,8 @@ function resultVoice(st) {
 // ---------- v6 結算：開新一級的畫面、暖身鈕、加碼 ----------
 function lvResultVoice(st) {
   const r = st.lv; if (!r) return;
-  if (r.up) { queueTalk(LV_SAY[r.up]); queueTalk(LV_NEW[mode][r.up]); if (r.up === 3 && LVP[mode].hg) queueTalk(HG_TIP); }
-  else if (r.warm) queueTalk(LV_WARM[r.warm]);
+  if (r.up) { for (const t of [LV_SAY[r.up], LV_NEW[mode][r.up]]) if (t && (r.up <= LV_MAX || voiceHas(t))) queueTalk(t); if (r.up === 3 && LVP[mode].hg) queueTalk(HG_TIP); }   // 6 級以上：只念錄過的句子（不退回系統語音）
+  else if (r.warm && LV_WARM[r.warm]) queueTalk(LV_WARM[r.warm]);
 }
 function lvResultReset(st) { const b = $("lvWarmBtn"); if (b) b.classList.add("hidden"); $("resultAlbumBtn").classList.remove("hidden"); const o = $("lvUp"); if (o) o.classList.add("hidden"); }
 // 結算演完（或快轉）：開了新的一級＝跳出「🎉 第 N 級打開了！」卡（點一下關掉）；連 2 次 1 星＝結算按鈕多一顆「回第 N 級暖身」（不強迫）

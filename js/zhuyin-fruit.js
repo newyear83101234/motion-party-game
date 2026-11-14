@@ -8,6 +8,11 @@
 // 答錯第 1 次：那顆鈕搖一搖變灰，念「我們一起數數看」，籃子裡的水果自動一顆顆亮起來數一次。
 // 答錯第 2 次：另一顆錯的也變灰，只剩正確那顆發亮，要小孩自己點了才過（念整句）。
 // Lv5：先放的 a 顆看 3 秒後蓋上布（整個籃子），加法的 b 顆掉在布上面（看得到）、減法猴子從布下拿走 b 顆（手上看得到）；「👀 偷看」不限次、每次掀開 1.5 秒、不扣分。
+// 一年級 6～10 級（11-14，docs/zhuyin-math-plan.md §7.2）：不念題目、不念算式、不念 10 以上的數（emit 有守門：只念 OK6 裡有錄音的），靠畫面看懂。
+//   6～9 級＝兩盒十格（20 格，先放滿第一盒）：放滿的那盒亮起來掛「10」牌；新掉進來的 b 顆是淡藍底（算式裡的 b 同色）；猴子從最後面往前拿。
+//   10 級＝第一盒放箱子（一箱 10 顆，印 10）、第二盒放零散的：整十題箱子滑進來／猴子搬走箱子，二位數±一位數動零散的。
+//   兩盒的排法（左右並排 .fr-row／上下排）由 layout() 量畫面挑格子比較大的那種。答錯示範：整盒／一箱一次 10，接著一顆顆數（跳數字＋音）。
+//   每一級這次開機的第一題：手指示範一次（從第一顆比到最後一顆，再點答案鈕那一排）。蓋布（Lv5）6 級以上不用。
 // 結算：猴子跳到果汁機打出一大杯果汁（果汁機裡的水果數＝答對題數），之後 api.onWin({ lv, stars, right, wrong, total })。
 //
 // 介面（主程式照這個接）：createFruitGame(root, api) → { start(lv, { intro }), stop(), sayCurrent(), relayout(), state(), debug }
@@ -19,7 +24,7 @@
 // 圖片（主對話用 ChatGPT 生）：IMAGE/zhuyin/math/fruit_*.webp、monkey.webp、blender.webp、juice.webp；讀不到一律換 emoji。
 // 測試掛鉤：window.__zyFruit（state／answer／tapFruit／tapHand／peek／skip／play／round／events，見檔尾）。
 
-import { makeRound, makeChoices, eqText, numZh, qtyZh, starsOf, N_DEFAULT } from "./zhuyin-math-core.js?v=1";
+import { makeRound, makeChoices, makeChoicesBig, eqText, numZh, qtyZh, starsOf, N_DEFAULT, LV_MAX } from "./zhuyin-math-core.js?v=2";
 
 // 只用說「顆」的圓水果（櫻木 11-10：一題一種）
 export const FRUITS = [
@@ -67,9 +72,12 @@ export function voiceLines() {
   return { say: [...say], talk: [...talk] };
 }
 
+// 6 級以上（一年級）不念題目、不念算式、不念 10 以上的數：只准念這些（1～5 級已在用、voice/gemini_d/manifest.json 有錄音的）
+const OK6 = new Set([...Object.values(LINES), ...Array.from({ length: 10 }, (_, i) => countLine(i + 1))]);
+const SEEN = new Set();                                  // 這次開機已經做過手指示範的等級（6 級以上每級第一題示範一次）
 // 時間（毫秒；動畫的部分 prefers-reduced-motion 時縮短）
 const T = { first: 350, place: 270, settle: 450, view: 3000, cover: 450, drop: 440, hop: 340, take: 420, back: 320, ready: 220,
-  after: 500, clear: 380, count: 760, lock: 500, peek: 1500, endHop: 700, endJuice: 1100, endWin: 2600 };
+  after: 500, clear: 380, count: 760, count6: 520, ten: 650, show: 1200, finger: 2300, wiggle: 1500, hint: 480, idle: 9000, lock: 500, peek: 1500, endHop: 700, endJuice: 1100, endWin: 2600 };
 const rateUp = n => +(0.7 + 0.075 * n).toFixed(3);        // 籃子裡第 n 顆：音一顆比一顆高（拿走時用剩下的顆數＝往下降）
 const mulberry = s => () => { s |= 0; s = (s + 0x6d2b79f5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 
@@ -104,8 +112,10 @@ export function createFruitGame(root, api) {
   const slots = []; for (let i = 0; i < 10; i++) { const s = el("span", "fr-slot"); hand.appendChild(s); slots.push(s); }
   mk.append(mkPic, hand);
   const bkCol = el("div", "fr-bkcol"), bk = el("div", "fr-bk"), frame = el("div", "fr-frame"), cloth = el("div", "fr-cloth fr-off");
-  const cells = []; for (let i = 0; i < 10; i++) { const c = el("div", "fr-cell"); frame.appendChild(c); cells.push(c); }
-  frame.appendChild(cloth); bk.appendChild(frame);
+  const frame2 = el("div", "fr-frame fr-frame2"), frames = [frame, frame2];   // 第二盒十格：6 級以上才顯示（css .fr-two）
+  const cells = []; for (let i = 0; i < 20; i++) { const c = el("div", "fr-cell"); frames[i < 10 ? 0 : 1].appendChild(c); cells.push(c); }
+  for (const f of frames) f.appendChild(el("span", "fr-ten noann", "10"));   // 放滿十顆掛的小「10」牌（.fr-full 才看得到）
+  frame.appendChild(cloth); bk.appendChild(frame);   // frame2 到 6 級以上才接上去（layout()）：1～5 級的畫面結構跟以前一模一樣
   const peekBtn = el("button", "fr-peek fr-hide"); peekBtn.type = "button"; peekBtn.append(el("span", "fr-peek-i", "👀"), el("span", "fr-peek-t", "偷看"));
   bkCol.append(bk, peekBtn);
   const jc = el("div", "fr-jc"), jcPic = pic(PIC.blender, "fr-jc-pic"), dots = el("div", "fr-dots");
@@ -116,7 +126,8 @@ export function createFruitGame(root, api) {
   stage.append(eq, mk, bkCol, jc, ans); root.appendChild(stage);
   sayBtn.addEventListener("click", () => sayCurrent());
   peekBtn.addEventListener("click", () => peek());
-  frame.addEventListener("click", e => { const f = e.target.closest && e.target.closest(".fr-fruit"); if (f && frame.contains(f)) tapFruitEl(f); });
+  stage.addEventListener("pointerdown", () => touch(run));   // 6 級以上：有點東西就重新算發呆的 9 秒
+  bk.addEventListener("click", e => { const f = e.target.closest && e.target.closest(".fr-fruit"); if (f && bk.contains(f)) tapFruitEl(f); });
 
   // ---------- 版面：量舞台大小 → 格子大小 --c（橫式：猴子｜籃子｜果汁機；直式：猴子＋果汁機一排、籃子、答案鈕） ----------
   function layout() {
@@ -125,7 +136,31 @@ export function createFruitGame(root, api) {
     let c = tall ? Math.min(w * 0.14, h * 0.072) : Math.min(h * 0.105, w * 0.07);
     if (!tall && h < 600 && run && run.lv === 5) c = Math.min(c, h * 0.092);   // Lv5 籃子下面多一排「偷看」：很扁的畫面（手機橫放）縮一點
     stage.classList.toggle("fr-tall", tall);
-    stage.style.setProperty("--c", Math.max(24, c).toFixed(1) + "px");
+    const two = !!(run && run.lv >= 6);                    // 6 級以上：兩盒十格（Lv10＝一盒箱子＋一盒零散）
+    stage.classList.toggle("fr-two", two); stage.classList.toggle("fr-lv10", !!(run && run.lv === 10));
+    if (two) { if (frame2.parentNode !== bk) bk.appendChild(frame2); } else frame2.remove();
+    if (!two) { stage.classList.remove("fr-row"); stage.style.setProperty("--c", Math.max(24, c).toFixed(1) + "px"); return; }
+    // 兩盒：左右並排（fr-row）或上下排，各自從大的格子往下縮到放得下，挑格子比較大的那種（直式只排上下）
+    const setC = v => stage.style.setProperty("--c", v.toFixed(1) + "px");
+    let best = null;
+    for (const row of tall ? [false] : [true, false]) {
+      stage.classList.toggle("fr-row", row);
+      let v = tall ? Math.min(w * 0.14, h * 0.075) : row ? Math.min(h * 0.13, w * 0.06) : Math.min(h * 0.095, w * 0.08);
+      for (let k = 0; k < 40 && v > 24; k++) { setC(v); if (fitOK()) break; v *= 0.96; }
+      v = Math.max(24, v);
+      if (!best || v > best.v + 0.5) best = { row, v };
+    }
+    stage.classList.toggle("fr-row", best.row); setC(best.v);
+  }
+  function fitOK() {                                      // 五大塊都在舞台裡、不壓到左上的 🏠🎵（用版面位置 offset*：不受猴子跳的動畫影響）
+    const W = stage.clientWidth, H = stage.clientHeight; if (!W || !H) return true;
+    const tall = stage.classList.contains("fr-tall"), pt = parseFloat(getComputedStyle(stage).paddingTop) || 0, vm = Math.min(W, H) / 100, m = 5;
+    for (const e of [eq, mk, bkCol, jc, ans]) {
+      const l = e.offsetLeft, t = e.offsetTop, r = l + e.offsetWidth, b = t + e.offsetHeight;
+      if (l < m || r > W - m || t < (tall ? pt - 1 : m) || b > H - m - 4) return false;
+      if (!tall && l < 30 * vm && t < 16 * vm) return false;
+    }
+    return true;
   }
   try { new ResizeObserver(() => layout()).observe(stage); } catch (e) {}
 
@@ -133,6 +168,7 @@ export function createFruitGame(root, api) {
   const rndOf = () => (typeof api.seed === "number" ? mulberry(api.seed * 7919 + starts) : Math.random);
   const live = (R, st) => run === R && !R.done && R.step === st;
   function emit(kind, text, cb) {                         // 念一句（記到事件表給測試看）
+    if (run && run.lv >= 6 && !OK6.has(text)) { if (cb) later(cb, 0); return; }   // 6 級以上：沒錄音的句子一律不念（不退回系統語音）
     if (run) run.ev.push({ i: run.i, k: kind, text, t: Math.round(now()) });
     try { (kind === "talk" && api.talk ? api.talk : api.say)(text, cb); } catch (e) { if (cb) later(cb, 0); }
   }
@@ -208,7 +244,7 @@ export function createFruitGame(root, api) {
   const opEl = o => { const s = el("span", "fr-op " + OPS[o][0]); s.appendChild(el("i", "", OPS[o][1])); return s; };
   function setEq(q, shown) {                              // 算式卡（阿拉伯數字＋＋－＝，不加注音）；shown＝答對後把 ？ 換成答案
     eqT.textContent = "";
-    eqT.append(el("span", "fr-n", String(q.a)), opEl(q.op === "+" ? "+" : "-"), el("span", "fr-n", String(q.b)), opEl("="),
+    eqT.append(el("span", "fr-n fr-na", String(q.a)), opEl(q.op === "+" ? "+" : "-"), el("span", "fr-n fr-nb " + (q.op === "+" ? "fr-nb-add" : "fr-nb-sub"), String(q.b)), opEl("="),
       el("b", "fr-q" + (shown ? " fr-qa" : ""), shown ? String(q.ans) : "？"));
   }
   function setBtns(R, mode) {                             // mode：wait＝還不能按（灰掉、disabled）、on＝可以按
@@ -219,20 +255,21 @@ export function createFruitGame(root, api) {
   function badge(f, n) { let b = f.querySelector(".fr-num"); if (!b) { b = el("span", "fr-num"); f.appendChild(b); } b.textContent = String(n); f.dataset.n = n; anim(b, [{ transform: "scale(0.2)" }, { transform: "scale(1.25)", offset: 0.6 }, { transform: "none" }], { duration: mv(260), easing: "ease-out" }); }
   function clearBoard(R) {
     for (const c of cells) c.textContent = ""; for (const s of slots) s.textContent = "";
-    R.cells = Array(10).fill(null); R.hand = []; R.counted = 0; hand.classList.add("fr-empty");
+    R.cells = Array(R.nc).fill(null); R.hand = []; R.counted = 0; hand.classList.add("fr-empty"); hand.classList.remove("fr-crates");
+    for (const f of frames) { f.classList.remove("fr-full"); f.querySelector(".fr-ten").classList.remove("fr-ten-big"); }
     for (const f of stage.querySelectorAll(".fr-fx")) f.remove();
   }
 
   // ---------- 開局 ----------
   function start(lv = 1, { intro = false } = {}) {       // intro＝第一次玩：先念 LINES.intro（主程式把 fruit 放進 SELF_INTRO 時用）
-    stop(); lv = Math.min(5, Math.max(1, Math.floor(+lv) || 1)); starts++;
+    stop(); lv = Math.min(LV_MAX, Math.max(1, Math.floor(+lv) || 1)); starts++;
     const rnd = rndOf();
     begin(lv, makeRound("fruit", lv, N_DEFAULT, rnd), rnd, intro);
   }
-  function normRound(list) { return list.map(x => { const c = x.op === "+" ? x.a + x.b : x.a - x.b; return { op: x.op, a: x.a, b: x.b, c, ask: "c", ans: c, choices: x.choices || makeChoices(c) }; }); }
+  function normRound(list, lv = 1) { return list.map(x => { const c = x.op === "+" ? x.a + x.b : x.a - x.b; return { op: x.op, a: x.a, b: x.b, c, ask: "c", ans: c, choices: x.choices || (lv === 10 ? makeChoicesBig(c) : makeChoices(c, Math.random, 0, lv >= 6 ? 20 : 10)) }; }); }
   function begin(lv, round, rnd, intro = false) {
     run = { lv, round, rnd, i: 0, q: null, F: null, right: 0, wrong: 0, wrongQ: 0, streak: 0, flips: 0, step: 0, fast: -1, pend: new Set(), phase: "start", done: false,
-      cells: Array(10).fill(null), hand: [], counted: 0, covered: false, peeking: false, peeks: 0, peekTok: 0, coverSaid: false, full: false, results: [], ev: [], ignored: 0, juice: 0, lastF: null, hopD: null, hopAnim: null, won: null };
+      nc: lv >= 6 ? 20 : 10, cells: Array(lv >= 6 ? 20 : 10).fill(null), hand: [], counted: 0, covered: false, peeking: false, peeks: 0, peekTok: 0, coverSaid: false, full: false, results: [], ev: [], ignored: 0, juice: 0, lastF: null, hopD: null, hopAnim: null, won: null, idled: false, idleTok: 0 };
     const R = run;
     stage.classList.toggle("fr-lv5", lv === 5); stage.classList.remove("fr-end"); peekBtn.classList.toggle("fr-hide", lv !== 5);
     for (const d of dotEls) { d.className = "fr-dot"; d.textContent = ""; }
@@ -244,7 +281,8 @@ export function createFruitGame(root, api) {
   function stop() {
     if (run) { run.done = true; run.pend.clear(); run = null; }
     stage.classList.remove("fr-end"); stopAnims(); for (const c of cells) c.textContent = ""; for (const s of slots) s.textContent = ""; hand.classList.add("fr-empty");
-    cloth.classList.add("fr-off"); peekBtn.classList.add("fr-off");
+    cloth.classList.add("fr-off"); peekBtn.classList.add("fr-off"); hand.classList.remove("fr-crates");
+    for (const f of frames) { f.classList.remove("fr-full"); f.querySelector(".fr-ten").classList.remove("fr-ten-big"); }
     for (const f of stage.querySelectorAll(".fr-fx")) f.remove();
     for (const d of dotEls) { d.className = "fr-dot"; d.textContent = ""; }
     btns.forEach(b => { b.disabled = true; b.classList.add("fr-wait"); b.classList.remove("fr-x", "fr-ok", "fr-glow"); });
@@ -253,11 +291,11 @@ export function createFruitGame(root, api) {
 
   // ---------- 一題 ----------
   function question(R) {
-    const st = ++R.step; R.q = R.round[R.i]; R.wrongQ = 0; R.full = R.i < 2; R.phase = "build";
+    const st = ++R.step; R.q = R.round[R.i]; R.wrongQ = 0; R.full = R.i < 2; R.phase = "build"; R.idled = false; R.idleTok++;
     const pool = FRUITS.filter(f => f !== R.lastF); R.F = pool[Math.floor(R.rnd() * pool.length)]; R.lastF = R.F;   // 一題一種、不跟上一題同一種
     clearBoard(R); setCover(R, false); setEq(R.q, false); setBtns(R, "wait");
     dotEls.forEach((d, k) => d.classList.toggle("fr-cur", k === R.i));
-    build(R, st);
+    if (R.lv >= 6) buildG1(R, st); else build(R, st);
   }
   async function build(R, st) {
     const q = R.q, full = R.full;
@@ -285,6 +323,148 @@ export function createFruitGame(root, api) {
     if (!full) { await actP; if (live(R, st) && R.phase === "input") emit("say", askLine(q)); }   // 縮短版：動作句念完再問「有幾顆？」（已經按了就不問）
   }
 
+  // ---------- 一年級（6～10 級）：兩盒十格、Lv10 一箱十顆；不念題目，靠畫面 ----------
+  const valueOf = R => R.cells.reduce((s, f) => s + (f ? +f.dataset.u || 1 : 0), 0);   // 畫面上的數量（一箱算 10）
+  const pitch6 = R => rateUp(((basketCount(R) - 1 + 10) % 10) + 1);   // 音高：每盒從頭升一次（聽得出「滿十」）
+  const DOT = { apple: "#e03131", orange: "#f76707", strawberry: "#e8344e", peach: "#ff8fa3", lemon: "#f5b800" };   // 箱子上小點的顏色＝這題的水果
+  function crateEl(F) {                                   // 一箱十顆（css 畫的木箱）：箱面是 2×5 小點（十格的縮小版，看得出裡面有 10 顆）、下面印 10
+    const f = el("div", "fr-fruit fr-crate"), box = el("span", "fr-crate-box"), dots = el("span", "fr-crate-dots");
+    for (let i = 0; i < 10; i++) dots.appendChild(el("i"));
+    box.append(dots, el("b", "fr-crate-n noann", "10")); f.appendChild(box); f.style.setProperty("--fc", DOT[F.id] || "#e03131"); f.dataset.f = F.id; f.dataset.u = "10"; return f;
+  }
+  function putItem(R, k, how, o = {}) {                   // 第 k 格放一顆／一箱（how：pop＝本來就有、drop＝掉進來、slide＝箱子滑進來；o.fresh＝新來的，底色不同）
+    const f = o.crate ? crateEl(R.F) : fruitEl(R.F); f.dataset.k = k; if (!o.crate) f.dataset.u = "1"; if (o.fresh) f.classList.add("fr-new");
+    cells[k].appendChild(f); R.cells[k] = f;
+    const c = cpx();
+    if (how === "drop") anim(f, [{ transform: `translateY(${(-2.4 * c).toFixed(1)}px)`, opacity: 0 }, { opacity: 1, offset: 0.25 }, { transform: "translateY(0) scale(1.1, 0.88)", offset: 0.8 }, { transform: "none", opacity: 1 }], { duration: mv(380), easing: "cubic-bezier(.45,0,.8,.6)" });
+    else if (how === "slide") anim(f, [{ transform: `translateX(${(-2.2 * c).toFixed(1)}px)`, opacity: 0 }, { opacity: 1, offset: 0.3 }, { transform: "translateX(4%)", offset: 0.85 }, { transform: "none", opacity: 1 }], { duration: mv(420), easing: "ease-out" });
+    else anim(f, [{ transform: `translateY(${(-0.5 * c).toFixed(1)}px) scale(0.3)`, opacity: 0 }, { transform: "scale(1.12)", opacity: 1, offset: 0.7 }, { transform: "none", opacity: 1 }], { duration: mv(300), easing: "ease-out" });
+    if (!o.quiet) api.play("pop", pitch6(R));
+    R.ev.push({ i: R.i, k: "put", n: k, t: Math.round(now()) });
+  }
+  function takeItem(R, k, j) {                            // 猴子把第 k 格那顆／那箱拿到手上第 j 個位置
+    const src = R.cells[k]; if (!src) return;
+    const crate = src.dataset.u === "10", from = rectC(src); src.remove(); R.cells[k] = null;
+    const f = crate ? crateEl(R.F) : fruitEl(R.F); f.classList.add("fr-mini"); hand.classList.toggle("fr-crates", crate);
+    slots[j].appendChild(f); R.hand.push(f); hand.classList.remove("fr-empty");
+    flyFrom(f, from, 360);
+    api.play("pop", rateUp((basketCount(R) % 10) + 1)); R.ev.push({ i: R.i, k: "take", n: k, t: Math.round(now()) });
+  }
+  function markTens(R, quiet) {                           // 6～9 級：放滿的那盒亮起來、掛「10」牌；被拿走就拿掉。回傳這次有沒有新放滿的
+    let made = false;
+    frames.forEach((fm, i) => {
+      const full = R.lv < 10 && R.cells.slice(i * 10, i * 10 + 10).every(Boolean), was = fm.classList.contains("fr-full");
+      fm.classList.toggle("fr-full", full);
+      if (full && !was) {
+        made = true; R.ev.push({ i: R.i, k: "ten", n: i, t: Math.round(now()) });
+        const tag = fm.querySelector(".fr-ten");
+        anim(tag, [{ scale: "0.2" }, { scale: "1.5", offset: 0.6 }, { scale: "1" }], { duration: mv(420), easing: "ease-out" });
+        if (!quiet) { anim(fm, [{ filter: "brightness(1)" }, { filter: "brightness(1.25)", offset: 0.4 }, { filter: "brightness(1)" }], { duration: mv(520) }); api.play("select"); }
+      }
+    });
+    return made;
+  }
+  async function buildG1(R, st) {
+    const q = R.q, big = R.lv === 10, add = q.op === "+", ta = Math.floor(q.a / 10), oa = q.a % 10;
+    const nA = eqT.querySelector(".fr-na"), nB = eqT.querySelector(".fr-nb");
+    await wait(R, st, T.first); if (!live(R, st)) return;
+    if (nA) bounce(nA);
+    if (big) {                                            // Lv10：幾箱（左／上那盒）＋幾顆零散的（右／下那盒）
+      for (let k = 0; k < ta; k++) { putItem(R, k, "pop", { crate: true }); await wait(R, st, mv(190)); if (!live(R, st)) return; }
+      for (let k = 0; k < oa; k++) { putItem(R, 10 + k, "pop"); await wait(R, st, mv(190)); if (!live(R, st)) return; }
+    } else {
+      let k = 0;
+      if (q.a >= 10) {                                    // 十幾：第一盒整盒直接出現
+        for (; k < 10; k++) putItem(R, k, "pop", { quiet: k > 0 });
+        markTens(R, true); await wait(R, st, mv(T.place * 2)); if (!live(R, st)) return;
+      }
+      for (; k < q.a; k++) { putItem(R, k, "pop"); await wait(R, st, mv(210)); if (!live(R, st)) return; }
+    }
+    await wait(R, st, T.settle); if (!live(R, st)) return;
+    if (nB) bounce(nB);
+    const tens = big && q.b % 10 === 0, nb = tens ? q.b / 10 : q.b, base = big ? (tens ? ta : 10 + oa) : q.a;   // 這題動的是箱子還是零散的、動幾個、從第幾格接下去
+    if (add) {
+      for (let j = 0; j < nb; j++) {
+        putItem(R, base + j, tens ? "slide" : "drop", { crate: tens, fresh: true });
+        const made = markTens(R);
+        await wait(R, st, mv(tens ? 520 : T.drop)); if (!live(R, st)) return;
+        if (made && j < nb - 1) { await wait(R, st, mv(T.ten)); if (!live(R, st)) return; }   // 剛好放滿一盒：停一下（看見「湊成 10、再多幾顆」）
+      }
+    } else {
+      hop(R, bk); await wait(R, st, mv(T.hop)); if (!live(R, st)) return;
+      for (let j = 0; j < nb; j++) { takeItem(R, base - 1 - j, j); markTens(R); await wait(R, st, mv(T.take)); if (!live(R, st)) return; }   // 從最後面往前拿（先拿第二盒、不夠再拿第一盒）
+      hop(R, null, true); await wait(R, st, mv(T.back)); if (!live(R, st)) return;
+    }
+    await wait(R, st, T.ready); if (!live(R, st)) return;
+    if (R.i === 0 && !SEEN.has(R.lv)) { SEEN.add(R.lv); await showHow(R, st); if (!live(R, st)) return; }   // 這次開機第一次玩這一級：示範一次
+    R.phase = "input"; setBtns(R, "on"); R.ev.push({ i: R.i, k: "ready", t: Math.round(now()) });
+    const qm = eqT.querySelector(".fr-q"); if (qm) bounce(qm);
+    for (const fm of frames) if (fm.classList.contains("fr-full")) {   // 滿盒的「10」牌放大跳一下：可以從 10 接著數
+      const tag = fm.querySelector(".fr-ten"); tag.classList.add("fr-ten-big");
+      anim(tag, [{ scale: "1" }, { scale: "1.9", offset: 0.45 }, { scale: "1.35", offset: 0.75 }, { scale: "1.5" }], { duration: mv(520), easing: "ease-out" });
+    }
+    armIdle(R);
+  }
+  // 示範怎麼玩（每級這次開機第一題；發呆太久再播一次）。期間 phase 不是 input＝答案鈕、水果都點不動。
+  //   6～9 級：手指從第一顆比到最後一顆。10 級：箱子上依序跳 10、20、30…（一箱就是 10），零散的不跳（不洩答案）。
+  //   最後手指在三顆答案鈕上方左右晃一下（不按下去、不停在哪一顆：小孩不會學成「點中間」）。
+  async function showHow(R, st) {
+    R.ev.push({ i: R.i, k: "finger", t: Math.round(now()) });
+    const sr = stage.getBoundingClientRect(), fr = basketFruits(R);
+    const fg = el("div", "fr-finger fr-fx", "👆"); stage.appendChild(fg);
+    const w = fg.offsetWidth || cpx(), hh = fg.offsetHeight || cpx();
+    const tr = (x, y) => `translate(${(x - sr.left - w / 2).toFixed(1)}px, ${(y - sr.top).toFixed(1)}px)`;
+    if (R.lv === 10) {
+      clearBadges(R);
+      const crates = fr.filter(f => f.dataset.u === "10");
+      for (let k = 0; k < crates.length; k++) {
+        crates[k].classList.add("fr-lit"); badge(crates[k], (k + 1) * 10); bounce(crates[k]); api.play("tap", rateUp(k + 1));
+        R.ev.push({ i: R.i, k: "hint", n: (k + 1) * 10 });
+        await wait(R, st, T.hint); if (!live(R, st)) { fg.remove(); return; }
+      }
+      await wait(R, st, 300); if (!live(R, st)) { fg.remove(); return; }
+      clearBadges(R);
+    } else {
+      const P = e => { const r = e.getBoundingClientRect(); return tr(r.left + r.width / 2, r.top + r.height * 0.55); };
+      const a = P(fr[0] || bk), b = P(fr[fr.length - 1] || bk), dur = mv(T.finger * 0.6);
+      anim(fg, [{ transform: a, opacity: 0 }, { transform: a, opacity: 1, offset: 0.2 }, { transform: b, opacity: 1, offset: 0.85 }, { transform: b, opacity: 0 }], { duration: dur, easing: "ease-in-out", fill: "forwards" });
+      await wait(R, st, dur); if (!live(R, st)) { fg.remove(); return; }
+    }
+    fg.textContent = "👇";                                 // 指著下面那排答案鈕：停在鈕的上方左右晃
+    const b0 = btns[0].getBoundingClientRect(), b2 = btns[2].getBoundingClientRect(), y = b0.top - hh * 1.08, x0 = b0.left + b0.width / 2, x2 = b2.left + b2.width / 2, xm = (x0 + x2) / 2;
+    anim(fg, [{ transform: tr(xm, y), opacity: 0 }, { transform: tr(xm, y), opacity: 1, offset: 0.12 }, { transform: tr(x0, y), opacity: 1, offset: 0.36 }, { transform: tr(x2, y), opacity: 1, offset: 0.7 },
+      { transform: tr(xm, y), opacity: 1, offset: 0.9 }, { transform: tr(xm, y), opacity: 0 }], { duration: mv(T.wiggle), easing: "ease-in-out", fill: "forwards" });
+    await wait(R, st, mv(T.wiggle)); fg.remove();
+  }
+  // 發呆：可以作答之後 T.idle（約 9 秒）都沒有點任何東西 → 自動再示範一次（每題最多一次；作答過就不再播）。api.later＝暫停會凍結
+  function armIdle(R) {
+    if (R.lv < 6 || R.idled) return;
+    const me = ++R.idleTok, i = R.i;
+    later(() => { if (run === R && !R.done && R.i === i && R.idleTok === me && !R.idled && R.phase === "input") idleShow(R); }, T.idle);
+  }
+  function touch(R) { if (R && R.lv >= 6 && !R.idled && R.phase === "input") armIdle(R); }   // 有點東西：重新算 9 秒
+  async function idleShow(R) {
+    const st = ++R.step; R.idled = true; R.phase = "demo"; R.ev.push({ i: R.i, k: "idle", t: Math.round(now()) });
+    await showHow(R, st); if (!live(R, st)) return;
+    R.phase = "input";
+  }
+  async function demoG1(R, st, fr) {                      // 答錯示範：整盒＝10（一次亮）、一箱一箱 10、20、30…，再接著一顆顆往下數；跳出數字＋音，不念
+    let n = 0, idx = 0;
+    const step = async (els, addN, on) => {
+      n += addN; idx++; for (const f of els) f.classList.add("fr-lit");
+      badge(on, n); bounce(on); R.counted = n; api.play("tap", rateUp(((idx - 1) % 10) + 1));
+      await wait(R, st, T.count6); return live(R, st);
+    };
+    if (R.lv < 10 && R.cells.slice(0, 10).every(Boolean)) {
+      const grp = R.cells.slice(0, 10); grp.forEach((f, i) => { f.dataset.n = i + 1; });
+      const tag = frame.querySelector(".fr-ten"); anim(tag, [{ scale: "1" }, { scale: "1.6", offset: 0.5 }, { scale: "1" }], { duration: mv(420) });
+      if (!(await step(grp, 10, grp[9]))) return false;
+      fr = fr.filter(f => !grp.includes(f));
+    }
+    for (const f of fr) if (!(await step([f], +f.dataset.u || 1, f))) return false;
+    return true;
+  }
+
   // ---------- 作答 ----------
   function choose(v, b) {
     const R = run; if (!R || R.done) return "nogame";
@@ -292,6 +472,7 @@ export function createFruitGame(root, api) {
     if (!b || b.disabled || b.classList.contains("fr-x")) { R.ignored++; return "dead"; }
     if (R.phase === "forced" && v !== R.q.ans) { R.ignored++; return "dead"; }
     stopVoice();                                          // 一按就打斷語音
+    R.idled = true; R.idleTok++;                           // 作答過了：這題不再自動示範
     if (v === R.q.ans) { right(R, b); return "right"; }
     wrong(R, b); return "wrong";
   }
@@ -304,7 +485,7 @@ export function createFruitGame(root, api) {
     anim(bk, [{ transform: "none" }, { transform: "translateY(-6%) scale(1.03, 0.97)", offset: 0.35 }, { transform: "translateY(0) scale(0.98, 1.02)", offset: 0.7 }, { transform: "none" }], { duration: mv(420), easing: "ease-out" });   // 籃子跳一下
     for (const f of basketFruits(R)) f.classList.add("fr-glow");
     api.play("ok");
-    const sp = speak(R, st, "say", eqText(q), 1200);   // 「三加二等於五」一定念
+    const sp = R.lv >= 6 ? wait(R, st, T.show) : speak(R, st, "say", eqText(q), 1200);   // 「三加二等於五」一定念（6 級以上不念：算式卡的 ？ 換成答案給他看）
     if (first) juiceIn(R, i); else dotEls[i].classList.add("fr-help");
     if (first && R.streak % 3 === 0) flip(R);
     await sp; if (!live(R, st)) return;
@@ -324,12 +505,15 @@ export function createFruitGame(root, api) {
       R.phase = "demo"; setCover(R, false); clearBadges(R);
       await speak(R, st, "talk", LINES.count, 500); if (!live(R, st)) return;
       const fr = basketFruits(R);
-      if (!fr.length) { await speak(R, st, "say", LINES.none, 900); if (!live(R, st)) return; }
-      for (let k = 0; k < fr.length; k++) {
-        fr[k].classList.add("fr-lit"); badge(fr[k], k + 1); bounce(fr[k]); R.counted = k + 1;
-        await speak(R, st, "say", countLine(k + 1), T.count); if (!live(R, st)) return;
+      if (R.lv >= 6) { if (!(await demoG1(R, st, fr))) return; }   // 一年級：整盒＝10、一箱＝10，接著往下數（跳出數字＋音，不念）
+      else {
+        if (!fr.length) { await speak(R, st, "say", LINES.none, 900); if (!live(R, st)) return; }
+        for (let k = 0; k < fr.length; k++) {
+          fr[k].classList.add("fr-lit"); badge(fr[k], k + 1); bounce(fr[k]); R.counted = k + 1;
+          await speak(R, st, "say", countLine(k + 1), T.count); if (!live(R, st)) return;
+        }
       }
-      R.ev.push({ i: R.i, k: "demo", n: fr.length });
+      R.ev.push({ i: R.i, k: "demo", n: R.lv >= 6 ? valueOf(R) : fr.length });
       await wait(R, st, 400); if (!live(R, st)) return;
       for (const f of fr) f.classList.remove("fr-lit");
       R.phase = "input";
@@ -394,8 +578,8 @@ export function createFruitGame(root, api) {
     if (!f.isConnected || !R.cells.includes(f)) return 0;           // 只數籃子裡的（猴子手上的不算）
     if (R.covered && !R.peeking && !f.classList.contains("fr-top")) return 0;   // 蓋著布的看不到
     let n = +f.dataset.n || 0;
-    if (!n) { n = ++R.counted; badge(f, n); }
-    bounce(f); api.play("tap", rateUp(n)); emit("say", countLine(n)); R.ev.push({ i: R.i, k: "tap", n });
+    if (!n) { n = (R.counted += +f.dataset.u || 1); badge(f, n); }   // 一箱算 10（Lv10）
+    bounce(f); api.play("tap", rateUp(R.lv >= 6 ? (R.lv === 10 ? 5 : ((n - 1) % 10) + 1) : n)); emit("say", countLine(n)); R.ev.push({ i: R.i, k: "tap", n }); touch(R);   // 6 級以上只有 ≤ 10 的數會念（emit 守門）；點水果＝有在動，發呆計時重來
     return n;
   }
   function peek() {
@@ -407,6 +591,7 @@ export function createFruitGame(root, api) {
   }
   async function sayCurrent() {                           // 💬／🔊：再念一次題目（念完整句）
     const R = run; if (!R || R.done || (R.phase !== "input" && R.phase !== "forced")) return false;
+    if (R.lv >= 6) { bounce(eqT); for (const f of [...basketFruits(R).filter(x => x.classList.contains("fr-new")), ...R.hand]) bounce(f); return true; }   // 6 級以上不念：新來的／被拿走的跳一下
     const st = R.step; stopVoice();
     await speak(R, st, "say", openLine(R.q.a, R.F)); if (!live(R, st)) return true;
     emit("say", actLine(R.q, true)); return true;
@@ -417,7 +602,8 @@ export function createFruitGame(root, api) {
   function state() {
     const R = run; if (!R) return null;
     return { lv: R.lv, i: R.i, n: R.round.length, q: R.q && { op: R.q.op, a: R.q.a, b: R.q.b, c: R.q.c, ans: R.q.ans, choices: R.q.choices.slice() }, fruit: R.F && R.F.id,
-      phase: R.phase, full: R.full, basket: basketCount(R), hand: R.hand.length, cells: R.cells.map(Boolean), covered: R.covered, peeking: R.peeking, peeks: R.peeks,
+      phase: R.phase, full: R.full, value: valueOf(R), boxes: R.cells.filter(f => f && f.dataset.u === "10").length, loose: R.cells.filter(f => f && f.dataset.u !== "10").length,
+      tens: frames.map(f => f.classList.contains("fr-full")), tenBig: frames.map(f => f.querySelector(".fr-ten").classList.contains("fr-ten-big")), idled: R.idled, news: R.cells.filter(f => f && f.classList.contains("fr-new")).length, row: stage.classList.contains("fr-row"), basket: basketCount(R), hand: R.hand.length, cells: R.cells.map(Boolean), covered: R.covered, peeking: R.peeking, peeks: R.peeks,
       wrongQ: R.wrongQ, right: R.right, wrong: R.wrong, streak: R.streak, flips: R.flips, juice: R.juice, ignored: R.ignored, done: R.done, won: R.won,
       enabled: btns.filter(b => !b.disabled && !b.classList.contains("fr-x") && (R.phase === "input" || (R.phase === "forced" && +b.dataset.v === R.q.ans))).map(b => +b.dataset.v),
       grey: btns.filter(b => b.classList.contains("fr-x")).map(b => +b.dataset.v), glow: glowV(),
@@ -429,9 +615,10 @@ export function createFruitGame(root, api) {
     tapFruit: i => { const R = run; const f = R && basketFruits(R)[i]; return f ? tapFruitEl(f) : 0; },
     tapHand: i => { const R = run; const f = R && R.hand[i]; return f ? tapFruitEl(f) : 0; },
     peek, skip: () => { const R = run; if (!R) return false; R.fast = R.step; for (const d of [...R.pend]) d(); return true; },
-    play: (lv, list) => { stop(); lv = Math.min(5, Math.max(1, lv | 0 || 1)); starts++; const rnd = rndOf(); begin(lv, list ? normRound(list) : makeRound("fruit", lv, N_DEFAULT, rnd), rnd); return true; },
+    play: (lv, list) => { stop(); lv = Math.min(LV_MAX, Math.max(1, lv | 0 || 1)); starts++; const rnd = rndOf(); begin(lv, list ? normRound(list, lv) : makeRound("fruit", lv, N_DEFAULT, rnd), rnd); return true; },
     round: () => (run ? run.round.map(q => ({ op: q.op, a: q.a, b: q.b, c: q.c, ans: q.ans, choices: q.choices.slice() })) : null),
     events: () => (run ? run.ev.slice() : []),
+    tune: o => Object.assign(T, o || {}),                 // 測試調時間（例：{ idle: 1500 }）；回傳目前全部的時間常數
     layout: () => ({ c: cpx(), tall: stage.classList.contains("fr-tall") }),
   };
   const api_ = { start, stop, sayCurrent, relayout: layout, state, debug };

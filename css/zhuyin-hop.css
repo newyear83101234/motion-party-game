@@ -32,6 +32,12 @@
 .hop-foot { font-size: max(4.4vmin, 16px); line-height: 1; padding: 0.35vmin; opacity: 0.22; filter: grayscale(1); transition: opacity 0.25s, filter 0.25s, scale 0.25s; }
 .hop-foot.on { opacity: 1; filter: none; background: #ffe58a; border-radius: 50%; box-shadow: 0 0 0 0.3vmin #ffcf3a; }
 .hop-foot.hop-qm { opacity: 1; filter: none; font-weight: 900; color: #8a97a3; }
+/* v11 6 級以上：🔊 收起來（不念題目）；腳印超過 5 個排兩排（一排 5 個）；10 級腳印下面標一次跳多少 */
+.hop-g1 .hop-say { display: none; }
+.hop-feet.two { display: grid; grid-template-columns: repeat(5, auto); gap: max(0.6vmin, 4px) 0.5vmin; justify-items: center; }
+.hop-foot.lab { display: inline-flex; flex-direction: column; align-items: center; gap: 0.2vmin; padding: 0.4vmin 0.7vmin; }
+.hop-foot.lab.on { border-radius: 1.4vmin; }
+.hop-foot.lab > b { font-size: max(0.8em, 14px); font-weight: 900; line-height: 1; color: #5a3200; }
 /* 進度：白色托盤裡 10 個圓格；還沒吃到＝圓格裡一隻淡淡的灰蜻蜓（一眼數得出還剩幾隻），吃到＝黃底彩色 */
 .hop-prog { flex: none; pointer-events: none; display: grid; grid-template-columns: repeat(5, auto); gap: 0.4vmin 0.5vmin; padding: 0.6vmin 0.8vmin;
   background: rgba(255,255,255,0.86); border: 0.4vmin solid rgba(87,176,90,0.6); border-radius: 2.4vmin; box-shadow: 0 0.6vmin 0 rgba(36,81,92,0.15); }
@@ -57,6 +63,11 @@
   display: flex; align-items: center; justify-content: center; font-size: calc(var(--u) * 0.36); font-weight: 900; line-height: 1; color: #1b4fa0;
   background: rgba(255,255,255,0.95); border-radius: calc(var(--u) * 0.18); box-shadow: 0 0.4vmin 0 rgba(20,60,90,0.25); }
 .hop-pad.start .hop-num { background: #ffd54a; color: #5a3200; }
+/* v11 6～9 級：整十的荷葉（10、20）＝地標：號碼牌藍底白字、荷葉偏藍綠；青蛙剛好站在整十＝黃底加藍框。三位數（100）字縮小 */
+.hop-pad.ten .hop-num { background: #1b4fa0; color: #fff; box-shadow: 0 0.4vmin 0 rgba(10,30,70,0.45); }
+.hop-pad.ten .hop-leaf { filter: hue-rotate(55deg) saturate(1.25) drop-shadow(0 0.5vmin 0.6vmin rgba(0,40,80,0.28)); }
+.hop-pad.start.ten .hop-num { background: #ffd54a; color: #5a3200; box-shadow: 0 0 0 max(0.45vmin, 2px) #1b4fa0; }
+.hop-num.n3 { font-size: calc(var(--u) * 0.3); padding: 0 calc(var(--u) * 0.04); }
 .hop-pad.glow .hop-leaf { background-image: url("../IMAGE/zhuyin/lilypad_flower.webp"); animation: hopGlow 0.8s ease-in-out infinite alternate; }
 .hop-pad.glow .hop-num { background: #ffd54a; color: #5a3200; box-shadow: 0 0 0 0.6vmin #ff9f1c; }
 .hop-pad.sink .hop-leaf { animation: hopSink 0.7s ease-in-out; }
@@ -85,6 +96,12 @@
 .hop-burp { position: absolute; z-index: 6; font-size: calc(var(--u) * 0.6); line-height: 1; pointer-events: none; animation: hopBurp 1.3s ease-out forwards; }
 @keyframes hopBurp { 0% { opacity: 0; scale: 0.4; } 25% { opacity: 1; scale: 1.2; } 100% { opacity: 0; scale: 1.5; translate: 0 calc(var(--u) * -0.6); } }
 
+/* v11 6 級以上：每跳一下青蛙頭上跳出的數字（6～8 級跳到的數、9 級第幾下＝橘色；10 級「＋5」「－5」＝紫色）；位置、動畫由程式寫 */
+.hop-pop { position: absolute; z-index: 6; pointer-events: none; white-space: nowrap; display: flex; align-items: center; gap: 0.06em; padding: 0.1em 0.34em; border-radius: 0.5em;
+  font-size: calc(var(--u) * 0.46); font-weight: 900; line-height: 1.1; color: #fff; background: #f2691e; box-shadow: 0 0.4vmin 0 rgba(90,40,0,0.3); transform: translate(-50%, -100%); }
+.hop-pop.skip { background: #7a4be0; }
+.hop-pop .hop-op { position: relative; flex: none; width: 0.62em; height: 0.62em; color: #fff; }
+
 /* 蜻蜓（位置用 transform 由程式寫；--fd 面向） */
 .hop-fly { position: absolute; left: 0; top: 0; z-index: 5; width: var(--flyS); height: var(--flyS); pointer-events: none;
   transition-property: transform, opacity; transition-timing-function: ease-in-out, ease-out; }
@@ -105,6 +122,10 @@
 .hop-ch { width: var(--cb); height: var(--cb); padding: 0; border-radius: calc(var(--cb) * 0.26); border: 0.6vmin solid #57b05a; background: #fff; color: #1b4fa0;
   font-size: calc(var(--cb) * 0.56); font-weight: 900; line-height: 1; box-shadow: 0 0.8vmin 0 #3a8a3e; touch-action: manipulation; cursor: pointer; }
 .hop-ch:active { scale: 0.93; }
+/* v11 Lv9：數字鈕左上一個小腳印（＝要跳幾下），數字往下讓一點；算式卡的「腳印＋？」 */
+.hop-ch.ft { position: relative; padding-top: calc(var(--cb) * 0.16); font-size: calc(var(--cb) * 0.5); }
+.hop-ch-foot { position: absolute; left: 7%; top: 5%; font-size: calc(var(--cb) * 0.27); line-height: 1; pointer-events: none; }
+.hop-foot.hop-qf > b { color: #ff6f86; }
 .hop-ch.dim { filter: grayscale(1); opacity: 0.45; }
 .hop-ch.ok { background: #c9f2c0; }
 .hop-ch.glow { background: #ffd54a; border-color: #ff9f1c; animation: hopBtnGlow 0.8s ease-in-out infinite alternate; }

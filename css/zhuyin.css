@@ -1105,6 +1105,8 @@ body.pick-on #menu > .menu-bottom { opacity: 0; visibility: hidden; transition: 
 .lv-badge { display: inline-grid; place-items: center; width: 8vmin; height: 8vmin; border-radius: 50%; font-size: 4.6vmin; font-weight: 900; color: #fff; line-height: 1;
   box-shadow: inset 0 -0.6vmin 0 rgba(0,0,0,0.18), 0 0.4vmin 1vmin rgba(0,0,0,0.2); text-shadow: 0 0.2vmin 0 rgba(0,0,0,0.25); }
 .lv-badge.lv1 { background: #3fae55; } .lv-badge.lv2 { background: #3a86e0; } .lv-badge.lv3 { background: #9256d9; } .lv-badge.lv4 { background: #f08a24; } .lv-badge.lv5 { background: #e2a900; }
+.lv-badge.lv6 { background: #1fa7a0; } .lv-badge.lv7 { background: #d94f8a; } .lv-badge.lv8 { background: #5b63d6; } .lv-badge.lv9 { background: #d9542b; } .lv-badge.lv10 { background: #7a4a1e; letter-spacing: -0.08em; }   /* 11-14 數學島 6～10 級（一年級） */
+.lv-pick.lv-page { justify-content: center; align-self: center; font-size: 3.6vmin; font-weight: 900; color: #5a4a2a; border: 0.4vmin solid #e8d9a8; background: #fffbe8; cursor: pointer; }
 .lv-badge.big { width: 20vmin; height: 20vmin; font-size: 11vmin; box-shadow: inset 0 -1.2vmin 0 rgba(0,0,0,0.18), 0 0 0 1vmin #fff, 0 0 0 1.6vmin rgba(255,213,74,0.7); }
 /* 介紹卡：說明下面一排五顆（放在原本最佳星星那一排，卡片幾乎不變高），點一顆＝這次玩那一級；沒開的灰＋🔒；下面小字＝那級最佳星數 */
 .pk-lv { display: flex; gap: 1vmin; flex-wrap: nowrap; align-items: flex-start; }

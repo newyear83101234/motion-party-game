@@ -94,16 +94,47 @@ async function playRound(p, m, wrongAt = []) {
       const back = await p.evaluate(m => ({ menu: !document.getElementById("menu").classList.contains("hidden"), mode: window.__zy.mode, scr: document.getElementById(m).classList.contains("hidden") }), m);
       ok(`${T}：結算按「回小島」→ 回選單、mode 清空、遊戲畫面收起來`, back.menu && back.mode === null && back.scr, JSON.stringify(back));
     }
+    // ===== 1b. 11-14 一年級 6～10 級（docs/zhuyin-math-plan.md §7）：第 5 級 3 星開第 6 級、介紹卡分兩頁、第 10 級玩到結算、最高就是 10 =====
+    for (const m of ["fruit", "hop"]) {
+      const T = m === "fruit" ? "水果籃" : "跳荷葉", hook = m === "fruit" ? "__zyFruit" : "__zyHop";
+      const waitQ = () => p.waitForFunction(h => { const s = window[h]?.state(); return s && s.q && s.i === 0; }, hook, { timeout: 15000 }).catch(() => {});
+      await enterMode(p, m, { lv: 5 }); await waitQ();
+      ok(`${T} Lv5 全對 → 結算`, (await playRound(p, m, [])) && await resultOn(p));
+      await p.waitForFunction(() => { const d = document.getElementById("lvUp"); return d && !d.classList.contains("hidden"); }, null, { timeout: 20000 }).catch(() => {});
+      const up = await p.evaluate(m => ({ lv: window.__zy.lv[m], txt: (() => { const d = document.getElementById("lvUp"); if (!d || d.classList.contains("hidden")) return ""; const c = d.cloneNode(true); c.querySelectorAll("rt").forEach(x => x.remove()); return c.textContent.replace(/\s/g, ""); })() }), m);
+      ok(`${T}：第 5 級 3 星 → 開第 6 級（畫面寫「第6級打開了」）`, up.lv.max === 6 && up.lv.st[5] === 3 && /第6級打開了/.test(up.txt), JSON.stringify(up));
+      await p.evaluate(() => { document.getElementById("lvUp")?.classList.add("hidden"); document.getElementById("menuBtn").click(); }); await sleep(700);
+      // 介紹卡：10 級分兩頁
+      await p.evaluate(m => { window.__zy.setLv(m, 10); window.__zy.showPick(m); }, m); await sleep(300);
+      const pg = () => p.evaluate(() => ({ lvs: [...document.querySelectorAll("#pkLv .lv-pick[data-lv]")].map(b => +b.dataset.lv), on: +(document.querySelector("#pkLv .lv-pick.on")?.dataset.lv || 0), sw: !!document.querySelector("#pkLv .lv-page"),
+        fit: (() => { const r = document.getElementById("pkLv").getBoundingClientRect(), c = document.getElementById("pick").getBoundingClientRect(); return r.left >= c.left - 1 && r.right <= c.right + 1; })() }));
+      const p2 = await pg();
+      ok(`${T} 介紹卡：最高 10 級時先看到 6～10、亮的是 10、有翻頁鈕、沒超出卡片`, p2.lvs.join() === "6,7,8,9,10" && p2.on === 10 && p2.sw && p2.fit, JSON.stringify(p2));
+      await p.screenshot({ path: path.join(SHOTS, `pick10-${m}.png`) });
+      await p.evaluate(() => document.querySelector("#pkLv .lv-page").click()); await sleep(200);
+      const p1 = await pg();
+      ok(`${T} 介紹卡：翻頁 → 1～5，這次要玩的級沒被改掉（還是 10）`, p1.lvs.join() === "1,2,3,4,5" && p1.sw && p1.fit && await p.evaluate(m => window.__zy.lvRec(m).cur === 10, m), JSON.stringify(p1));
+      await p.evaluate(() => window.__zy.hidePick && window.__zy.hidePick()); await sleep(200);
+      await enterMode(p, m, { lv: 10 }); await waitQ();
+      const s10 = await p.evaluate(h => { const s = window[h].state(); return { lv: s.lv, q: s.q }; }, hook);
+      ok(`${T} Lv10：進得去、題目是一年級的（${m === "fruit" ? "二位數" : "跳著數 step 2／5／10"}）`, s10.lv === 10 && (m === "fruit" ? s10.q.a >= 10 : [2, 5, 10].includes(s10.q.step)), JSON.stringify(s10));
+      await sleep(1500); await p.screenshot({ path: path.join(SHOTS, `lv10-${m}.png`) });
+      ok(`${T} Lv10 全對 → 結算 3 星`, (await playRound(p, m, [])) && await resultOn(p) && (await sleep(700), (await resultStars(p)) === 3));
+      await sleep(6000);                                 // 等結算動畫跑完：這時候如果會跳「第 11 級打開了」早就跳了
+      const top = await p.evaluate(m => ({ lv: window.__zy.lv[m], run: window.__zy.mathRun, up: (() => { const d = document.getElementById("lvUp"); return !!d && !d.classList.contains("hidden"); })() }), m);
+      ok(`${T}：第 10 級 3 星 → 最高還是 10（沒有第 11 級）、st[10]＝3、onWin lv 10`, top.lv.max === 10 && top.lv.st[10] === 3 && top.run.lv === 10 && !top.up, JSON.stringify(top));
+      await p.evaluate(() => document.getElementById("menuBtn").click()); await sleep(700);
+    }
     // ===== 2. 存檔重開讀回：等級、最佳紀錄（測試的 enterMode 會把最高級設回 Lv1，所以跟重開前比：一樣就是讀回來了；Lv1 拿 3 星會開 Lv2 上面已驗）=====
     const pre = await p.evaluate(() => ({ lvF: window.__zy.lv.fruit, lvH: window.__zy.lv.hop }));
     await p.reload(); await p.waitForFunction(() => document.getElementById("loading").classList.contains("hidden"), null, { timeout: 15000 });
     await p.evaluate(() => { const g = document.getElementById("startGate"); if (g && !g.classList.contains("hidden")) document.getElementById("startBtn").click(); }); await sleep(400);
     const rb = await p.evaluate(() => ({ lvF: window.__zy.lv.fruit, lvH: window.__zy.lv.hop, bF: window.__zyB.best.fruit, bH: window.__zyB.best.hop }));
     ok("重開網頁：兩款的等級紀錄（跟重開前一樣）與最佳 3 星都讀得回來", JSON.stringify(rb.lvF) === JSON.stringify(pre.lvF) && JSON.stringify(rb.lvH) === JSON.stringify(pre.lvH) && rb.lvF.st[1] === 3 && rb.bF === 3 && rb.bH === 3, JSON.stringify({ rb, pre }));
-    // ===== 3. 家長頁：玩了什麼有兩款、各 2 次 =====
+    // ===== 3. 家長頁：玩了什麼有兩款、各 4 次（1b 又各玩 2 局） =====
     await p.evaluate(() => document.getElementById("settingsBtn").click()); await sleep(500);
     const rows = await p.evaluate(() => [...document.querySelectorAll("#statsModes .st-row")].map(x => x.textContent.replace(/\s/g, "")).filter(t => /水果籃|跳荷葉/.test(t)));
-    ok("家長頁「玩了什麼」有水果籃、跳荷葉各 2 次", rows.some(t => /水果籃2次/.test(t)) && rows.some(t => /跳荷葉2次/.test(t)), JSON.stringify(rows));
+    ok("家長頁「玩了什麼」有水果籃、跳荷葉各 4 次", rows.some(t => /水果籃4次/.test(t)) && rows.some(t => /跳荷葉4次/.test(t)), JSON.stringify(rows));
     await p.evaluate(() => document.getElementById("settingsClose").click());
     ok("旁注音沒漏字", (await p.evaluate(() => [...(window.__zy.zMissing || [])])).length === 0, JSON.stringify(await p.evaluate(() => [...(window.__zy.zMissing || [])])));
     ok("沒有錯誤", errs.length === 0, errs.join(" | "));

@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>水果籃算算看 試玩</title>
 <!-- 獨立試玩頁（不經過主程式）：python -m http.server 8765（專案根目錄）→ http://127.0.0.1:8765/tools/zy-test/fruit-harness.html
-     參數：?lv=3 開哪一級（1～5）｜?speed=4 本局計時器快 4 倍（動畫本身不變快）｜?seed=1 固定亂數｜?ann=1 跑主程式的自動注音
-          ?clean=1 收起試玩工具列（截圖用）｜?noend=1 say／talk 永遠不回 onEnd（測保險計時）｜?talk=0 說明語音關掉（talk 立刻 onEnd、不念）｜?sound=1 有音效
+     參數：?lv=3 開哪一級（1～10；6 級以上＝一年級）｜?speed=4 本局計時器快 4 倍（動畫本身不變快）｜?seed=1 固定亂數｜?ann=1 跑主程式的自動注音
+          ?idle=3000 發呆幾毫秒自動再示範（6 級以上；0＝關掉）｜?clean=1 收起試玩工具列（截圖用）｜?noend=1 say／talk 永遠不回 onEnd（測保險計時）｜?talk=0 說明語音關掉（talk 立刻 onEnd、不念）｜?sound=1 有音效
      假的 api：say／talk 印在左下角＋console，並記到 window.__spoken（{ k: "say"|"talk", text, t }）；later 用 setTimeout（暫停時延後、除以 speed）。
      左上角的 🏠🎵 是假的主程式圓鈕（看會不會跟遊戲擋到）：🏠＝暫停／繼續 -->
 <link rel="stylesheet" href="../../css/zhuyin.css">
@@ -38,13 +38,14 @@
   const clean = Q.get("clean") === "1", noEnd = Q.get("noend") === "1", talkOn = Q.get("talk") !== "0";
   if (clean) document.body.classList.add("clean");
   if (Q.get("ann") === "1") import("../../js/zhuyin-ann.js?v=20").then(m => { m.startAnnotate(); window.__lab.ann = m; });
-  window.__spoken = [];
+  window.__spoken = []; window.__spokenAll = [];           // __spokenAll＝這一頁念過的全部（測試清 __spoken 也不會清它；lv＝念的當下是第幾級）
   const lines = [], calls = { play: [], win: [], stopVoice: 0 };
   const log = (k, t) => { lines.push(`${k}: ${t}`); while (lines.length > 7) lines.shift(); document.getElementById("labLog").textContent = lines.join("\n"); console.log("[fruit]", k, t); };
   let paused = false, voiceTok = 0;
   const T0 = performance.now();
   const voice = (k, t, cb) => {                            // 假語音：新的一句打斷舊的（舊的 onEnd 不來）
     const me = ++voiceTok; window.__spoken.push({ k, text: t, t: Math.round(performance.now() - T0) }); log(k === "say" ? "念" : "說", t);
+    { const s = window.__zyFruit && window.__zyFruit.state(); window.__spokenAll.push({ k, text: t, lv: s ? s.lv : 0 }); }
     if (cb && !noEnd) setTimeout(() => { if (me === voiceTok) cb(); }, (250 + 120 * [...t].length) / speed);
   };
   const api = {
@@ -65,12 +66,13 @@
   if (Q.has("seed")) api.seed = +Q.get("seed");
   const root = document.getElementById("fruitRoot");
   const game = mod.createFruitGame(root, api);
+  if (Q.has("idle")) window.__zyFruit.tune({ idle: +Q.get("idle") || 1e9 });   // 發呆自動示範的秒數（毫秒）；idle=0＝關掉（自動測試預設關）
   const setPaused = v => { paused = !!v; document.getElementById("homeBtn").classList.toggle("on", paused); };
   window.__lab = { mod, game, api, calls, setPaused, paused: () => paused, speed };
 
   const bar = document.getElementById("lab");
   const restart = lv => { document.getElementById("labResult").classList.add("hidden"); game.start(lv); };
-  for (let lv = 1; lv <= 5; lv++) { const b = document.createElement("button"); b.textContent = "Lv" + lv; b.onclick = () => restart(lv); bar.appendChild(b); }
+  for (let lv = 1; lv <= 10; lv++) { const b = document.createElement("button"); b.textContent = "Lv" + lv; b.onclick = () => restart(lv); bar.appendChild(b); }
   const H = () => window.__zyFruit;
   const extra = [["⏸", () => setPaused(!paused)], ["跳過動畫", () => H().skip()], ["答對", () => { const s = H().state(); H().answer(s.q.ans); }], ["答錯", () => H().answerWrong()],
     ["偷看", () => H().peek()], ["再念", () => game.sayCurrent()], ["停", () => game.stop()]];
@@ -78,7 +80,7 @@
   document.getElementById("homeBtn").onclick = () => setPaused(!paused);
   document.getElementById("labResult").onclick = () => document.getElementById("labResult").classList.add("hidden");
   addEventListener("resize", () => game.relayout());
-  restart(Math.min(5, Math.max(1, +Q.get("lv") || 1)));
+  restart(Math.min(10, Math.max(1, +Q.get("lv") || 1)));
   window.__lab.ready = true;
 </script>
 </body>

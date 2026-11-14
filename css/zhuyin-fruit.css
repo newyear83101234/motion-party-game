@@ -119,6 +119,45 @@
 .fr-juice-row .fr-fruit { position: relative; inset: auto; width: 100%; height: 100%; }
 .fr-juice-row .fr-emo { font-size: calc(var(--c) * 0.45); }
 
+/* ===== 一年級 6～10 級（.fr-two）：兩盒十格。預設上下排，.fr-row＝左右並排（js layout() 挑格子比較大的排法）。Lv10（.fr-lv10）＝第一盒放箱子（一箱 10 顆）、第二盒放零散的 ===== */
+.fr-frame2 { display: none; }
+.fr-two .fr-frame2 { display: grid; }
+.fr-two .fr-bk { display: flex; flex-direction: column; align-items: center; gap: calc(var(--c) * 0.36); }
+.fr-two.fr-row .fr-bk { flex-direction: row; }
+.fr-two .fr-say { display: none; }                        /* 不念題目：🔊 收掉 */
+.fr-two .fr-eq { padding: calc(var(--c) * 0.06) calc(var(--c) * 0.42); }
+.fr-two .fr-eq-t { min-height: 1.15em; }                 /* 還沒出題（算式是空的）時高度也一樣：layout() 量版面才準 */
+/* 放滿十顆：那盒亮起來＋掛「10」牌（左上角） */
+.fr-ten { display: none; position: absolute; left: 0; top: 0; translate: -30% -42%; rotate: -8deg; z-index: 5; min-width: calc(var(--c) * 0.78); height: calc(var(--c) * 0.52); box-sizing: border-box;
+  padding: 0 0.2em; border-radius: calc(var(--c) * 0.16); background: #ffc93c; color: #5a3d00; font-size: max(14px, calc(var(--c) * 0.4)); font-weight: 900; line-height: calc(var(--c) * 0.52);
+  text-align: center; box-shadow: 0 0 0 max(2px, calc(var(--c) * 0.045)) #fff, 0 calc(var(--c) * 0.05) calc(var(--c) * 0.08) rgba(0, 0, 0, 0.3); pointer-events: none; font-variant-numeric: tabular-nums; }
+.fr-frame.fr-full { background: #fff3bf; box-shadow: 0 0 0 max(3px, calc(var(--c) * 0.07)) #ffc93c; }
+.fr-frame.fr-full .fr-ten { display: block; }
+.fr-ten.fr-ten-big { scale: 1.5; }                         /* 可以作答了：滿盒的 10 牌放大（從 10 接著數） */
+/* 新掉進來的（加數 b）：淡藍底＋藍框，跟原本的 a 顆分得出來；算式裡的 b 也用同一個顏色（減法＝猴子盤子的顏色） */
+.fr-fruit.fr-new::before { content: ""; position: absolute; inset: -5%; z-index: -1; border-radius: 22%; background: #cfe8ff; box-shadow: inset 0 0 0 max(2px, calc(var(--c) * 0.05)) #4dabf7; }
+.fr-two .fr-nb { padding: 0 0.14em; border-radius: 0.2em; }
+.fr-two .fr-nb-add { background: #cfe8ff; box-shadow: inset 0 0 0 0.05em #4dabf7; }
+.fr-two .fr-nb-sub { background: #f6d7a7; box-shadow: inset 0 0 0 0.05em #b97a3e; }
+/* Lv10：箱子（一箱 10 顆；木箱＋露出一顆水果＋印 10） */
+.fr-lv10 .fr-frame:not(.fr-frame2) { background: #ecd9b8; }
+.fr-lv10 .fr-frame:not(.fr-frame2) .fr-cell { background: rgba(141, 85, 36, 0.12); }
+.fr-crate-box { position: absolute; inset: 5% 2% 3%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5%; border-radius: 12%;
+  background: repeating-linear-gradient(0deg, #dba864 0 30%, #b97a3e 30% 34%); border: max(2px, calc(var(--c) * 0.05)) solid #8d5524; box-shadow: 0 calc(var(--c) * 0.04) 0 rgba(70, 35, 10, 0.3); }
+/* 箱面：2×5 小點（十格的縮小版＝裡面有 10 顆；顏色 --fc＝這題的水果） */
+.fr-crate-dots { display: grid; grid-template-columns: repeat(5, calc(var(--c) * 0.125)); grid-auto-rows: calc(var(--c) * 0.125); gap: calc(var(--c) * 0.028);
+  padding: calc(var(--c) * 0.035); border-radius: calc(var(--c) * 0.06); background: #fff8e6; }
+.fr-crate-dots > i { border-radius: 50%; background: var(--fc, #e03131); box-shadow: inset 0 0 0 max(1px, calc(var(--c) * 0.012)) rgba(0, 0, 0, 0.18); }
+.fr-crate-n { padding: 0 0.16em; border-radius: 0.25em; background: #fff8e6; color: #7a4310; font-size: calc(var(--c) * 0.34); font-weight: 900; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.fr-crate.fr-mini .fr-crate-box { inset: 14% 2% 2%; }
+.fr-crate.fr-mini .fr-crate-n { font-size: calc(var(--c) * 0.27); background: none; padding: 0; color: #fff; text-shadow: 0 1px 0 #5a320f; }
+.fr-crate.fr-mini .fr-crate-dots { display: none; }
+.fr-crate.fr-lit .fr-crate-box, .fr-crate.fr-glow .fr-crate-box { border-color: #ffb300; }
+.fr-hand.fr-crates { grid-template-columns: repeat(4, calc(var(--c) * 0.56)); grid-auto-rows: calc(var(--c) * 0.56); }
+/* 手指示範（每級這次開機第一題） */
+.fr-finger { position: absolute; left: 0; top: 0; z-index: 20; font-size: calc(var(--c) * 1.05); line-height: 1; pointer-events: none; transform-origin: 50% 0; opacity: 0;
+  filter: drop-shadow(0 calc(var(--c) * 0.05) calc(var(--c) * 0.08) rgba(0, 0, 0, 0.35)); }
+
 @media (prefers-reduced-motion: reduce) {
   .fr-cloth { transition-duration: 0.15s; }
   .fr-btn.fr-glow { animation: none; box-shadow: 0 0 0 calc(var(--c) * 0.18) rgba(255, 201, 60, 0.85); }

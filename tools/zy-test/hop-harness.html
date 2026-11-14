@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>青蛙跳荷葉 試玩</title>
 <!-- 獨立試玩頁（不經過主程式）：python -m http.server 8765（專案根目錄）→ http://127.0.0.1:8765/tools/zy-test/hop-harness.html
-     參數：?lv=3 開哪一級（1～5）｜?speed=4 遊戲時間快 4 倍｜?seed=1 固定亂數（出題、蜻蜓飛的位置）｜?ann=1 跑主程式的自動注音
+     參數：?lv=3 開哪一級（1～10；6 級以上＝一年級、不念題目）｜?speed=4 遊戲時間快 4 倍｜?seed=1 固定亂數（出題、蜻蜓飛的位置）｜?ann=1 跑主程式的自動注音
           ?clean=1 收起試玩工具列（截圖用）｜?sound=1 有音效｜?noend=1 假的 say／talk 永遠不回 onEnd（測保險計時）
      假的 api：say／talk 印在左下角＋console，並記到 window.__spoken（{ t, kind: "say"|"talk", text }）；新的一句或 stopVoice 會讓上一句的 onEnd 不來（跟真的一樣）；
           later 用 setTimeout（暫停時延後）；onWin 記到 __lab.calls.win。左上角的 🏠🎵 是假的主程式圓鈕（位置跟真遊戲一樣 2／16vmin，看會不會跟遊戲擋到）：🏠＝暫停／繼續 -->
@@ -71,15 +71,15 @@
 
   const bar = document.getElementById("lab");
   const restart = lv => { document.getElementById("labResult").classList.add("hidden"); game.start(lv); };
-  for (let lv = 1; lv <= 5; lv++) { const b = document.createElement("button"); b.textContent = `Lv${lv}`; b.onclick = () => restart(lv); bar.appendChild(b); }
+  for (let lv = 1; lv <= 10; lv++) { const b = document.createElement("button"); b.textContent = `Lv${lv}`; b.onclick = () => restart(lv); bar.appendChild(b); }
   const H = () => window.__zyHop;
-  const wrongOf = () => { const s = H().state(); if (!s || !s.q) return; if (s.q.ask === "b") return s.q.choices.find(v => v !== s.q.ans); for (const v of [s.q.ans + 2, s.q.ans - 2, s.q.ans + 3, s.q.ans - 3]) if (v >= 0 && v <= 10 && v !== s.q.a) return v; };
+  const wrongOf = () => { const s = H().state(); if (!s || !s.q) return; if (s.q.ask === "b") return s.q.choices.find(v => v !== s.q.ans); const st = s.q.step || 1; for (const d of [2, -2, 3, -3]) { const v = s.q.ans + d * st; if (s.nums.includes(v) && v !== s.q.a) return v; } };   // 荷葉上有的數字（6 級以上每題不同）
   const extra = [["⏸", () => setPaused(!paused)], ["對", () => H().right()], ["錯", () => H().answer(wrongOf())], ["跳過", () => H().skip()], ["🔊", () => game.sayCurrent()], ["停", () => game.stop()]];
   for (const [t, f] of extra) { const b = document.createElement("button"); b.textContent = t; b.onclick = f; bar.appendChild(b); }
   document.getElementById("homeBtn").onclick = () => setPaused(!paused);
   document.getElementById("labResult").onclick = () => document.getElementById("labResult").classList.add("hidden");
   addEventListener("resize", () => game.relayout());
-  restart(Math.max(1, Math.min(5, +Q.get("lv") || 1)));
+  restart(Math.max(1, Math.min(10, +Q.get("lv") || 1)));
   window.__lab.ready = true;
 </script>
 </body>
