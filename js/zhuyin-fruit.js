@@ -320,7 +320,7 @@ export function createFruitGame(root, api) {
     }
     await wait(R, st, T.ready); if (!live(R, st)) return;
     R.phase = "input"; setBtns(R, "on"); R.ev.push({ i: R.i, k: "ready", t: Math.round(now()) });   // 最後一顆放好：現在才能按
-    if (!full) { await actP; if (live(R, st) && R.phase === "input") emit("say", askLine(q)); }   // 縮短版：動作句念完再問「有幾顆？」（已經按了就不問）
+    if (!full) await actP;                               // 縮短版只念動作句「又掉進兩顆！」，不再接「有幾顆？」（阿葉 11-15：語音太多）
   }
 
   // ---------- 一年級（6～10 級）：兩盒十格、Lv10 一箱十顆；不念題目，靠畫面 ----------
@@ -485,7 +485,7 @@ export function createFruitGame(root, api) {
     anim(bk, [{ transform: "none" }, { transform: "translateY(-6%) scale(1.03, 0.97)", offset: 0.35 }, { transform: "translateY(0) scale(0.98, 1.02)", offset: 0.7 }, { transform: "none" }], { duration: mv(420), easing: "ease-out" });   // 籃子跳一下
     for (const f of basketFruits(R)) f.classList.add("fr-glow");
     api.play("ok");
-    const sp = R.lv >= 6 ? wait(R, st, T.show) : speak(R, st, "say", eqText(q), 1200);   // 「三加二等於五」一定念（6 級以上不念：算式卡的 ？ 換成答案給他看）
+    const sp = R.lv >= 6 || (i >= 2 && first) ? wait(R, st, T.show) : speak(R, st, "say", eqText(q), 1200);   // 「三加二等於五」只在每局前 2 題、或這題答錯過才念（阿葉 11-15：每題都念聽膩了）；其他題與 6 級以上只把算式的 ？ 換成答案給他看
     if (first) juiceIn(R, i); else dotEls[i].classList.add("fr-help");
     if (first && R.streak % 3 === 0) flip(R);
     await sp; if (!live(R, st)) return;

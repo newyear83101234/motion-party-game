@@ -93,8 +93,8 @@ async function barBad(p, tag) {
     const w = (await wins(p))[0], nW = PLAN[lv].length, sp = (await spokenFrom(p)).filter(x => x.kind === "say").map(x => x.text);
     ok(`Lv${lv}：玩完一局 onWin`, won && !stuck && w && w.lv === lv && w.total === 10, stuck || JSON.stringify(w));
     if (w) ok(`Lv${lv}：right＝10−答錯題數、wrong＝答錯題數、星數照 starsOf`, w.right === 10 - nW && w.wrong === nW && w.stars === starsOf(w.right), `right ${w.right} wrong ${w.wrong} stars ${w.stars}`);
-    const missEq = seen.filter(q => !sp.includes(eqT(q)));
-    ok(`Lv${lv}：每題都念了算式整句（含示範後點對的題）`, seen.length === 10 && missEq.length === 0, missEq.map(eqT).join("、"));
+    const missEq = seen.filter((q, i) => sp.includes(eqT(q)) !== (i < 2 || wrongSet.has(i)));   // 11-15 阿葉「幾加幾等於幾的語音太多」：只有每局前 2 題、或這題答錯過才念算式
+    ok(`Lv${lv}：算式整句只在前 2 題與答錯過的題念（含示範後點對的題），其他題不念`, seen.length === 10 && missEq.length === 0, missEq.map(eqT).join("、"));
     const kinds = { 1: q => q.op === "+" && q.b >= 1 && q.b <= 3 && q.ask === "c", 2: q => q.op === "+" && q.b <= 5 && q.ask === "c", 3: q => q.op === "-" && q.b <= 3 && q.ask === "c",
       4: q => q.b >= 1 && q.b <= 5 && q.ask === "c", 5: q => q.op === "+" && q.ask === "b" && q.c > q.a && q.c - q.a <= 5 && q.choices.length === 3 && q.choices.includes(q.ans) };
     ok(`Lv${lv}：題型對（${lv === 5 ? "求跳幾下、三顆數字鈕" : lv === 3 ? "減法往回跳 1～3 下" : lv === 4 ? "加減混合 1～5 下" : "加法"}）`, seen.length === 10 && seen.every(kinds[lv]) && (lv !== 4 || (seen.some(q => q.op === "+") && seen.some(q => q.op === "-"))), JSON.stringify(seen.map(q => `${q.a}${q.op}${q.b}`)));

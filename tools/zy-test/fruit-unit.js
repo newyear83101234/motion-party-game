@@ -75,20 +75,21 @@ async function endBad(p, right) {
 // 換成指定的題目重開一局（並清掉開頁那一局留下的語音／音效紀錄）
 async function playList(p, lv, list) { await F(p, "play", lv, list); await p.evaluate(() => { window.__spoken.length = 0; window.__lab.calls.play.length = 0; window.__lab.calls.stopVoice = 0; }); }
 // 頁內：依模組自己的台詞函式算出每題該念什麼（跟事件表對照）
-const lineCheck = p => p.evaluate(async () => {
+const lineCheck = (p, plan = "") => p.evaluate(async plan => {
   const M = window.__lab.mod, C = await import("../../js/zhuyin-math-core.js?v=2");
   const G = window.__zyFruit, round = G.round(), ev = G.events(), bad = [];
   let eqOk = 0, fullOk = 0, shortOk = 0;
   round.forEach((q, i) => {
     const said = ev.filter(e => e.i === i && (e.k === "say" || e.k === "talk")).map(e => e.text);
     const fr = M.FRUITS.find(f => said.includes(M.openLine(q.a, f)));
-    if (said.includes(C.eqText(q))) eqOk++; else bad.push(`第${i + 1}題沒念 ${C.eqText(q)}`);
+    const wantEq = i < 2 || (plan[i] && plan[i] !== "R");   // 11-15 阿葉「幾加幾等於幾的語音太多」：只有每局前 2 題、或這題答錯過才念算式
+    if (said.includes(C.eqText(q)) === wantEq) eqOk++; else bad.push(`第${i + 1}題${wantEq ? "沒念" : "不該念"} ${C.eqText(q)}`);
     if (i < 2) { if (fr && said.includes(M.actLine(q, true)) && !said.includes(M.actLine(q, false))) fullOk++; else bad.push(`第${i + 1}題不是完整句：${said.join("／")}`); }
-    else { if (!fr && said.includes(M.actLine(q, false)) && !said.includes(M.actLine(q, true))) shortOk++; else bad.push(`第${i + 1}題不是縮短句：${said.join("／")}`); }
+    else { if (!fr && said.includes(M.actLine(q, false)) && !said.includes(M.actLine(q, true)) && !said.includes(M.askLine(q))) shortOk++; else bad.push(`第${i + 1}題不是縮短句：${said.join("／")}`); }
   });
   const all = ev.filter(e => e.k === "say" || e.k === "talk").map(e => e.text);
   return { eqOk, fullOk, shortOk, bad, er: all.filter(t => /二顆/.test(t)), round };
-});
+}, plan);
 
 (async () => {
   const browser = await launch();
@@ -110,8 +111,8 @@ const lineCheck = p => p.evaluate(async () => {
     ok(`Lv${lv}：onWin 一次、欄位對（lv／right／wrong／total）`, win.length === 1 && r.lv === lv && r.right === want && r.wrong === wantWrong && r.total === 10, JSON.stringify(r));
     ok(`Lv${lv}：星數＝starsOf(right)（${want} 對 → ${starsOf(want)} 星）`, r.stars === starsOf(want), `stars=${r.stars}`);
     ok(`Lv${lv}：果汁機裡的水果＝第一次就答對的題數`, s && s.juice === want && (await p.evaluate(() => document.querySelectorAll(".fr-dot.fr-on").length)) === want, `juice=${s && s.juice}`);
-    const L = await lineCheck(p);
-    ok(`Lv${lv}：每題答對都念 eqText（${L.eqOk}/10）`, L.eqOk === 10, L.bad.filter(b => /沒念/.test(b)).slice(0, 2).join(" "));
+    const L = await lineCheck(p, plan);
+    ok(`Lv${lv}：算式整句只在前 2 題與答錯過的題念，其他題不念（${L.eqOk}/10）`, L.eqOk === 10, L.bad.filter(b => /沒念|不該念/.test(b)).slice(0, 2).join(" "));
     ok(`Lv${lv}：前 2 題念完整句、之後縮短`, L.fullOk === 2 && L.shortOk === 8, L.bad.filter(b => !/沒念/.test(b)).slice(0, 2).join(" "));
     ok(`Lv${lv}：沒有念成「二顆」`, L.er.length === 0, L.er.slice(0, 2).join(" "));
     if (lv === 1) {

@@ -396,15 +396,16 @@ export function createHopGame(root, api) {
     for (let k = 1; k <= n; k++) LQ(R, () => {
       const at = from + dir * k * q.step; jumpFrog(R, at, dur);
       play("pop", dir > 0 ? Math.min(1.8, 0.9 + 0.1 * k) : Math.max(0.5, 1.1 - 0.09 * k));
-      if (R.quiet) popNum(R, at, k, dur); else say(countZh(q.ask === "b" ? k : at));   // 6 級以上：數字用跳出來的（不念）
+      if (R.quiet || lessTalk(R)) popNum(R, at, k, dur); else say(countZh(q.ask === "b" ? k : at));   // 6 級以上：數字用跳出來的（不念）
       R.counted.push(q.ask === "b" ? k : at);
       footStep(R, k);
     }, dur * (k - 1));
     LQ(R, cb, dur * n + 120);
   }
+  const lessTalk = R => R.i >= 2 && R.wrongQ === 0;        // 阿葉 11-15「幾加幾等於幾的語音太多、聽膩」：每局前 2 題照念（數數＋算式）；第 3 題起第一次就答對 → 數字用跳出來的、算式只給他看；答錯過的題照念（教學）
   function revealAndEq(R, cb) {                          // 算式露出答案、念整句（一定念）
     setEq(R.q, true);
-    if (R.quiet) { L(R, cb, reduce ? 900 : 1300); return; }   // 6 級以上不念算式：停一下讓小孩看答案
+    if (R.quiet || lessTalk(R)) { L(R, cb, reduce ? 900 : 1300); return; }   // 1～5 級第 3 題起、第一次就答對：也不念（lessTalk）   // 6 級以上不念算式：停一下讓小孩看答案
     sayW(R, eqText(R.q), cb);
   }
   function afterEq(R) {

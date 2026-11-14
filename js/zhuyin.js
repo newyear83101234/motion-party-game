@@ -2298,7 +2298,7 @@ function catchWin(r) {
 
 // ---------- 11-10 v10 數學島兩款（docs/zhuyin-math-plan.md）：🍎 水果籃算算看 js/zhuyin-fruit.js、🐸 青蛙跳荷葉 js/zhuyin-hop.js ----------
 // 第一次玩才載；出題共用 js/zhuyin-math-core.js。一局 10 題、不會輸；星星由模組算（第一次就答對 ≥9 題 3 星、≥7 題 2 星），走五級徽章（LV_MODES）。沒有貼紙。
-const MATH_SRC = { fruit: ["./zhuyin-fruit.js?v=2", "createFruitGame"], hop: ["./zhuyin-hop.js?v=2", "createHopGame"] };
+const MATH_SRC = { fruit: ["./zhuyin-fruit.js?v=3", "createFruitGame"], hop: ["./zhuyin-hop.js?v=3", "createHopGame"] };
 const importMath = m => mathMods[m] || (mathMods[m] = import(MATH_SRC[m][0]).catch(e => { mathMods[m] = null; throw e; }));
 function ensureMathGame(m, mod) {
   if (!mathGames[m]) mathGames[m] = mod[MATH_SRC[m][1]]($(m + "Root"), {
